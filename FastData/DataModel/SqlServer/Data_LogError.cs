@@ -31,13 +31,13 @@ namespace FastData.DataModel.SqlServer
         /// <summary>
         /// 出错内容
         /// </summary>
-        [Column(Comments = "出错内容", DataType = "varchar", IsNull = false)]
+        [Column(Comments = "出错内容", DataType = "varchar",Length = 500, IsNull = false)]
         public string Content { get; set; }
 
         /// <summary>
         /// sql语句
         /// </summary>
-        [Column(Comments = "sql语句", DataType = "varchar", IsNull = false)]
+        [Column(Comments = "sql语句", DataType = "varchar",Length = 500, IsNull = false)]
         public string Sql { get; set; }
 
         /// <summary>
