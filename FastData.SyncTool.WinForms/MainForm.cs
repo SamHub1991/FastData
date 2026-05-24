@@ -214,11 +214,13 @@ namespace FastData.SyncTool.WinForms
             tableListGrid.MultiSelect = true;
             tableListGrid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             tableListGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "TableName", HeaderText = "表名", Width = 150 });
-            tableListGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "PrimaryKey", HeaderText = "主键字段", Width = 120 });
-            tableListGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "TimeColumn", HeaderText = "时间字段", Width = 120 });
-            tableListGrid.Columns.Add(new DataGridViewCheckBoxColumn { Name = "EnableTimeRange", HeaderText = "启用时间范围", Width = 60, FalseValue = "False", TrueValue = "True" });
-            tableListGrid.Columns.Add(new DataGridViewCheckBoxColumn { Name = "Enabled", HeaderText = "启用", Width = 50 });
+            tableListGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "PrimaryKey", HeaderText = "主键字段", Width = 100 });
+            tableListGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "TimeColumn", HeaderText = "时间字段", Width = 100 });
+            tableListGrid.Columns.Add(new DataGridViewCheckBoxColumn { Name = "EnableTimeRange", HeaderText = "时间范围", Width = 50, FalseValue = "False", TrueValue = "True" });
+            tableListGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "SyncColumns", HeaderText = "同步字段", Width = 150 });
+            tableListGrid.Columns.Add(new DataGridViewCheckBoxColumn { Name = "Enabled", HeaderText = "启用", Width = 40 });
             tableListGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "Status", HeaderText = "状态", Width = 80 });
+            tableListGrid.Columns.Add(new DataGridViewButtonColumn { Name = "SelectFields", HeaderText = "选择字段", Text = "选择", UseColumnTextForButtonValue = true, Width = 60 });
             tableLayoutPanel.Controls.Add(tableListGrid, 0, 0);
 
             var buttonPanel = new FlowLayoutPanel { Dock = DockStyle.Fill };
@@ -263,8 +265,45 @@ namespace FastData.SyncTool.WinForms
             moveDownButton.Click += delegate { MoveTable(1); };
 
             tableListGrid.SelectionChanged += delegate { OnTableSelectionChanged(); };
+                        tableListGrid.SelectionChanged += delegate { OnTableSelectionChanged(); };
             timeColumnBox.TextChanged += delegate { OnTimeColumnChanged(); };
             enableTimeRangeBox.CheckedChanged += delegate { OnEnableTimeRangeChanged(); };
+            tableListGrid.CellContentClick += delegate (object s, DataGridViewCellEventArgs e) { OnCellContentClick(e.RowIndex); };
+        }
+
+        private void OnCellContentClick(int rowIndex)
+        {
+            if (rowIndex < 0 || rowIndex >= tableConfigs.Count)
+                return;
+
+            if (tableListGrid.Columns[tableListGrid.CurrentCell.ColumnIndex].Name == "SelectFields")
+            {
+                OpenFieldSelector(rowIndex);
+            }
+        }
+
+        private void OpenFieldSelector(int rowIndex)
+        {
+            var config = tableConfigs[rowIndex];
+            var provider = Convert.ToString(sourceProviderBox.SelectedItem);
+            var connectionString = sourceConnectionBox.Text;
+
+            if (string.IsNullOrWhiteSpace(connectionString))
+            {
+                MessageBox.Show("请先填写源库连接字符串");
+                return;
+            }
+
+            var form = new FieldSelectForm(provider, connectionString, config.TableName, config.SyncColumns);
+            if (form.ShowDialog(this) == DialogResult.OK)
+            {
+                config.SyncColumns = form.SelectedColumns;
+                var syncColumnsText = form.SelectedColumns.Count > 0
+                    ? string.Join(",", form.SelectedColumns)
+                    : "(所有字段)";
+                tableListGrid.Rows[rowIndex].Cells["SyncColumns"].Value = syncColumnsText;
+                Log(string.Format("已配置 {0} 表同步字段：{1}", config.TableName, syncColumnsText));
+            }
         }
 
         private void InitializeTimer()
@@ -386,7 +425,7 @@ namespace FastData.SyncTool.WinForms
                 {
                     if (!TableExists(tableName))
                     {
-                        int rowIndex = tableListGrid.Rows.Add(tableName, "Id", "", false, true, "待同步");
+                        int rowIndex = tableListGrid.Rows.Add(tableName, "Id", "", false, "", true, "待同步", "选择");
                         tableConfigs.Add(new TableSyncConfig
                         {
                             TableName = tableName,
@@ -394,6 +433,7 @@ namespace FastData.SyncTool.WinForms
                             IsAutoIncrementKey = true,
                             EnableTimeRange = false,
                             IsEnabled = true,
+                            SyncColumns = new List<string>(),
                             Status = TableSyncStatus.Pending,
                             DataType = SyncDataType.Static
                         });
@@ -441,7 +481,7 @@ namespace FastData.SyncTool.WinForms
                         var tableName = row["TABLE_NAME"].ToString();
                         if (!tableName.StartsWith("fd_") && !tableName.StartsWith("sys"))
                         {
-                            tableListGrid.Rows.Add(tableName, "Id", "", false, true, "待同步");
+                            tableListGrid.Rows.Add(tableName, "Id", "", false, "", true, "待同步", "选择");
                             tableConfigs.Add(new TableSyncConfig
                             {
                                 TableName = tableName,
@@ -449,6 +489,7 @@ namespace FastData.SyncTool.WinForms
                                 IsAutoIncrementKey = true,
                                 EnableTimeRange = false,
                                 IsEnabled = true,
+                                SyncColumns = new List<string>(),
                                 Status = TableSyncStatus.Pending,
                                 DataType = SyncDataType.Static
                             });

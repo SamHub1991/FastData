@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace FastData.Tooling.Sync
 {
@@ -11,6 +12,11 @@ namespace FastData.Tooling.Sync
         /// 任务 ID
         /// </summary>
         public string TaskId { get; set; }
+
+        /// <summary>
+        /// 任务名称
+        /// </summary>
+        public string TaskName { get; set; }
 
         /// <summary>
         /// 源表名
@@ -48,6 +54,11 @@ namespace FastData.Tooling.Sync
         public int RangeDays { get; set; } = 3;
 
         /// <summary>
+        /// 同步字段列表（逗号分隔，空表示所有字段）
+        /// </summary>
+        public string SyncColumns { get; set; }
+
+        /// <summary>
         /// 上次同步时间
         /// </summary>
         public DateTime? LastSyncTime { get; set; }
@@ -61,5 +72,30 @@ namespace FastData.Tooling.Sync
         /// 数据类型（静态/动态）
         /// </summary>
         public SyncDataType DataType { get; set; } = SyncDataType.Static;
+
+        /// <summary>
+        /// 是否启用
+        /// </summary>
+        public bool IsEnabled { get; set; } = true;
+
+        /// <summary>
+        /// 创建时间
+        /// </summary>
+        public DateTime CreatedTime { get; set; }
+
+        /// <summary>
+        /// 最后修改时间
+        /// </summary>
+        public DateTime ModifiedTime { get; set; }
+
+        /// <summary>
+        /// 最后同步状态
+        /// </summary>
+        public string LastSyncStatus { get; set; }
+
+        /// <summary>
+        /// 最后同步消息
+        /// </summary>
+        public string LastSyncMessage { get; set; }
     }
 }

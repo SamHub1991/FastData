@@ -160,6 +160,36 @@ namespace FastData.Tooling.Sync
             return new List<SyncTaskConfig>(configs.Values);
         }
 
+        /// <summary>
+        /// 删除任务配置
+        /// </summary>
+        public void DeleteTaskConfig(string taskId)
+        {
+            if (string.IsNullOrEmpty(taskId))
+                return;
+
+            if (configs.ContainsKey(taskId))
+            {
+                configs.Remove(taskId);
+                SaveConfigs();
+            }
+        }
+
+        /// <summary>
+        /// 更新任务状态
+        /// </summary>
+        public void UpdateTaskStatus(string taskId, string status, string message)
+        {
+            var config = GetTaskConfig(taskId);
+            if (config != null)
+            {
+                config.LastSyncStatus = status;
+                config.LastSyncMessage = message;
+                config.ModifiedTime = DateTime.Now;
+                SaveTaskConfig(config);
+            }
+        }
+
         private static string ExtractStringValue(string line)
         {
             var start = line.IndexOf('"', line.IndexOf(':') + 1);

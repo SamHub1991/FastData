@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace FastData.Tooling.Sync
 {
@@ -43,6 +44,11 @@ namespace FastData.Tooling.Sync
         /// 同步范围天数（默认 3 天）
         /// </summary>
         public int RangeDays { get; set; } = 3;
+
+        /// <summary>
+        /// 同步字段列表（空表示所有字段）
+        /// </summary>
+        public IList<string> SyncColumns { get; set; }
 
         /// <summary>
         /// 是否启用
