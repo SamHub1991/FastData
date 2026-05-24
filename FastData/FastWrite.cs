@@ -16,6 +16,11 @@ namespace FastData
     /// </summary>
     public static class FastWrite
     {
+        public static FastWriteDb Use(string key)
+        {
+            return new FastWriteDb(key);
+        }
+
         #region 批量增加
         /// <summary>
         /// 批量增加
@@ -26,6 +31,7 @@ namespace FastData
         /// <returns></returns>
         public static WriteReturn AddList<T>(List<T> list, string key = null, bool IsTrans = false, bool isLog = true) where T : class, new()
         {
+            key = key ?? FastDb.CurrentKey;
             ConfigModel config = null;
             var result = new DataReturn<T>();
             var stopwatch = new Stopwatch();
@@ -75,6 +81,7 @@ namespace FastData
         /// <returns></returns>
         public static WriteReturn Add<T>(T model, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
+            key = key ?? FastDb.CurrentKey;
             ConfigModel config = null;
             var result = new DataReturn<T>();
             var stopwatch = new Stopwatch();
@@ -133,6 +140,7 @@ namespace FastData
         /// <returns></returns>
         public static WriteReturn Delete<T>(Expression<Func<T, bool>> predicate, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
+            key = key ?? FastDb.CurrentKey;
             ConfigModel config = null;
             var result = new DataReturn<T>();
             var stopwatch = new Stopwatch();
@@ -188,6 +196,7 @@ namespace FastData
         /// <returns></returns>
         public static WriteReturn Delete<T>(T model, DataContext db = null, string key = null, bool isTrans = false, bool isOutSql = false) where T : class, new()
         {
+            key = key ?? FastDb.CurrentKey;
             ConfigModel config = null;
             var result = new DataReturn<T>();
             var stopwatch = new Stopwatch();
@@ -226,7 +235,7 @@ namespace FastData
         {
             return Task.Run(() =>
            {
-               return Delete<T>(model, db, key, isOutSql);
+               return Delete<T>(model, db, key, isTrans, isOutSql);
            });
         }
         #endregion
@@ -244,6 +253,7 @@ namespace FastData
         /// <returns></returns>
         public static WriteReturn Update<T>(T model, Expression<Func<T, bool>> predicate, Expression<Func<T, object>> field = null, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
+            key = key ?? FastDb.CurrentKey;
             ConfigModel config = null;
             var result = new DataReturn<T>();
             var stopwatch = new Stopwatch();
@@ -301,6 +311,7 @@ namespace FastData
         /// <returns></returns>
         public static WriteReturn Update<T>(T model, Expression<Func<T, object>> field = null, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
+            key = key ?? FastDb.CurrentKey;
             ConfigModel config = null;
             var result = new DataReturn<T>();
             var stopwatch = new Stopwatch();
@@ -353,6 +364,7 @@ namespace FastData
         /// <returns></returns>
         public static WriteReturn UpdateList<T>(List<T> list, Expression<Func<T, object>> field = null, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
+            key = key ?? FastDb.CurrentKey;
             ConfigModel config = null;
             var result = new DataReturn<T>();
             var stopwatch = new Stopwatch();
@@ -406,6 +418,7 @@ namespace FastData
         /// <returns></returns>
         public static WriteReturn ExecuteSql(string sql, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
+            key = key ?? FastDb.CurrentKey;
             ConfigModel config = null;
             var result = new DataReturn();
             var stopwatch = new Stopwatch();

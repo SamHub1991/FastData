@@ -95,9 +95,12 @@
     <Compile Include="DataModel\SqlServer\Data_LogError.cs" />
     <Compile Include="DataModel\SqlServer\Data_MapFile.cs" />
     <Compile Include="CacheModel\ColumnModel.cs" />
+    <Compile Include="FastDb.cs" />
     <Compile Include="FastMap.cs" />
     <Compile Include="FastRead.cs" />
+    <Compile Include="FastReadDb.cs" />
     <Compile Include="FastWrite.cs" />
+    <Compile Include="FastWriteDb.cs" />
     <Compile Include="Aop\IFastAop.cs" />
     <Compile Include="Model\ColumnComments.cs" />
     <Compile Include="Model\ColumnType.cs" />
@@ -119,7 +122,9 @@
     <Compile Include="Property\PropertyCache.cs" />
     <Compile Include="Property\TableAttribute.cs" />
     <Compile Include="Repository\FastRepository.cs" />
+    <Compile Include="Repository\FastRepositoryFactory.cs" />
     <Compile Include="Repository\IFastRepository.cs" />
+    <Compile Include="Repository\IFastRepositoryFactory.cs" />
     <Compile Include="Repository\IQuery.cs" />
     <Compile Include="Repository\Query.cs" />
     <Compile Include="Type\DataDbType.cs" />

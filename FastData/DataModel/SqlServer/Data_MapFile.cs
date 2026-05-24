@@ -4,46 +4,45 @@ using FastData.Property;
 namespace FastData.DataModel.SqlServer
 {
     /// <summary>
-    /// 出错日志
+    /// sqlserver map文件表
     /// </summary>
-    /// </summary>
-    [Table(Comments = "出错日志")]
-    internal class Data_LogError
+    [Table(Comments = "map文件")]
+    internal class Data_MapFile
     {
         /// <summary>
-        /// error id
+        /// map id
         /// </summary>
-        [Column(Comments = "Error id", DataType = "varchar", Length = 64, IsNull = false, IsKey = true)]
-        public string ErrorId { get; set; }
+        [Column(Comments = "Map id", DataType = "varchar", Length = 32, IsNull = false, IsKey = true)]
+        public string MapId { get; set; }
 
         /// <summary>
-        /// 出错方法
+        /// 文件名称
         /// </summary>
-        [Column(Comments = "出错的方法", DataType = "varchar", IsNull = true, Length = 32)]
-        public string Method { get; set; }
+        [Column(Comments = "文件名称", DataType = "varchar", IsNull = true, Length = 32)]
+        public string FileName { get; set; }
 
         /// <summary>
-        /// 出错对象
+        /// 文件路径
         /// </summary>
-        [Column(Comments = "出错对象", DataType = "varchar", IsNull = true, Length = 32)]
-        public string Type { get; set; }
+        [Column(Comments = "文件路径", DataType = "varchar", IsNull = true, Length = 255)]
+        public string FilePath { get; set; }
 
         /// <summary>
-        /// 出错内容
+        /// 明文文件内容
         /// </summary>
-        [Column(Comments = "出错内容", DataType = "varchar", IsNull = false)]
-        public string Content { get; set; }
+        [Column(Comments = "明文文件内容", DataType = "varchar", IsNull = true)]
+        public string DeFileContent { get; set; }
 
         /// <summary>
-        /// sql语句
+        /// 加密文件内容
         /// </summary>
-        [Column(Comments = "sql语句", DataType = "varchar", IsNull = false)]
-        public string Sql { get; set; }
+        [Column(Comments = "加密文件内容", DataType = "varchar", IsNull = true)]
+        public string EnFileContent { get; set; }
 
         /// <summary>
-        /// 增加时间
+        /// 最后修改时间
         /// </summary>
-        [Column(Comments = "增加时间", DataType = "Datetime", IsNull = false)]
-        public DateTime AddTime { get; set; }
+        [Column(Comments = "最后修改时间", DataType = "Datetime", IsNull = true)]
+        public DateTime LastTime { get; set; }
     }
 }

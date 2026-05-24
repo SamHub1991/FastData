@@ -13,6 +13,24 @@ namespace FastData.Config
         /// </summary>
         public string ProviderName { get; set; }
         #endregion
+
+        #region 数据库类型
+        /// <summary>
+        /// 数据库类型
+        /// </summary>
+        [ConfigurationProperty("Provider", IsRequired = false, DefaultValue = "")]
+        public string Provider
+        {
+            get
+            {
+                return base["Provider"].ToString();
+            }
+            set
+            {
+                base["Provider"] = value;
+            }
+        }
+        #endregion
         
         #region 参数串字符
         /// <summary>
@@ -133,6 +151,24 @@ namespace FastData.Config
             set
             {
                 base["Key"] = value;
+            }
+        }
+        #endregion
+
+        #region 是否默认连接
+        /// <summary>
+        /// 是否默认连接
+        /// </summary>
+        [ConfigurationProperty("IsDefault", IsRequired = false, DefaultValue = "false")]
+        public bool IsDefault
+        {
+            get
+            {
+                return (bool)base["IsDefault"];
+            }
+            set
+            {
+                base["IsDefault"] = value;
             }
         }
         #endregion

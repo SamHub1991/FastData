@@ -13,6 +13,7 @@ using System.Linq.Expressions;
 using System.Data;
 using FastData.Property;
 using FastData.Aop;
+using FastData.Core.Base;
 
 namespace FastData.Context
 {

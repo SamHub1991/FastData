@@ -19,6 +19,11 @@ namespace FastData
     /// </summary>
     public static class FastRead
     {
+        public static FastReadDb Use(string key)
+        {
+            return new FastReadDb(key);
+        }
+
         #region 查询join
         /// <summary>
         /// 查询join
@@ -56,6 +61,7 @@ namespace FastData
         /// <returns></returns>
         public static DataQuery Query<T>(Expression<Func<T, bool>> predicate, Expression<Func<T, object>> field = null, string key = null, string dbFile = "db.config")
         {
+            key = key ?? FastDb.CurrentKey;
             var projectName = Assembly.GetCallingAssembly().GetName().Name;
             var result = new DataQuery();
             result.Config = DataConfig.GetConfig(key, projectName, dbFile);
@@ -641,6 +647,7 @@ namespace FastData
         /// <returns></returns>
         public static List<T> ExecuteSql<T>(string sql, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
+            key = key ?? FastDb.CurrentKey;
             ConfigModel config = null;
             var result = new DataReturn<T>();
             var stopwatch = new Stopwatch();
@@ -964,6 +971,7 @@ namespace FastData
         /// <returns></returns>
         public static List<Dictionary<string, object>> ExecuteSql(string sql, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
+            key = key ?? FastDb.CurrentKey;
             ConfigModel config = null;
             var result = new DataReturn();
             var stopwatch = new Stopwatch();

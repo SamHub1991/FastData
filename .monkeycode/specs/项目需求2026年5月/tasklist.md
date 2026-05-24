@@ -10,13 +10,13 @@
 
 ## 2. 多数据库配置简化
 
-- [ ] 新增统一 `Connections` 配置结构。
-- [ ] 保留旧配置格式兼容读取。
-- [ ] 实现默认数据库配置。
-- [ ] 实现 `FastRead.Use(key)` 和 `FastWrite.Use(key)`。
-- [ ] 实现 `FastDb.Use(key)` 作用域切换。
-- [ ] 实现 `IFastRepositoryFactory` 指定库 Repository。
-- [ ] 补充配置错误提示和可用 Key 提示。
+- [x] 新增统一 `Connections` 配置结构。
+- [x] 保留旧配置格式兼容读取。
+- [x] 实现默认数据库配置。
+- [x] 实现 `FastRead.Use(key)` 和 `FastWrite.Use(key)`。
+- [x] 实现 `FastDb.Use(key)` 作用域切换。
+- [x] 实现 `IFastRepositoryFactory` 指定库 Repository。
+- [x] 补充配置错误提示和可用 Key 提示。
 
 ## 3. Model 生成工具
 

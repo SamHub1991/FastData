@@ -14,6 +14,11 @@ namespace FastData.Model
         public List<DbParameter> Param { set; get; } = new List<DbParameter>();
 
         /// <summary>
+        /// 是否成功
+        /// </summary>
+        public bool IsSuccess { get; set; } = true;
+
+        /// <summary>
         /// 条件
         /// </summary>
         public string Where { get; set; }
