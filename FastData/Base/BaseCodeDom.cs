@@ -17,7 +17,7 @@ namespace FastData.Base
         public static bool GetResult(string code,string references=null)
         {
             //动态编译
-            var compiler = new CSharpCodeProvider().CreateCompiler(); 
+            var compiler = new CSharpCodeProvider();
             var param = new CompilerParameters();
 
             param.ReferencedAssemblies.Add("System.dll");

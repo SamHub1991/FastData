@@ -22,7 +22,7 @@
 - 已新增 `FastData.SyncTool.WinForms`，支持源库/目标库配置、中间库配置、SQL Server/MySQL/Oracle 中间库 SQL 导出、自动创建中间库表、基础全量同步、基础增量同步、失败重试计数、失败记录恢复、中间库清理入口和运行日志。
 - 已补充 XML SQL Map、Repository、AOP 和 FAQ 文档。
 - 已在核心包中新增数据库适配器和 SQL 方言抽象骨架，包含 `IDatabaseAdapter`、`ISqlDialect` 和 `DatabaseAdapterFactory`。
-- 已屏蔽既有 XML 文档注释类构建警告，保留普通编译警告，例如过期 API 提示。
+- 已替换 `BaseCodeDom` 中过期的 `CreateCompiler()` API，使用 `CSharpCodeProvider.CompileAssemblyFromSource`。
 
 ## 验证状态
 
@@ -34,7 +34,7 @@ DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 FrameworkPathOverride="/root/.nuget/pack
 
 验证结果：
 
-- 构建通过，`0 Error(s)`。
+- 构建通过，`0 Warning(s)`、`0 Error(s)`。
 - 新增工具项目构建通过，`0 Warning(s)`、`0 Error(s)`。
 - `git diff --check` 已通过。
 
