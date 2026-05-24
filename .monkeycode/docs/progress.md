@@ -194,8 +194,11 @@ FrameworkPathOverride="/root/.nuget/packages/microsoft.netframework.referenceass
 
 ## 最近提交
 
+- `c6fa631` docs: update README build status
+- `e39fbcc` docs: finalize May 2026 progress summary
 - `b83e03a` chore: fix deprecated API and update progress
 - `85845b2` refactor: add database adapter abstractions
 - `52e99c9` feat: add sync recovery workflow
 - `8b4216a` feat: enhance tooling workflows
+- `638d865` feat: add model generator and sync tools
 - `638d865` feat: add model generator and sync tools
