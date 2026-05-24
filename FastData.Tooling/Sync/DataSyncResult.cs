@@ -1,3 +1,5 @@
+using System;
+
 namespace FastData.Tooling.Sync
 {
     public class DataSyncResult
@@ -15,5 +17,7 @@ namespace FastData.Tooling.Sync
         public string Message { get; set; }
 
         public string LastSyncValue { get; set; }
+
+        public DateTime? LastSyncTime { get; set; }
     }
 }

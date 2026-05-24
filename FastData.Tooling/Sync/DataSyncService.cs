@@ -64,6 +64,12 @@ namespace FastData.Tooling.Sync
                     CleanIntermediateData(options);
             }
 
+            var syncTime = DateTime.Now;
+            if (options.ConfigManager != null && !string.IsNullOrEmpty(options.TaskId))
+            {
+                options.ConfigManager.UpdateLastSyncTime(options.TaskId, syncTime);
+            }
+
             return new DataSyncResult
             {
                 ReadCount = table.Rows.Count,
@@ -72,7 +78,8 @@ namespace FastData.Tooling.Sync
                 RetryCount = retryCount,
                 RecoveredCount = recoveredCount,
                 Message = "同步完成",
-                LastSyncValue = options.LastValue
+                LastSyncValue = options.LastValue,
+                LastSyncTime = syncTime
             };
         }
 
@@ -110,22 +117,71 @@ namespace FastData.Tooling.Sync
         private static string BuildSourceSql(DataSyncOptions options, DbCommand command)
         {
             var sql = "select * from " + options.SourceTable;
-            var whereClauses = new System.Collections.Generic.List<string>();
+            var timeRangeWhere = BuildTimeRangeSql(options, command);
+            
+            if (!string.IsNullOrEmpty(timeRangeWhere))
+                return sql + " where " + timeRangeWhere;
 
-            // 1. 使用配置服务获取主键配置
+            return sql;
+        }
+
+        private static string BuildTimeRangeSql(DataSyncOptions options, DbCommand command)
+        {
+            var whereClauses = new System.Collections.Generic.List<string>();
+            var timeColumn = string.IsNullOrWhiteSpace(options.IncrementalColumn) 
+                ? GetDefaultTimeColumn(options.SourceTable) 
+                : options.IncrementalColumn;
+
+            // 1. 智能范围模式
+            if (options.SyncMode == SyncMode.Smart || (options.SyncMode == SyncMode.Full && !options.IsFirstSync))
+            {
+                var startTime = TimeRangeCalculator.GetSyncStartTime(options.LastSyncTime, options.RangeDays, options.IsFirstSync);
+                if (startTime != DateTime.MinValue && !string.IsNullOrEmpty(timeColumn))
+                {
+                    var parameter = command.CreateParameter();
+                    parameter.ParameterName = "@startTime";
+                    parameter.Value = startTime;
+                    command.Parameters.Add(parameter);
+                    whereClauses.Add(timeColumn + " >= @startTime");
+                }
+            }
+
+            // 2. 手动范围模式
+            if (options.SyncMode == SyncMode.Manual)
+            {
+                if (options.StartTime.HasValue && !string.IsNullOrEmpty(timeColumn))
+                {
+                    var parameter = command.CreateParameter();
+                    parameter.ParameterName = "@startTime";
+                    parameter.Value = options.StartTime.Value;
+                    command.Parameters.Add(parameter);
+                    whereClauses.Add(timeColumn + " >= @startTime");
+                }
+
+                if (options.EndTime.HasValue && !string.IsNullOrEmpty(timeColumn))
+                {
+                    var parameter = command.CreateParameter();
+                    parameter.ParameterName = "@endTime";
+                    parameter.Value = options.EndTime.Value;
+                    command.Parameters.Add(parameter);
+                    whereClauses.Add(timeColumn + " <= @endTime");
+                }
+            }
+
+            // 3. 主键增量（向后兼容）
             if (options.PrimaryKeyConfigService != null)
             {
                 var pkConfig = options.PrimaryKeyConfigService.GetTableConfig(options.SourceTable);
                 if (pkConfig != null && pkConfig.PrimaryKeyColumns != null && pkConfig.PrimaryKeyColumns.Count > 0)
                 {
-                    if (!string.IsNullOrWhiteSpace(options.LastValue))
+                    if (!string.IsNullOrWhiteSpace(options.LastValue) && whereClauses.Count == 0)
                     {
                         whereClauses.Add(BuildPrimaryKeyIncrementalSql(pkConfig, options.LastValue, command));
                     }
                 }
             }
 
-            // 2. 使用内联主键配置（向后兼容）
+            // 4. 内联主键配置（向后兼容）
             if (whereClauses.Count == 0 && !string.IsNullOrWhiteSpace(options.PrimaryKeyColumns))
             {
                 var pkColumns = options.PrimaryKeyColumns.Split(',');
@@ -139,7 +195,7 @@ namespace FastData.Tooling.Sync
                 }
             }
 
-            // 3. 使用增量字段配置（向后兼容）
+            // 5. 增量字段配置（向后兼容）
             if (whereClauses.Count == 0 && !string.IsNullOrWhiteSpace(options.IncrementalColumn) && !string.IsNullOrWhiteSpace(options.LastValue))
             {
                 var parameter = command.CreateParameter();
@@ -149,10 +205,18 @@ namespace FastData.Tooling.Sync
                 whereClauses.Add(options.IncrementalColumn + " > @lastValue");
             }
 
-            if (whereClauses.Count > 0)
-                return sql + " where " + string.Join(" AND ", whereClauses);
+            return whereClauses.Count > 0 ? string.Join(" AND ", whereClauses) : null;
+        }
 
-            return sql;
+        private static string GetDefaultTimeColumn(string tableName)
+        {
+            // 常见时间字段优先级
+            var commonTimeColumns = new[] { "UpdateTime", "ModifiedTime", "LastUpdated", "CreateTime", "CreatedTime", "InsertTime", "UpdateDate", "CreatedDate" };
+            foreach (var column in commonTimeColumns)
+            {
+                return column;
+            }
+            return null;
         }
 
         private static string BuildPrimaryKeyIncrementalSql(TablePrimaryKeyConfig pkConfig, string lastValue, DbCommand command)

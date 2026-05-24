@@ -1,3 +1,5 @@
+using System;
+
 namespace FastData.Tooling.Sync
 {
     public class DataSyncOptions
@@ -20,13 +22,27 @@ namespace FastData.Tooling.Sync
 
         public string TargetTable { get; set; }
 
+        public string PrimaryKeyColumns { get; set; }
+
+        public bool IsAutoIncrementKey { get; set; }
+
         public string IncrementalColumn { get; set; }
 
         public string LastValue { get; set; }
 
-        public string PrimaryKeyColumns { get; set; }
+        public DateTime? StartTime { get; set; }
 
-        public bool IsAutoIncrementKey { get; set; }
+        public DateTime? EndTime { get; set; }
+
+        public SyncMode SyncMode { get; set; }
+
+        public bool IsFirstSync { get; set; }
+
+        public int RangeDays { get; set; }
+
+        public DateTime? LastSyncTime { get; set; }
+
+        public System.Collections.Generic.IList<TableSyncConfig> Tables { get; set; }
 
         public int BatchSize { get; set; }
 
@@ -43,5 +59,7 @@ namespace FastData.Tooling.Sync
         public int SyncIntervalSeconds { get; set; }
 
         public PrimaryKeyConfigService PrimaryKeyConfigService { get; set; }
+
+        public SyncConfigManager ConfigManager { get; set; }
     }
 }

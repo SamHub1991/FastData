@@ -51,6 +51,10 @@
     <Compile Include="Sync\DataSyncResult.cs" />
     <Compile Include="Sync\DataSyncService.cs" />
     <Compile Include="Sync\PrimaryKeyConfigService.cs" />
+    <Compile Include="Sync\SyncTaskConfig.cs" />
+    <Compile Include="Sync\TableSyncConfig.cs" />
+    <Compile Include="Sync\SyncConfigManager.cs" />
+    <Compile Include="Sync\TimeRangeCalculator.cs" />
     <Compile Include="Sync\IntermediateSchemaBuilder.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
