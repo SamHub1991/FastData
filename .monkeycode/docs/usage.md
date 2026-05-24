@@ -333,8 +333,11 @@ var users = FastMap.Query<UserResult>("User.GetList", param.ToArray(), null, "De
 - 选择数据库 Provider。
 - 输入连接字符串并测试连接。
 - 加载数据表。
+- 按表名搜索过滤。
 - 多选数据表。
 - 设置默认命名空间。
+- 设置单表命名空间覆盖。
+- 选择数据表后预览字段、数据库类型、是否可空和主键信息。
 - 预览生成的 Model 代码。
 - 输出 `.cs` Model 文件。
 
@@ -354,9 +357,12 @@ var users = FastMap.Query<UserResult>("User.GetList", param.ToArray(), null, "De
 
 - 配置源库 Provider 和连接字符串。
 - 配置目标库 Provider 和连接字符串。
-- 配置源表、目标表和批量大小。
-- 导出 SQL Server 中间库 SQL。
+- 配置源表、目标表、批量大小和失败重试次数。
+- 配置增量字段和增量起点，用于生成基础增量同步查询。
+- 选择是否清理中间库成功记录。
+- 按目标库 Provider 导出 SQL Server、MySQL 或 Oracle 中间库 SQL。
 - 执行基础全量同步。
+- 执行基础增量同步。
 - 查看运行日志和错误信息。
 
 入口文件：`FastData.SyncTool.WinForms/Program.cs`

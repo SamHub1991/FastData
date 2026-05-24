@@ -12,7 +12,9 @@ namespace FastData.ModelGenerator.WinForms
         private readonly ComboBox providerBox = new ComboBox();
         private readonly TextBox connectionBox = new TextBox();
         private readonly TextBox namespaceBox = new TextBox();
+        private readonly TextBox tableNamespaceBox = new TextBox();
         private readonly TextBox outputBox = new TextBox();
+        private readonly TextBox searchBox = new TextBox();
         private readonly ListBox tableList = new ListBox();
         private readonly TextBox previewBox = new TextBox();
         private readonly Button testButton = new Button();
@@ -32,7 +34,7 @@ namespace FastData.ModelGenerator.WinForms
 
         private void BuildLayout()
         {
-            var panel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 8 };
+            var panel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 10 };
             panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 220));
             panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             Controls.Add(panel);
@@ -52,10 +54,14 @@ namespace FastData.ModelGenerator.WinForms
             namespaceBox.Dock = DockStyle.Fill;
             panel.Controls.Add(namespaceBox, 1, 2);
 
-            AddLabel(panel, "输出目录", 3);
+            AddLabel(panel, "单表命名空间", 3);
+            tableNamespaceBox.Dock = DockStyle.Fill;
+            panel.Controls.Add(tableNamespaceBox, 1, 3);
+
+            AddLabel(panel, "输出目录", 4);
             outputBox.Text = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Models");
             outputBox.Dock = DockStyle.Fill;
-            panel.Controls.Add(outputBox, 1, 3);
+            panel.Controls.Add(outputBox, 1, 4);
 
             var buttonPanel = new FlowLayoutPanel { Dock = DockStyle.Fill };
             testButton.Text = "测试连接";
@@ -66,25 +72,31 @@ namespace FastData.ModelGenerator.WinForms
             buttonPanel.Controls.Add(loadButton);
             buttonPanel.Controls.Add(previewButton);
             buttonPanel.Controls.Add(generateButton);
-            panel.Controls.Add(buttonPanel, 1, 4);
+            panel.Controls.Add(buttonPanel, 1, 5);
 
-            AddLabel(panel, "数据表", 5);
+            AddLabel(panel, "表搜索", 6);
+            searchBox.Dock = DockStyle.Fill;
+            panel.Controls.Add(searchBox, 1, 6);
+
+            AddLabel(panel, "数据表", 7);
             tableList.Dock = DockStyle.Fill;
             tableList.SelectionMode = SelectionMode.MultiExtended;
-            panel.Controls.Add(tableList, 1, 5);
+            panel.Controls.Add(tableList, 1, 7);
 
-            AddLabel(panel, "代码预览", 6);
+            AddLabel(panel, "代码预览", 8);
             previewBox.Dock = DockStyle.Fill;
             previewBox.Multiline = true;
             previewBox.ScrollBars = ScrollBars.Both;
             previewBox.Font = new System.Drawing.Font("Consolas", 10);
-            panel.Controls.Add(previewBox, 1, 6);
+            panel.Controls.Add(previewBox, 1, 8);
 
+            panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
             panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
             panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
             panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
             panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
             panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
+            panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
             panel.RowStyles.Add(new RowStyle(SizeType.Percent, 35));
             panel.RowStyles.Add(new RowStyle(SizeType.Percent, 65));
         }
@@ -100,6 +112,8 @@ namespace FastData.ModelGenerator.WinForms
             loadButton.Click += delegate { LoadTables(); };
             previewButton.Click += delegate { PreviewCode(); };
             generateButton.Click += delegate { GenerateFiles(); };
+            searchBox.TextChanged += delegate { RefreshTableList(); };
+            tableList.SelectedIndexChanged += delegate { PreviewColumns(); };
         }
 
         private DatabaseConnectionOptions GetOptions()
@@ -129,9 +143,7 @@ namespace FastData.ModelGenerator.WinForms
             try
             {
                 tables = MetadataReaderFactory.Create(GetOptions()).GetTables();
-                tableList.Items.Clear();
-                foreach (var table in tables)
-                    tableList.Items.Add(table.FullName);
+                RefreshTableList();
             }
             catch (Exception ex)
             {
@@ -147,7 +159,7 @@ namespace FastData.ModelGenerator.WinForms
 
             var reader = MetadataReaderFactory.Create(GetOptions());
             var columns = reader.GetColumns(table.FullName);
-            previewBox.Text = new ModelCodeGenerator().Generate(namespaceBox.Text, table, columns);
+            previewBox.Text = new ModelCodeGenerator().Generate(GetNamespace(), table, columns);
         }
 
         private void GenerateFiles()
@@ -161,10 +173,41 @@ namespace FastData.ModelGenerator.WinForms
                 if (table == null)
                     continue;
 
-                var code = generator.Generate(namespaceBox.Text, table, reader.GetColumns(table.FullName));
+                var code = generator.Generate(GetNamespace(), table, reader.GetColumns(table.FullName));
                 File.WriteAllText(Path.Combine(outputBox.Text, table.Name + ".cs"), code);
             }
             MessageBox.Show("生成完成");
+        }
+
+        private void RefreshTableList()
+        {
+            var keyword = searchBox.Text ?? string.Empty;
+            tableList.Items.Clear();
+            foreach (var table in tables)
+            {
+                if (keyword.Length == 0 || table.FullName.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) >= 0)
+                    tableList.Items.Add(table.FullName);
+            }
+        }
+
+        private void PreviewColumns()
+        {
+            var table = tableList.SelectedItem == null ? null : FindTable(Convert.ToString(tableList.SelectedItem));
+            if (table == null)
+                return;
+
+            var reader = MetadataReaderFactory.Create(GetOptions());
+            var columns = reader.GetColumns(table.FullName);
+            var lines = new List<string>();
+            foreach (var column in columns)
+                lines.Add(string.Format("{0}\t{1}\tNullable:{2}\tPrimaryKey:{3}", column.Name, column.DbType, column.IsNullable, column.IsPrimaryKey));
+
+            previewBox.Text = string.Join(Environment.NewLine, lines.ToArray());
+        }
+
+        private string GetNamespace()
+        {
+            return string.IsNullOrWhiteSpace(tableNamespaceBox.Text) ? namespaceBox.Text : tableNamespaceBox.Text;
         }
 
         private DatabaseTable GetSelectedTable()

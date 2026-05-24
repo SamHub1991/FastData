@@ -6,6 +6,10 @@ namespace FastData.Tooling.Sync
 
         public int WriteCount { get; set; }
 
+        public int FailedCount { get; set; }
+
+        public int RetryCount { get; set; }
+
         public string Message { get; set; }
     }
 }

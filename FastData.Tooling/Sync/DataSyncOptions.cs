@@ -14,6 +14,14 @@ namespace FastData.Tooling.Sync
 
         public string TargetTable { get; set; }
 
+        public string IncrementalColumn { get; set; }
+
+        public string LastValue { get; set; }
+
         public int BatchSize { get; set; }
+
+        public int RetryCount { get; set; }
+
+        public bool CleanIntermediateData { get; set; }
     }
 }
