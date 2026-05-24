@@ -357,8 +357,12 @@ var users = FastMap.Query<UserResult>("User.GetList", param.ToArray(), null, "De
 
 - 配置源库 Provider 和连接字符串。
 - 配置目标库 Provider 和连接字符串。
+- 配置中间库 Provider 和连接字符串。
+- 配置同步任务 ID。
 - 配置源表、目标表、批量大小和失败重试次数。
 - 配置增量字段和增量起点，用于生成基础增量同步查询。
+- 自动创建中间库表。
+- 恢复中间库中的失败记录。
 - 选择是否清理中间库成功记录。
 - 按目标库 Provider 导出 SQL Server、MySQL 或 Oracle 中间库 SQL。
 - 执行基础全量同步。
@@ -373,3 +377,54 @@ var users = FastMap.Query<UserResult>("User.GetList", param.ToArray(), null, "De
 - `DataSyncService`
 - `DataSyncOptions`
 - `DataSyncResult`
+
+## 13. FAQ
+
+### 未传数据库 Key 时使用哪个连接？
+
+优先使用 `DataConfig Default="..."` 指定的连接，其次使用 `IsDefault="true"` 的连接，最后使用配置中的第一个可用连接。
+
+### 旧版 Oracle、MySql、SqlServer 分组配置还能用吗？
+
+可以继续使用。统一 `Connections` 配置是推荐写法，旧版分组配置保留兼容读取。
+
+### `Provider` 应该填写什么？
+
+可以填写数据库类型名，例如 `SqlServer`、`MySql`、`Oracle`，也可以填写 provider invariant name，例如 `System.Data.SqlClient`、`MySql.Data.MySqlClient`、`Oracle.ManagedDataAccess.Client`。
+
+### 如何让一段业务代码都使用同一个数据库？
+
+使用 `FastDb.Use(key)` 包裹代码块：
+
+```csharp
+using (FastDb.Use("ReportDb"))
+{
+    var list = FastRead.Query<User>(a => a.IsEnabled == true);
+    var result = FastWrite.Add(new User { UserName = "report-user" });
+}
+```
+
+### 如何只给一次查询或写入指定数据库？
+
+使用绑定写法：
+
+```csharp
+var list = FastRead.Use("ReportDb").Query<User>(a => a.IsEnabled == true);
+var result = FastWrite.Use("ReportDb").Add(new User { UserName = "report-user" });
+```
+
+### Model 生成工具生成的文件放在哪里？
+
+工具默认输出到程序目录下的 `Models` 文件夹，也可以在界面中修改输出目录。
+
+### 数据同步工具的增量同步如何配置？
+
+填写增量字段和增量起点后，工具会生成 `where 增量字段 > 增量起点` 的基础增量查询。增量字段建议使用自增主键、更新时间或单调递增版本号。
+
+### 失败记录如何恢复？
+
+配置中间库连接并勾选“恢复失败记录”后，工具会读取 `fd_sync_record` 中 `status = 'Failed'` 的记录，重新写入目标表，成功后标记为 `Success`。
+
+### 中间库清理会清理哪些数据？
+
+勾选“清理中间库成功记录”后，工具会清理 `fd_sync_record` 和 `fd_sync_batch` 中状态为 `Success` 的记录。

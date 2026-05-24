@@ -10,6 +10,12 @@ namespace FastData.Tooling.Sync
 
         public string TargetConnectionString { get; set; }
 
+        public string IntermediateProvider { get; set; }
+
+        public string IntermediateConnectionString { get; set; }
+
+        public string TaskId { get; set; }
+
         public string SourceTable { get; set; }
 
         public string TargetTable { get; set; }
@@ -23,5 +29,9 @@ namespace FastData.Tooling.Sync
         public int RetryCount { get; set; }
 
         public bool CleanIntermediateData { get; set; }
+
+        public bool AutoCreateIntermediateSchema { get; set; }
+
+        public bool ResumeFailedRecords { get; set; }
     }
 }

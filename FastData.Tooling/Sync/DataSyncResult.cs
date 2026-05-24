@@ -10,6 +10,8 @@ namespace FastData.Tooling.Sync
 
         public int RetryCount { get; set; }
 
+        public int RecoveredCount { get; set; }
+
         public string Message { get; set; }
     }
 }
