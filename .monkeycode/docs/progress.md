@@ -21,6 +21,8 @@
 - 已新增 `FastData.ModelGenerator.WinForms`，支持连接测试、加载数据表、表搜索、字段预览、单表命名空间覆盖、预览代码和生成 Model 文件。
 - 已新增 `FastData.SyncTool.WinForms`，支持源库/目标库配置、中间库配置、SQL Server/MySQL/Oracle 中间库 SQL 导出、自动创建中间库表、基础全量同步、基础增量同步、失败重试计数、失败记录恢复、中间库清理入口和运行日志。
 - 已补充 XML SQL Map、Repository、AOP 和 FAQ 文档。
+- 已在核心包中新增数据库适配器和 SQL 方言抽象骨架，包含 `IDatabaseAdapter`、`ISqlDialect` 和 `DatabaseAdapterFactory`。
+- 已屏蔽既有 XML 文档注释类构建警告，保留普通编译警告，例如过期 API 提示。
 
 ## 验证状态
 
@@ -38,7 +40,6 @@ DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 FrameworkPathOverride="/root/.nuget/pack
 
 ## 待推进
 
-- 架构优化：继续抽取数据库适配器、SQL 方言、元数据读取接口。
 - Model 生成工具：补充真实数据库流程验证。
 - 数据同步工具：补充真实数据库端到端验证。
 - 验证：在可用数据库环境中验证原有 ORM API、默认库切换、端到端同步、失败重试、任务恢复和中间库清理。

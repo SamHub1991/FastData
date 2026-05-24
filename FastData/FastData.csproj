@@ -24,6 +24,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <DocumentationFile>bin\Debug\FastData.xml</DocumentationFile>
+    <NoWarn>$(NoWarn);1591;1570;1572;1573;1711;1712</NoWarn>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
@@ -33,6 +34,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <NoWarn>$(NoWarn);1591;1570;1572;1573;1711;1712</NoWarn>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup>
@@ -62,6 +64,15 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Adapter\DatabaseAdapter.cs" />
+    <Compile Include="Adapter\DatabaseAdapterFactory.cs" />
+    <Compile Include="Adapter\Db2Dialect.cs" />
+    <Compile Include="Adapter\IDatabaseAdapter.cs" />
+    <Compile Include="Adapter\ISqlDialect.cs" />
+    <Compile Include="Adapter\LimitDialect.cs" />
+    <Compile Include="Adapter\OracleDialect.cs" />
+    <Compile Include="Adapter\SqliteDialect.cs" />
+    <Compile Include="Adapter\SqlServerDialect.cs" />
     <Compile Include="Aop\AfterContext.cs" />
     <Compile Include="Aop\AopEnum.cs" />
     <Compile Include="Aop\BeforeContext.cs" />
