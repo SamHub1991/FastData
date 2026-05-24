@@ -428,3 +428,63 @@ var result = FastWrite.Use("ReportDb").Add(new User { UserName = "report-user" }
 ### 中间库清理会清理哪些数据？
 
 勾选“清理中间库成功记录”后，工具会清理 `fd_sync_record` 和 `fd_sync_batch` 中状态为 `Success` 的记录。
+
+---
+
+## 故障排查
+
+### 构建失败：COM 注册错误
+
+**症状**：构建时报错 `error MSB4044: The "RegisterForComInterop" task was not given a value for the required parameter`
+
+**解决方案**：添加 `/p:RegisterForComInterop=false` 构建参数
+```bash
+dotnet build FastData.sln /p:RegisterForComInterop=false
+```
+
+### 构建失败：.NET Framework 路径错误
+
+**症状**：构建时报错 `The reference assemblies for .NETFramework,Version=v4.5 were not found`
+
+**解决方案**：设置 `FrameworkPathOverride` 环境变量
+```bash
+FrameworkPathOverride="/root/.nuget/packages/microsoft.netframework.referenceassemblies.net45/1.0.3/build/.NETFramework/v4.5" dotnet build
+```
+
+### 构建失败：全球化设置错误
+
+**症状**：Linux 环境构建时出现 `System.Globalization.CultureNotFoundException`
+
+**解决方案**：设置全球化不变模式
+```bash
+DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 dotnet build
+```
+
+### 配置错误：找不到数据库 Key
+
+**症状**：运行时提示 `未找到指定的数据库 Key`
+
+**解决方案**：
+1. 检查 `db.config` 中 `Connections` 配置节点是否包含指定 Key
+2. 确认 `Default` 属性配置正确
+3. 错误提示会列出所有可用 Key
+
+### 同步失败：中间库表不存在
+
+**症状**：同步工具提示 `表 fd_sync_batch 不存在`
+
+**解决方案**：
+1. 点击"导出创建中间库脚本"按钮
+2. 在中间库执行生成的 SQL 脚本
+3. 或勾选"自动创建中间库表"后重新同步
+
+### 连接失败：Provider 不匹配
+
+**症状**：测试连接时提示 `Unable to find the requested .NET Framework DataProvider`
+
+**解决方案**：
+1. 安装对应数据库 provider 包
+   - SQL Server: `System.Data.SqlClient` (内置)
+   - MySQL: `MySql.Data` NuGet 包
+   - Oracle: `Oracle.ManagedDataAccess` NuGet 包
+2. 确认 `db.config` 中 `Provider` 属性值与安装的 provider 一致
