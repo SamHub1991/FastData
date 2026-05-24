@@ -323,3 +323,47 @@ var users = FastMap.Query<UserResult>("User.GetList", param.ToArray(), null, "De
 - 新增 `Connections` 配置用于简化多数据库配置。
 - 新增默认库机制后，未传 Key 时优先使用 `Default` 或 `IsDefault="true"` 指定的连接。
 - 多个连接未指定默认库时，使用配置中的第一个可用连接。
+
+## 11. Model 生成工具
+
+项目：`FastData.ModelGenerator.WinForms`
+
+当前工具支持：
+
+- 选择数据库 Provider。
+- 输入连接字符串并测试连接。
+- 加载数据表。
+- 多选数据表。
+- 设置默认命名空间。
+- 预览生成的 Model 代码。
+- 输出 `.cs` Model 文件。
+
+入口文件：`FastData.ModelGenerator.WinForms/Program.cs`
+
+核心复用能力来自 `FastData.Tooling`：
+
+- `IDatabaseMetadataReader`
+- `MetadataReaderFactory`
+- `ModelCodeGenerator`
+
+## 12. 数据同步工具
+
+项目：`FastData.SyncTool.WinForms`
+
+当前工具支持：
+
+- 配置源库 Provider 和连接字符串。
+- 配置目标库 Provider 和连接字符串。
+- 配置源表、目标表和批量大小。
+- 导出 SQL Server 中间库 SQL。
+- 执行基础全量同步。
+- 查看运行日志和错误信息。
+
+入口文件：`FastData.SyncTool.WinForms/Program.cs`
+
+核心复用能力来自 `FastData.Tooling`：
+
+- `IntermediateSchemaBuilder`
+- `DataSyncService`
+- `DataSyncOptions`
+- `DataSyncResult`

@@ -17,6 +17,9 @@
 - 已修复 `DataContext` 中 `Parameter.ParamMerge(...)` 命名空间引用问题。
 - 已将中文使用说明整理到 `.monkeycode/docs/usage.md`。
 - 已将 README 收敛为项目入口、快速示例和文档导航。
+- 已新增 `FastData.Tooling` 公共工具库，包含元数据读取、Model 代码生成、中间库 SQL 生成和基础同步服务。
+- 已新增 `FastData.ModelGenerator.WinForms`，支持连接测试、加载数据表、多选、预览代码和生成 Model 文件。
+- 已新增 `FastData.SyncTool.WinForms`，支持源库/目标库配置、中间库 SQL 导出、基础全量同步和运行日志。
 
 ## 验证状态
 
@@ -29,14 +32,14 @@ DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 FrameworkPathOverride="/root/.nuget/pack
 验证结果：
 
 - 构建通过，`0 Error(s)`。
-- 构建输出仍包含较多 XML 文档注释警告，主要来自既有公开接口注释。
+- 新增工具项目构建通过，`0 Warning(s)`、`0 Error(s)`。
 - `git diff --check` 已通过。
 
 ## 待推进
 
 - 架构优化：继续抽取数据库适配器、SQL 方言、元数据读取接口。
-- Model 生成工具：创建 `FastData.Tooling` 和 `FastData.ModelGenerator.WinForms`。
-- 数据同步工具：创建 `FastData.SyncTool.WinForms`，实现中间库脚本、全量同步、增量同步、重试和清理。
+- Model 生成工具：补充字段预览、表搜索、单表命名空间覆盖和真实数据库流程验证。
+- 数据同步工具：补充中间库自动创建、MySQL/Oracle 中间库脚本、增量同步、重试恢复和中间库清理。
 - 中文文档：后续补充 Model 生成工具、数据同步工具和 FAQ。
 
 ## 当前注意事项
