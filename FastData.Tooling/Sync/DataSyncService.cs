@@ -64,13 +64,7 @@ namespace FastData.Tooling.Sync
                     CleanIntermediateData(options);
             }
 
-            var syncTime = DateTime.Now;
-            if (options.ConfigManager != null && !string.IsNullOrEmpty(options.TaskId))
-            {
-                options.ConfigManager.UpdateLastSyncTime(options.TaskId, syncTime);
-            }
-
-            return new DataSyncResult
+            var result = new DataSyncResult
             {
                 ReadCount = table.Rows.Count,
                 WriteCount = writeCount,
@@ -78,9 +72,24 @@ namespace FastData.Tooling.Sync
                 RetryCount = retryCount,
                 RecoveredCount = recoveredCount,
                 Message = "同步完成",
-                LastSyncValue = options.LastValue,
-                LastSyncTime = syncTime
+                MaxPkValue = GetMaxPrimaryKeyValue(table, options.PrimaryKeyColumns)
             };
+
+            var syncTime = DateTime.Now;
+            if (options.ConfigManager != null && !string.IsNullOrEmpty(options.TaskId))
+            {
+                if (options.EnableTimeRange && result.ReadCount > 0)
+                {
+                    options.ConfigManager.UpdateLastSyncTime(options.TaskId, syncTime);
+                }
+                else if (!options.EnableTimeRange && result.MaxPkValue.HasValue)
+                {
+                    var dt = DateTime.MinValue.AddTicks(result.MaxPkValue.Value);
+                    options.ConfigManager.UpdateLastSyncTime(options.TaskId, dt);
+                }
+            }
+
+            return result;
         }
 
         private static void ValidateOptions(DataSyncOptions options)
@@ -117,106 +126,71 @@ namespace FastData.Tooling.Sync
         private static string BuildSourceSql(DataSyncOptions options, DbCommand command)
         {
             var sql = "select * from " + options.SourceTable;
-            var timeRangeWhere = BuildTimeRangeSql(options, command);
             
-            if (!string.IsNullOrEmpty(timeRangeWhere))
-                return sql + " where " + timeRangeWhere;
+            // 1. 如果启用了时间范围，按时间增量
+            if (options.EnableTimeRange && !string.IsNullOrEmpty(options.TimeColumn))
+            {
+                var timeWhere = BuildTimeRangeFilter(options, command);
+                if (!string.IsNullOrEmpty(timeWhere))
+                    return sql + " where " + timeWhere;
+            }
+            
+            // 2. 静态数据：按主键增量（如果有 LastSyncTime 记录上次的主键最大值）
+            if (!options.EnableTimeRange && !string.IsNullOrEmpty(options.PrimaryKeyColumns) && options.IsAutoIncrementKey)
+            {
+                // 从配置中获取上次的 pk 最大值（存储为 DateTime.Ticks）
+                var config = options.ConfigManager?.GetTaskConfig(options.TaskId);
+                if (config?.LastSyncTime.HasValue == true && config.LastSyncTime.Value > DateTime.MinValue)
+                {
+                    var pkColumns = options.PrimaryKeyColumns.Split(',');
+                    var parameter = command.CreateParameter();
+                    parameter.ParameterName = "@lastPkValue";
+                    parameter.Value = config.LastSyncTime.Value.Ticks;
+                    command.Parameters.Add(parameter);
+                    return sql + " where " + pkColumns[0] + " > @lastPkValue";
+                }
+            }
 
+            // 3. 没有时间范围且没有主键增量：全量查询
             return sql;
         }
 
-        private static string BuildTimeRangeSql(DataSyncOptions options, DbCommand command)
+        private static string BuildTimeRangeFilter(DataSyncOptions options, DbCommand command)
         {
-            var whereClauses = new System.Collections.Generic.List<string>();
-            var timeColumn = string.IsNullOrWhiteSpace(options.IncrementalColumn) 
-                ? GetDefaultTimeColumn(options.SourceTable) 
-                : options.IncrementalColumn;
+            var timeColumn = options.TimeColumn;
+            if (string.IsNullOrEmpty(timeColumn))
+                return null;
 
-            // 1. 智能范围模式
-            if (options.SyncMode == SyncMode.Smart || (options.SyncMode == SyncMode.Full && !options.IsFirstSync))
+            var startTime = DateTime.MinValue;
+            var endTime = options.EndTime ?? DateTime.Now;
+
+            // 首次同步：全量或从 0 开始
+            var config = options.ConfigManager?.GetTaskConfig(options.TaskId);
+            if (config == null || config.IsFirstSync)
             {
-                var startTime = TimeRangeCalculator.GetSyncStartTime(options.LastSyncTime, options.RangeDays, options.IsFirstSync);
-                if (startTime != DateTime.MinValue && !string.IsNullOrEmpty(timeColumn))
-                {
-                    var parameter = command.CreateParameter();
-                    parameter.ParameterName = "@startTime";
-                    parameter.Value = startTime;
-                    command.Parameters.Add(parameter);
-                    whereClauses.Add(timeColumn + " >= @startTime");
-                }
+                if (options.IsFullSyncForFirstTime)
+                    return null; // 首次全量
+            }
+            else if (config.LastSyncTime.HasValue)
+            {
+                // 后续同步：从 (上次同步时间 - rangeDays) 开始
+                startTime = TimeRangeCalculator.GetSyncStartTime(config.LastSyncTime, options.RangeDays, false);
             }
 
-            // 2. 手动范围模式
-            if (options.SyncMode == SyncMode.Manual)
-            {
-                if (options.StartTime.HasValue && !string.IsNullOrEmpty(timeColumn))
-                {
-                    var parameter = command.CreateParameter();
-                    parameter.ParameterName = "@startTime";
-                    parameter.Value = options.StartTime.Value;
-                    command.Parameters.Add(parameter);
-                    whereClauses.Add(timeColumn + " >= @startTime");
-                }
+            if (startTime == DateTime.MinValue)
+                return null;
 
-                if (options.EndTime.HasValue && !string.IsNullOrEmpty(timeColumn))
-                {
-                    var parameter = command.CreateParameter();
-                    parameter.ParameterName = "@endTime";
-                    parameter.Value = options.EndTime.Value;
-                    command.Parameters.Add(parameter);
-                    whereClauses.Add(timeColumn + " <= @endTime");
-                }
-            }
+            var parameterStart = command.CreateParameter();
+            parameterStart.ParameterName = "@startTime";
+            parameterStart.Value = startTime;
+            command.Parameters.Add(parameterStart);
 
-            // 3. 主键增量（向后兼容）
-            if (options.PrimaryKeyConfigService != null)
-            {
-                var pkConfig = options.PrimaryKeyConfigService.GetTableConfig(options.SourceTable);
-                if (pkConfig != null && pkConfig.PrimaryKeyColumns != null && pkConfig.PrimaryKeyColumns.Count > 0)
-                {
-                    if (!string.IsNullOrWhiteSpace(options.LastValue) && whereClauses.Count == 0)
-                    {
-                        whereClauses.Add(BuildPrimaryKeyIncrementalSql(pkConfig, options.LastValue, command));
-                    }
-                }
-            }
+            var parameterEnd = command.CreateParameter();
+            parameterEnd.ParameterName = "@endTime";
+            parameterEnd.Value = endTime;
+            command.Parameters.Add(parameterEnd);
 
-            // 4. 内联主键配置（向后兼容）
-            if (whereClauses.Count == 0 && !string.IsNullOrWhiteSpace(options.PrimaryKeyColumns))
-            {
-                var pkColumns = options.PrimaryKeyColumns.Split(',');
-                if (options.IsAutoIncrementKey && pkColumns.Length == 1 && !string.IsNullOrWhiteSpace(options.LastValue))
-                {
-                    var parameter = command.CreateParameter();
-                    parameter.ParameterName = "@lastValue";
-                    parameter.Value = options.LastValue;
-                    command.Parameters.Add(parameter);
-                    whereClauses.Add(pkColumns[0] + " > @lastValue");
-                }
-            }
-
-            // 5. 增量字段配置（向后兼容）
-            if (whereClauses.Count == 0 && !string.IsNullOrWhiteSpace(options.IncrementalColumn) && !string.IsNullOrWhiteSpace(options.LastValue))
-            {
-                var parameter = command.CreateParameter();
-                parameter.ParameterName = "@lastValue";
-                parameter.Value = options.LastValue;
-                command.Parameters.Add(parameter);
-                whereClauses.Add(options.IncrementalColumn + " > @lastValue");
-            }
-
-            return whereClauses.Count > 0 ? string.Join(" AND ", whereClauses) : null;
-        }
-
-        private static string GetDefaultTimeColumn(string tableName)
-        {
-            // 常见时间字段优先级
-            var commonTimeColumns = new[] { "UpdateTime", "ModifiedTime", "LastUpdated", "CreateTime", "CreatedTime", "InsertTime", "UpdateDate", "CreatedDate" };
-            foreach (var column in commonTimeColumns)
-            {
-                return column;
-            }
-            return null;
+            return timeColumn + " >= @startTime AND " + timeColumn + " <= @endTime";
         }
 
         private static string BuildPrimaryKeyIncrementalSql(TablePrimaryKeyConfig pkConfig, string lastValue, DbCommand command)
@@ -361,6 +335,31 @@ namespace FastData.Tooling.Sync
                 pkColumns.Add(column.ColumnName);
             }
             return pkColumns;
+        }
+
+        private static long? GetMaxPrimaryKeyValue(DataTable table, string pkColumnsStr)
+        {
+            if (table.Rows.Count == 0 || string.IsNullOrEmpty(pkColumnsStr))
+                return null;
+
+            var pkColumn = pkColumnsStr.Split(',')[0].Trim();
+            long maxValue = 0;
+            bool hasValue = false;
+
+            foreach (DataRow row in table.Rows)
+            {
+                if (row[pkColumn] != DBNull.Value)
+                {
+                    var value = Convert.ToInt64(row[pkColumn]);
+                    if (!hasValue || value > maxValue)
+                    {
+                        maxValue = value;
+                        hasValue = true;
+                    }
+                }
+            }
+
+            return hasValue ? maxValue : (long?)null;
         }
 
         private static void SaveFailedRecord(DataSyncOptions options, string taskId, DataTable table, DataRow row)

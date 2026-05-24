@@ -28,9 +28,21 @@ namespace FastData.Tooling.Sync
         public bool IsAutoIncrementKey { get; set; }
 
         /// <summary>
-        /// 增量字段
+        /// 时间字段（可选，用于动态数据）
+        /// 有时间的表填写此字段（如 UpdateTime、CreateTime）
+        /// 没有时间的表留空，按静态数据处理
         /// </summary>
-        public string IncrementalColumn { get; set; }
+        public string TimeColumn { get; set; }
+
+        /// <summary>
+        /// 是否启用时间范围（可选）
+        /// </summary>
+        public bool EnableTimeRange { get; set; }
+
+        /// <summary>
+        /// 同步范围天数（默认 3 天）
+        /// </summary>
+        public int RangeDays { get; set; } = 3;
 
         /// <summary>
         /// 是否启用
@@ -51,6 +63,11 @@ namespace FastData.Tooling.Sync
         /// 最后同步结果消息
         /// </summary>
         public string LastResultMessage { get; set; }
+
+        /// <summary>
+        /// 数据类型（静态/动态）
+        /// </summary>
+        public SyncDataType DataType { get; set; } = SyncDataType.Static;
     }
 
     /// <summary>
@@ -58,29 +75,10 @@ namespace FastData.Tooling.Sync
     /// </summary>
     public enum TableSyncStatus
     {
-        /// <summary>
-        /// 待同步
-        /// </summary>
         Pending,
-
-        /// <summary>
-        /// 同步中
-        /// </summary>
         Syncing,
-
-        /// <summary>
-        /// 同步成功
-        /// </summary>
         Success,
-
-        /// <summary>
-        /// 同步失败
-        /// </summary>
         Failed,
-
-        /// <summary>
-        /// 已跳过
-        /// </summary>
         Skipped
     }
 }

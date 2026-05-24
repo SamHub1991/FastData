@@ -33,9 +33,19 @@ namespace FastData.Tooling.Sync
         public bool IsAutoIncrementKey { get; set; }
 
         /// <summary>
-        /// 增量字段
+        /// 时间字段（可选，用于动态数据）
         /// </summary>
-        public string IncrementalColumn { get; set; }
+        public string TimeColumn { get; set; }
+
+        /// <summary>
+        /// 是否启用时间范围
+        /// </summary>
+        public bool EnableTimeRange { get; set; }
+
+        /// <summary>
+        /// 同步范围天数
+        /// </summary>
+        public int RangeDays { get; set; } = 3;
 
         /// <summary>
         /// 上次同步时间
@@ -48,44 +58,8 @@ namespace FastData.Tooling.Sync
         public bool IsFirstSync { get; set; } = true;
 
         /// <summary>
-        /// 同步范围天数
+        /// 数据类型（静态/动态）
         /// </summary>
-        public int RangeDays { get; set; } = 3;
-
-        /// <summary>
-        /// 同步模式
-        /// </summary>
-        public SyncMode SyncMode { get; set; } = SyncMode.Smart;
-
-        /// <summary>
-        /// 手动模式起始时间
-        /// </summary>
-        public DateTime? ManualStartTime { get; set; }
-
-        /// <summary>
-        /// 手动模式结束时间
-        /// </summary>
-        public DateTime? ManualEndTime { get; set; }
-    }
-
-    /// <summary>
-    /// 同步模式
-    /// </summary>
-    public enum SyncMode
-    {
-        /// <summary>
-        /// 智能范围（自动判断首次/后续）
-        /// </summary>
-        Smart,
-
-        /// <summary>
-        /// 手动范围（指定起止时间）
-        /// </summary>
-        Manual,
-
-        /// <summary>
-        /// 全量同步
-        /// </summary>
-        Full
+        public SyncDataType DataType { get; set; } = SyncDataType.Static;
     }
 }

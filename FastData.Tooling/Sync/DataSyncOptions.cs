@@ -26,23 +26,25 @@ namespace FastData.Tooling.Sync
 
         public bool IsAutoIncrementKey { get; set; }
 
-        public string IncrementalColumn { get; set; }
+        /// <summary>
+        /// 时间字段（可选）
+        /// </summary>
+        public string TimeColumn { get; set; }
 
-        public string LastValue { get; set; }
+        /// <summary>
+        /// 是否启用时间范围
+        /// </summary>
+        public bool EnableTimeRange { get; set; }
 
-        public DateTime? StartTime { get; set; }
+        /// <summary>
+        /// 首次同步时是否全量
+        /// </summary>
+        public bool IsFullSyncForFirstTime { get; set; } = true;
 
+        /// <summary>
+        /// 同步结束时间（默认当前时间）
+        /// </summary>
         public DateTime? EndTime { get; set; }
-
-        public SyncMode SyncMode { get; set; }
-
-        public bool IsFirstSync { get; set; }
-
-        public int RangeDays { get; set; }
-
-        public DateTime? LastSyncTime { get; set; }
-
-        public System.Collections.Generic.IList<TableSyncConfig> Tables { get; set; }
 
         public int BatchSize { get; set; }
 
@@ -61,5 +63,7 @@ namespace FastData.Tooling.Sync
         public PrimaryKeyConfigService PrimaryKeyConfigService { get; set; }
 
         public SyncConfigManager ConfigManager { get; set; }
+
+        public int RangeDays { get; set; } = 3;
     }
 }

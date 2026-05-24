@@ -16,8 +16,8 @@ namespace FastData.Tooling.Sync
 
         public string Message { get; set; }
 
-        public string LastSyncValue { get; set; }
-
         public DateTime? LastSyncTime { get; set; }
+
+        public long? MaxPkValue { get; set; }
     }
 }

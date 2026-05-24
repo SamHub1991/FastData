@@ -53,8 +53,10 @@ namespace FastData.Tooling.Sync
                             currentConfig.TargetTable = ExtractStringValue(trimmed);
                         else if (trimmed.StartsWith("\"PrimaryKeyColumns\""))
                             currentConfig.PrimaryKeyColumns = ExtractStringValue(trimmed);
-                        else if (trimmed.StartsWith("\"IncrementalColumn\""))
-                            currentConfig.IncrementalColumn = ExtractStringValue(trimmed);
+                        else if (trimmed.StartsWith("\"TimeColumn\""))
+                            currentConfig.TimeColumn = ExtractStringValue(trimmed);
+                        else if (trimmed.StartsWith("\"EnableTimeRange\""))
+                            currentConfig.EnableTimeRange = trimmed.Contains("true");
                         else if (trimmed.StartsWith("\"LastSyncTime\""))
                             currentConfig.LastSyncTime = ExtractDateTimeValue(trimmed);
                         else if (trimmed.StartsWith("\"RangeDays\""))
@@ -96,7 +98,8 @@ namespace FastData.Tooling.Sync
                 json.AppendLine(string.Format("    \"SourceTable\": \"{0}\",", EscapeJson(config.SourceTable ?? "")));
                 json.AppendLine(string.Format("    \"TargetTable\": \"{0}\",", EscapeJson(config.TargetTable ?? "")));
                 json.AppendLine(string.Format("    \"PrimaryKeyColumns\": \"{0}\",", EscapeJson(config.PrimaryKeyColumns ?? "")));
-                json.AppendLine(string.Format("    \"IncrementalColumn\": \"{0}\",", EscapeJson(config.IncrementalColumn ?? "")));
+                json.AppendLine(string.Format("    \"TimeColumn\": \"{0}\",", EscapeJson(config.TimeColumn ?? "")));
+                json.AppendLine(string.Format("    \"EnableTimeRange\": {0},", config.EnableTimeRange ? "true" : "false"));
                 json.AppendLine(string.Format("    \"LastSyncTime\": {0},", config.LastSyncTime.HasValue 
                     ? string.Format("\"{0:yyyy-MM-dd HH:mm:ss}\"", config.LastSyncTime.Value) 
                     : "null"));
