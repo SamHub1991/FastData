@@ -24,6 +24,10 @@ namespace FastData.Tooling.Sync
 
         public string LastValue { get; set; }
 
+        public string PrimaryKeyColumns { get; set; }
+
+        public bool IsAutoIncrementKey { get; set; }
+
         public int BatchSize { get; set; }
 
         public int RetryCount { get; set; }
@@ -33,5 +37,11 @@ namespace FastData.Tooling.Sync
         public bool AutoCreateIntermediateSchema { get; set; }
 
         public bool ResumeFailedRecords { get; set; }
+
+        public bool EnableTimer { get; set; }
+
+        public int SyncIntervalSeconds { get; set; }
+
+        public PrimaryKeyConfigService PrimaryKeyConfigService { get; set; }
     }
 }

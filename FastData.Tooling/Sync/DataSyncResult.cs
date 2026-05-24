@@ -13,5 +13,7 @@ namespace FastData.Tooling.Sync
         public int RecoveredCount { get; set; }
 
         public string Message { get; set; }
+
+        public string LastSyncValue { get; set; }
     }
 }
