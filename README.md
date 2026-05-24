@@ -90,4 +90,4 @@ var reportRepository = factory.Use("ReportDb");
 DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 FrameworkPathOverride="/root/.nuget/packages/microsoft.netframework.referenceassemblies.net45/1.0.3/build/.NETFramework/v4.5" /root/.dotnet/dotnet build FastData.sln /p:RegisterForComInterop=false
 ```
 
-已知构建输出中存在较多 XML 文档注释警告，主要来自既有公开接口注释，当前不影响编译通过。
+当前构建状态：`0 Warning(s)`, `0 Error(s)`。
