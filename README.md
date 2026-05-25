@@ -78,6 +78,8 @@ var reportRepository = factory.Use("ReportDb");
 
 - [中文使用说明](.monkeycode/docs/usage.md)
 - [当前进度](.monkeycode/docs/progress.md)
+- [数据同步工具使用指南](.monkeycode/docs/sync-tool.md)
+- [Model 生成工具使用指南](.monkeycode/docs/model-generator.md)
 - [2026 年 5 月需求文档](.monkeycode/specs/项目需求2026年5月/requirements.md)
 - [2026 年 5 月技术方案](.monkeycode/specs/项目需求2026年5月/design.md)
 - [2026 年 5 月任务清单](.monkeycode/specs/项目需求2026年5月/tasklist.md)
@@ -92,16 +94,16 @@ DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 FrameworkPathOverride="/root/.nuget/pack
 
 当前构建状态：`0 Warning(s)`, `0 Error(s)`。
 
-## 代码质量（2026-05-24 审查）
+## 代码质量（2026-05-25 审查）
 
 | 指标 | 数值 | 状态 |
 |------|------|------|
-| C# 文件总数 | 142 个 | - |
-| XML 注释覆盖 | 62 个文件 | 44% |
+| C# 文件总数 | 145 个 | - |
+| XML 注释覆盖 | 65 个文件 | 45% |
 | 临时标记 (TODO/FIXME) | 0 个 | ✅ |
-| 异常处理点 | 51 个 | ✅ |
+| 异常处理点 | 53 个 | ✅ |
 | 参数验证 | 完整 | ✅ |
-| 资源释放模式 | 16 处 `using` | ✅ |
+| 资源释放模式 | 18 处 `using` | ✅ |
 | SQL 注入防护 | 参数化查询 | ✅ |
 | 构建警告 | 0 个 | ✅ |
 | 构建错误 | 0 个 | ✅ |
