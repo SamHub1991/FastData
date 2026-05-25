@@ -51,6 +51,13 @@ namespace FastData.SyncTool.WinForms
         private readonly Button newTaskButton = new Button();
         private readonly Button deleteTaskButton = new Button();
         private readonly Button loadTaskButton = new Button();
+        private readonly Button refreshTaskButton = new Button();
+        private readonly Button editTaskButton = new Button();
+        private readonly Button batchDeleteButton = new Button();
+        private readonly Button batchEnableButton = new Button();
+        private readonly Button batchDisableButton = new Button();
+        private readonly Button exportTaskButton = new Button();
+        private readonly Button importTaskButton = new Button();
         private readonly TabControl tabControl;
 
         private System.Timers.Timer syncTimer;
@@ -244,14 +251,22 @@ namespace FastData.SyncTool.WinForms
         private void BuildTaskTab(TabPage tab)
         {
             var mainPanel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2 };
-            mainPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 35));
+            mainPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
             mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             tab.Controls.Add(mainPanel);
 
             var buttonPanel = new FlowLayoutPanel { Dock = DockStyle.Fill };
             buttonPanel.Controls.Add(newTaskButton);
+            buttonPanel.Controls.Add(editTaskButton);
             buttonPanel.Controls.Add(loadTaskButton);
-            buttonPanel.Controls.Add(deleteTaskButton);
+            buttonPanel.Controls.Add(refreshTaskButton);
+            buttonPanel.Controls.Add(new Label { Width = 20 });
+            buttonPanel.Controls.Add(batchEnableButton);
+            buttonPanel.Controls.Add(batchDisableButton);
+            buttonPanel.Controls.Add(batchDeleteButton);
+            buttonPanel.Controls.Add(new Label { Width = 20 });
+            buttonPanel.Controls.Add(exportTaskButton);
+            buttonPanel.Controls.Add(importTaskButton);
             mainPanel.Controls.Add(buttonPanel, 0, 0);
 
             InitTaskGrid();
@@ -264,9 +279,10 @@ namespace FastData.SyncTool.WinForms
             taskListGrid.AllowUserToAddRows = false;
             taskListGrid.AllowUserToDeleteRows = false;
             taskListGrid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            taskListGrid.MultiSelect = false;
+            taskListGrid.MultiSelect = true;
 
-            taskListGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "TaskName", HeaderText = "任务名称", Width = 200 });
+            taskListGrid.Columns.Add(new DataGridViewCheckBoxColumn { Name = "Select", HeaderText = "选择", Width = 50 });
+            taskListGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "TaskName", HeaderText = "任务名称", Width = 180 });
             taskListGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "TableName", HeaderText = "表名", Width = 150 });
             taskListGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "SyncColumns", HeaderText = "同步字段", Width = 200 });
             taskListGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "DataType", HeaderText = "数据类型", Width = 100 });
@@ -326,14 +342,16 @@ namespace FastData.SyncTool.WinForms
                     var syncColumnsText = !string.IsNullOrEmpty(task.SyncColumns)
                         ? task.SyncColumns
                         : "(所有字段)";
+                    var statusText = task.LastSyncStatus ?? "已配置";
 
                     taskListGrid.Rows.Add(
+                        false,
                         task.TaskName,
                         task.SourceTable,
                         syncColumnsText,
                         dataTypeText,
                         timeRangeText,
-                        "已配置",
+                        statusText,
                         task.LastSyncTime?.ToString("yyyy-MM-dd HH:mm:ss") ?? "未同步"
                     );
                 }
@@ -381,8 +399,29 @@ namespace FastData.SyncTool.WinForms
             loadTaskButton.Text = "加载任务";
             loadTaskButton.Click += delegate { LoadSelectedTask(); };
 
+            editTaskButton.Text = "编辑任务";
+            editTaskButton.Click += delegate { EditSelectedTask(); };
+
+            refreshTaskButton.Text = "刷新列表";
+            refreshTaskButton.Click += delegate { LoadTaskList(); };
+
             deleteTaskButton.Text = "删除任务";
             deleteTaskButton.Click += delegate { DeleteSelectedTask(); };
+
+            batchDeleteButton.Text = "批量删除";
+            batchDeleteButton.Click += delegate { BatchDeleteTasks(); };
+
+            batchEnableButton.Text = "批量启用";
+            batchEnableButton.Click += delegate { BatchEnableTasks(true); };
+
+            batchDisableButton.Text = "批量禁用";
+            batchDisableButton.Click += delegate { BatchEnableTasks(false); };
+
+            exportTaskButton.Text = "导出配置";
+            exportTaskButton.Click += delegate { ExportTaskConfig(); };
+
+            importTaskButton.Text = "导入配置";
+            importTaskButton.Click += delegate { ImportTaskConfig(); };
 
             tableListGrid.SelectionChanged += delegate { OnTableSelectionChanged(); };
             timeColumnBox.TextChanged += delegate { OnTimeColumnChanged(); };
@@ -441,6 +480,23 @@ namespace FastData.SyncTool.WinForms
 
             LoadTaskToConfig(taskName);
             tabControl.SelectedIndex = 0;
+        }
+
+        private void EditSelectedTask()
+        {
+            if (taskListGrid.SelectedRows.Count == 0)
+            {
+                MessageBox.Show("请先选择一个任务");
+                return;
+            }
+
+            var row = taskListGrid.SelectedRows[0];
+            var taskName = Convert.ToString(row.Cells["TaskName"].Value);
+
+            LoadTaskToConfig(taskName);
+            tabControl.SelectedIndex = 0;
+
+            MessageBox.Show("任务已加载到同步配置页，您可以修改后重新保存");
         }
 
         private void LoadTaskToConfig(string taskName)
@@ -503,6 +559,235 @@ namespace FastData.SyncTool.WinForms
                 LoadTaskList();
                 Log(string.Format("任务 {0} 已删除", taskName));
             }
+        }
+
+        private void BatchDeleteTasks()
+        {
+            var selectedTasks = new List<string>();
+            foreach (DataGridViewRow row in taskListGrid.Rows)
+            {
+                if (row.Cells["Select"].Value != null && Convert.ToBoolean(row.Cells["Select"].Value))
+                {
+                    selectedTasks.Add(Convert.ToString(row.Cells["TaskName"].Value));
+                }
+            }
+
+            if (selectedTasks.Count == 0)
+            {
+                MessageBox.Show("请先选择要删除的任务");
+                return;
+            }
+
+            if (MessageBox.Show(string.Format("确认删除选中的 {0} 个任务？", selectedTasks.Count), "批量删除", MessageBoxButtons.YesNo) == DialogResult.Yes)
+            {
+                foreach (var taskName in selectedTasks)
+                {
+                    configManager.DeleteTaskConfig(taskName);
+                }
+                LoadTaskList();
+                Log(string.Format("已批量删除 {0} 个任务", selectedTasks.Count));
+            }
+        }
+
+        private void BatchEnableTasks(bool enable)
+        {
+            var selectedTasks = new List<string>();
+            foreach (DataGridViewRow row in taskListGrid.Rows)
+            {
+                if (row.Cells["Select"].Value != null && Convert.ToBoolean(row.Cells["Select"].Value))
+                {
+                    selectedTasks.Add(Convert.ToString(row.Cells["TaskName"].Value));
+                }
+            }
+
+            if (selectedTasks.Count == 0)
+            {
+                MessageBox.Show("请先选择要操作的任务");
+                return;
+            }
+
+            foreach (var taskName in selectedTasks)
+            {
+                var config = configManager.GetTaskConfig(taskName);
+                if (config != null)
+                {
+                    foreach (var tableConfig in config.TableConfigs)
+                    {
+                        tableConfig.IsEnabled = enable;
+                    }
+                    configManager.SaveTaskConfig(config);
+                }
+            }
+
+            LoadTaskList();
+            Log(string.Format("已批量{0} {1} 个任务", enable ? "启用" : "禁用", selectedTasks.Count));
+        }
+
+        private void ExportTaskConfig()
+        {
+            if (taskListGrid.SelectedRows.Count == 0)
+            {
+                MessageBox.Show("请先选择一个任务");
+                return;
+            }
+
+            var row = taskListGrid.SelectedRows[0];
+            var taskName = Convert.ToString(row.Cells["TaskName"].Value);
+            var config = configManager.GetTaskConfig(taskName);
+
+            if (config == null)
+            {
+                MessageBox.Show("任务配置不存在");
+                return;
+            }
+
+            var saveDialog = new SaveFileDialog
+            {
+                Filter = "JSON 文件|*.json",
+                FileName = string.Format("{0}_config.json", taskName)
+            };
+
+            if (saveDialog.ShowDialog() == DialogResult.OK)
+            {
+                var json = new System.Text.StringBuilder();
+                json.AppendLine("{");
+                json.AppendLine(string.Format("  \"TaskId\": \"{0}\",", EscapeJson(config.TaskId)));
+                json.AppendLine(string.Format("  \"TaskName\": \"{0}\",", EscapeJson(config.TaskName ?? "")));
+                json.AppendLine(string.Format("  \"SourceConnection\": \"{0}\",", EscapeJson(config.SourceConnection ?? "")));
+                json.AppendLine(string.Format("  \"TargetConnection\": \"{0}\",", EscapeJson(config.TargetConnection ?? "")));
+                json.AppendLine(string.Format("  \"IntermediateConnection\": \"{0}\",", EscapeJson(config.IntermediateConnection ?? "")));
+                json.AppendLine("  \"Tables\": [");
+
+                for (int i = 0; i < config.TableConfigs.Count; i++)
+                {
+                    var table = config.TableConfigs[i];
+                    json.AppendLine("    {");
+                    json.AppendLine(string.Format("      \"TableName\": \"{0}\",", EscapeJson(table.TableName)));
+                    json.AppendLine(string.Format("      \"PrimaryKeyColumns\": \"{0}\",", EscapeJson(table.PrimaryKeyColumns ?? "")));
+                    json.AppendLine(string.Format("      \"TimeColumn\": \"{0}\",", EscapeJson(table.TimeColumn ?? "")));
+                    json.AppendLine(string.Format("      \"EnableTimeRange\": {0},", table.EnableTimeRange ? "true" : "false"));
+                    json.AppendLine(string.Format("      \"RangeDays\": {0},", table.RangeDays));
+                    json.AppendLine(string.Format("      \"DataType\": \"{0}\",", table.DataType == SyncDataType.Dynamic ? "Dynamic" : "Static"));
+                    json.AppendLine(string.Format("      \"SyncColumns\": \"{0}\"", EscapeJson(string.Join(",", table.SyncColumns ?? new List<string>()))));
+                    json.Append("    }");
+                    if (i < config.TableConfigs.Count - 1) json.AppendLine(",");
+                    else json.AppendLine();
+                }
+
+                json.AppendLine("  ]");
+                json.AppendLine("}");
+
+                File.WriteAllText(saveDialog.FileName, json.ToString());
+                Log(string.Format("任务配置已导出到 {0}", saveDialog.FileName));
+                MessageBox.Show("导出成功");
+            }
+        }
+
+        private void ImportTaskConfig()
+        {
+            var openFileDialog = new OpenFileDialog
+            {
+                Filter = "JSON 文件|*.json"
+            };
+
+            if (openFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                try
+                {
+                    var json = File.ReadAllText(openFileDialog.FileName);
+                    var config = new SyncTaskConfig();
+
+                    var lines = json.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                    string currentTable = null;
+                    var tableConfig = new TableSyncConfig();
+
+                    foreach (var line in lines)
+                    {
+                        var trimmed = line.Trim();
+
+                        if (trimmed.StartsWith("\"TaskId\""))
+                            config.TaskId = ExtractStringValue(trimmed);
+                        else if (trimmed.StartsWith("\"TaskName\""))
+                            config.TaskName = ExtractStringValue(trimmed);
+                        else if (trimmed.StartsWith("\"SourceConnection\""))
+                            config.SourceConnection = ExtractStringValue(trimmed);
+                        else if (trimmed.StartsWith("\"TargetConnection\""))
+                            config.TargetConnection = ExtractStringValue(trimmed);
+                        else if (trimmed.StartsWith("\"IntermediateConnection\""))
+                            config.IntermediateConnection = ExtractStringValue(trimmed);
+                        else if (trimmed.StartsWith("\"TableName\""))
+                        {
+                            currentTable = ExtractStringValue(trimmed);
+                            tableConfig = new TableSyncConfig { TableName = currentTable };
+                        }
+                        else if (trimmed.StartsWith("\"PrimaryKeyColumns\""))
+                            tableConfig.PrimaryKeyColumns = ExtractStringValue(trimmed);
+                        else if (trimmed.StartsWith("\"TimeColumn\""))
+                            tableConfig.TimeColumn = ExtractStringValue(trimmed);
+                        else if (trimmed.StartsWith("\"EnableTimeRange\""))
+                            tableConfig.EnableTimeRange = trimmed.Contains("true");
+                        else if (trimmed.StartsWith("\"RangeDays\""))
+                            tableConfig.RangeDays = ExtractIntValue(trimmed);
+                        else if (trimmed.StartsWith("\"DataType\""))
+                            tableConfig.DataType = ExtractStringValue(trimmed) == "Dynamic" ? SyncDataType.Dynamic : SyncDataType.Static;
+                        else if (trimmed.StartsWith("\"SyncColumns\""))
+                        {
+                            var columns = ExtractStringValue(trimmed);
+                            tableConfig.SyncColumns = string.IsNullOrEmpty(columns) ? new List<string>() : new List<string>(columns.Split(','));
+                        }
+                        else if (trimmed == "}" && currentTable != null)
+                        {
+                            config.TableConfigs.Add(tableConfig);
+                            currentTable = null;
+                        }
+                    }
+
+                    if (!string.IsNullOrEmpty(config.TaskId))
+                    {
+                        configManager.SaveTaskConfig(config);
+                        LoadTaskList();
+                        Log(string.Format("任务配置已从 {0} 导入", openFileDialog.FileName));
+                        MessageBox.Show("导入成功");
+                    }
+                    else
+                    {
+                        MessageBox.Show("配置文件格式错误");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("导入失败：" + ex.Message);
+                }
+            }
+        }
+
+        private string EscapeJson(string value)
+        {
+            if (string.IsNullOrEmpty(value)) return "";
+            return value.Replace("\\", "\\\\")
+                       .Replace("\"", "\\\"")
+                       .Replace("\r", "\\r")
+                       .Replace("\n", "\\n");
+        }
+
+        private string ExtractStringValue(string line)
+        {
+            var start = line.IndexOf('"', line.IndexOf(':') + 1);
+            if (start < 0) return "";
+            var end = line.IndexOf('"', start + 1);
+            return end > start ? line.Substring(start + 1, end - start - 1) : "";
+        }
+
+        private int ExtractIntValue(string line)
+        {
+            var start = line.IndexOf(':') + 1;
+            while (start < line.Length && (line[start] == ' ' || line[start] == ','))
+                start++;
+            var end = start;
+            while (end < line.Length && char.IsDigit(line[end]))
+                end++;
+            int result;
+            return int.TryParse(line.Substring(start, end - start), out result) ? result : 3;
         }
 
         private void OnCellContentClick(int rowIndex)
@@ -879,6 +1164,11 @@ namespace FastData.SyncTool.WinForms
                     config.LastSyncTime = result.LastSyncTime;
                     config.LastResultMessage = result.Message;
                     UpdateLastSyncTimeLabel(config);
+
+                    configManager.UpdateLastSyncTime(taskIdBox.Text + "_" + config.TableName, result.LastSyncTime ?? DateTime.Now);
+                    configManager.UpdateTaskStatus(taskIdBox.Text + "_" + config.TableName,
+                        result.FailedCount > 0 ? "部分失败" : "成功",
+                        string.Format("读取 {0} 条，写入 {1} 条", result.ReadCount, result.WriteCount));
                 }
 
                 SaveTask();
