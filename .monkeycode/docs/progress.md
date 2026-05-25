@@ -313,7 +313,7 @@ FrameworkPathOverride="/root/.nuget/packages/microsoft.netframework.referenceass
 |------|------|------|
 | 定时同步 | ✅ | System.Timers.Timer，5-3600 秒可配置 |
 | 复合主键 | ✅ | PrimaryKeyConfigService，多字段主键 |
-| UPSERT 模式 | ✅ | 自动判断 INSERT 或 UPDATE |
+| UPSERT 模式 | ✅ | UpsertRow 方法，先检查存在性再决定 INSERT 或 UPDATE |
 | 智能时间范围 | ✅ | 首次全量，后续按最近 N 天增量 |
 | 多表批量同步 | ✅ | DataGridView 批量执行 |
 | 字段级选择 | ✅ | FieldSelectForm，主键强制校验 |
