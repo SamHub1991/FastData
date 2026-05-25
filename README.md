@@ -8,15 +8,249 @@ FastData 是一个面向 .NET Framework 的轻量 ORM 组件，支持 Lambda 查
 
 NuGet 地址：<https://www.nuget.org/packages/Fast.Data/>
 
-## 核心能力
+## 项目结构
 
-- 支持 Oracle、MySQL、SQL Server、SQLite、PostgreSQL、DB2。
-- 支持默认数据库连接和按 Key 指定数据库连接。
-- 支持 `FastRead`、`FastWrite` 静态入口。
-- 支持 `FastRead.Use(key)`、`FastWrite.Use(key)` 绑定数据库 Key。
-- 支持 `using (FastDb.Use(key))` 在当前执行上下文中切换数据库。
-- 支持 `FastRepository` 和 `FastRepositoryFactory`。
-- 支持 XML Map SQL、动态 SQL 标签和 AOP 扩展。
+FastData 是一个完整的生态系统，包含核心 ORM、工具库和辅助工具：
+
+```
+FastData/
+├── FastData/                          # 核心 ORM 组件
+│   ├── FastRead.cs                    # 查询入口（Lambda/XML SQL）
+│   ├── FastWrite.cs                   # 写入入口（INSERT/UPDATE/DELETE）
+│   ├── FastDb.cs                      # 数据库上下文切换
+│   ├── FastMap.cs                     # XML Map SQL 解析
+│   └── Repository/                    # Repository 模式实现
+│
+├── FastData.Tooling/                  # 公共工具库
+│   ├── Database/                      # 数据库适配器和元数据读取
+│   ├── CodeGeneration/                # 代码生成器
+│   └── Sync/                          # 数据同步服务
+│
+├── FastData.ModelGenerator.WinForms/  # Model 生成工具（可视化）
+│   └── MainForm.cs                    # 表选择、代码预览、批量生成
+│
+├── FastData.SyncTool.WinForms/        # 数据同步工具（可视化）
+│   └── MainForm.cs                    # 同步配置、任务管理、定时同步
+│
+├── FastData.Example/                  # 使用示例项目
+│   ├── Model/                         # 示例实体
+│   └── Example/                       # CRUD/Lambda/同步示例
+│
+├── FastData.Tests/                    # 单元测试项目
+│   └── Program.cs                     # 自定义测试运行器
+│
+└── FastUntility/                      # 通用工具库
+    └── Base/                          # 日志、Excel、HTTP 等工具类
+```
+
+## 子项目详细介绍
+
+### 1. FastData（核心 ORM）
+
+**定位**：面向 .NET Framework 的轻量级 ORM 框架
+
+**核心功能**：
+- **Lambda 查询**：支持强类型 Lambda 表达式，编译时检查
+- **XML Map SQL**：XML 文件管理 SQL，支持动态标签和 AOP
+- **多数据库**：Oracle、MySQL、SQL Server、SQLite、PostgreSQL、DB2
+- **数据库切换**：`FastDb.Use(key)` 作用域切换，支持多数据源
+- **Code First/Db First**：支持两种开发模式
+- **AOP 扩展**：支持 SQL 执行前后拦截器
+- **缓存支持**：内置查询缓存机制
+- **Repository 模式**：`IFastRepository` 和工厂模式
+
+**适用场景**：
+- 需要快速开发的企业级应用
+- 多数据库兼容的项目
+- 需要灵活 SQL 控制的场景
+- .NET Framework 4.0+ 项目
+
+---
+
+### 2. FastData.Tooling（工具库）
+
+**定位**：为可视化工具提供公共能力
+
+**核心模块**：
+- **Database 适配器**：统一数据库操作接口
+- **SQL 方言抽象**：处理不同数据库的 SQL 差异
+- **元数据读取器**：获取表结构、字段信息
+- **代码生成器**：根据表结构生成 Model 类
+- **数据同步服务**：跨数据库数据同步核心逻辑
+
+**适用场景**：
+- 需要扩展 FastData 工具链
+- 开发自定义数据库工具
+- 需要跨数据库元数据访问
+
+---
+
+### 3. FastData.ModelGenerator.WinForms（Model 生成工具）
+
+**定位**：可视化 Model 类生成工具，Db First 开发模式必备
+
+**核心功能**：
+- ✅ 支持 SQL Server、MySQL、Oracle 数据库
+- ✅ 可视化连接测试和表加载
+- ✅ 表搜索过滤（支持表名模糊搜索）
+- ✅ 多选表批量生成
+- ✅ 代码预览（生成前查看 C# 代码）
+- ✅ 字段预览（查看字段类型、主键、可空性）
+- ✅ 自定义命名空间（全局和单表覆盖）
+- ✅ 自定义输出目录
+
+**使用流程**：
+1. 选择数据库 Provider
+2. 输入连接字符串，点击"测试连接"
+3. 点击"加载表"，从数据库加载表列表
+4. 搜索或选择目标表（支持 Ctrl/Cmd 多选）
+5. 点击"预览代码"查看生成的 Model
+6. 点击"生成文件"保存到指定目录
+
+**代码示例**：
+```csharp
+// 生成前预览
+public class User
+{
+    public int Id { get; set; }          // 主键
+    public string UserName { get; set; }
+    public string Email { get; set; }
+    public DateTime CreateTime { get; set; }
+    public bool IsActive { get; set; }
+}
+```
+
+**适用场景**：
+- 已有数据库，快速生成实体类
+- 数据库表结构频繁变更
+- Db First 开发模式
+- 需要批量生成数百个表
+
+**文档**：[完整使用指南](/.monkeycode/docs/model-generator.md)
+
+---
+
+### 4. FastData.SyncTool.WinForms（数据同步工具）
+
+**定位**：企业级跨数据库数据同步工具
+
+**核心功能**：
+- ✅ **全量同步**：一次性同步所有数据
+- ✅ **增量同步**：按时间范围或主键增量
+- ✅ **定时同步**：支持准实时同步（最小 1 分钟间隔）
+- ✅ **UPSERT 模式**：自动判断 INSERT 或 UPDATE
+- ✅ **复合主键**：支持多字段主键配置
+- ✅ **字段选择**：只同步指定的字段
+- ✅ **批量操作**：多表同时同步
+- ✅ **失败重试**：自动重试失败记录
+- ✅ **断点续传**：记录失败记录，下次恢复
+- ✅ **任务管理**：增删改查、导入导出配置
+- ✅ **中间库模式**：源库 → 中间库 → 目标库
+
+**同步模式**：
+| 模式 | 说明 | 适用场景 |
+|------|------|----------|
+| InsertOnly | 只插入新数据 | 日志表、流水表 |
+| UpdateOnly | 只更新已存在数据 | 配置表、字典表 |
+| Upsert | 存在则更新，不存在则插入 | 大多数业务表 |
+| Full | 全量同步（先删除再插入） | 维度表、快照表 |
+
+**使用流程**：
+1. 配置源库、目标库、中间库连接
+2. 从源库加载表，选择要同步的表
+3. 配置主键字段（UPSERT 模式必需）
+4. 配置时间字段（增量同步可选）
+5. 选择同步模式和高级选项
+6. 保存任务配置
+7. 手动执行或启用定时同步
+
+**高级特性**：
+- **智能范围**：首次全量，后续按最近 N 天增量
+- **时间范围计算器**：快速选择 1/3/7/30 天/本月/上月
+- **批量操作**：批量启用/禁用/删除任务
+- **导入导出**：JSON 格式配置，便于迁移和备份
+- **实时日志**：同步过程实时显示进度和错误
+
+**适用场景**：
+- 数据仓库 ETL
+- 跨数据库数据迁移
+- 生产环境到测试环境数据同步
+- 多系统数据集成
+- 准实时数据同步（CDC 替代方案）
+
+**文档**：[完整使用指南](/.monkeycode/docs/sync-tool.md)
+
+---
+
+### 5. FastData.Example（示例项目）
+
+**定位**：FastData ORM 使用示例和最佳实践
+
+**包含示例**：
+- **基本 CRUD**：INSERT、SELECT、UPDATE、DELETE、UPSERT
+- **Lambda 查询**：条件查询、多条件、排序、分页、聚合、关联查询
+- **数据同步**：同步配置、同步模式、时间范围、字段选择、复合主键
+
+**运行方式**：
+```bash
+# Windows（.NET Framework）
+FastData.Example.exe
+
+# Linux（需要 Mono）
+mono FastData.Example.exe
+```
+
+**适用场景**：
+- 快速了解 FastData 用法
+- 参考示例代码
+- 学习数据同步工具 API
+
+---
+
+### 6. FastData.Tests（单元测试）
+
+**定位**：核心功能单元测试
+
+**测试框架**：自定义测试运行器（不依赖 xUnit/MSTest）
+
+**测试覆盖**：
+- `TimeRangeCalculator`：时间范围计算器
+- `DatabaseAdapterFactory`：数据库适配器工厂
+- `DataConfig`：数据配置测试
+
+**运行方式**：
+```bash
+# Windows
+FastData.Tests.exe
+
+# CI/CD（GitHub Actions）
+自动运行测试并生成报告
+```
+
+**适用场景**：
+- 回归测试
+- 功能验证
+- CI/CD 流水线
+
+---
+
+### 7. FastUntility（通用工具库）
+
+**定位**：通用工具类库
+
+**核心模块**：
+- **BaseLog**：日志记录
+- **BaseExcel**：Excel 操作
+- **BaseUrl**：HTTP 请求工具
+- **BaseXml**：XML 操作
+- **BaseDic**：字典操作
+- **FastCache**：缓存管理
+- **WebApiHost**：Web API 自托管
+
+**适用场景**：
+- 通用工具类复用
+- 日志、Excel、HTTP 等常见操作
+
 
 ## 快速安装
 
@@ -78,16 +312,27 @@ var defaultRepository = factory.Default();
 var reportRepository = factory.Use("ReportDb");
 ```
 
+
 ## 文档
 
-- [中文使用说明](.monkeycode/docs/usage.md)
-- [当前进度](.monkeycode/docs/progress.md)
-- [数据同步工具使用指南](.monkeycode/docs/sync-tool.md)
-- [Model 生成工具使用指南](.monkeycode/docs/model-generator.md)
-- [2026 年 5 月需求文档](.monkeycode/specs/项目需求2026年5月/requirements.md)
-- [2026 年 5 月技术方案](.monkeycode/specs/项目需求2026年5月/design.md)
-- [2026 年 5 月任务清单](.monkeycode/specs/项目需求2026年5月/tasklist.md)
+### 快速开始
+- [中文使用说明](.monkeycode/docs/usage.md) - 完整的功能介绍和使用指南
+- [README](.monkeycode/docs/README.md) - 项目概览和快速入门
 
+### 工具文档
+- [Model 生成工具使用指南](.monkeycode/docs/model-generator.md) - Db First 开发必备工具
+- [数据同步工具使用指南](.monkeycode/docs/sync-tool.md) - 企业级数据同步解决方案
+
+### 项目文档
+- [当前进度](.monkeycode/docs/progress.md) - 功能完成状态和待办事项
+- [2026 年 5 月需求文档](.monkeycode/specs/项目需求 2026 年 5 月/requirements.md) - EARS 模式需求规格
+- [2026 年 5 月技术方案](.monkeycode/specs/项目需求 2026 年 5 月/design.md) - 技术架构设计
+- [2026 年 5 月任务清单](.monkeycode/specs/项目需求 2026 年 5 月/tasklist.md) - 实施任务列表
+
+### 外部链接
+- [NuGet 包](https://www.nuget.org/packages/Fast.Data/) - 官方包下载
+- [GitHub 仓库](https://github.com/SamHub1991/FastData) - 源代码和 Issues
+- [CI/CD](https://github.com/SamHub1991/FastData/actions) - 持续集成状态
 ## 构建验证
 
 当前解决方案包含旧式 `.NET Framework 4.5` 项目。在 Linux 环境中可通过 .NET SDK 和 reference assemblies 验证构建：
