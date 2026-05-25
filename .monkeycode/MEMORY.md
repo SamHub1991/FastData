@@ -88,3 +88,18 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
   - FastData.Tests 使用自定义测试框架，不依赖外部测试库（xUnit/MSTest）
   - Linux 环境无法运行 .NET Framework 可执行文件（Mono 不可用）
   - GitHub Actions CI 在 windows-latest 上运行（MSBuild + NuGet）
+[数据同步全局去重配置]
+- Date: 2026-05-25
+- Context: Agent 在执行同步工具功能完善时发现
+- Category: 构建方法
+- Instructions:
+  - 新增 AlwaysDeduplicate 配置（默认 true）：始终根据业务主键去重，只插入不存在的记录
+  - 新增 EnableGlobalConfig 配置：启用全局统一配置
+  - 新增 GlobalRangeDays 配置（默认 0）：全局同步范围天数，0=使用任务配置
+  - 同步策略：
+    * AlwaysDeduplicate=true + 有主键 → 检查存在性，存在则跳过，不存在则 INSERT
+    * AlwaysDeduplicate=false + 有主键 → UPSERT 模式，存在则 UPDATE，不存在则 INSERT
+    * AlwaysDeduplicate=true + 无主键 → 直接 INSERT（无法去重）
+  - 配置位置：TableSyncConfig 类（EnableGlobalConfig, GlobalRangeDays, AlwaysDeduplicate）
+  - 同步结果消息会显示：「同步完成 [去重模式：是/否]」
+
