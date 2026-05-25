@@ -33,14 +33,16 @@ namespace FastData.Tooling.Database
                 foreach (DataRow row in schema.Rows)
                 {
                     var tableType = GetValue(row, "TABLE_TYPE");
-                    if (!string.IsNullOrEmpty(tableType) && tableType.ToLower().Contains("view"))
-                        continue;
-
+                    
+                    // 支持表（Table）和视图（View）
+                    var isView = !string.IsNullOrEmpty(tableType) && tableType.ToLower().Contains("view");
+                    
                     result.Add(new DatabaseTable
                     {
                         Schema = GetValue(row, "TABLE_SCHEMA"),
                         Name = GetValue(row, "TABLE_NAME"),
-                        Comment = GetValue(row, "DESCRIPTION")
+                        Comment = GetValue(row, "DESCRIPTION"),
+                        IsView = isView
                     });
                 }
                 return result;

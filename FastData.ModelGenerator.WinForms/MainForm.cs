@@ -21,6 +21,7 @@ namespace FastData.ModelGenerator.WinForms
         private readonly Button loadButton = new Button();
         private readonly Button previewButton = new Button();
         private readonly Button generateButton = new Button();
+        private readonly CheckBox includeViewsBox = new CheckBox();
         private IList<DatabaseTable> tables = new List<DatabaseTable>();
 
         public MainForm()
@@ -63,6 +64,13 @@ namespace FastData.ModelGenerator.WinForms
             outputBox.Dock = DockStyle.Fill;
             panel.Controls.Add(outputBox, 1, 4);
 
+            var optionsPanel = new FlowLayoutPanel { Dock = DockStyle.Fill };
+            includeViewsBox.Text = "包含视图";
+            includeViewsBox.Checked = true;
+            includeViewsBox.AutoSize = true;
+            optionsPanel.Controls.Add(includeViewsBox);
+            panel.Controls.Add(optionsPanel, 1, 5);
+
             var buttonPanel = new FlowLayoutPanel { Dock = DockStyle.Fill };
             testButton.Text = "测试连接";
             loadButton.Text = "加载表";
@@ -72,7 +80,7 @@ namespace FastData.ModelGenerator.WinForms
             buttonPanel.Controls.Add(loadButton);
             buttonPanel.Controls.Add(previewButton);
             buttonPanel.Controls.Add(generateButton);
-            panel.Controls.Add(buttonPanel, 1, 5);
+            panel.Controls.Add(buttonPanel, 1, 6);
 
             AddLabel(panel, "表搜索", 6);
             searchBox.Dock = DockStyle.Fill;
@@ -90,6 +98,7 @@ namespace FastData.ModelGenerator.WinForms
             previewBox.Font = new System.Drawing.Font("Consolas", 10);
             panel.Controls.Add(previewBox, 1, 8);
 
+            panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
             panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
             panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
             panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
@@ -182,11 +191,16 @@ namespace FastData.ModelGenerator.WinForms
         private void RefreshTableList()
         {
             var keyword = searchBox.Text ?? string.Empty;
+            var includeViews = includeViewsBox.Checked;
             tableList.Items.Clear();
             foreach (var table in tables)
             {
-                if (keyword.Length == 0 || table.FullName.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) >= 0)
-                    tableList.Items.Add(table.FullName);
+                if (string.IsNullOrEmpty(keyword) || table.FullName.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    // 根据 IsView 过滤
+                    if (includeViews || !table.IsView)
+                        tableList.Items.Add(string.Format("{0} {1}", table.IsView ? "[视图]" : "[表]", table.FullName));
+                }
             }
         }
 

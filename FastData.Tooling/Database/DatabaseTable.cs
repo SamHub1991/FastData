@@ -8,6 +8,8 @@ namespace FastData.Tooling.Database
 
         public string Comment { get; set; }
 
+        public bool IsView { get; set; }
+
         public string FullName
         {
             get
