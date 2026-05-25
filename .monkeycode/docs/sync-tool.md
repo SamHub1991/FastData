@@ -537,3 +537,269 @@ WHERE OrderId > @lastOrderId OR ItemId IS NOT NULL
 5. **导出配置备份**：使用"导出 SQL"功能备份主键配置
 6. **测试验证**：同步完成后，检查目标表的记录数和数据一致性
 
+
+## 11. 全局去重和时间范围配置
+
+### 11.1 功能背景
+
+在实际数据同步场景中，常见的三种需求：
+
+1. **首次全量，后续增量**：第一次同步所有历史数据，后续只同步最近 N 天的增量数据
+2. **首次也去重**：即使是首次同步，也只插入目标表不存在的记录，避免重复
+3. **全局统一配置**：多个任务使用相同的同步范围和去重策略
+
+新增的全局配置功能完美解决以上需求。
+
+### 11.2 新增配置项
+
+#### AlwaysDeduplicate（始终去重）
+
+| 配置值 | 说明 | 适用场景 |
+|--------|------|----------|
+| `true`（默认） | 始终根据业务主键去重，只插入不存在的记录 | 目标表允许有历史数据，首次同步也只插入新记录 |
+| `false` | 直接插入（配合 UPSERT 模式） | 首次全量同步，目标表为空 |
+
+**行为对比**：
+
+| 场景 | AlwaysDeduplicate=true | AlwaysDeduplicate=false |
+|------|----------------------|------------------------|
+| **首次同步 + 有主键** | 检查存在性，存在则跳过，不存在则插入 | UPSERT 模式：存在则 UPDATE，不存在则 INSERT |
+| **首次同步 + 无主键** | 直接插入（无法去重） | 直接插入 |
+| **后续同步 + 有主键** | 检查存在性，存在则跳过 | UPSERT 模式：存在则 UPDATE |
+
+#### EnableGlobalConfig（启用全局配置）
+
+| 配置值 | 说明 |
+|--------|------|
+| `true` | 所有任务使用统一的全局配置（GlobalRangeDays, AlwaysDeduplicate） |
+| `false`（默认） | 每个任务使用自己的配置 |
+
+**使用场景**：
+- 公司有统一的同步策略（如统一同步最近 7 天）
+- 简化配置，避免每个任务重复配置
+
+#### GlobalRangeDays（全局同步范围天数）
+
+| 配置值 | 说明 |
+|--------|------|
+| `0`（默认） | 使用任务级别的 RangeDays 配置 |
+| `1-365` | 所有启用全局配置的任务使用此天数 |
+
+**示例**：
+- GlobalRangeDays = 7 → 所有任务统一同步最近 7 天数据
+- GlobalRangeDays = 0 → 各任务使用自己的 RangeDays 配置
+
+### 11.3 配置方式
+
+#### 任务级别配置
+
+每个任务可以有自己的配置：
+
+1. 选择要配置的任务
+2. 在同步配置面板中：
+   - **始终去重**：勾选/取消
+   - **时间范围 (天)**：设置天数
+3. 配置自动保存
+
+#### 全局配置模式
+
+启用全局配置后，所有任务使用统一策略：
+
+1. 勾选"启用全局配置"
+2. 设置"全局范围天数"（如 7 天）
+3. 设置"始终去重"（默认勾选）
+4. 所有任务的配置会被全局配置覆盖
+
+### 11.4 推荐配置组合
+
+#### 场景一：首次全量，后续增量（标准模式）
+
+```
+配置：
+- IsFullSyncForFirstTime = true
+- AlwaysDeduplicate = true
+- EnableTimeRange = true
+- RangeDays = 7
+- EnableGlobalConfig = false
+
+行为：
+- 第一次：同步全部历史数据，根据主键去重（只插入不存在的记录）
+- 后续：同步最近 7 天的增量数据，根据主键去重
+```
+
+#### 场景二：首次也去重（保守模式）
+
+```
+配置：
+- IsFullSyncForFirstTime = true
+- AlwaysDeduplicate = true
+- EnableTimeRange = false（不启用时间范围）
+- EnableGlobalConfig = false
+
+行为：
+- 第一次：扫描源表所有数据，只插入目标表不存在的记录
+- 后续：不自动增量（需要手动配置时间范围）
+
+适用：
+- 目标表已有部分数据
+- 需要合并两个数据源
+- 不确定是否有重复数据
+```
+
+#### 场景三：全局统一配置（企业模式）
+
+```
+配置：
+- EnableGlobalConfig = true
+- GlobalRangeDays = 7
+- AlwaysDeduplicate = true
+
+行为：
+- 所有任务统一同步最近 7 天数据
+- 所有任务始终去重
+- 简化配置管理
+
+适用：
+- 公司有统一的数据同步策略
+- 多个任务需要同样的配置
+- 减少配置错误
+```
+
+#### 场景四：视图同步（只读模式）
+
+```
+配置：
+- AlwaysDeduplicate = true（视图可能没有主键，配置业务键）
+- EnableTimeRange = true
+- RangeDays = 7
+- SyncMode = InsertOnly
+
+适用：
+- 源表是视图（不可更新）
+- 按时间增量同步
+- 只插入新记录
+```
+
+### 11.5 配置持久化
+
+全局配置保存在 `sync_tasks.json` 中：
+
+```json
+{
+  "TaskId": "user_sync",
+  "TableName": "User",
+  "PrimaryKeyColumns": "Id",
+  "EnableGlobalConfig": true,
+  "GlobalRangeDays": 7,
+  "AlwaysDeduplicate": true,
+  "EnableTimeRange": true,
+  "RangeDays": 3,
+  "TimeColumn": "UpdateTime"
+}
+```
+
+**配置优先级**：
+
+1. EnableGlobalConfig = true → 使用 GlobalRangeDays
+2. EnableGlobalConfig = false → 使用 RangeDays
+3. AlwaysDeduplicate = true → 始终去重
+4. AlwaysDeduplicate = false → UPSERT 模式
+
+### 11.6 代码实现逻辑
+
+#### ApplyGlobalConfig 方法
+
+```csharp
+private static void ApplyGlobalConfig(DataSyncOptions options)
+{
+    if (options.EnableGlobalConfig)
+    {
+        // 使用全局配置的 RangeDays
+        if (options.GlobalRangeDays > 0)
+            options.RangeDays = options.GlobalRangeDays;
+        
+        // AlwaysDeduplicate 已经设置
+    }
+}
+```
+
+#### TryInsertRowWithDedup 方法
+
+```csharp
+private static bool TryInsertRowWithDedup(...)
+{
+    // 检查记录是否存在
+    var exists = CheckRowExists(connection, tableName, table, row);
+    if (exists)
+    {
+        // 记录已存在，跳过插入（不更新）
+        return true; // 返回 true 表示成功处理（跳过）
+    }
+    else
+    {
+        // 记录不存在，执行插入
+        InsertRow(connection, tableName, table, row);
+        return true;
+    }
+}
+```
+
+### 11.7 同步结果消息
+
+启用去重后，同步结果消息会显示：
+
+```
+同步完成 [去重模式：是]
+同步完成 [去重模式：否]
+```
+
+便于确认去重配置是否生效。
+
+### 11.8 最佳实践
+
+1. **始终启用去重**：AlwaysDeduplicate = true（避免重复数据）
+2. **配置业务主键**：即使表没有数据库主键，也配置业务唯一键
+3. **使用时间范围**：EnableTimeRange = true + RangeDays = 7（减少同步数据量）
+4. **全局配置简化**：多个任务使用相同配置时，启用全局配置
+5. **首次同步验证**：首次同步后，检查目标表的记录数是否合理
+6. **定期清理**：对于无主键表，定期 DELETE 重复记录
+
+### 11.9 常见问题
+
+#### Q1: AlwaysDeduplicate=true 和 UPSERT 模式的区别？
+
+**A**:
+- **AlwaysDeduplicate=true**：存在则跳过，不存在则 INSERT（不 UPDATE）
+- **UPSERT 模式**：存在则 UPDATE，不存在则 INSERT
+
+选择建议：
+- 需要保留目标表的历史修改 → AlwaysDeduplicate=true
+- 需要同步最新的数据 → UPSERT 模式
+
+#### Q2: 全局配置和任务配置冲突怎么办？
+
+**A**: EnableGlobalConfig = true 时，全局配置优先：
+- GlobalRangeDays > 0 → 覆盖 RangeDays
+- AlwaysDeduplicate → 所有任务统一
+
+EnableGlobalConfig = false 时，使用任务自己的配置。
+
+#### Q3: 第一次同步后发现重复数据怎么办？
+
+**A**: 可能原因：
+1. 没有配置主键 → 配置业务唯一键
+2. AlwaysDeduplicate = false → 改为 true
+3. 使用了 Full 模式 → 改用 Upsert 模式
+
+**解决办法**：
+1. 配置主键（打开"主键配置管理"）
+2. 设置 AlwaysDeduplicate = true
+3. 运行一次全量去重同步
+
+#### Q4: 如何确认去重配置已生效？
+
+**A**: 
+1. 查看同步结果消息："同步完成 [去重模式：是]"
+2. 检查日志：会显示跳过了多少条已存在的记录
+3. 比对源表和目标表的记录数
+
