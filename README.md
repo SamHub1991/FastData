@@ -312,6 +312,151 @@ var defaultRepository = factory.Default();
 var reportRepository = factory.Use("ReportDb");
 ```
 
+## Redis 缓存说明
+
+FastData 支持两种缓存模式，Redis 是可选的分布式缓存提供者。
+
+### 是否需要安装 Redis？
+
+| CacheType | 是否需要 Redis | 适用场景 |
+|-----------|---------------|----------|
+| `web` | ❌ **不需要** | 单服务器部署，默认使用 .NET `MemoryCache` |
+| `redis` | ✅ **需要** | 多服务器集群，需要分布式缓存 |
+
+**默认情况**：FastData 使用 `web` 缓存模式，**无需安装 Redis**。
+
+### 何时需要 Redis？
+
+| 需要 Redis | 不需要 Redis |
+|------------|--------------|
+| ✅ 多服务器部署，共享缓存 | ✅ 单服务器部署 |
+| ✅ 缓存持久化（重启不丢失） | ✅ 应用重启可接受缓存清空 |
+| ✅ 缓存数据量超出单机内存 | ✅ 缓存数据量不大 |
+| ✅ 分布式系统 | ✅ 独立应用 |
+
+### 配置缓存模式
+
+#### 使用内存缓存（默认，无需 Redis）
+
+```xml
+<DataConfig Default="DefaultDb">
+  <Connections>
+    <Add 
+      Provider="SqlServer" 
+      Key="DefaultDb" 
+      ConnStr="server=.;database=demo;uid=sa;pwd=123456"
+      CacheType="web" />
+  </Connections>
+</DataConfig>
+```
+
+#### 使用 Redis 缓存（需要 Redis 服务器）
+
+```xml
+<DataConfig Default="DefaultDb">
+  <Connections>
+    <Add 
+      Provider="SqlServer" 
+      Key="DefaultDb" 
+      ConnStr="server=.;database=demo;uid=sa;pwd=123456"
+      CacheType="redis" />
+  </Connections>
+</DataConfig>
+
+<!-- Redis 配置 -->
+<RedisConfig 
+  AutoStart="true"
+  ReadServerList="127.0.0.1:6379"
+  WriteServerList="127.0.0.1:6379"
+  MaxReadPoolSize="60"
+  MaxWritePoolSize="60" />
+```
+
+### Redis 安装方式
+
+#### Docker 安装（推荐）
+
+```bash
+docker run -d --name redis -p 6379:6379 redis:latest
+```
+
+#### Linux 安装
+
+```bash
+sudo apt-get update
+sudo apt-get install redis-server
+sudo systemctl start redis
+redis-cli ping  # 应返回 PONG
+```
+
+#### Windows 安装
+
+```powershell
+# 使用 Chocolatey
+choco install redis-64
+```
+
+### FastData 中的 Redis 使用
+
+FastData 的 Redis 操作是**透明的**，无需直接调用 Redis API：
+
+```csharp
+// FastData 会自动根据 CacheType 选择缓存提供者
+var user = FastRead.Query<User>(a => a.Id == 1).FirstOrDefault();
+// CacheType="redis" → 缓存到 Redis
+// CacheType="web" → 缓存到 MemoryCache
+```
+
+直接使用 Redis（高级用法）：
+
+```csharp
+// 依赖注入配置
+services.AddTransient<IRedisRepository, RedisRepository>();
+
+// 使用示例
+public class UserService
+{
+    private readonly IRedisRepository _redis;
+    
+    public UserService(IRedisRepository redis)
+    {
+        _redis = redis;
+    }
+    
+    public void CacheUser(User user)
+    {
+        _redis.Set("user:" + user.Id, user, TimeSpan.FromHours(1));
+        var cachedUser = _redis.Get<User>("user:" + user.Id);
+        _redis.Remove("user:" + user.Id);
+    }
+}
+```
+
+### 环境差异化配置
+
+开发环境用内存缓存，生产环境用 Redis：
+
+```xml
+<!-- 开发环境 -->
+<Add Provider="SqlServer" CacheType="web" ... />
+
+<!-- 生产环境 -->
+<!-- <Add Provider="SqlServer" CacheType="redis" ... /> -->
+```
+
+### 项目依赖
+
+- `FastData` → `FastRedis`（可选引用，仅当使用 Redis 缓存时）
+- `FastRedis` → `ServiceStack.Redis`（NuGet 包）
+- `FastRedis` 项目包含：
+  - `RedisConfig.cs`：Redis 配置读取
+  - `RedisInfo.cs`：Redis 操作核心类
+  - `Repository/IRedisRepository.cs`：Redis 仓库接口
+  - `Repository/RedisRepository.cs`：Redis 仓库实现
+
+详细文档：[FastRedis 项目源码](/FastRedis/README.md)
+
+
 
 ## 文档
 
