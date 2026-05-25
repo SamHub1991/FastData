@@ -1,10 +1,14 @@
 using FastData.Tooling.Sync;
+using FastData.SyncTool;
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
 using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 using System.Timers;
 using System.Windows.Forms;
+using System.Web.Script.Serialization;
 
 namespace FastData.SyncTool.WinForms
 {
@@ -61,7 +65,6 @@ namespace FastData.SyncTool.WinForms
         private readonly Button batchDisableButton = new Button();
         private readonly Button exportTaskButton = new Button();
         private readonly Button importTaskButton = new Button();
-        private TabControl tabControl;
 
         private System.Timers.Timer syncTimer;
         private bool isSyncing;
@@ -69,6 +72,40 @@ namespace FastData.SyncTool.WinForms
         private readonly SyncConfigManager configManager;
         private List<TableSyncConfig> tableConfigs = new List<TableSyncConfig>();
         private List<SyncTaskConfig> taskConfigs = new List<SyncTaskConfig>();
+        private TabControl tabControl;
+        private TabPage replayTab;
+        private TabPage dbConfigTab;
+
+        // 补录功能控件
+        private readonly ComboBox replaySourceProviderBox = new ComboBox();
+        private readonly TextBox replaySourceConnectionBox = new TextBox();
+        private readonly ComboBox replayTargetProviderBox = new ComboBox();
+        private readonly TextBox replayTargetConnectionBox = new TextBox();
+        private readonly TextBox replayTableNameBox = new TextBox();
+        private readonly DateTimePicker replayStartTimeBox = new DateTimePicker();
+        private readonly DateTimePicker replayEndTimeBox = new DateTimePicker();
+        private readonly CheckBox replayEnableTimeRangeBox = new CheckBox();
+        private readonly TextBox replayPrimaryKeyBox = new TextBox();
+        private readonly Button replayLoadTablesButton = new Button();
+        private readonly Button replayStartButton = new Button();
+        private readonly TextBox replayLogBox = new TextBox();
+        private readonly Label replayStatusLabel = new Label();
+
+        // 数据库配置控件
+        private readonly TextBox dbConnectionNameBox = new TextBox();
+        private readonly ComboBox dbProviderBox = new ComboBox();
+        private readonly TextBox dbConnectionStringBox = new TextBox();
+        private readonly Button dbTestButton = new Button();
+        private readonly Button dbSaveButton = new Button();
+        private readonly Button dbDeleteButton = new Button();
+        private readonly DataGridView dbConnectionGrid = new DataGridView();
+        private readonly TextBox dbLogBox = new TextBox();
+
+        // 共享日志控件
+        private readonly SplitContainer mainSplitContainer = new SplitContainer();
+        private readonly TextBox sharedLogBox = new TextBox();
+        private readonly Button clearLogButton = new Button();
+        private readonly Button exportLogButton = new Button();
 
         public MainForm()
         {
@@ -85,15 +122,152 @@ namespace FastData.SyncTool.WinForms
 
         private void BuildLayout()
         {
+            // 主布局：上部分是 TabControl，下部分是共享日志
+            mainSplitContainer.Dock = DockStyle.Fill;
+            mainSplitContainer.Orientation = Orientation.Horizontal;
+            mainSplitContainer.SplitterDistance = Height - 200;
+
+            Controls.Add(mainSplitContainer);
+
+            // 上部分：TabControl
             tabControl = new TabControl { Dock = DockStyle.Fill };
+            dbConfigTab = new TabPage("数据库配置");
             var configTab = new TabPage("同步配置");
             var taskTab = new TabPage("任务管理");
+            replayTab = new TabPage("数据补录");
+            tabControl.TabPages.Add(dbConfigTab);
             tabControl.TabPages.Add(configTab);
             tabControl.TabPages.Add(taskTab);
-            Controls.Add(tabControl);
+            tabControl.TabPages.Add(replayTab);
+            mainSplitContainer.Panel1.Controls.Add(tabControl);
 
+            // 下部分：共享日志
+            var logPanel = new Panel { Dock = DockStyle.Fill };
+            
+            var logHeaderPanel = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 30 };
+            var logLabel = new Label { Text = "运行日志", AutoSize = true, Anchor = AnchorStyles.Left, Margin = new Padding(5, 5, 0, 0) };
+            logHeaderPanel.Controls.Add(logLabel);
+            
+            clearLogButton.Text = "清空日志";
+            clearLogButton.Anchor = AnchorStyles.Right;
+            clearLogButton.Margin = new Padding(5, 3, 0, 0);
+            logHeaderPanel.Controls.Add(clearLogButton);
+            
+            exportLogButton.Text = "导出日志";
+            exportLogButton.Anchor = AnchorStyles.Right;
+            exportLogButton.Margin = new Padding(5, 3, 0, 0);
+            logHeaderPanel.Controls.Add(exportLogButton);
+
+            sharedLogBox.Dock = DockStyle.Fill;
+            sharedLogBox.Multiline = true;
+            sharedLogBox.ScrollBars = ScrollBars.Both;
+            sharedLogBox.ReadOnly = true;
+            sharedLogBox.Font = new System.Drawing.Font("Consolas", 9);
+            sharedLogBox.WordWrap = false;
+            sharedLogBox.BackColor = System.Drawing.Color.FromArgb(30, 30, 30);
+            sharedLogBox.ForeColor = System.Drawing.Color.FromArgb(220, 220, 220);
+            
+            logPanel.Controls.Add(sharedLogBox);
+            logPanel.Controls.Add(logHeaderPanel);
+            mainSplitContainer.Panel2.Controls.Add(logPanel);
+
+            BuildDbConfigTab(dbConfigTab);
             BuildConfigTab(configTab);
             BuildTaskTab(taskTab);
+            BuildReplayTab(replayTab);
+        }
+
+        private void BuildDbConfigTab(TabPage tab)
+        {
+            var mainPanel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 8 };
+            mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 200));
+            mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+
+            int row = 0;
+
+            // 连接名称
+            AddLabel(mainPanel, "连接名称", row++);
+            dbConnectionNameBox.Dock = DockStyle.Fill;
+            mainPanel.Controls.Add(dbConnectionNameBox, 1, row - 1);
+
+            // Provider
+            AddLabel(mainPanel, "数据库类型", row++);
+            dbProviderBox.DropDownStyle = ComboBoxStyle.DropDownList;
+            dbProviderBox.Dock = DockStyle.Fill;
+            dbProviderBox.Items.AddRange(new object[] { 
+                "System.Data.SqlClient", 
+                "MySql.Data.MySqlClient", 
+                "Oracle.ManagedDataAccess.Client",
+                "Npgsql",
+                "System.Data.SQLite"
+            });
+            dbProviderBox.SelectedIndex = 0;
+            mainPanel.Controls.Add(dbProviderBox, 1, row - 1);
+
+            // 连接字符串
+            AddLabel(mainPanel, "连接字符串", row++);
+            dbConnectionStringBox.Dock = DockStyle.Fill;
+            dbConnectionStringBox.Multiline = true;
+            dbConnectionStringBox.ScrollBars = ScrollBars.Vertical;
+            dbConnectionStringBox.Height = 80;
+            mainPanel.Controls.Add(dbConnectionStringBox, 1, row - 1);
+
+            // 按钮
+            var buttonPanel = new FlowLayoutPanel { Dock = DockStyle.Fill };
+            dbTestButton.Text = "测试连接";
+            dbTestButton.BackColor = System.Drawing.Color.FromArgb(0, 120, 215);
+            dbTestButton.ForeColor = System.Drawing.Color.White;
+            dbTestButton.Margin = new Padding(0, 0, 10, 0);
+            buttonPanel.Controls.Add(dbTestButton);
+
+            dbSaveButton.Text = "保存连接";
+            dbSaveButton.BackColor = System.Drawing.Color.FromArgb(0, 120, 215);
+            dbSaveButton.ForeColor = System.Drawing.Color.White;
+            dbSaveButton.Margin = new Padding(0, 0, 10, 0);
+            buttonPanel.Controls.Add(dbSaveButton);
+
+            dbDeleteButton.Text = "删除连接";
+            dbDeleteButton.BackColor = System.Drawing.Color.FromArgb(200, 50, 50);
+            dbDeleteButton.ForeColor = System.Drawing.Color.White;
+            buttonPanel.Controls.Add(dbDeleteButton);
+
+            mainPanel.Controls.Add(buttonPanel, 1, row++);
+
+            // 连接列表
+            AddLabel(mainPanel, "已保存的连接", row++);
+            InitDbConnectionGrid(dbConnectionGrid);
+            dbConnectionGrid.Dock = DockStyle.Fill;
+            mainPanel.Controls.Add(dbConnectionGrid, 1, row++);
+
+            // 日志
+            AddLabel(mainPanel, "数据库配置日志", row++);
+            dbLogBox.Dock = DockStyle.Fill;
+            dbLogBox.Multiline = true;
+            dbLogBox.ScrollBars = ScrollBars.Both;
+            dbLogBox.ReadOnly = true;
+            dbLogBox.Font = new System.Drawing.Font("Consolas", 9);
+            dbLogBox.Height = 100;
+            mainPanel.Controls.Add(dbLogBox, 1, row++);
+
+            for (var i = 0; i < 7; i++)
+                mainPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
+            mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+            tab.Controls.Add(mainPanel);
+        }
+
+        private void InitDbConnectionGrid(DataGridView grid)
+        {
+            grid.AllowUserToAddRows = false;
+            grid.AllowUserToDeleteRows = false;
+            grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            grid.MultiSelect = false;
+            grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+
+            grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "Name", HeaderText = "连接名称", Width = 150 });
+            grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "Provider", HeaderText = "数据库类型", Width = 200 });
+            grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "ConnectionString", HeaderText = "连接字符串", Width = 400 });
+            grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "LastTestTime", HeaderText = "最后测试时间", Width = 150 });
         }
 
         private void BuildConfigTab(TabPage tab)
@@ -293,6 +467,96 @@ namespace FastData.SyncTool.WinForms
             mainPanel.Controls.Add(taskListGrid, 0, 1);
         }
 
+        private void BuildReplayTab(TabPage tab)
+        {
+            var mainPanel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 12 };
+            mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 200));
+            mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+
+            // 源库配置
+            AddLabel(mainPanel, "源库 Provider", 0);
+            replaySourceProviderBox.DropDownStyle = ComboBoxStyle.DropDownList;
+            replaySourceProviderBox.Items.AddRange(new object[] { "System.Data.SqlClient", "MySql.Data.MySqlClient", "Oracle.ManagedDataAccess.Client" });
+            replaySourceProviderBox.SelectedIndex = 0;
+            mainPanel.Controls.Add(replaySourceProviderBox, 1, 0);
+
+            AddLabel(mainPanel, "源库连接字符串", 1);
+            replaySourceConnectionBox.Dock = DockStyle.Fill;
+            mainPanel.Controls.Add(replaySourceConnectionBox, 1, 1);
+
+            // 目标库配置
+            AddLabel(mainPanel, "目标库 Provider", 2);
+            replayTargetProviderBox.DropDownStyle = ComboBoxStyle.DropDownList;
+            replayTargetProviderBox.Items.AddRange(new object[] { "System.Data.SqlClient", "MySql.Data.MySqlClient", "Oracle.ManagedDataAccess.Client" });
+            replayTargetProviderBox.SelectedIndex = 0;
+            mainPanel.Controls.Add(replayTargetProviderBox, 1, 2);
+
+            AddLabel(mainPanel, "目标库连接字符串", 3);
+            replayTargetConnectionBox.Dock = DockStyle.Fill;
+            mainPanel.Controls.Add(replayTargetConnectionBox, 1, 3);
+
+            // 表名
+            AddLabel(mainPanel, "表名", 4);
+            replayTableNameBox.Dock = DockStyle.Fill;
+            mainPanel.Controls.Add(replayTableNameBox, 1, 4);
+
+            // 主键配置
+            AddLabel(mainPanel, "业务主键", 5);
+            replayPrimaryKeyBox.Dock = DockStyle.Fill;
+            replayPrimaryKeyBox.Text = "Id";
+            mainPanel.Controls.Add(replayPrimaryKeyBox, 1, 5);
+
+            // 加载表按钮
+            var loadButtonPanel = new FlowLayoutPanel { Dock = DockStyle.Fill };
+            replayLoadTablesButton.Text = "加载表列表";
+            loadButtonPanel.Controls.Add(replayLoadTablesButton);
+            mainPanel.Controls.Add(loadButtonPanel, 1, 6);
+
+            // 时间范围
+            AddLabel(mainPanel, "启用时间范围", 7);
+            replayEnableTimeRangeBox.Dock = DockStyle.Fill;
+            mainPanel.Controls.Add(replayEnableTimeRangeBox, 1, 7);
+
+            AddLabel(mainPanel, "开始时间", 8);
+            replayStartTimeBox.Dock = DockStyle.Fill;
+            replayStartTimeBox.Format = DateTimePickerFormat.Short;
+            replayStartTimeBox.Enabled = false;
+            mainPanel.Controls.Add(replayStartTimeBox, 1, 8);
+
+            AddLabel(mainPanel, "结束时间", 9);
+            replayEndTimeBox.Dock = DockStyle.Fill;
+            replayEndTimeBox.Format = DateTimePickerFormat.Short;
+            replayEndTimeBox.Enabled = false;
+            mainPanel.Controls.Add(replayEndTimeBox, 1, 9);
+
+            // 执行按钮
+            var executePanel = new FlowLayoutPanel { Dock = DockStyle.Fill };
+            replayStartButton.Text = "开始补录";
+            replayStartButton.BackColor = System.Drawing.Color.FromArgb(0, 120, 215);
+            replayStartButton.ForeColor = System.Drawing.Color.White;
+            executePanel.Controls.Add(replayStartButton);
+            mainPanel.Controls.Add(executePanel, 1, 10);
+
+            // 状态标签
+            AddLabel(mainPanel, "状态", 11);
+            replayStatusLabel.Dock = DockStyle.Fill;
+            replayStatusLabel.Text = "就绪";
+            mainPanel.Controls.Add(replayStatusLabel, 1, 11);
+
+            // 日志框
+            AddLabel(mainPanel, "补录日志", 12);
+            replayLogBox.Dock = DockStyle.Fill;
+            replayLogBox.Multiline = true;
+            replayLogBox.ScrollBars = ScrollBars.Both;
+            replayLogBox.ReadOnly = true;
+            replayLogBox.Font = new System.Drawing.Font("Consolas", 9);
+            mainPanel.Controls.Add(replayLogBox, 1, 12);
+
+            for (var i = 0; i < 12; i++)
+                mainPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
+            mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        }
+
         private void InitTaskGrid()
         {
             taskListGrid.Dock = DockStyle.Fill;
@@ -450,6 +714,21 @@ namespace FastData.SyncTool.WinForms
             globalRangeDaysBox.ValueChanged += delegate { OnGlobalConfigChanged(); };
             alwaysDeduplicateBox.CheckedChanged += delegate { OnGlobalConfigChanged(); };
             tableListGrid.CellContentClick += delegate (object s, DataGridViewCellEventArgs e) { OnCellContentClick(e.RowIndex); };
+
+            // 补录功能事件
+            replayLoadTablesButton.Click += async delegate { await ReplayLoadTables(); };
+            replayStartButton.Click += async delegate { await ExecuteReplay(); };
+            replayEnableTimeRangeBox.CheckedChanged += delegate { OnReplayTimeRangeChanged(); };
+
+            // 数据库配置事件
+            dbTestButton.Click += async delegate { await TestDatabaseConnection(); };
+            dbSaveButton.Click += delegate { SaveDbConnection(); };
+            dbDeleteButton.Click += delegate { DeleteDbConnection(); };
+            dbConnectionGrid.SelectionChanged += delegate { OnDbConnectionSelected(); };
+            
+            // 共享日志事件
+            clearLogButton.Click += delegate { sharedLogBox.Clear(); };
+            exportLogButton.Click += delegate { ExportLog(); };
         }
 
         private void CreateNewTask()
@@ -1238,10 +1517,430 @@ namespace FastData.SyncTool.WinForms
             }
         }
 
+        #region 数据库配置方法
+
+        private static DbConnection CreateDbConnection(string provider, string connectionString)
+        {
+            var factory = DbProviderFactories.GetFactory(provider);
+            var connection = factory.CreateConnection();
+            if (connection == null)
+                throw new InvalidOperationException("无法创建数据库连接");
+            connection.ConnectionString = connectionString;
+            return connection;
+        }
+
+        private async Task TestDatabaseConnection()
+        {
+            try
+            {
+                dbTestButton.Enabled = false;
+                dbTestButton.Text = "测试中...";
+                DbLog("正在连接数据库...");
+
+                var provider = dbProviderBox.Text;
+                var connectionString = dbConnectionStringBox.Text;
+
+                if (string.IsNullOrEmpty(connectionString))
+                {
+                    DbLog("错误：连接字符串为空");
+                    MessageBox.Show("请输入连接字符串");
+                    return;
+                }
+
+                using (var connection = CreateDbConnection(provider, connectionString))
+                {
+                    await connection.OpenAsync();
+                    var serverVersion = connection.ServerVersion;
+                    DbLog($"连接成功！服务器版本：{serverVersion}");
+                    DbLog("测试完成：可用");
+                }
+
+                MessageBox.Show("数据库连接测试成功！", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                DbLog($"连接失败：{ex.Message}");
+                MessageBox.Show($"数据库连接失败：{ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                dbTestButton.Enabled = true;
+                dbTestButton.Text = "测试连接";
+            }
+        }
+
+        private void SaveDbConnection()
+        {
+            try
+            {
+                var name = dbConnectionNameBox.Text.Trim();
+                var provider = dbProviderBox.Text;
+                var connectionString = dbConnectionStringBox.Text;
+
+                if (string.IsNullOrEmpty(name))
+                {
+                    MessageBox.Show("请输入连接名称");
+                    return;
+                }
+
+                if (string.IsNullOrEmpty(connectionString))
+                {
+                    MessageBox.Show("请输入连接字符串");
+                    return;
+                }
+
+                // 保存到配置文件
+                var configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "db_connections.json");
+                var configs = LoadDbConnections();
+
+                var existing = configs.FirstOrDefault(c => c.Name == name);
+                if (existing != null)
+                {
+                    existing.Provider = provider;
+                    existing.ConnectionString = connectionString;
+                    existing.LastTestTime = DateTime.Now;
+                    DbLog($"更新连接：{name}");
+                }
+                else
+                {
+                    configs.Add(new DbConnectionConfig
+                    {
+                        Name = name,
+                        Provider = provider,
+                        ConnectionString = connectionString,
+                        CreatedTime = DateTime.Now,
+                        LastTestTime = DateTime.Now
+                    });
+                    DbLog($"新建连接：{name}");
+                }
+
+                SaveDbConnections(configs);
+                RefreshDbConnectionGrid();
+                DbLog("连接配置已保存");
+                MessageBox.Show($"连接 \"{name}\" 已保存", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                DbLog($"保存失败：{ex.Message}");
+                MessageBox.Show($"保存失败：{ex.Message}");
+            }
+        }
+
+        private void DeleteDbConnection()
+        {
+            try
+            {
+                if (dbConnectionGrid.SelectedRows.Count == 0)
+                {
+                    MessageBox.Show("请先选择要删除的连接");
+                    return;
+                }
+
+                var row = dbConnectionGrid.SelectedRows[0];
+                var name = row.Cells["Name"].Value?.ToString();
+
+                if (string.IsNullOrEmpty(name))
+                    return;
+
+                var configs = LoadDbConnections();
+                var config = configs.FirstOrDefault(c => c.Name == name);
+                if (config != null)
+                {
+                    configs.Remove(config);
+                    SaveDbConnections(configs);
+                    RefreshDbConnectionGrid();
+                    DbLog($"删除连接：{name}");
+                    MessageBox.Show($"连接 \"{name}\" 已删除", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                DbLog($"删除失败：{ex.Message}");
+                MessageBox.Show($"删除失败：{ex.Message}");
+            }
+        }
+
+        private void OnDbConnectionSelected()
+        {
+            if (dbConnectionGrid.SelectedRows.Count == 0)
+                return;
+
+            var row = dbConnectionGrid.SelectedRows[0];
+            var name = row.Cells["Name"].Value?.ToString();
+
+            if (string.IsNullOrEmpty(name))
+                return;
+
+            var configs = LoadDbConnections();
+            var config = configs.FirstOrDefault(c => c.Name == name);
+            if (config != null)
+            {
+                dbConnectionNameBox.Text = config.Name;
+                dbProviderBox.Text = config.Provider;
+                dbConnectionStringBox.Text = config.ConnectionString;
+                DbLog($"加载连接配置：{name}");
+            }
+        }
+
+        private List<DbConnectionConfig> LoadDbConnections()
+        {
+            try
+            {
+                var configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "db_connections.json");
+                if (File.Exists(configPath))
+                {
+                    var content = File.ReadAllText(configPath);
+                    var serializer = new JavaScriptSerializer();
+                    return serializer.Deserialize<List<DbConnectionConfig>>(content) ?? new List<DbConnectionConfig>();
+                }
+            }
+            catch (Exception)
+            {
+                // 忽略错误
+            }
+            return new List<DbConnectionConfig>();
+        }
+
+        private void SaveDbConnections(List<DbConnectionConfig> configs)
+        {
+            var configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "db_connections.json");
+            var serializer = new JavaScriptSerializer();
+            var content = serializer.Serialize(configs);
+            File.WriteAllText(configPath, content);
+        }
+
+        private void RefreshDbConnectionGrid()
+        {
+            dbConnectionGrid.Rows.Clear();
+            var configs = LoadDbConnections();
+            foreach (var config in configs)
+            {
+                dbConnectionGrid.Rows.Add(
+                    config.Name,
+                    config.Provider,
+                    config.ConnectionString.Length > 50 ? config.ConnectionString.Substring(0, 50) + "..." : config.ConnectionString,
+                    config.LastTestTime.ToString("yyyy-MM-dd HH:mm:ss")
+                );
+            }
+        }
+
+        private void DbLog(string message)
+        {
+            var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
+            var logLine = $"[{timestamp}] {message}{Environment.NewLine}";
+            dbLogBox.AppendText(logLine);
+            dbLogBox.ScrollToCaret();
+        }
+
+        #endregion
+
+        #region 共享日志方法
+
         private void Log(string message)
         {
-            var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-            logBox.AppendText(string.Format("[{0}] {1}{2}", timestamp, message, Environment.NewLine));
+            LogInternal("INFO", message);
+        }
+
+        private void LogInfo(string message)
+        {
+            LogInternal("INFO", message);
+        }
+
+        private void LogWarn(string message)
+        {
+            LogInternal("WARN", message);
+        }
+
+        private void LogError(string message)
+        {
+            LogInternal("ERROR", message);
+        }
+
+        private void LogInternal(string level, string message)
+        {
+            var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
+            var logLine = $"[{timestamp}] [{level}] {message}{Environment.NewLine}";
+            sharedLogBox.AppendText(logLine);
+            sharedLogBox.ScrollToCaret();
+        }
+
+        private void ReplayLog(string message)
+        {
+            var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
+            var logLine = $"[{timestamp}] [补录] {message}{Environment.NewLine}";
+            replayLogBox.AppendText(logLine);
+            replayLogBox.ScrollToCaret();
+        }
+
+        private void SharedLog(string message)
+        {
+            LogInternal("INFO", message);
+        }
+
+        private void ExportLog()
+        {
+            try
+            {
+                var saveDialog = new SaveFileDialog
+                {
+                    Filter = "日志文件 (*.txt)|*.txt|所有文件 (*.*)|*.*",
+                    FileName = $"sync_log_{DateTime.Now:yyyyMMdd_HHmmss}.txt"
+                };
+
+                if (saveDialog.ShowDialog() == DialogResult.OK)
+                {
+                    File.WriteAllText(saveDialog.FileName, sharedLogBox.Text);
+                    MessageBox.Show($"日志已导出到：{saveDialog.FileName}", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"导出日志失败：{ex.Message}");
+            }
+        }
+
+        #endregion
+
+        private void OnReplayTimeRangeChanged()
+        {
+            replayStartTimeBox.Enabled = replayEnableTimeRangeBox.Checked;
+            replayEndTimeBox.Enabled = replayEnableTimeRangeBox.Checked;
+        }
+
+        private async Task ReplayLoadTables()
+        {
+            try
+            {
+                var provider = replaySourceProviderBox.SelectedValue?.ToString() ?? replaySourceProviderBox.Text;
+                var connectionString = replaySourceConnectionBox.Text;
+
+                if (string.IsNullOrEmpty(connectionString))
+                {
+                    MessageBox.Show("请先输入源库连接字符串");
+                    return;
+                }
+
+                ReplayLog("正在连接源库...");
+                using (var connection = CreateDbConnection(provider, connectionString))
+                {
+                    await connection.OpenAsync();
+                    ReplayLog("连接成功，正在加载表列表...");
+
+                    var tables = connection.GetSchema("Tables");
+                    ReplayLog($"加载到 {tables.Rows.Count} 个表");
+
+                    if (tables.Rows.Count > 0)
+                    {
+                        var tableNames = new List<string>();
+                        foreach (System.Data.DataRow row in tables.Rows)
+                        {
+                            var tableName = row["TABLE_NAME"].ToString();
+                            if (!string.IsNullOrEmpty(tableName))
+                                tableNames.Add(tableName);
+                        }
+
+                        if (tableNames.Count > 0)
+                        {
+                            replayTableNameBox.AutoCompleteCustomSource.Clear();
+                            replayTableNameBox.AutoCompleteCustomSource.AddRange(tableNames.ToArray());
+                            replayTableNameBox.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
+                            replayTableNameBox.AutoCompleteSource = AutoCompleteSource.CustomSource;
+                            ReplayLog($"已加载 {tableNames.Count} 个表名到自动完成");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                ReplayLog("加载失败：" + ex.Message);
+                MessageBox.Show("加载表列表失败：" + ex.Message);
+            }
+        }
+
+        private async Task ExecuteReplay()
+        {
+            try
+            {
+                replayStartButton.Enabled = false;
+                replayStatusLabel.Text = "正在补录...";
+
+                var sourceProvider = replaySourceProviderBox.SelectedValue?.ToString() ?? replaySourceProviderBox.Text;
+                var targetProvider = replayTargetProviderBox.SelectedValue?.ToString() ?? replayTargetProviderBox.Text;
+                var sourceConnection = replaySourceConnectionBox.Text;
+                var targetConnection = replayTargetConnectionBox.Text;
+                var tableName = replayTableNameBox.Text;
+                var primaryKey = replayPrimaryKeyBox.Text;
+                var enableTimeRange = replayEnableTimeRangeBox.Checked;
+                var startTime = replayStartTimeBox.Value;
+                var endTime = replayEndTimeBox.Value;
+
+                if (string.IsNullOrEmpty(tableName))
+                {
+                    MessageBox.Show("请输入表名");
+                    return;
+                }
+
+                ReplayLog($"开始补录表：{tableName}");
+                ReplayLog($"源库：{sourceProvider}");
+                ReplayLog($"目标库：{targetProvider}");
+
+                var retryCount = 0;
+                var maxRetries = 3;
+                var retryDelay = TimeSpan.FromSeconds(5);
+
+                while (retryCount < maxRetries)
+                {
+                    try
+                    {
+                        using (var sourceConn = CreateDbConnection(sourceProvider, sourceConnection))
+                        using (var targetConn = CreateDbConnection(targetProvider, targetConnection))
+                        {
+                            ReplayLog("正在连接数据库...");
+                            await sourceConn.OpenAsync();
+                            await targetConn.OpenAsync();
+                            ReplayLog("数据库连接成功");
+
+                            var replayService = new ReplayService(sourceConn, targetConn, sourceProvider, targetProvider);
+                            
+                            var result = await replayService.ReplayTableAsync(
+                                tableName,
+                                primaryKey,
+                                enableTimeRange,
+                                enableTimeRange ? startTime : (DateTime?)null,
+                                enableTimeRange ? endTime : (DateTime?)null,
+                                (msg) => ReplayLog(msg)
+                            );
+
+                            ReplayLog($"补录完成：读取 {result.ReadCount} 条，更新 {result.UpdateCount} 条，插入 {result.InsertCount} 条，跳过 {result.SkipCount} 条");
+                            replayStatusLabel.Text = "补录完成";
+                            MessageBox.Show($"补录完成！\n读取：{result.ReadCount} 条\n更新：{result.UpdateCount} 条\n插入：{result.InsertCount} 条\n跳过：{result.SkipCount} 条");
+                        }
+                        break;
+                    }
+                    catch (System.Data.Common.DbException dbEx)
+                    {
+                        retryCount++;
+                        ReplayLog($"数据库错误 (重试 {retryCount}/{maxRetries})：{dbEx.Message}");
+                        
+                        if (retryCount >= maxRetries)
+                            throw;
+
+                        ReplayLog($"等待 {retryDelay.TotalSeconds} 秒后重试...");
+                        await Task.Delay(retryDelay);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                ReplayLog("补录失败：" + ex.Message);
+                replayStatusLabel.Text = "补录失败";
+                MessageBox.Show("补录失败：" + ex.Message);
+            }
+            finally
+            {
+                replayStartButton.Enabled = true;
+                replayStatusLabel.Text = "就绪";
+            }
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)
@@ -1250,6 +1949,15 @@ namespace FastData.SyncTool.WinForms
             syncTimer?.Dispose();
             base.OnFormClosing(e);
         }
+    }
+
+    public class DbConnectionConfig
+    {
+        public string Name { get; set; }
+        public string Provider { get; set; }
+        public string ConnectionString { get; set; }
+        public DateTime CreatedTime { get; set; }
+        public DateTime LastTestTime { get; set; }
     }
 
     public static class ListExtensions
