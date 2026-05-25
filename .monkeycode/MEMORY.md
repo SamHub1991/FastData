@@ -78,3 +78,13 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
   - 中间库模式：源库 -> 中间库 -> 目标库
   - 字段选择时主键必须包含在同步字段中
   - 任务配置持久化到 sync_tasks.json（JSON 数组格式）
+
+[项目结构和测试]
+- Date: 2026-05-25
+- Context: Agent 在执行项目改进时发现
+- Category: 环境配置
+- Instructions:
+  - 项目结构：FastData（核心ORM）、FastData.Tooling（工具库）、FastData.ModelGenerator.WinForms（模型生成器）、FastData.SyncTool.WinForms（同步工具）、FastData.Tests（单元测试）、FastData.Example（示例）
+  - FastData.Tests 使用自定义测试框架，不依赖外部测试库（xUnit/MSTest）
+  - Linux 环境无法运行 .NET Framework 可执行文件（Mono 不可用）
+  - GitHub Actions CI 在 windows-latest 上运行（MSBuild + NuGet）

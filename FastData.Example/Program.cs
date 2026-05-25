@@ -1,0 +1,67 @@
+using System;
+using FastData.Example.Example;
+
+namespace FastData.Example
+{
+    /// <summary>
+    /// FastData ORM 使用示例入口
+    /// </summary>
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            Console.WriteLine("========================================");
+            Console.WriteLine("  FastData ORM Usage Examples");
+            Console.WriteLine("========================================");
+            Console.WriteLine();
+            Console.WriteLine("FastData 是一个面向 .NET Framework 的轻量 ORM 组件。");
+            Console.WriteLine("支持 Lambda 查询、XML Map SQL、Code First、Db First、");
+            Console.WriteLine("AOP、缓存、Redis 辅助能力和多数据库连接配置。");
+            Console.WriteLine();
+
+            while (true)
+            {
+                Console.WriteLine("请选择示例：");
+                Console.WriteLine("  1. 基本 CRUD 操作");
+                Console.WriteLine("  2. Lambda 查询");
+                Console.WriteLine("  3. 数据同步工具");
+                Console.WriteLine("  4. 运行所有示例");
+                Console.WriteLine("  0. 退出");
+                Console.WriteLine();
+
+                Console.Write("输入选项: ");
+                var input = Console.ReadLine();
+
+                if (input == "0")
+                    break;
+
+                Console.WriteLine();
+
+                switch (input)
+                {
+                    case "1":
+                        BasicCrudExample.Run();
+                        break;
+                    case "2":
+                        LambdaQueryExample.Run();
+                        break;
+                    case "3":
+                        DataSyncExample.Run();
+                        break;
+                    case "4":
+                        BasicCrudExample.Run();
+                        LambdaQueryExample.Run();
+                        DataSyncExample.Run();
+                        break;
+                    default:
+                        Console.WriteLine("无效选项，请重新输入");
+                        break;
+                }
+
+                Console.WriteLine();
+            }
+
+            Console.WriteLine("感谢使用 FastData！");
+        }
+    }
+}
