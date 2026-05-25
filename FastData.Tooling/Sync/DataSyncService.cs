@@ -515,8 +515,9 @@ namespace FastData.Tooling.Sync
                     command.ExecuteNonQuery();
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine(string.Format("清理中间库数据失败: {0}, 错误: {1}", sql, ex.Message));
             }
         }
     }

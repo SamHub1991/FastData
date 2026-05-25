@@ -187,7 +187,9 @@ namespace FastData.SyncTool.WinForms
             if (MessageBox.Show("确定要删除表 [" + selectedTableName + "] 的主键配置吗？", "确认删除",
                 MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
             {
-                MessageBox.Show("删除功能待实现");
+                configService.RemoveTableConfig(selectedTableName);
+                RefreshConfigList();
+                MessageBox.Show("删除成功");
             }
         }
 

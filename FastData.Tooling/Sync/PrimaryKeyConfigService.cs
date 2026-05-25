@@ -47,6 +47,17 @@ namespace FastData.Tooling.Sync
         }
 
         /// <summary>
+        /// 删除表主键配置
+        /// </summary>
+        public void RemoveTableConfig(string tableName)
+        {
+            if (string.IsNullOrWhiteSpace(tableName))
+                return;
+
+            configs.Remove(tableName);
+        }
+
+        /// <summary>
         /// 获取表的主键配置
         /// </summary>
         public TablePrimaryKeyConfig GetTableConfig(string tableName)
