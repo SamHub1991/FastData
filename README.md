@@ -1,5 +1,9 @@
 # FastData
 
+[![CI](https://github.com/SamHub1991/FastData/actions/workflows/ci.yml/badge.svg)](https://github.com/SamHub1991/FastData/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/SamHub1991/FastData/blob/master/LICENSE)
+[![NuGet](https://img.shields.io/badge/NuGet-Fast.Data-blue.svg)](https://www.nuget.org/packages/Fast.Data/)
+
 FastData 是一个面向 .NET Framework 的轻量 ORM 组件，支持 Lambda 查询、XML Map SQL、Code First、Db First、AOP、缓存、Redis 辅助能力和多数据库连接配置。
 
 NuGet 地址：<https://www.nuget.org/packages/Fast.Data/>

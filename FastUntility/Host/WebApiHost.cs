@@ -32,7 +32,7 @@ namespace Untility.Host
 
                 var host = new HttpSelfHostServer(HostConfig);
 
-                host.OpenAsync().Wait();
+                host.OpenAsync().ConfigureAwait(false).GetAwaiter().GetResult();
 
                 return host;
             }
