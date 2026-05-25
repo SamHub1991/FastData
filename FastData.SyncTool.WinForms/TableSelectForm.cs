@@ -13,6 +13,7 @@ namespace FastData.SyncTool.WinForms
         private readonly Button okButton = new Button();
         private readonly Button cancelButton = new Button();
         private readonly TextBox searchBox = new TextBox();
+        private List<string> allTableNames = new List<string>();
 
         public IList<string> SelectedTables { get; private set; } = new List<string>();
 
@@ -93,6 +94,7 @@ namespace FastData.SyncTool.WinForms
                     }
 
                     tableNames.Sort();
+                    allTableNames = new List<string>(tableNames);
                     tableListBox.Items.Clear();
                     foreach (var name in tableNames)
                     {
@@ -115,25 +117,18 @@ namespace FastData.SyncTool.WinForms
             var keyword = searchBox.Text.ToLower();
             var filtered = new System.Collections.Generic.List<string>();
 
-            foreach (var item in tableListBox.Items)
+            foreach (var tableName in allTableNames)
             {
-                var tableName = item.ToString().ToLower();
-                if (string.IsNullOrEmpty(keyword) || tableName.Contains(keyword))
+                if (string.IsNullOrEmpty(keyword) || tableName.ToLower().Contains(keyword))
                 {
-                    filtered.Add(item.ToString());
+                    filtered.Add(tableName);
                 }
             }
 
-            var selectedIndex = tableListBox.SelectedIndex;
             tableListBox.Items.Clear();
             foreach (var name in filtered)
             {
                 tableListBox.Items.Add(name);
-            }
-
-            if (selectedIndex >= 0 && selectedIndex < tableListBox.Items.Count)
-            {
-                tableListBox.SelectedIndex = selectedIndex;
             }
         }
     }

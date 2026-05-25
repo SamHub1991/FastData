@@ -58,6 +58,14 @@ namespace FastData.Tooling.Sync
         }
 
         /// <summary>
+        /// 获取所有配置
+        /// </summary>
+        public IList<TablePrimaryKeyConfig> GetAllConfigs()
+        {
+            return new List<TablePrimaryKeyConfig>(configs.Values);
+        }
+
+        /// <summary>
         /// 获取表的主键配置
         /// </summary>
         public TablePrimaryKeyConfig GetTableConfig(string tableName)

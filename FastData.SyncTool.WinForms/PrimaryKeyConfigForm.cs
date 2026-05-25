@@ -96,6 +96,10 @@ namespace FastData.SyncTool.WinForms
         private void RefreshConfigList()
         {
             configListBox.Items.Clear();
+            foreach (var config in configService.GetAllConfigs())
+            {
+                configListBox.Items.Add(config.TableName);
+            }
         }
 
         private void LoadSelectedConfig()

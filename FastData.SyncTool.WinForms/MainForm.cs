@@ -463,7 +463,20 @@ namespace FastData.SyncTool.WinForms
                     return;
                 }
 
-                MessageBox.Show("任务创建成功，请在同步配置 Tab 页添加表并配置，然后保存任务");
+                var newTask = new SyncTaskConfig
+                {
+                    TaskId = taskName,
+                    TaskName = taskName,
+                    CreatedTime = DateTime.Now,
+                    ModifiedTime = DateTime.Now,
+                    IsEnabled = true
+                };
+
+                taskConfigs.Add(newTask);
+                configManager.SaveTaskConfig(newTask);
+                LoadTaskList();
+
+                MessageBox.Show("任务已创建，请在同步配置 Tab 页添加表并配置");
             }
         }
 
