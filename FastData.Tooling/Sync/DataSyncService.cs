@@ -123,9 +123,12 @@ namespace FastData.Tooling.Sync
             }
         }
 
-        private static string BuildSourceSql(DataSyncOptions options, DbCommand command)
+private static string BuildSourceSql(DataSyncOptions options, DbCommand command)
         {
-            var sql = "select * from " + options.SourceTable;
+            var columnList = options.SyncColumns != null && options.SyncColumns.Count > 0
+                ? string.Join(",", options.SyncColumns)
+                : "*";
+            var sql = "select " + columnList + " from " + options.SourceTable;
             
             // 1. 如果启用了时间范围，按时间增量
             if (options.EnableTimeRange && !string.IsNullOrEmpty(options.TimeColumn))

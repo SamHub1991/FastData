@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace FastData.Tooling.Sync
 {
@@ -26,24 +27,12 @@ namespace FastData.Tooling.Sync
 
         public bool IsAutoIncrementKey { get; set; }
 
-        /// <summary>
-        /// 时间字段（可选）
-        /// </summary>
         public string TimeColumn { get; set; }
 
-        /// <summary>
-        /// 是否启用时间范围
-        /// </summary>
         public bool EnableTimeRange { get; set; }
 
-        /// <summary>
-        /// 首次同步时是否全量
-        /// </summary>
         public bool IsFullSyncForFirstTime { get; set; } = true;
 
-        /// <summary>
-        /// 同步结束时间（默认当前时间）
-        /// </summary>
         public DateTime? EndTime { get; set; }
 
         public int BatchSize { get; set; }
@@ -65,5 +54,7 @@ namespace FastData.Tooling.Sync
         public SyncConfigManager ConfigManager { get; set; }
 
         public int RangeDays { get; set; } = 3;
+
+        public IList<string> SyncColumns { get; set; }
     }
 }

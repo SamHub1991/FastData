@@ -58,7 +58,7 @@ namespace FastData.SyncTool.WinForms
         private readonly Button batchDisableButton = new Button();
         private readonly Button exportTaskButton = new Button();
         private readonly Button importTaskButton = new Button();
-        private readonly TabControl tabControl;
+        private TabControl tabControl;
 
         private System.Timers.Timer syncTimer;
         private bool isSyncing;
@@ -82,7 +82,7 @@ namespace FastData.SyncTool.WinForms
 
         private void BuildLayout()
         {
-            var tabControl = new TabControl { Dock = DockStyle.Fill };
+            tabControl = new TabControl { Dock = DockStyle.Fill };
             var configTab = new TabPage("同步配置");
             var taskTab = new TabPage("任务管理");
             tabControl.TabPages.Add(configTab);
@@ -1056,7 +1056,7 @@ namespace FastData.SyncTool.WinForms
 
         private void OpenPkConfigDialog()
         {
-            MessageBox.Show("主键配置管理功能开发中");
+            new PrimaryKeyConfigForm(pkConfigService).ShowDialog(this);
         }
 
         private async System.Threading.Tasks.Task ExportSchema()
