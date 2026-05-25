@@ -97,5 +97,25 @@ namespace FastData.Tooling.Sync
         /// 最后同步消息
         /// </summary>
         public string LastSyncMessage { get; set; }
+
+        /// <summary>
+        /// 源库连接字符串
+        /// </summary>
+        public string SourceConnection { get; set; }
+
+        /// <summary>
+        /// 目标库连接字符串
+        /// </summary>
+        public string TargetConnection { get; set; }
+
+        /// <summary>
+        /// 中间库连接字符串
+        /// </summary>
+        public string IntermediateConnection { get; set; }
+
+        /// <summary>
+        /// 表配置列表
+        /// </summary>
+        public IList<TableSyncConfig> TableConfigs { get; set; } = new List<TableSyncConfig>();
     }
 }

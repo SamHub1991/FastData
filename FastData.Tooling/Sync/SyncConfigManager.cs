@@ -47,7 +47,9 @@ namespace FastData.Tooling.Sync
                     }
                     else if (currentConfig != null)
                     {
-                        if (trimmed.StartsWith("\"SourceTable\""))
+                        if (trimmed.StartsWith("\"TaskName\""))
+                            currentConfig.TaskName = ExtractStringValue(trimmed);
+                        else if (trimmed.StartsWith("\"SourceTable\""))
                             currentConfig.SourceTable = ExtractStringValue(trimmed);
                         else if (trimmed.StartsWith("\"TargetTable\""))
                             currentConfig.TargetTable = ExtractStringValue(trimmed);
@@ -61,6 +63,16 @@ namespace FastData.Tooling.Sync
                             currentConfig.LastSyncTime = ExtractDateTimeValue(trimmed);
                         else if (trimmed.StartsWith("\"RangeDays\""))
                             currentConfig.RangeDays = ExtractIntValue(trimmed);
+                        else if (trimmed.StartsWith("\"DataType\""))
+                            currentConfig.DataType = ExtractStringValue(trimmed) == "Dynamic" ? SyncDataType.Dynamic : SyncDataType.Static;
+                        else if (trimmed.StartsWith("\"SyncColumns\""))
+                            currentConfig.SyncColumns = ExtractStringValue(trimmed);
+                        else if (trimmed.StartsWith("\"SourceConnection\""))
+                            currentConfig.SourceConnection = ExtractStringValue(trimmed);
+                        else if (trimmed.StartsWith("\"TargetConnection\""))
+                            currentConfig.TargetConnection = ExtractStringValue(trimmed);
+                        else if (trimmed.StartsWith("\"IntermediateConnection\""))
+                            currentConfig.IntermediateConnection = ExtractStringValue(trimmed);
                         else if (trimmed.StartsWith("}") && currentTaskId != null)
                         {
                             configs[currentTaskId] = currentConfig;
@@ -87,7 +99,7 @@ namespace FastData.Tooling.Sync
                 Directory.CreateDirectory(dir);
 
             var json = new System.Text.StringBuilder();
-            json.AppendLine("{");
+            json.AppendLine("[");
             
             var i = 0;
             foreach (var config in configs.Values)
@@ -95,21 +107,16 @@ namespace FastData.Tooling.Sync
                 if (i > 0) json.AppendLine(",");
                 json.AppendLine("  {");
                 json.AppendLine(string.Format("    \"TaskId\": \"{0}\",", EscapeJson(config.TaskId)));
-                json.AppendLine(string.Format("    \"SourceTable\": \"{0}\",", EscapeJson(config.SourceTable ?? "")));
-                json.AppendLine(string.Format("    \"TargetTable\": \"{0}\",", EscapeJson(config.TargetTable ?? "")));
-                json.AppendLine(string.Format("    \"PrimaryKeyColumns\": \"{0}\",", EscapeJson(config.PrimaryKeyColumns ?? "")));
-                json.AppendLine(string.Format("    \"TimeColumn\": \"{0}\",", EscapeJson(config.TimeColumn ?? "")));
-                json.AppendLine(string.Format("    \"EnableTimeRange\": {0},", config.EnableTimeRange ? "true" : "false"));
-                json.AppendLine(string.Format("    \"LastSyncTime\": {0},", config.LastSyncTime.HasValue 
-                    ? string.Format("\"{0:yyyy-MM-dd HH:mm:ss}\"", config.LastSyncTime.Value) 
-                    : "null"));
-                json.AppendLine(string.Format("    \"RangeDays\": {0}", config.RangeDays));
+                json.AppendLine(string.Format("    \"TaskName\": \"{0}\",", EscapeJson(config.TaskName ?? "")));
+                json.AppendLine(string.Format("    \"SourceConnection\": \"{0}\",", EscapeJson(config.SourceConnection ?? "")));
+                json.AppendLine(string.Format("    \"TargetConnection\": \"{0}\",", EscapeJson(config.TargetConnection ?? "")));
+                json.AppendLine(string.Format("    \"IntermediateConnection\": \"{0}\",", EscapeJson(config.IntermediateConnection ?? "")));
                 json.Append("  }");
                 i++;
             }
             
             json.AppendLine();
-            json.AppendLine("}");
+            json.AppendLine("]");
             
             File.WriteAllText(configPath, json.ToString());
         }
@@ -154,6 +161,14 @@ namespace FastData.Tooling.Sync
 
         /// <summary>
         /// 获取所有任务配置
+        /// </summary>
+        public IList<SyncTaskConfig> GetAllTaskConfigs()
+        {
+            return new List<SyncTaskConfig>(configs.Values);
+        }
+
+        /// <summary>
+        /// 获取所有任务配置（用于任务列表）
         /// </summary>
         public IList<SyncTaskConfig> GetAllConfigs()
         {
