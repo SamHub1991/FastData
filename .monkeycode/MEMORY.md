@@ -103,3 +103,17 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
   - 配置位置：TableSyncConfig 类（EnableGlobalConfig, GlobalRangeDays, AlwaysDeduplicate）
   - 同步结果消息会显示：「同步完成 [去重模式：是/否]」
 
+[数据补录和数据库配置]
+- Date: 2026-05-25
+- Context: Agent 在执行数据补录功能开发时发现
+- Category: 构建方法
+- Instructions:
+  - 新增"数据库配置"Tab 页：保存/测试/删除数据库连接，配置文件 db_connections.json
+  - 新增"数据补录"Tab 页：手动补录指定表的历史数据，支持跨库同步
+  - 新增共享日志面板：统一日志显示（INFO/WARN/ERROR 级别），支持导出
+  - 补录重试机制：数据库连接失败自动重试 3 次，间隔 5 秒
+  - ReplayService.cs 处理补录逻辑：根据业务主键判断 UPDATE/INSERT
+  - .NET Framework 4.5 兼容性：使用 JavaScriptSerializer 替代 System.Text.Json
+  - 补录时间范围：自动识别时间字段（CreateTime/UpdateTime 等）
+  - 复合主键支持：多个字段用逗号分隔（如：UserId,OrderDate）
+
