@@ -33,6 +33,27 @@ namespace FastData.Tooling.Sync
 
         public bool IsFullSyncForFirstTime { get; set; } = true;
 
+        /// <summary>
+        /// 是否始终去重（首次同步也根据业务主键去重，而不是全量插入）
+        /// 默认：true（首次全量，后续增量去重）
+        /// 特殊场景：false（首次也根据主键去重，只插入不存在的记录）
+        /// </summary>
+        public bool AlwaysDeduplicate { get; set; } = true;
+
+        /// <summary>
+        /// 全局同步范围天数（优先于任务级别的 RangeDays）
+        /// 0 = 使用任务级别配置
+        /// >0 = 使用全局配置
+        /// </summary>
+        public int GlobalRangeDays { get; set; } = 0;
+
+        /// <summary>
+        /// 是否启用全局配置模式
+        /// true = 所有任务使用统一的全局配置（GlobalRangeDays, AlwaysDeduplicate）
+        /// false = 每个任务使用自己的配置
+        /// </summary>
+        public bool EnableGlobalConfig { get; set; } = false;
+
         public DateTime? EndTime { get; set; }
 
         public int BatchSize { get; set; }

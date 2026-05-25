@@ -31,6 +31,9 @@ namespace FastData.SyncTool.WinForms
         private readonly TextBox primaryKeyColumnsBox = new TextBox();
         private readonly TextBox timeColumnBox = new TextBox();
         private readonly CheckBox enableTimeRangeBox = new CheckBox();
+        private readonly CheckBox enableGlobalConfigBox = new CheckBox();
+        private readonly NumericUpDown globalRangeDaysBox = new NumericUpDown();
+        private readonly CheckBox alwaysDeduplicateBox = new CheckBox();
         private readonly NumericUpDown batchSizeBox = new NumericUpDown();
         private readonly NumericUpDown retryCountBox = new NumericUpDown();
         private readonly CheckBox autoCreateIntermediateBox = new CheckBox();
@@ -168,6 +171,23 @@ namespace FastData.SyncTool.WinForms
             rangeDaysBox.Maximum = 365;
             rangeDaysBox.Value = 3;
             mainPanel.Controls.Add(rangeDaysBox, 1, row++);
+
+            // 全局配置
+            AddLabel(mainPanel, "启用全局配置", row);
+            enableGlobalConfigBox.Dock = DockStyle.Fill;
+            mainPanel.Controls.Add(enableGlobalConfigBox, 1, row++);
+
+            AddLabel(mainPanel, "全局范围天数 (0=使用任务配置)", row);
+            globalRangeDaysBox.Dock = DockStyle.Fill;
+            globalRangeDaysBox.Minimum = 0;
+            globalRangeDaysBox.Maximum = 365;
+            globalRangeDaysBox.Value = 0;
+            mainPanel.Controls.Add(globalRangeDaysBox, 1, row++);
+
+            AddLabel(mainPanel, "始终去重（只插入不存在的记录）", row);
+            alwaysDeduplicateBox.Dock = DockStyle.Fill;
+            alwaysDeduplicateBox.Checked = true;
+            mainPanel.Controls.Add(alwaysDeduplicateBox, 1, row++);
 
             AddLabel(mainPanel, "批次大小", row);
             batchSizeBox.Dock = DockStyle.Fill;
@@ -426,6 +446,9 @@ namespace FastData.SyncTool.WinForms
             tableListGrid.SelectionChanged += delegate { OnTableSelectionChanged(); };
             timeColumnBox.TextChanged += delegate { OnTimeColumnChanged(); };
             enableTimeRangeBox.CheckedChanged += delegate { OnEnableTimeRangeChanged(); };
+            enableGlobalConfigBox.CheckedChanged += delegate { OnGlobalConfigChanged(); };
+            globalRangeDaysBox.ValueChanged += delegate { OnGlobalConfigChanged(); };
+            alwaysDeduplicateBox.CheckedChanged += delegate { OnGlobalConfigChanged(); };
             tableListGrid.CellContentClick += delegate (object s, DataGridViewCellEventArgs e) { OnCellContentClick(e.RowIndex); };
         }
 
@@ -998,6 +1021,9 @@ namespace FastData.SyncTool.WinForms
             enableTimeRangeBox.Checked = config.EnableTimeRange;
             primaryKeyColumnsBox.Text = config.PrimaryKeyColumns ?? "Id";
             rangeDaysBox.Value = config.RangeDays;
+            enableGlobalConfigBox.Checked = config.EnableGlobalConfig;
+            globalRangeDaysBox.Value = config.GlobalRangeDays;
+            alwaysDeduplicateBox.Checked = config.AlwaysDeduplicate;
 
             UpdateLastSyncTimeLabel(config);
         }
@@ -1028,6 +1054,20 @@ namespace FastData.SyncTool.WinForms
                 return;
 
             tableConfigs[index].EnableTimeRange = enableTimeRangeBox.Checked;
+        }
+
+        private void OnGlobalConfigChanged()
+        {
+            if (tableListGrid.SelectedRows.Count != 1)
+                return;
+
+            var index = tableListGrid.SelectedRows[0].Index;
+            if (index < 0 || index >= tableConfigs.Count)
+                return;
+
+            tableConfigs[index].EnableGlobalConfig = enableGlobalConfigBox.Checked;
+            tableConfigs[index].GlobalRangeDays = (int)globalRangeDaysBox.Value;
+            tableConfigs[index].AlwaysDeduplicate = alwaysDeduplicateBox.Checked;
         }
 
         private void UpdateLastSyncTimeLabel(TableSyncConfig config)

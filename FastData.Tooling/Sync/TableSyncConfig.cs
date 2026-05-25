@@ -46,6 +46,21 @@ namespace FastData.Tooling.Sync
         public int RangeDays { get; set; } = 3;
 
         /// <summary>
+        /// 是否启用全局配置
+        /// </summary>
+        public bool EnableGlobalConfig { get; set; } = false;
+
+        /// <summary>
+        /// 全局同步范围天数（0=使用任务配置）
+        /// </summary>
+        public int GlobalRangeDays { get; set; } = 0;
+
+        /// <summary>
+        /// 是否始终去重（只插入不存在的记录）
+        /// </summary>
+        public bool AlwaysDeduplicate { get; set; } = true;
+
+        /// <summary>
         /// 同步字段列表（空表示所有字段）
         /// </summary>
         public IList<string> SyncColumns { get; set; }

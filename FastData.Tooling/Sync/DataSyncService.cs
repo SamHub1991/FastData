@@ -20,6 +20,9 @@ namespace FastData.Tooling.Sync
             if (options.AutoCreateIntermediateSchema)
                 CreateIntermediateSchema(options);
 
+            // 应用全局配置
+            ApplyGlobalConfig(options);
+
             var table = new DataTable();
             using (var source = CreateConnection(options.SourceProvider, options.SourceConnectionString))
             using (var command = source.CreateCommand())
@@ -46,12 +49,28 @@ namespace FastData.Tooling.Sync
                 foreach (DataRow row in table.Rows)
                 {
                     int rowRetryCount;
-                    if (TryInsertRow(target, options.TargetTable, table, row, maxRetryCount, out rowRetryCount))
-                        writeCount++;
+                    // 根据配置决定是否去重
+                    if (options.AlwaysDeduplicate && !string.IsNullOrEmpty(options.PrimaryKeyColumns))
+                    {
+                        // 始终去重模式：检查是否存在，存在则跳过，不存在则插入
+                        if (TryInsertRowWithDedup(target, options.TargetTable, table, row, maxRetryCount, out rowRetryCount))
+                            writeCount++;
+                        else
+                        {
+                            failedCount++;
+                            SaveFailedRecord(options, taskId, table, row);
+                        }
+                    }
                     else
                     {
-                        failedCount++;
-                        SaveFailedRecord(options, taskId, table, row);
+                        // 直接插入模式
+                        if (TryInsertRow(target, options.TargetTable, table, row, maxRetryCount, out rowRetryCount))
+                            writeCount++;
+                        else
+                        {
+                            failedCount++;
+                            SaveFailedRecord(options, taskId, table, row);
+                        }
                     }
 
                     retryCount += rowRetryCount;
@@ -71,7 +90,7 @@ namespace FastData.Tooling.Sync
                 FailedCount = failedCount,
                 RetryCount = retryCount,
                 RecoveredCount = recoveredCount,
-                Message = "同步完成",
+                Message = string.Format("同步完成 [去重模式：{0}]", options.AlwaysDeduplicate ? "是" : "否"),
                 MaxPkValue = GetMaxPrimaryKeyValue(table, options.PrimaryKeyColumns)
             };
 
@@ -90,6 +109,22 @@ namespace FastData.Tooling.Sync
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// 应用全局配置
+        /// </summary>
+        private static void ApplyGlobalConfig(DataSyncOptions options)
+        {
+            if (options.EnableGlobalConfig)
+            {
+                // 使用全局配置的 RangeDays
+                if (options.GlobalRangeDays > 0)
+                    options.RangeDays = options.GlobalRangeDays;
+
+                // 使用全局配置的去重模式
+                // AlwaysDeduplicate 已经设置
+            }
         }
 
         private static void ValidateOptions(DataSyncOptions options)
@@ -232,6 +267,43 @@ private static string BuildSourceSql(DataSyncOptions options, DbCommand command)
 
             connection.ConnectionString = connectionString;
             return connection;
+        }
+
+        /// <summary>
+        /// 尝试插入行（带去重检查，只插入不存在的记录）
+        /// 用于 AlwaysDeduplicate = true 的场景
+        /// </summary>
+        private static bool TryInsertRowWithDedup(DbConnection connection, string tableName, DataTable table, DataRow row, int maxRetryCount, out int retryCount)
+        {
+            retryCount = 0;
+            for (var i = 0; i <= maxRetryCount; i++)
+            {
+                try
+                {
+                    // 检查记录是否存在
+                    var exists = CheckRowExists(connection, tableName, table, row);
+                    if (exists)
+                    {
+                        // 记录已存在，跳过插入（不更新）
+                        return true; // 返回 true 表示成功处理（跳过）
+                    }
+                    else
+                    {
+                        // 记录不存在，执行插入
+                        InsertRow(connection, tableName, table, row);
+                        return true;
+                    }
+                }
+                catch
+                {
+                    if (i == maxRetryCount)
+                        return false;
+
+                    retryCount++;
+                }
+            }
+
+            return false;
         }
 
         private static bool TryInsertRow(DbConnection connection, string tableName, DataTable table, DataRow row, int maxRetryCount, out int retryCount)
