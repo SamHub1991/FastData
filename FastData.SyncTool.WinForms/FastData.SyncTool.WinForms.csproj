@@ -49,6 +49,8 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ReplayService.cs" />
+    <Compile Include="DbConnectionConfig.cs" />
+    <Compile Include="ListExtensions.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\FastData.Tooling\FastData.Tooling.csproj">

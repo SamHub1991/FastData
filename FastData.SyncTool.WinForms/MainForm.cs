@@ -1951,25 +1951,4 @@ namespace FastData.SyncTool.WinForms
         }
     }
 
-    public class DbConnectionConfig
-    {
-        public string Name { get; set; }
-        public string Provider { get; set; }
-        public string ConnectionString { get; set; }
-        public DateTime CreatedTime { get; set; }
-        public DateTime LastTestTime { get; set; }
     }
-
-    public static class ListExtensions
-    {
-        public static void Swap<T>(this List<T> list, int index1, int index2)
-        {
-            if (index1 < 0 || index2 < 0 || index1 >= list.Count || index2 >= list.Count)
-                throw new ArgumentOutOfRangeException("Index out of range");
-
-            var temp = list[index1];
-            list[index1] = list[index2];
-            list[index2] = temp;
-        }
-    }
-}
