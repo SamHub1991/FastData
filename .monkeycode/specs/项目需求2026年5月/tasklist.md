@@ -88,3 +88,33 @@
 - [ ] 拆分 MainForm 为 Tab UserControl。
 - [x] 提取数据库类型映射为 Dictionary（DatabaseProviderMappings）。
 - [x] 规范命名（消除魔法字符串，使用 DatabaseProviderMappings 和 Provider 常量）。
+
+## 8. Docker 数据库环境（本次会话新增）
+
+### 8.1 已安装组件
+- [x] Docker 20.10.24
+- [x] SQLite 3.40.1（测试数据库）
+
+### 8.2 环境限制
+- [!] Docker Hub 网络访问问题（无法拉取新镜像）
+- [!] SQL Server 内存需求大（需要 2GB+）
+- [x] 已有 SQL Server 2019 镜像（mcr.microsoft.com/mssql/server:2019-latest）
+
+### 8.3 验证文档
+- [x] 创建 docs/database-verification-guide.md
+
+### 8.4 推荐的完整测试环境
+使用以下 docker-compose 配置：
+```yaml
+version: '3.8'
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    ports: ["1433:1433"]
+  mysql:
+    image: mysql:8.0
+    ports: ["3306:3006"]
+  postgres:
+    image: postgres:15
+    ports: ["5432:5432"]
+```

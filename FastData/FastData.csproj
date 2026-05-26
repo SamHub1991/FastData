@@ -65,6 +65,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Database\DatabaseProviderMappings.cs" />
+    <Compile Include="Abstractions\IDateTimeProvider.cs" />
     <Compile Include="Adapter\DatabaseAdapter.cs" />
     <Compile Include="Adapter\DatabaseAdapterFactory.cs" />
     <Compile Include="Adapter\Db2Dialect.cs" />
