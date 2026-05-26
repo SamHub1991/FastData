@@ -35,7 +35,7 @@ namespace FastData.ModelGenerator.WinForms
 
         private void BuildLayout()
         {
-            var panel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 10 };
+            var panel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 11 };
             panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 220));
             panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             Controls.Add(panel);
@@ -82,21 +82,21 @@ namespace FastData.ModelGenerator.WinForms
             buttonPanel.Controls.Add(generateButton);
             panel.Controls.Add(buttonPanel, 1, 6);
 
-            AddLabel(panel, "表搜索", 6);
+            AddLabel(panel, "表搜索", 7);
             searchBox.Dock = DockStyle.Fill;
-            panel.Controls.Add(searchBox, 1, 6);
+            panel.Controls.Add(searchBox, 1, 7);
 
-            AddLabel(panel, "数据表", 7);
+            AddLabel(panel, "数据表", 8);
             tableList.Dock = DockStyle.Fill;
             tableList.SelectionMode = SelectionMode.MultiExtended;
-            panel.Controls.Add(tableList, 1, 7);
+            panel.Controls.Add(tableList, 1, 8);
 
-            AddLabel(panel, "代码预览", 8);
+            AddLabel(panel, "代码预览", 9);
             previewBox.Dock = DockStyle.Fill;
             previewBox.Multiline = true;
             previewBox.ScrollBars = ScrollBars.Both;
             previewBox.Font = new System.Drawing.Font("Consolas", 10);
-            panel.Controls.Add(previewBox, 1, 8);
+            panel.Controls.Add(previewBox, 1, 9);
 
             panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
             panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
@@ -108,6 +108,7 @@ namespace FastData.ModelGenerator.WinForms
             panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
             panel.RowStyles.Add(new RowStyle(SizeType.Percent, 35));
             panel.RowStyles.Add(new RowStyle(SizeType.Percent, 65));
+            panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
         }
 
         private static void AddLabel(TableLayoutPanel panel, string text, int row)
