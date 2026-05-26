@@ -2,6 +2,7 @@ using FastData.Base;
 using FastData.Database;
 using FastData.Tooling.Sync;
 using FastData.SyncTool;
+using FastData.SyncTool.WinForms.IoC;
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
@@ -70,7 +71,8 @@ namespace FastData.SyncTool.WinForms
 
         private System.Timers.Timer syncTimer;
         private bool isSyncing;
-        private readonly PrimaryKeyConfigService pkConfigService = new PrimaryKeyConfigService();
+        private readonly ServiceContainer serviceProvider;
+        private readonly PrimaryKeyConfigService pkConfigService;
         private readonly SyncConfigManager configManager;
         private List<TableSyncConfig> tableConfigs = new List<TableSyncConfig>();
         private List<SyncTaskConfig> taskConfigs = new List<SyncTaskConfig>();
@@ -114,7 +116,15 @@ namespace FastData.SyncTool.WinForms
             Text = "FastData 数据同步工具";
             Width = 1200;
             Height = 800;
-            configManager = new SyncConfigManager();
+            
+            // 初始化依赖注入容器
+            serviceProvider = new ServiceContainer();
+            serviceProvider.RegisterSyncToolServices();
+            
+            // 从容器解析服务
+            pkConfigService = serviceProvider.Resolve<PrimaryKeyConfigService>();
+            configManager = serviceProvider.Resolve<SyncConfigManager>();
+            
             tabControl = new TabControl();
             BuildLayout();
             BindEvents();
@@ -1368,7 +1378,8 @@ namespace FastData.SyncTool.WinForms
                         ConfigManager = configManager
                     };
 
-                    var result = new DataSyncService().SyncTable(syncOptions);
+                    var syncService = serviceProvider.Resolve<DataSyncService>();
+                    var result = syncService.SyncTable(syncOptions);
 
                     row.Cells["Status"].Value = result.FailedCount > 0 ? "部分失败" : "成功";
                     row.Cells["Status"].Style.ForeColor = result.FailedCount > 0 ? System.Drawing.Color.Red : System.Drawing.Color.Green;

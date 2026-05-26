@@ -42,6 +42,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="IoC\ServiceContainer.cs" />
+    <Compile Include="IoC\ServiceCollectionExtensions.cs" />
     <Compile Include="MainForm.cs" />
     <Compile Include="PrimaryKeyConfigForm.cs" />
     <Compile Include="TableSelectForm.cs" />
