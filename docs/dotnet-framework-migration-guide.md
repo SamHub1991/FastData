@@ -277,3 +277,30 @@ export DOTNET_CLI_TELEMETRY_OPTOUT=1
 **创建时间**: 2026-05-26  
 **适用项目**: FastData  
 **.NET 版本**: Framework 4.5 → .NET 10
+
+---
+
+## 当前项目决策（2026-05-26）
+
+**决策**: 保持 .NET Framework 4.5 兼容性，暂不迁移
+
+**理由**:
+- 现有 Windows 环境部署稳定
+- 兼容性要求（客户环境限制）
+- 现有功能完整，无需跨平台
+
+**当前构建方式**:
+```bash
+export DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
+FrameworkPathOverride="/root/.nuget/packages/microsoft.netframework.referenceassemblies.net45/1.0.3/build/.NETFramework/v4.5"
+dotnet build FastData.sln /p:RegisterForComInterop=false
+```
+
+**构建状态**: ✅ 成功 (0 Warnings, 0 Errors)
+
+**可用测试环境**:
+- Docker MySQL 8.0: localhost:3306
+- Docker PostgreSQL 15: localhost:5432
+- SQLite: /tmp/fastdata_test.db
+
+**下一步**: 在完整 Windows 环境中进行功能验证
