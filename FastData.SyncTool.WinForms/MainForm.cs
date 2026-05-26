@@ -964,35 +964,9 @@ namespace FastData.SyncTool.WinForms
 
             if (saveDialog.ShowDialog() == DialogResult.OK)
             {
-                var json = new System.Text.StringBuilder();
-                json.AppendLine("{");
-                json.AppendLine(string.Format("  \"TaskId\": \"{0}\",", EscapeJson(config.TaskId)));
-                json.AppendLine(string.Format("  \"TaskName\": \"{0}\",", EscapeJson(config.TaskName ?? "")));
-                json.AppendLine(string.Format("  \"SourceConnection\": \"{0}\",", EscapeJson(config.SourceConnection ?? "")));
-                json.AppendLine(string.Format("  \"TargetConnection\": \"{0}\",", EscapeJson(config.TargetConnection ?? "")));
-                json.AppendLine(string.Format("  \"IntermediateConnection\": \"{0}\",", EscapeJson(config.IntermediateConnection ?? "")));
-                json.AppendLine("  \"Tables\": [");
-
-                for (int i = 0; i < config.TableConfigs.Count; i++)
-                {
-                    var table = config.TableConfigs[i];
-                    json.AppendLine("    {");
-                    json.AppendLine(string.Format("      \"TableName\": \"{0}\",", EscapeJson(table.TableName)));
-                    json.AppendLine(string.Format("      \"PrimaryKeyColumns\": \"{0}\",", EscapeJson(table.PrimaryKeyColumns ?? "")));
-                    json.AppendLine(string.Format("      \"TimeColumn\": \"{0}\",", EscapeJson(table.TimeColumn ?? "")));
-                    json.AppendLine(string.Format("      \"EnableTimeRange\": {0},", table.EnableTimeRange ? "true" : "false"));
-                    json.AppendLine(string.Format("      \"RangeDays\": {0},", table.RangeDays));
-                    json.AppendLine(string.Format("      \"DataType\": \"{0}\",", table.DataType == SyncDataType.Dynamic ? "Dynamic" : "Static"));
-                    json.AppendLine(string.Format("      \"SyncColumns\": \"{0}\"", EscapeJson(string.Join(",", table.SyncColumns ?? new List<string>()))));
-                    json.Append("    }");
-                    if (i < config.TableConfigs.Count - 1) json.AppendLine(",");
-                    else json.AppendLine();
-                }
-
-                json.AppendLine("  ]");
-                json.AppendLine("}");
-
-                File.WriteAllText(saveDialog.FileName, json.ToString());
+                var serializer = new JavaScriptSerializer();
+                var json = serializer.Serialize(config);
+                File.WriteAllText(saveDialog.FileName, json);
                 Log(string.Format("任务配置已导出到 {0}", saveDialog.FileName));
                 MessageBox.Show("导出成功");
             }
@@ -1010,54 +984,10 @@ namespace FastData.SyncTool.WinForms
                 try
                 {
                     var json = File.ReadAllText(openFileDialog.FileName);
-                    var config = new SyncTaskConfig();
+                    var serializer = new JavaScriptSerializer();
+                    var config = serializer.Deserialize<SyncTaskConfig>(json);
 
-                    var lines = json.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-                    string currentTable = null;
-                    var tableConfig = new TableSyncConfig();
-
-                    foreach (var line in lines)
-                    {
-                        var trimmed = line.Trim();
-
-                        if (trimmed.StartsWith("\"TaskId\""))
-                            config.TaskId = ExtractStringValue(trimmed);
-                        else if (trimmed.StartsWith("\"TaskName\""))
-                            config.TaskName = ExtractStringValue(trimmed);
-                        else if (trimmed.StartsWith("\"SourceConnection\""))
-                            config.SourceConnection = ExtractStringValue(trimmed);
-                        else if (trimmed.StartsWith("\"TargetConnection\""))
-                            config.TargetConnection = ExtractStringValue(trimmed);
-                        else if (trimmed.StartsWith("\"IntermediateConnection\""))
-                            config.IntermediateConnection = ExtractStringValue(trimmed);
-                        else if (trimmed.StartsWith("\"TableName\""))
-                        {
-                            currentTable = ExtractStringValue(trimmed);
-                            tableConfig = new TableSyncConfig { TableName = currentTable };
-                        }
-                        else if (trimmed.StartsWith("\"PrimaryKeyColumns\""))
-                            tableConfig.PrimaryKeyColumns = ExtractStringValue(trimmed);
-                        else if (trimmed.StartsWith("\"TimeColumn\""))
-                            tableConfig.TimeColumn = ExtractStringValue(trimmed);
-                        else if (trimmed.StartsWith("\"EnableTimeRange\""))
-                            tableConfig.EnableTimeRange = trimmed.Contains("true");
-                        else if (trimmed.StartsWith("\"RangeDays\""))
-                            tableConfig.RangeDays = ExtractIntValue(trimmed);
-                        else if (trimmed.StartsWith("\"DataType\""))
-                            tableConfig.DataType = ExtractStringValue(trimmed) == "Dynamic" ? SyncDataType.Dynamic : SyncDataType.Static;
-                        else if (trimmed.StartsWith("\"SyncColumns\""))
-                        {
-                            var columns = ExtractStringValue(trimmed);
-                            tableConfig.SyncColumns = string.IsNullOrEmpty(columns) ? new List<string>() : new List<string>(columns.Split(','));
-                        }
-                        else if (trimmed == "}" && currentTable != null)
-                        {
-                            config.TableConfigs.Add(tableConfig);
-                            currentTable = null;
-                        }
-                    }
-
-                    if (!string.IsNullOrEmpty(config.TaskId))
+                    if (config != null && !string.IsNullOrEmpty(config.TaskId))
                     {
                         configManager.SaveTaskConfig(config);
                         LoadTaskList();
@@ -1074,35 +1004,6 @@ namespace FastData.SyncTool.WinForms
                     MessageBox.Show("导入失败：" + ex.Message);
                 }
             }
-        }
-
-        private string EscapeJson(string value)
-        {
-            if (string.IsNullOrEmpty(value)) return "";
-            return value.Replace("\\", "\\\\")
-                       .Replace("\"", "\\\"")
-                       .Replace("\r", "\\r")
-                       .Replace("\n", "\\n");
-        }
-
-        private string ExtractStringValue(string line)
-        {
-            var start = line.IndexOf('"', line.IndexOf(':') + 1);
-            if (start < 0) return "";
-            var end = line.IndexOf('"', start + 1);
-            return end > start ? line.Substring(start + 1, end - start - 1) : "";
-        }
-
-        private int ExtractIntValue(string line)
-        {
-            var start = line.IndexOf(':') + 1;
-            while (start < line.Length && (line[start] == ' ' || line[start] == ','))
-                start++;
-            var end = start;
-            while (end < line.Length && char.IsDigit(line[end]))
-                end++;
-            int result;
-            return int.TryParse(line.Substring(start, end - start), out result) ? result : 3;
         }
 
         private void OnCellContentClick(int rowIndex)
