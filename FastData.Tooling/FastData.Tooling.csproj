@@ -52,6 +52,7 @@
     <Compile Include="Sync\DataSyncOptions.cs" />
     <Compile Include="Sync\DataSyncResult.cs" />
     <Compile Include="Sync\DataSyncService.cs" />
+    <Compile Include="Sync\DataRowSerializer.cs" />
     <Compile Include="Sync\PrimaryKeyConfigService.cs" />
     <Compile Include="Sync\SyncTaskConfig.cs" />
     <Compile Include="Sync\TableSyncConfig.cs" />

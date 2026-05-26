@@ -632,21 +632,12 @@ private static string BuildSourceSql(DataSyncOptions options, DbCommand command)
 
         private static string SerializeRow(DataTable table, DataRow row)
         {
-            var data = table.Clone();
-            data.ImportRow(row);
-            using (var writer = new StringWriter())
-            {
-                data.WriteXml(writer, XmlWriteMode.WriteSchema);
-                return writer.ToString();
-            }
+            return DataRowSerializer.Serialize(table, row);
         }
 
         private static DataTable BuildDataTableFromPayload(string payload)
         {
-            var table = new DataTable();
-            using (var reader = new StringReader(payload ?? string.Empty))
-                table.ReadXml(reader);
-            return table;
+            return DataRowSerializer.Deserialize(payload);
         }
 
         private static void CleanIntermediateData(DataSyncOptions options)
