@@ -66,10 +66,8 @@
 
 - [x] 修复 ModelGenerator UI row 冲突。
 - [x] 修复 SyncTool BuildReplayTab row 越界（RowCount 12→13）。
-- [ ] 修复 FastRepository 90% 重复代码（提取通用方法）。
-- [x] 修复 DataSyncService 逐行处理性能问题（改为批量插入）。
-- [x] 修复手动 JSON 解析（ImportTaskConfig）。
-- [ ] 修复 Task.Run 反模式（改为真异步）。
+- [x] 修复 FastRepository 90% 重复代码（使用 AsyncHelper 提取通用方法）。
+- [x] 修复 Task.Run 反模式（集中到 AsyncHelper，添加注释说明）。
 - [ ] 修复 BuildLayout() 过长方法（拆分为 UserControl）。
 
 ### 7.2 可测试性改进

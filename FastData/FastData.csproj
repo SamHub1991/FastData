@@ -132,6 +132,7 @@
     <Compile Include="Property\DynamicSet.cs" />
     <Compile Include="Property\PropertyCache.cs" />
     <Compile Include="Property\TableAttribute.cs" />
+<Compile Include="Repository\AsyncHelper.cs" />
     <Compile Include="Repository\FastRepository.cs" />
     <Compile Include="Repository\FastRepositoryFactory.cs" />
     <Compile Include="Repository\IFastRepository.cs" />
