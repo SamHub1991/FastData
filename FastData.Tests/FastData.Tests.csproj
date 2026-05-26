@@ -46,6 +46,8 @@
     <Compile Include="Config\SyncConfigManagerTests.cs" />
     <Compile Include="Sync\TimeRangeCalculatorTests.cs" />
     <Compile Include="Sync\PrimaryKeyConfigServiceTests.cs" />
+    <Compile Include="Sync\DataRowSerializerTests.cs" />
+    <Compile Include="Abstractions\DateTimeProviderTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

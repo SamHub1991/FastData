@@ -51,6 +51,11 @@ namespace FastData.Tests
                 throw new Exception(string.Format("Assertion failed: {0}", message ?? string.Format("Expected exception {0} but got {1}", typeof(T).Name, ex.GetType().Name)));
             }
         }
+
+        public static void Fail(string message = null)
+        {
+            throw new Exception(string.Format("Assertion failed: {0}", message ?? "Test failed"));
+        }
     }
 
     public class TestRunner
@@ -69,6 +74,8 @@ namespace FastData.Tests
             RunTableSyncConfigTests();
             RunPrimaryKeyConfigServiceTests();
             RunSyncConfigManagerTests();
+            RunDataRowSerializerTests();
+            RunDateTimeProviderTests();
 
             Console.WriteLine();
             Console.WriteLine("=== Test Summary ===");
@@ -179,6 +186,44 @@ namespace FastData.Tests
             RunTest("UpdateTaskStatus_UpdatesStatusAndMessage", tests.UpdateTaskStatus_UpdatesStatusAndMessage);
             RunTest("PersistAndReload_ConfigsPersistAcrossInstances", tests.PersistAndReload_ConfigsPersistAcrossInstances);
             RunTest("NonExistentConfigFile_InitializesEmpty", tests.NonExistentConfigFile_InitializesEmpty);
+            Console.WriteLine();
+        }
+
+        private void RunDataRowSerializerTests()
+        {
+            Console.WriteLine("DataRowSerializerTests:");
+            var tests = new Sync.DataRowSerializerTests();
+            RunTest("Serialize_EmptyRow_ReturnsJsonWithEmptyValues", tests.Serialize_EmptyRow_ReturnsJsonWithEmptyValues);
+            RunTest("Serialize_RowWithData_ReturnsValidJson", tests.Serialize_RowWithData_ReturnsValidJson);
+            RunTest("Serialize_RowWithNullValue_HandlesNullCorrectly", tests.Serialize_RowWithNullValue_HandlesNullCorrectly);
+            RunTest("Serialize_RowWithDateTime_HandlesDateTimeCorrectly", tests.Serialize_RowWithDateTime_HandlesDateTimeCorrectly);
+            RunTest("Deserialize_ValidJson_ReturnsDataTableWithSameSchema", tests.Deserialize_ValidJson_ReturnsDataTableWithSameSchema);
+            RunTest("Deserialize_ValidJson_RestoresRowData", tests.Deserialize_ValidJson_RestoresRowData);
+            RunTest("Deserialize_EmptyJson_ReturnsEmptyDataTable", tests.Deserialize_EmptyJson_ReturnsEmptyDataTable);
+            RunTest("SerializeBatch_MultipleRows_ReturnsJsonArray", tests.SerializeBatch_MultipleRows_ReturnsJsonArray);
+            RunTest("DeserializeBatch_ValidJsonArray_ReturnsDataTable", tests.DeserializeBatch_ValidJsonArray_ReturnsDataTable);
+            RunTest("RoundTrip_SerializeThenDeserialize_PreservesData", tests.RoundTrip_SerializeThenDeserialize_PreservesData);
+            Console.WriteLine();
+        }
+
+        private void RunDateTimeProviderTests()
+        {
+            Console.WriteLine("DateTimeProviderTests:");
+            var tests = new Abstractions.DateTimeProviderTests();
+            RunTest("DefaultDateTimeProvider_Now_ReturnsCurrentTime", tests.DefaultDateTimeProvider_Now_ReturnsCurrentTime);
+            RunTest("DefaultDateTimeProvider_UtcNow_ReturnsCurrentUtcTime", tests.DefaultDateTimeProvider_UtcNow_ReturnsCurrentUtcTime);
+            RunTest("DefaultDateTimeProvider_Today_ReturnsCurrentDate", tests.DefaultDateTimeProvider_Today_ReturnsCurrentDate);
+            RunTest("TestableDateTimeProvider_InitiallyNotFixed_ReturnsCurrentTime", tests.TestableDateTimeProvider_InitiallyNotFixed_ReturnsCurrentTime);
+            RunTest("TestableDateTimeProvider_SetNow_ReturnsFixedTime", tests.TestableDateTimeProvider_SetNow_ReturnsFixedTime);
+            RunTest("TestableDateTimeProvider_SetUtcNow_ReturnsFixedUtcTime", tests.TestableDateTimeProvider_SetUtcNow_ReturnsFixedUtcTime);
+            RunTest("TestableDateTimeProvider_SetToday_ReturnsFixedDate", tests.TestableDateTimeProvider_SetToday_ReturnsFixedDate);
+            RunTest("TestableDateTimeProvider_SetMultipleTimes_AllPropertiesUpdated", tests.TestableDateTimeProvider_SetMultipleTimes_AllPropertiesUpdated);
+            RunTest("TestableDateTimeProvider_Reset_RestoresCurrentTime", tests.TestableDateTimeProvider_Reset_RestoresCurrentTime);
+            RunTest("DateTimeProvider_Global_InitiallyUsesDefault", tests.DateTimeProvider_Global_InitiallyUsesDefault);
+            RunTest("DateTimeProvider_SetProvider_UsesCustomProvider", tests.DateTimeProvider_SetProvider_UsesCustomProvider);
+            RunTest("DateTimeProvider_SetToFixedTime_AllGlobalMethodsUseFixedTime", tests.DateTimeProvider_SetToFixedTime_AllGlobalMethodsUseFixedTime);
+            RunTest("DateTimeProvider_ResetToDefault_RestoresCurrentTime", tests.DateTimeProvider_ResetToDefault_RestoresCurrentTime);
+            RunTest("DateTimeProvider_SetCurrentToNull_ThrowsArgumentNullException", tests.DateTimeProvider_SetCurrentToNull_ThrowsArgumentNullException);
             Console.WriteLine();
         }
     }
