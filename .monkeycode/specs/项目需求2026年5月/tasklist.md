@@ -59,3 +59,33 @@
 - [x] 验证中间库 SQL 导出。
 - [ ] 验证源库到目标库端到端同步。
 - [ ] 验证失败重试、任务恢复和中间库清理。
+
+## 7. 代码质量优化
+
+### 7.1 异常修复（高优先级）
+
+- [x] 修复 ModelGenerator UI row 冲突。
+- [x] 修复 SyncTool BuildReplayTab row 越界（RowCount 12→13）。
+- [ ] 修复 FastRepository 90% 重复代码（提取通用方法）。
+- [ ] 修复 DataSyncService 逐行处理性能问题（改为批量插入）。
+- [ ] 修复手动 JSON 解析（ImportTaskConfig）。
+- [ ] 修复 Task.Run 反模式（改为真异步）。
+- [ ] 修复 BuildLayout() 过长方法（拆分为 UserControl）。
+
+### 7.2 可测试性改进
+
+- [ ] 为 SyncTool MainForm 引入依赖注入。
+- [ ] 为 DataSyncService 添加接口抽象。
+- [ ] 替换 DateTime.Now 为可测试抽象。
+
+### 7.3 性能优化
+
+- [ ] 实现 SqlBulkCopy 批量插入。
+- [ ] 优化失败记录序列化（XML→JSON）。
+- [ ] 优化大表主键加载（流式处理）。
+
+### 7.4 代码可读性
+
+- [ ] 拆分 MainForm 为 Tab UserControl。
+- [ ] 提取数据库类型映射为 Dictionary。
+- [ ] 规范命名（消除魔法字符串）。
