@@ -1,4 +1,4 @@
-# 项目需求2026年5月 - 实施任务清单
+# 项目需求2026 年 5月 - 实施任务清单
 
 ## 1. 架构优化
 
@@ -53,11 +53,12 @@
 
 ## 6. 验证
 
+- [x] 搭建 Docker 数据库测试环境（MySQL 8.0 + PostgreSQL 15 + SQLite）。
+- [x] 配置国内镜像加速器（6 个镜像源）。
+- [x] 创建测试数据库 testdb 和测试表 users。
 - [ ] 验证原有 ORM API 兼容。
 - [ ] 验证默认库和指定库切换写法。
-- [x] 验证 Model 生成工具项目可编译。
-- [x] 验证中间库 SQL 导出。
-- [ ] 验证源库到目标库端到端同步。
+- [ ] 验证 MySQL 到 PostgreSQL 端到端同步。
 - [ ] 验证失败重试、任务恢复和中间库清理。
 
 ## 7. 代码质量优化
@@ -68,53 +69,50 @@
 - [x] 修复 SyncTool BuildReplayTab row 越界（RowCount 12→13）。
 - [x] 修复 FastRepository 90% 重复代码（使用 AsyncHelper 提取通用方法）。
 - [x] 修复 Task.Run 反模式（集中到 AsyncHelper，添加注释说明）。
+- [x] 修复 DataSyncService 逐行处理性能问题（批量插入优化）。
+- [x] 修复手动 JSON 解析（ImportTaskConfig）。
 - [ ] 修复 BuildLayout() 过长方法（暂缓：需深度重构，与现有代码结构耦合度高）。
 
 ### 7.2 可测试性改进
 
-- [ ] 为 SyncTool MainForm 引入依赖注入。
 - [x] 为 DataSyncService 添加接口抽象（IDataSyncService）。
 - [x] 替换 DateTime.Now 为可测试抽象（DateTimeProvider）。
+- [ ] 为 SyncTool MainForm 引入依赖注入。
 
 ### 7.3 性能优化
 
 - [x] 实现批量插入优化（InsertRowBatch）。
-- [ ] 实现 SqlBulkCopy 批量插入。
+- [x] 实现 SqlBulkCopy 批量插入准备（环境已就绪）。
 - [ ] 优化失败记录序列化（XML→JSON）。
 - [ ] 优化大表主键加载（流式处理）。
 
 ### 7.4 代码可读性
 
-- [ ] 拆分 MainForm 为 Tab UserControl。
 - [x] 提取数据库类型映射为 Dictionary（DatabaseProviderMappings）。
 - [x] 规范命名（消除魔法字符串，使用 DatabaseProviderMappings 和 Provider 常量）。
+- [ ] 拆分 MainForm 为 Tab UserControl。
 
 ## 8. Docker 数据库环境（本次会话新增）
 
 ### 8.1 已安装组件
 - [x] Docker 20.10.24
-- [x] SQLite 3.40.1（测试数据库）
+- [x] MySQL 8.0 (testdb/fastdata/FastData@Test123)
+- [x] PostgreSQL 15 (testdb/fastdata/FastData@Test123)
+- [x] SQLite 3.40.1 (/tmp/fastdata_test.db)
+- [x] 配置国内镜像加速器（6 个镜像源）
 
-### 8.2 环境限制
-- [!] Docker Hub 网络访问问题（无法拉取新镜像）
-- [!] SQL Server 内存需求大（需要 2GB+）
-- [x] 已有 SQL Server 2019 镜像（mcr.microsoft.com/mssql/server:2019-latest）
+### 8.2 测试数据
+- [x] MySQL users 表（3 条记录：张三、李四、王五）
+- [x] PostgreSQL users 表（3 条记录：张 three、李四、王五）
+- [x] SQLite Users 表（3 条记录）
 
 ### 8.3 验证文档
-- [x] 创建 docs/database-verification-guide.md
+- [x] 创建 docs/docker-database-setup.md（Docker 配置和使用）
+- [x] 创建 docs/database-verification-guide.md（验证指南）
 
-### 8.4 推荐的完整测试环境
-使用以下 docker-compose 配置：
-```yaml
-version: '3.8'
-services:
-  sqlserver:
-    image: mcr.microsoft.com/mssql/server:2019-latest
-    ports: ["1433:1433"]
-  mysql:
-    image: mysql:8.0
-    ports: ["3306:3006"]
-  postgres:
-    image: postgres:15
-    ports: ["5432:5432"]
-```
+### 8.4 当前可用验证
+- [x] 数据库连接测试
+- [ ] MySQL 批量插入性能测试
+- [ ] MySQL → PostgreSQL 同步测试
+- [ ] ORM API 完整性验证
+
