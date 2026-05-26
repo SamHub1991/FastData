@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.IO;
@@ -46,9 +47,10 @@ namespace FastData.Tooling.Sync
                 if (options.ResumeFailedRecords)
                     recoveredCount = ResumeFailedRecords(options, target, maxRetryCount);
 
+                var batchRows = new List<DataRow>();
                 foreach (DataRow row in table.Rows)
                 {
-                    int rowRetryCount;
+                    int rowRetryCount = 0;
                     // 根据配置决定是否去重
                     if (options.AlwaysDeduplicate && !string.IsNullOrEmpty(options.PrimaryKeyColumns))
                     {
@@ -63,19 +65,63 @@ namespace FastData.Tooling.Sync
                     }
                     else
                     {
-                        // 直接插入模式
-                        if (TryInsertRow(target, options.TargetTable, table, row, maxRetryCount, out rowRetryCount))
-                            writeCount++;
-                        else
+                        // 批量插入模式
+                        batchRows.Add(row);
+                        if (batchRows.Count >= batchSize)
                         {
-                            failedCount++;
-                            SaveFailedRecord(options, taskId, table, row);
+                            try
+                            {
+                                InsertRowBatch(target, options.TargetTable, table, batchRows);
+                                writeCount += batchRows.Count;
+                            }
+                            catch
+                            {
+                                // 批量失败则逐行重试
+                                foreach (var batchRow in batchRows)
+                                {
+                                    try
+                                    {
+                                        InsertRow(target, options.TargetTable, table, batchRow);
+                                        writeCount++;
+                                    }
+                                    catch
+                                    {
+                                        failedCount++;
+                                        SaveFailedRecord(options, taskId, table, batchRow);
+                                    }
+                                }
+                            }
+                            batchRows.Clear();
                         }
                     }
 
                     retryCount += rowRetryCount;
-                    if (writeCount >= batchSize && batchSize > 0)
+                }
+
+                // 处理剩余批次
+                if (batchRows.Count > 0 && !options.AlwaysDeduplicate)
+                {
+                    try
                     {
+                        InsertRowBatch(target, options.TargetTable, table, batchRows);
+                        writeCount += batchRows.Count;
+                    }
+                    catch
+                    {
+                        // 批量失败则逐行重试
+                        foreach (var batchRow in batchRows)
+                        {
+                            try
+                            {
+                                InsertRow(target, options.TargetTable, table, batchRow);
+                                writeCount++;
+                            }
+                            catch
+                            {
+                                failedCount++;
+                                SaveFailedRecord(options, taskId, table, batchRow);
+                            }
+                        }
                     }
                 }
 
@@ -512,6 +558,42 @@ private static string BuildSourceSql(DataSyncOptions options, DbCommand command)
             {
                 command.CommandText = "update fd_sync_record set status = 'Success' where record_id = @record_id";
                 AddParameter(command, "@record_id", recordId);
+                command.ExecuteNonQuery();
+            }
+        }
+
+        private static void InsertRowBatch(DbConnection connection, string tableName, DataTable table, List<DataRow> rows)
+        {
+            if (rows.Count == 0) return;
+
+            using (var command = connection.CreateCommand())
+            {
+                var columns = new string[table.Columns.Count];
+                for (var i = 0; i < table.Columns.Count; i++)
+                {
+                    columns[i] = table.Columns[i].ColumnName;
+                }
+
+                var valueRows = new List<string>();
+                var paramIndex = 0;
+
+                foreach (var row in rows)
+                {
+                    var rowParams = new List<string>();
+                    for (var i = 0; i < table.Columns.Count; i++)
+                    {
+                        var paramName = "@p" + paramIndex++;
+                        rowParams.Add(paramName);
+
+                        var parameter = command.CreateParameter();
+                        parameter.ParameterName = paramName;
+                        parameter.Value = row[columns[i]] == DBNull.Value ? DBNull.Value : row[columns[i]];
+                        command.Parameters.Add(parameter);
+                    }
+                    valueRows.Add("(" + string.Join(",", rowParams) + ")");
+                }
+
+                command.CommandText = "insert into " + tableName + " (" + string.Join(",", columns) + ") values " + string.Join(",", valueRows);
                 command.ExecuteNonQuery();
             }
         }
