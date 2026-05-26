@@ -42,7 +42,10 @@
     <Compile Include="Program.cs" />
     <Compile Include="Adapter\DatabaseAdapterFactoryTests.cs" />
     <Compile Include="Config\DataConfigTests.cs" />
+    <Compile Include="Config\DataSyncOptionsTests.cs" />
+    <Compile Include="Config\SyncConfigManagerTests.cs" />
     <Compile Include="Sync\TimeRangeCalculatorTests.cs" />
+    <Compile Include="Sync\PrimaryKeyConfigServiceTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

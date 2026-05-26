@@ -1,4 +1,6 @@
 using System;
+using System.IO;
+using FastData.Tooling.Sync;
 
 namespace FastData.Tests
 {
@@ -7,31 +9,31 @@ namespace FastData.Tests
         public static void IsTrue(bool condition, string message = null)
         {
             if (!condition)
-                throw new Exception($"Assertion failed: {message ?? "Expected true but was false"}");
+                throw new Exception(string.Format("Assertion failed: {0}", message ?? "Expected true but was false"));
         }
 
         public static void IsFalse(bool condition, string message = null)
         {
             if (condition)
-                throw new Exception($"Assertion failed: {message ?? "Expected false but was true"}");
+                throw new Exception(string.Format("Assertion failed: {0}", message ?? "Expected false but was true"));
         }
 
         public static void IsNotNull(object obj, string message = null)
         {
             if (obj == null)
-                throw new Exception($"Assertion failed: {message ?? "Expected not null but was null"}");
+                throw new Exception(string.Format("Assertion failed: {0}", message ?? "Expected not null but was null"));
         }
 
         public static void IsNull(object obj, string message = null)
         {
             if (obj != null)
-                throw new Exception($"Assertion failed: {message ?? "Expected null but was not null"}");
+                throw new Exception(string.Format("Assertion failed: {0}", message ?? "Expected null but was not null"));
         }
 
         public static void AreEqual(object expected, object actual, string message = null)
         {
             if (!Equals(expected, actual))
-                throw new Exception($"Assertion failed: {message ?? $"Expected {expected} but was {actual}"}");
+                throw new Exception(string.Format("Assertion failed: {0}", message ?? string.Format("Expected {0} but was {1}", expected, actual)));
         }
 
         public static void Throws<T>(Action action, string message = null) where T : Exception
@@ -39,15 +41,14 @@ namespace FastData.Tests
             try
             {
                 action();
-                throw new Exception($"Assertion failed: {message ?? $"Expected exception {typeof(T).Name} but no exception was thrown"}");
+                throw new Exception(string.Format("Assertion failed: {0}", message ?? string.Format("Expected exception {0} but no exception was thrown", typeof(T).Name)));
             }
             catch (T)
             {
-                // Expected
             }
             catch (Exception ex)
             {
-                throw new Exception($"Assertion failed: {message ?? $"Expected exception {typeof(T).Name} but got {ex.GetType().Name}"}");
+                throw new Exception(string.Format("Assertion failed: {0}", message ?? string.Format("Expected exception {0} but got {1}", typeof(T).Name, ex.GetType().Name)));
             }
         }
     }
@@ -62,16 +63,18 @@ namespace FastData.Tests
             Console.WriteLine("=== FastData Test Runner ===");
             Console.WriteLine();
 
-            // Run all test classes
             RunTimeRangeCalculatorTests();
             RunDatabaseAdapterFactoryTests();
-            RunDataConfigTests();
+            RunDataSyncOptionsTests();
+            RunTableSyncConfigTests();
+            RunPrimaryKeyConfigServiceTests();
+            RunSyncConfigManagerTests();
 
             Console.WriteLine();
             Console.WriteLine("=== Test Summary ===");
-            Console.WriteLine($"Passed: {_passed}");
-            Console.WriteLine($"Failed: {_failed}");
-            Console.WriteLine($"Total: {_passed + _failed}");
+            Console.WriteLine(string.Format("Passed: {0}", _passed));
+            Console.WriteLine(string.Format("Failed: {0}", _failed));
+            Console.WriteLine(string.Format("Total: {0}", _passed + _failed));
 
             if (_failed > 0)
                 Environment.Exit(1);
@@ -82,12 +85,12 @@ namespace FastData.Tests
             try
             {
                 test();
-                Console.WriteLine($"  [PASS] {name}");
+                Console.WriteLine(string.Format("  [PASS] {0}", name));
                 _passed++;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"  [FAIL] {name}: {ex.Message}");
+                Console.WriteLine(string.Format("  [FAIL] {0}: {1}", name, ex.Message));
                 _failed++;
             }
         }
@@ -109,15 +112,73 @@ namespace FastData.Tests
         {
             Console.WriteLine("DatabaseAdapterFactoryTests:");
             var tests = new Adapter.DatabaseAdapterFactoryTests();
-            RunTest("GetAdapter_SqlServer_ReturnsValidAdapter", tests.GetAdapter_SqlServer_ReturnsValidAdapter);
+            RunTest("DbProviderFactories_GetFactory_ThrowsForInvalidProvider", tests.DbProviderFactories_GetFactory_ThrowsForInvalidProvider);
+            RunTest("DataSyncResult_DefaultValues_AreZero", tests.DataSyncResult_DefaultValues_AreZero);
+            RunTest("SyncDataType_Enum_HasStaticAndDynamic", tests.SyncDataType_Enum_HasStaticAndDynamic);
             Console.WriteLine();
         }
 
-        private void RunDataConfigTests()
+        private void RunDataSyncOptionsTests()
         {
-            Console.WriteLine("DataConfigTests:");
-            var tests = new Config.DataConfigTests();
-            RunTest("GetConnection_ExistingKey_ReturnsConnection", tests.GetConnection_ExistingKey_ReturnsConnection);
+            Console.WriteLine("DataSyncOptionsTests:");
+            var tests = new Config.DataSyncOptionsTests();
+            RunTest("DefaultValues_AreCorrect", tests.DefaultValues_AreCorrect);
+            RunTest("EnableGlobalConfig_True_WithGlobalRangeDays_OverridesRangeDays", tests.EnableGlobalConfig_True_WithGlobalRangeDays_OverridesRangeDays);
+            RunTest("EnableGlobalConfig_False_DoesNotOverrideRangeDays", tests.EnableGlobalConfig_False_DoesNotOverrideRangeDays);
+            RunTest("EnableGlobalConfig_True_WithZeroGlobalRangeDays_DoesNotOverride", tests.EnableGlobalConfig_True_WithZeroGlobalRangeDays_DoesNotOverride);
+            Console.WriteLine();
+        }
+
+        private void RunTableSyncConfigTests()
+        {
+            Console.WriteLine("TableSyncConfigTests:");
+            var tests = new Config.TableSyncConfigTests();
+            RunTest("DefaultValues_AreCorrect", tests.DefaultValues_AreCorrect);
+            RunTest("TargetTableName_CanBeSetIndependently", tests.TargetTableName_CanBeSetIndependently);
+            Console.WriteLine();
+        }
+
+        private void RunPrimaryKeyConfigServiceTests()
+        {
+            Console.WriteLine("PrimaryKeyConfigServiceTests:");
+            var tests = new Sync.PrimaryKeyConfigServiceTests();
+            RunTest("AddTableConfig_ValidConfig_AddsSuccessfully", tests.AddTableConfig_ValidConfig_AddsSuccessfully);
+            RunTest("AddTableConfig_NullConfig_DoesNotAdd", tests.AddTableConfig_NullConfig_DoesNotAdd);
+            RunTest("AddTableConfig_EmptyTableName_DoesNotAdd", tests.AddTableConfig_EmptyTableName_DoesNotAdd);
+            RunTest("AddTableConfig_DuplicateTableName_Overwrites", tests.AddTableConfig_DuplicateTableName_Overwrites);
+            RunTest("RemoveTableConfig_ExistingTable_RemovesSuccessfully", tests.RemoveTableConfig_ExistingTable_RemovesSuccessfully);
+            RunTest("RemoveTableConfig_NonExistingTable_NoEffect", tests.RemoveTableConfig_NonExistingTable_NoEffect);
+            RunTest("RemoveTableConfig_NullTableName_NoEffect", tests.RemoveTableConfig_NullTableName_NoEffect);
+            RunTest("GetTableConfig_UnknownTable_ReturnsNull", tests.GetTableConfig_UnknownTable_ReturnsNull);
+            RunTest("GetTableConfig_NullTableName_ReturnsNull", tests.GetTableConfig_NullTableName_ReturnsNull);
+            RunTest("GetAllConfigs_ReturnsAllAddedConfigs", tests.GetAllConfigs_ReturnsAllAddedConfigs);
+            RunTest("BuildPrimaryKeyWhereClause_SingleKey_ReturnsCorrectClause", tests.BuildPrimaryKeyWhereClause_SingleKey_ReturnsCorrectClause);
+            RunTest("BuildPrimaryKeyWhereClause_CompositeKey_ReturnsAndClause", tests.BuildPrimaryKeyWhereClause_CompositeKey_ReturnsAndClause);
+            RunTest("BuildPrimaryKeyWhereClause_CustomParamNames_ReturnsCustomClause", tests.BuildPrimaryKeyWhereClause_CustomParamNames_ReturnsCustomClause);
+            RunTest("BuildPrimaryKeyWhereClause_NullConfig_ReturnsFallback", tests.BuildPrimaryKeyWhereClause_NullConfig_ReturnsFallback);
+            RunTest("BuildPrimaryKeyWhereClause_EmptyColumns_ReturnsFallback", tests.BuildPrimaryKeyWhereClause_EmptyColumns_ReturnsFallback);
+            RunTest("BuildIncrementalWhereClause_AutoIncrementSingleKey_ReturnsSimpleClause", tests.BuildIncrementalWhereClause_AutoIncrementSingleKey_ReturnsSimpleClause);
+            RunTest("BuildIncrementalWhereClause_CompositeKey_ReturnsOrClause", tests.BuildIncrementalWhereClause_CompositeKey_ReturnsOrClause);
+            RunTest("BuildIncrementalWhereClause_NullConfig_ReturnsFallback", tests.BuildIncrementalWhereClause_NullConfig_ReturnsFallback);
+            RunTest("BuildIncrementalWhereClause_EmptyColumns_ReturnsFallback", tests.BuildIncrementalWhereClause_EmptyColumns_ReturnsFallback);
+            RunTest("ExportToSql_GeneratesCreateTableAndInserts", tests.ExportToSql_GeneratesCreateTableAndInserts);
+            Console.WriteLine();
+        }
+
+        private void RunSyncConfigManagerTests()
+        {
+            Console.WriteLine("SyncConfigManagerTests:");
+            var tests = new Config.SyncConfigManagerTests();
+            RunTest("SaveAndGetTaskConfig_WorksCorrectly", tests.SaveAndGetTaskConfig_WorksCorrectly);
+            RunTest("GetTaskConfig_UnknownTask_ReturnsNull", tests.GetTaskConfig_UnknownTask_ReturnsNull);
+            RunTest("GetTaskConfig_NullTaskId_ReturnsNull", tests.GetTaskConfig_NullTaskId_ReturnsNull);
+            RunTest("DeleteTaskConfig_RemovesConfig", tests.DeleteTaskConfig_RemovesConfig);
+            RunTest("DeleteTaskConfig_NullTaskId_NoEffect", tests.DeleteTaskConfig_NullTaskId_NoEffect);
+            RunTest("GetAllTaskConfigs_ReturnsAllConfigs", tests.GetAllTaskConfigs_ReturnsAllConfigs);
+            RunTest("UpdateLastSyncTime_UpdatesIsFirstSync", tests.UpdateLastSyncTime_UpdatesIsFirstSync);
+            RunTest("UpdateTaskStatus_UpdatesStatusAndMessage", tests.UpdateTaskStatus_UpdatesStatusAndMessage);
+            RunTest("PersistAndReload_ConfigsPersistAcrossInstances", tests.PersistAndReload_ConfigsPersistAcrossInstances);
+            RunTest("NonExistentConfigFile_InitializesEmpty", tests.NonExistentConfigFile_InitializesEmpty);
             Console.WriteLine();
         }
     }
