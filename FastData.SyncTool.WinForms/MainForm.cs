@@ -469,7 +469,7 @@ namespace FastData.SyncTool.WinForms
 
         private void BuildReplayTab(TabPage tab)
         {
-            var mainPanel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 12 };
+            var mainPanel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 13 };
             mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 200));
             mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
 
