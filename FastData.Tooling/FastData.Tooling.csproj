@@ -40,6 +40,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Abstractions\IDataSyncService.cs" />
     <Compile Include="CodeGeneration\ModelCodeGenerator.cs" />
     <Compile Include="Database\DatabaseColumn.cs" />
     <Compile Include="Database\DatabaseConnectionOptions.cs" />

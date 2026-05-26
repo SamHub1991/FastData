@@ -73,11 +73,12 @@
 ### 7.2 可测试性改进
 
 - [ ] 为 SyncTool MainForm 引入依赖注入。
-- [ ] 为 DataSyncService 添加接口抽象。
-- [ ] 替换 DateTime.Now 为可测试抽象。
+- [x] 为 DataSyncService 添加接口抽象（IDataSyncService）。
+- [x] 替换 DateTime.Now 为可测试抽象（DateTimeProvider）。
 
 ### 7.3 性能优化
 
+- [x] 实现批量插入优化（InsertRowBatch）。
 - [ ] 实现 SqlBulkCopy 批量插入。
 - [ ] 优化失败记录序列化（XML→JSON）。
 - [ ] 优化大表主键加载（流式处理）。
@@ -85,5 +86,5 @@
 ### 7.4 代码可读性
 
 - [ ] 拆分 MainForm 为 Tab UserControl。
-- [ ] 提取数据库类型映射为 Dictionary。
+- [x] 提取数据库类型映射为 Dictionary（DatabaseProviderMappings）。
 - [ ] 规范命名（消除魔法字符串）。

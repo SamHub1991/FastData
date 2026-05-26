@@ -44,6 +44,7 @@
   <ItemGroup>
     <Compile Include="MainForm.cs" />
     <Compile Include="PrimaryKeyConfigForm.cs" />
+    <Compile Include="PrimaryKeyConfigForm.cs" />
     <Compile Include="TableSelectForm.cs" />
     <Compile Include="FieldSelectForm.cs" />
     <Compile Include="Program.cs" />
