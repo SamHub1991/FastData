@@ -1,3 +1,5 @@
+using FastData.Base;
+using FastData.Database;
 using FastData.Tooling.CodeGeneration;
 using FastData.Tooling.Database;
 using System;
@@ -42,7 +44,7 @@ namespace FastData.ModelGenerator.WinForms
 
             AddLabel(panel, "Provider", 0);
             providerBox.DropDownStyle = ComboBoxStyle.DropDownList;
-            providerBox.Items.AddRange(new object[] { "System.Data.SqlClient", "MySql.Data.MySqlClient", "Oracle.ManagedDataAccess.Client" });
+            providerBox.Items.AddRange(DatabaseProviderMappings.AllProviderNames);
             providerBox.SelectedIndex = 0;
             panel.Controls.Add(providerBox, 1, 0);
 

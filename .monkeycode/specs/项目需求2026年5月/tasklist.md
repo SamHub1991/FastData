@@ -87,4 +87,4 @@
 
 - [ ] 拆分 MainForm 为 Tab UserControl。
 - [x] 提取数据库类型映射为 Dictionary（DatabaseProviderMappings）。
-- [ ] 规范命名（消除魔法字符串）。
+- [x] 规范命名（消除魔法字符串，使用 DatabaseProviderMappings 和 Provider 常量）。

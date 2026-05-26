@@ -45,6 +45,10 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\FastData\FastData.csproj">
+      <Project>{9347DC38-9B48-4581-9974-E6D6363BED40}</Project>
+      <Name>FastData</Name>
+    </ProjectReference>
     <ProjectReference Include="..\FastData.Tooling\FastData.Tooling.csproj">
       <Project>{B0FE51F7-9819-4F2C-B5AB-B5D53E6E6504}</Project>
       <Name>FastData.Tooling</Name>

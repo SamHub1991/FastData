@@ -1,3 +1,5 @@
+using FastData.Base;
+using FastData.Database;
 using FastData.Tooling.Sync;
 using FastData.SyncTool;
 using System;
@@ -194,13 +196,7 @@ namespace FastData.SyncTool.WinForms
             AddLabel(mainPanel, "数据库类型", row++);
             dbProviderBox.DropDownStyle = ComboBoxStyle.DropDownList;
             dbProviderBox.Dock = DockStyle.Fill;
-            dbProviderBox.Items.AddRange(new object[] { 
-                "System.Data.SqlClient", 
-                "MySql.Data.MySqlClient", 
-                "Oracle.ManagedDataAccess.Client",
-                "Npgsql",
-                "System.Data.SQLite"
-            });
+            dbProviderBox.Items.AddRange(DatabaseProviderMappings.AllProviderNames);
             dbProviderBox.SelectedIndex = 0;
             mainPanel.Controls.Add(dbProviderBox, 1, row - 1);
 
@@ -476,7 +472,7 @@ namespace FastData.SyncTool.WinForms
             // 源库配置
             AddLabel(mainPanel, "源库 Provider", 0);
             replaySourceProviderBox.DropDownStyle = ComboBoxStyle.DropDownList;
-            replaySourceProviderBox.Items.AddRange(new object[] { "System.Data.SqlClient", "MySql.Data.MySqlClient", "Oracle.ManagedDataAccess.Client" });
+            replaySourceProviderBox.Items.AddRange(DatabaseProviderMappings.AllProviderNames);
             replaySourceProviderBox.SelectedIndex = 0;
             mainPanel.Controls.Add(replaySourceProviderBox, 1, 0);
 
@@ -487,7 +483,7 @@ namespace FastData.SyncTool.WinForms
             // 目标库配置
             AddLabel(mainPanel, "目标库 Provider", 2);
             replayTargetProviderBox.DropDownStyle = ComboBoxStyle.DropDownList;
-            replayTargetProviderBox.Items.AddRange(new object[] { "System.Data.SqlClient", "MySql.Data.MySqlClient", "Oracle.ManagedDataAccess.Client" });
+            replayTargetProviderBox.Items.AddRange(DatabaseProviderMappings.AllProviderNames);
             replayTargetProviderBox.SelectedIndex = 0;
             mainPanel.Controls.Add(replayTargetProviderBox, 1, 2);
 
@@ -583,13 +579,7 @@ namespace FastData.SyncTool.WinForms
 
         private void InitProviderBox(ComboBox box)
         {
-            box.Items.AddRange(new[] {
-                "System.Data.SqlClient",
-                "MySql.Data.MySqlClient",
-                "Npgsql",
-                "Oracle.ManagedDataAccess.Client",
-                "IBM.Data.DB2.Client"
-            });
+            box.Items.AddRange(DatabaseProviderMappings.AllProviderNames);
             box.DropDownStyle = ComboBoxStyle.DropDownList;
             box.Dock = DockStyle.Fill;
         }
