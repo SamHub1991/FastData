@@ -68,7 +68,7 @@
 - [x] 修复 SyncTool BuildReplayTab row 越界（RowCount 12→13）。
 - [x] 修复 FastRepository 90% 重复代码（使用 AsyncHelper 提取通用方法）。
 - [x] 修复 Task.Run 反模式（集中到 AsyncHelper，添加注释说明）。
-- [ ] 修复 BuildLayout() 过长方法（拆分为 UserControl）。
+- [ ] 修复 BuildLayout() 过长方法（暂缓：需深度重构，与现有代码结构耦合度高）。
 
 ### 7.2 可测试性改进
 
