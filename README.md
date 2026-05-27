@@ -228,6 +228,37 @@ var users = FastRead.Query<User>(u => u.IsActive)
     .OrderBy(u => u.Id)
     .Select(u => new { u.Id, u.UserName, u.Department })
     .ToList();
+
+// 使用 Where<T> 条件构建器（分开写条件，更清晰）
+var where = new Where<User>();
+where.Add(u => u.IsActive);
+where.And(u => u.Age > 18);
+where.Or(u => u.Role == "Admin");
+where.Like(u => u.UserName, "张%");
+where.In(u => u.Department, new[] { "IT", "HR" });
+where.Between(u => u.Age, 18, 65);
+
+var users = FastRead.Query<User>(u => true)
+    .Where(where)
+    .OrderBy(u => u.Id)
+    .ToList();
+
+// 动态条件构建（根据参数决定是否添加条件）
+var where = new Where<User>();
+where.Add(u => u.IsActive);
+
+if (!string.IsNullOrEmpty(keyword))
+    where.Like(u => u.UserName, keyword + "%");
+
+if (minAge > 0)
+    where.And(u => u.Age >= minAge);
+
+if (departments != null && departments.Length > 0)
+    where.In(u => u.Department, departments.Cast<object>());
+
+var users = FastRead.Query<User>(u => true)
+    .Where(where)
+    .ToList();
 ```
 
 ### 3. 多数据库切换

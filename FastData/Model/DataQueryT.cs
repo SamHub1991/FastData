@@ -38,6 +38,20 @@ namespace FastData.Model
         }
 
         /// <summary>
+        /// 使用 Where&lt;T&gt; 条件构建器
+        /// </summary>
+        public DataQuery<T> Where(Where<T> where)
+        {
+            if (where == null)
+                return this;
+
+            where.SetConfig(Config);
+            ChainedConditions.AddRange(where.Conditions);
+
+            return this;
+        }
+
+        /// <summary>
         /// 链式 And 条件（Where 的别名）
         /// </summary>
         public DataQuery<T> And(Expression<Func<T, bool>> predicate)
