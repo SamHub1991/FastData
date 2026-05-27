@@ -181,3 +181,21 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
   - 文档已整合：CHANGELOG/README/DEVELOPMENT_PROGRESS/REFACTOR_SUMMARY
   - 项目已推送到 GitHub：https://github.com/SamHub1991/FastData
   - 待验证：真实数据库环境下的端到端测试
+
+[消息队列实现]
+- Date: 2026-05-27
+- Context: Agent 在执行 RTU 数据上传场景优化时发现
+- Category: 构建方法
+- Instructions:
+  - 基于 NewLife.Redis 实现两种消息队列模式
+  - RedisReliableQueue（可信队列）：单消费、消费确认、消息不丢失，适合数据库存储削峰
+  - RedisStream（多消费组队列）：多消费组独立消费，适合多方推送解耦
+  - 核心接口：IMessageProducer/IMessageConsumer
+  - 工厂类：MessageQueueFactory
+  - 集成服务：MessageQueueIntegrationService
+  - 配置驱动：TableSyncConfig.EnableMessageQueue/MessageQueueType/MessageQueueTopic
+  - NewLife.Redis 队列类型位于 NewLife.Caching.Queues 命名空间
+  - RedisReliableQueue.Acknowledge 方法接受 string[] 参数
+  - RedisStream.ConsumeAsync 支持 Action<T> 和 Func<T, Task> 回调
+  - API 端点：/api/mq/demo/reliable, /api/mq/demo/stream
+  - 示例代码：FastData.Example/Example/MessageQueueExample.cs

@@ -8,7 +8,7 @@
 **构建状态**：0 Error(s)，0 Warning(s)  
 **测试状态**：73 个单元测试通过，34 项综合验证测试通过  
 **NuGet 包**：4 个已生成（FastUntility/FastData.Tooling/FastData/FastRedis）  
-**GitHub**：https://github.com/SamHub1991/FastData（commit 05c3ee6）
+**GitHub**：https://github.com/SamHub1991/FastData（commit 545a6bc）
 
 ## 最近完成任务（2026-05-27）
 
@@ -45,9 +45,21 @@
 - [x] Redis: NServiceKit.Redis(net45) + NewLife.Redis 6.0.2024.1006(net6.0+)
 - [x] System.CodeDom: 8.0.0（net6.0+）
 
-### 4. 文档整合
+### 4. 消息队列实现（RTU 削峰/多方推送）
+- [x] 基于 NewLife.Redis 实现两种消息队列模式
+- [x] RedisReliableQueue 可信队列（单消费、消费确认、消息不丢失）
+- [x] RedisStream 多消费组队列（多消费组独立消费、广播通知）
+- [x] IMessageProducer/IMessageConsumer 接口抽象
+- [x] MessageQueueFactory 工厂类
+- [x] MessageQueueIntegrationService 集成服务
+- [x] TableSyncConfig 配置驱动（EnableMessageQueue/MessageQueueType/MessageQueueTopic）
+- [x] FastData.Demo API 端点（/api/mq/demo/reliable, /api/mq/demo/stream）
+- [x] FastData.Example 示例代码
+- [x] README.md 消息队列文档
+
+### 5. 文档整合
 - [x] CHANGELOG.md 更新至最新版本
-- [x] README.md 全面更新（455 行，9 个示例，文档导航链接）
+- [x] README.md 全面更新（455+ 行，10 个示例，文档导航链接）
 - [x] DEVELOPMENT_PROGRESS.md 整合开发进度
 - [x] REFACTOR_SUMMARY.md 更新重构总结
 - [x] FastData.SyncTool.WinForms/REFACTOR_README.md 更新
