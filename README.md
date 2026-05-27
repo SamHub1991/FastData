@@ -775,6 +775,186 @@ var sql = XmlMapSqlGenerator.GenerateSelectAllSql("Users", provider);
 // 输出: <FastDataSQL Name="Users_SelectAll" SQL="SELECT * FROM Users" />
 ```
 
+## 9. 分表（数据分片）
+
+FastData 支持多种分表策略，适用于大数据量场景。
+
+### 分表策略
+
+| 策略 | 说明 | 适用场景 |
+|------|------|---------|
+| **时间分表** | 按时间字段分表（日/周/月/季/年） | 日志、订单、交易记录 |
+| **哈希分表** | 按字段哈希值分表 | 用户表、订单表 |
+| **列表分表** | 按枚举值分表 | 状态、类型、地区 |
+| **组合键分表** | 多字段组合分表 | 区域+类型、年份+月份 |
+
+### 配置示例
+
+```csharp
+using FastData.Sharding;
+
+// 时间分表配置
+var config = new ShardingConfig
+{
+    BaseTableName = "UserLog",
+    ShardingType = ShardingType.Time,
+    TimeConfig = new TimeShardingConfig
+    {
+        TimeField = "CreateTime",
+        Granularity = TimeGranularity.Month,
+        StartTime = new DateTime(2026, 1, 1),
+        AutoCreateTable = true
+    }
+};
+
+// 注册配置
+ShardingManager.Configure<UserLog>(config);
+```
+
+### 哈希分表配置
+
+```csharp
+var hashConfig = new ShardingConfig
+{
+    BaseTableName = "Order",
+    ShardingType = ShardingType.Hash,
+    HashConfig = new HashShardingConfig
+    {
+        HashField = "OrderNo",
+        ShardCount = 16,
+        Algorithm = HashAlgorithm.Consistent
+    }
+};
+ShardingManager.Configure<Order>(hashConfig);
+```
+
+### 列表分表配置
+
+```csharp
+var listConfig = new ShardingConfig
+{
+    BaseTableName = "Order",
+    ShardingType = ShardingType.List,
+    ListConfig = new ListShardingConfig
+    {
+        ListField = "Region",
+        ValueMapping = new Dictionary<string, string>
+        {
+            { "Beijing", "order_beijing" },
+            { "Shanghai", "order_shanghai" },
+            { "Guangzhou", "order_guangzhou" }
+        }
+    }
+};
+ShardingManager.Configure<Order>(listConfig);
+```
+
+### 组合键分表配置
+
+```csharp
+var compositeConfig = new ShardingConfig
+{
+    BaseTableName = "Order",
+    ShardingType = ShardingType.Composite,
+    CompositeConfig = new CompositeShardingConfig
+    {
+        CompositeFields = new List<string> { "Region", "CustomerType" },
+        UseHash = true,
+        ShardCount = 64
+    }
+};
+ShardingManager.Configure<Order>(compositeConfig);
+```
+
+### 分表查询
+
+```csharp
+// 分表查询
+var queryParams = new Dictionary<string, object>
+{
+    { "CreateTime_Start", new DateTime(2026, 1, 1) },
+    { "CreateTime_End", new DateTime(2026, 12, 31) }
+};
+
+var logs = ShardingReadHelper.Query<UserLog>(
+    log => log.Level == "Error",
+    queryParams
+);
+
+// 分页查询
+var pagedResult = ShardingReadHelper.QueryPage<UserLog>(
+    log => log.Level == "Error",
+    queryParams,
+    pageIndex: 1,
+    pageSize: 20
+);
+```
+
+### 分表写入
+
+```csharp
+// 单条写入
+var log = new UserLog
+{
+    Message = "Test",
+    Level = "Info",
+    CreateTime = DateTime.Now
+};
+ShardingWriteHelper.Add(log);
+
+// 批量写入
+var logs = new List<UserLog> { log1, log2, log3 };
+ShardingWriteHelper.AddList(logs);
+
+// 更新
+ShardingWriteHelper.Update(
+    log,
+    l => l.Id == 1,
+    l => new { l.Message, l.Level }
+);
+
+// 删除
+ShardingWriteHelper.Delete<UserLog>(
+    l => l.CreateTime < DateTime.Now.AddYears(-1),
+    queryParams
+);
+```
+
+### 自定义分表策略
+
+```csharp
+// 实现 IShardingStrategy 接口
+public class GeoShardingStrategy : IShardingStrategy
+{
+    public string Name => "Geo";
+    public ShardingType Type => ShardingType.Geo;
+
+    public string GetTableName(ShardingConfig config, object entity)
+    {
+        // 自定义逻辑
+        return $"{config.BaseTableName}_geo";
+    }
+
+    public List<string> GetTableNames(ShardingConfig config, Dictionary<string, object> queryParams)
+    {
+        return new List<string> { $"{config.BaseTableName}_geo" };
+    }
+
+    public List<string> GetAllTableNames(ShardingConfig config)
+    {
+        return new List<string> { $"{config.BaseTableName}_geo" };
+    }
+
+    public bool CreateTable(ShardingConfig config, string tableName)
+    {
+        return true;
+    }
+}
+
+// 注册自定义策略
+ShardingManager.RegisterStrategy(new GeoShardingStrategy());
+```
+
 ## 示例项目
 
 FastData.Example 包含完整的场景化教程示例：

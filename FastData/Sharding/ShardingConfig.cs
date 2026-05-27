@@ -1,0 +1,181 @@
+using System;
+using System.Collections.Generic;
+
+namespace FastData.Sharding
+{
+    /// <summary>
+    /// 分表配置
+    /// </summary>
+    public class ShardingConfig
+    {
+        /// <summary>
+        /// 实体类型
+        /// </summary>
+        public System.Type EntityType { get; set; }
+
+        /// <summary>
+        /// 基础表名（如 "UserLog"）
+        /// </summary>
+        public string BaseTableName { get; set; }
+
+        /// <summary>
+        /// 分表策略类型
+        /// </summary>
+        public ShardingType ShardingType { get; set; }
+
+        /// <summary>
+        /// 分表后缀格式（如 "{0:yyyyMMdd}", "{0:D4}"）
+        /// </summary>
+        public string SuffixFormat { get; set; }
+
+        /// <summary>
+        /// 时间分表配置
+        /// </summary>
+        public TimeShardingConfig TimeConfig { get; set; }
+
+        /// <summary>
+        /// 哈希分表配置
+        /// </summary>
+        public HashShardingConfig HashConfig { get; set; }
+
+        /// <summary>
+        /// 列表分表配置
+        /// </summary>
+        public ListShardingConfig ListConfig { get; set; }
+
+        /// <summary>
+        /// 组合键分表配置
+        /// </summary>
+        public CompositeShardingConfig CompositeConfig { get; set; }
+
+        /// <summary>
+        /// 地理位置分表配置
+        /// </summary>
+        public GeoShardingConfig GeoConfig { get; set; }
+
+        /// <summary>
+        /// 分表数量限制（防止查询太多表）
+        /// </summary>
+        public int MaxTableCount { get; set; } = 100;
+
+        /// <summary>
+        /// 是否自动创建分表
+        /// </summary>
+        public bool AutoCreateTable { get; set; } = true;
+
+        /// <summary>
+        /// 数据库连接 Key
+        /// </summary>
+        public string DatabaseKey { get; set; }
+    }
+
+    /// <summary>
+    /// 时间分表配置
+    /// </summary>
+    public class TimeShardingConfig
+    {
+        /// <summary>
+        /// 时间字段名称
+        /// </summary>
+        public string TimeField { get; set; }
+
+        /// <summary>
+        /// 时间粒度
+        /// </summary>
+        public TimeGranularity Granularity { get; set; } = TimeGranularity.Month;
+
+        /// <summary>
+        /// 起始时间（用于计算分表范围）
+        /// </summary>
+        public DateTime? StartTime { get; set; }
+
+        /// <summary>
+        /// 结束时间（为空则不限制）
+        /// </summary>
+        public DateTime? EndTime { get; set; }
+    }
+
+    /// <summary>
+    /// 哈希分表配置
+    /// </summary>
+    public class HashShardingConfig
+    {
+        /// <summary>
+        /// 哈希字段名称
+        /// </summary>
+        public string HashField { get; set; }
+
+        /// <summary>
+        /// 分表数量
+        /// </summary>
+        public int ShardCount { get; set; } = 8;
+
+        /// <summary>
+        /// 哈希算法
+        /// </summary>
+        public HashAlgorithm Algorithm { get; set; } = HashAlgorithm.Modulo;
+    }
+
+    /// <summary>
+    /// 列表分表配置
+    /// </summary>
+    public class ListShardingConfig
+    {
+        /// <summary>
+        /// 列表字段名称
+        /// </summary>
+        public string ListField { get; set; }
+
+        /// <summary>
+        /// 枚举值到分表后缀的映射
+        /// </summary>
+        public Dictionary<string, string> ValueMapping { get; set; } = new Dictionary<string, string>();
+    }
+
+    /// <summary>
+    /// 组合键分表配置
+    /// </summary>
+    public class CompositeShardingConfig
+    {
+        /// <summary>
+        /// 组合字段列表
+        /// </summary>
+        public List<string> CompositeFields { get; set; } = new List<string>();
+
+        /// <summary>
+        /// 分隔符
+        /// </summary>
+        public string Separator { get; set; } = "_";
+
+        /// <summary>
+        /// 是否使用哈希（否则使用拼接）
+        /// </summary>
+        public bool UseHash { get; set; } = true;
+
+        /// <summary>
+        /// 分表数量（UseHash=true 时生效）
+        /// </summary>
+        public int ShardCount { get; set; } = 16;
+    }
+
+    /// <summary>
+    /// 地理位置分表配置
+    /// </summary>
+    public class GeoShardingConfig
+    {
+        /// <summary>
+        /// 地区字段名称
+        /// </summary>
+        public string RegionField { get; set; }
+
+        /// <summary>
+        /// 地区到分表后缀的映射
+        /// </summary>
+        public Dictionary<string, string> RegionMapping { get; set; } = new Dictionary<string, string>();
+
+        /// <summary>
+        /// 默认地区（未知地区使用）
+        /// </summary>
+        public string DefaultRegion { get; set; } = "default";
+    }
+}
