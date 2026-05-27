@@ -185,6 +185,16 @@ var deptUsers = FastRead.Query<User>(u => u.Department == "IT")
     .OrderBy<User>(u => u.UserName)
     .Select(u => new { u.Id, u.UserName, u.Email })
     .ToList();
+
+// 链式 Where/Or 条件（动态查询场景）
+// 先定义基础查询，再根据条件追加过滤
+var query = FastRead.Query<User>(u => u.IsActive);
+var users = query
+    .Where<User>(u => u.Age > 18)
+    .Or<User>(u => u.Role == "Admin")
+    .OrderBy<User>(u => u.Id)
+    .ToList();
+// 生成 SQL: WHERE IsActive = 1 AND Age > 18 OR Role = 'Admin'
 ```
 
 ### 3. 多数据库切换

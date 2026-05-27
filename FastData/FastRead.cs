@@ -152,6 +152,64 @@ namespace FastData
         }
         #endregion
 
+        #region 链式 Where 条件（AND）
+        /// <summary>
+        /// 链式追加 WHERE 条件（AND）
+        /// 用法：FastRead.Query&lt;User&gt;().Where&lt;User&gt;(u => u.IsActive).Where&lt;User&gt;(u => u.Age > 18).ToList()
+        /// </summary>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="query">查询对象</param>
+        /// <param name="predicate">条件表达式</param>
+        /// <returns>查询对象（支持链式调用）</returns>
+        public static DataQuery Where<T>(this DataQuery query, Expression<Func<T, bool>> predicate) where T : class, new()
+        {
+            if (predicate == null)
+                return query;
+
+            var visitModel = VisitExpression.LambdaWhere<T>(predicate, query.Config);
+            if (visitModel.IsSuccess)
+            {
+                query.ChainedConditions.Add(new ChainedCondition
+                {
+                    Operator = "AND",
+                    Where = visitModel.Where,
+                    Param = visitModel.Param
+                });
+            }
+
+            return query;
+        }
+        #endregion
+
+        #region 链式 Or 条件
+        /// <summary>
+        /// 链式追加 WHERE 条件（OR）
+        /// 用法：FastRead.Query&lt;User&gt;(u => u.Department == "IT").Or&lt;User&gt;(u => u.Department == "HR").ToList()
+        /// </summary>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="query">查询对象</param>
+        /// <param name="predicate">条件表达式</param>
+        /// <returns>查询对象（支持链式调用）</returns>
+        public static DataQuery Or<T>(this DataQuery query, Expression<Func<T, bool>> predicate) where T : class, new()
+        {
+            if (predicate == null)
+                return query;
+
+            var visitModel = VisitExpression.LambdaWhere<T>(predicate, query.Config);
+            if (visitModel.IsSuccess)
+            {
+                query.ChainedConditions.Add(new ChainedCondition
+                {
+                    Operator = "OR",
+                    Where = visitModel.Where,
+                    Param = visitModel.Param
+                });
+            }
+
+            return query;
+        }
+        #endregion
+
         #region 查询left join
         /// <summary>
         /// 查询left join

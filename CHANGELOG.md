@@ -31,7 +31,7 @@
 - Logger 日志工具（Debug/Info/Warn/Error，按日期/任务分割文件）
 - 数据库容器内存优化（SQL Server 1.5GB + MySQL 512MB + PostgreSQL 256MB）
 - xUnit 2.6.2 测试框架迁移
-- 73 个单元测试全部通过（net10.0）
+- 89 个单元测试全部通过（net10.0）
 - NuGet 包生成（FastUntility/FastData.Tooling/FastData/FastRedis）
 - 综合验证测试脚本（verify-all.sh，34 项测试）
 - 大表主键加载优化（GetMaxPrimaryKeyValueFromDb 直接查询数据库）
@@ -46,6 +46,26 @@
   - TableSyncConfig 配置驱动（EnableMessageQueue/MessageQueueType/MessageQueueTopic）
   - FastData.Demo API 端点（/api/mq/demo/reliable, /api/mq/demo/stream）
   - FastData.Example 示例代码
+- **Lambda 查询扩展 API**
+  - FastRead.Query<T>() Lambda 表达式查询
+  - FastRead.Select<T, TResult>() 匿名类型投影查询
+  - 支持复杂条件组合（Where/And/Or/In/Like/Between）
+  - ProjectedQuery<T, TResult> 投影查询类
+- **分页查询 API**
+  - FastRead.ToPagination<T>() / ToPaginationAsync<T>() 泛型版本
+  - FastRead.ToPagination() / ToPaginationAsync() 字典版本
+  - PaginationRequest/PaginationResult<T> 模型
+  - PaginationController Web API 示例
+- **链式 WHERE 条件**
+  - DataQuery.ChainedConditions 链式条件列表
+  - FastRead.Where<T>() / Or<T>() 扩展方法
+  - WhereBuilder 统一 WHERE 子句构建
+- **FastWrite 匿名类型支持**
+  - Add/AddRange/Update/Delete 支持 tableName 参数
+  - 无 new() 约束，支持匿名类型推断
+- **XML Map SQL 生成器**
+  - Model Generator 新增 XML Map SQL 生成功能
+  - 支持多表关联查询配置
 
 ### Fixed
 

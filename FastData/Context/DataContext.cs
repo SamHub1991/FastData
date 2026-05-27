@@ -201,7 +201,12 @@ namespace FastData.Context
                         param.AddRange(item.Predicate[i].Param);
                 }
 
-                sql.AppendFormat(" where {0}", item.Predicate[0].Where);
+                // 使用 WhereBuilder 构建完整的 WHERE 子句（支持链式条件）
+                var whereClause = WhereBuilder.BuildWhereClause(item, ref param);
+                if (!string.IsNullOrEmpty(whereClause))
+                {
+                    sql.AppendFormat(" where {0}", whereClause);
+                }
 
                 //是否前几条或单条
                 if (item.Config.DbType == DataDbType.Oracle && item.Take != 0)
@@ -214,9 +219,6 @@ namespace FastData.Context
                     sql.AppendFormat(" and limit {0}", item.Take);
                 else if (item.Config.DbType == DataDbType.SQLite && item.Take != 0)
                     sql.AppendFormat(" and limit 0 offset {0}", item.Take);
-
-                if (item.Predicate[0].Param.Count != 0)
-                    param.AddRange(item.Predicate[0].Param);
 
                 if (item.GroupBy.Count > 0)
                     sql.AppendFormat(" group by {0}", string.Join(",", item.GroupBy));
@@ -533,7 +535,12 @@ namespace FastData.Context
                         param.AddRange(item.Predicate[i].Param);
                 }
 
-                sql.AppendFormat(" where {0}", item.Predicate[0].Where);
+                // 使用 WhereBuilder 构建完整的 WHERE 子句（支持链式条件）
+                var whereClause = WhereBuilder.BuildWhereClause(item, ref param);
+                if (!string.IsNullOrEmpty(whereClause))
+                {
+                    sql.AppendFormat(" where {0}", whereClause);
+                }
 
                 //是否前几条或单条
                 if (item.Config.DbType == DataDbType.Oracle && item.Take != 0)
@@ -612,12 +619,11 @@ namespace FastData.Context
                         param.AddRange(item.Predicate[i].Param);
                 }
 
-                if (!string.IsNullOrEmpty(item.Predicate[0].Where))
+                // 使用 WhereBuilder 构建完整的 WHERE 子句（支持链式条件）
+                if (WhereBuilder.HasWhereClause(item))
                 {
-                    sql.AppendFormat(" where {0}", item.Predicate[0].Where);
-
-                    if (item.Predicate[0].Param.Count != 0)
-                        param.AddRange(item.Predicate[0].Param);
+                    var whereClause = WhereBuilder.BuildWhereClause(item, ref param);
+                    sql.AppendFormat(" where {0}", whereClause);
                 }
 
                 if (item.GroupBy.Count > 0)
@@ -785,22 +791,24 @@ namespace FastData.Context
                         param.AddRange(item.Predicate[i].Param);
                 }
 
-                sql.AppendFormat(" where {0}", item.Predicate[0].Where);
+                // 使用 WhereBuilder 构建完整的 WHERE 子句（支持链式条件）
+                var whereClause = WhereBuilder.BuildWhereClause(item, ref param);
+                if (!string.IsNullOrEmpty(whereClause))
+                {
+                    sql.AppendFormat(" where {0}", whereClause);
+                }
 
                 //是否前几条或单条
                 if (item.Config.DbType == DataDbType.Oracle && item.Take != 0)
                     sql.AppendFormat(" and rownum <={0}", item.Take);
                 else if (item.Config.DbType == DataDbType.DB2 && item.Take != 0)
                     sql.AppendFormat(" and fetch first {0} rows only", item.Take);
-                else if (item.Config.DbType == DataDbType.PostgreSql && item.Take != 0)
-                    sql.AppendFormat(" and limit {0}", item.Take);
                 else if (item.Config.DbType == DataDbType.MySql && item.Take != 0)
+                    sql.AppendFormat(" and limit {0}", item.Take);
+                else if (item.Config.DbType == DataDbType.PostgreSql && item.Take != 0)
                     sql.AppendFormat(" and limit {0}", item.Take);
                 else if (item.Config.DbType == DataDbType.SQLite && item.Take != 0)
                     sql.AppendFormat(" and limit 0 offset {0}", item.Take);
-
-                if (item.Predicate[0].Param.Count != 0)
-                    param.AddRange(item.Predicate[0].Param);
 
                 if (item.GroupBy.Count > 0)
                     sql.AppendFormat(" group by {0}", string.Join(",", item.GroupBy));
@@ -877,22 +885,24 @@ namespace FastData.Context
                         param.AddRange(item.Predicate[i].Param);
                 }
 
-                sql.AppendFormat(" where {0}", item.Predicate[0].Where);
+                // 使用 WhereBuilder 构建完整的 WHERE 子句（支持链式条件）
+                var whereClause = WhereBuilder.BuildWhereClause(item, ref param);
+                if (!string.IsNullOrEmpty(whereClause))
+                {
+                    sql.AppendFormat(" where {0}", whereClause);
+                }
 
                 //是否前几条或单条
                 if (item.Config.DbType == DataDbType.Oracle && item.Take != 0)
                     sql.AppendFormat(" and rownum <={0}", item.Take);
                 else if (item.Config.DbType == DataDbType.DB2 && item.Take != 0)
                     sql.AppendFormat(" and fetch first {0} rows only", item.Take);
-                else if (item.Config.DbType == DataDbType.PostgreSql && item.Take != 0)
-                    sql.AppendFormat(" and limit {0}", item.Take);
                 else if (item.Config.DbType == DataDbType.MySql && item.Take != 0)
+                    sql.AppendFormat(" and limit {0}", item.Take);
+                else if (item.Config.DbType == DataDbType.PostgreSql && item.Take != 0)
                     sql.AppendFormat(" and limit {0}", item.Take);
                 else if (item.Config.DbType == DataDbType.SQLite && item.Take != 0)
                     sql.AppendFormat(" and limit 0 offset {0}", item.Take);
-
-                if (item.Predicate[0].Param.Count != 0)
-                    param.AddRange(item.Predicate[0].Param);
 
                 if (item.GroupBy.Count > 0)
                     sql.AppendFormat(" group by {0}", string.Join(",", item.GroupBy));
