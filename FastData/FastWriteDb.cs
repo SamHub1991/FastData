@@ -1,5 +1,6 @@
 using FastData.Context;
 using FastData.Model;
+using FastData.Queue;
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
@@ -15,9 +16,23 @@ namespace FastData
     {
         private readonly string key;
 
+        /// <summary>
+        /// 获取数据库 Key
+        /// </summary>
+        public string Key => key;
+
         internal FastWriteDb(string key)
         {
             this.key = key;
+        }
+
+        /// <summary>
+        /// 创建链式写入构建器（带消息队列支持）
+        /// </summary>
+        /// <returns>链式构建器</returns>
+        public FastWriteQueueBuilder Queue()
+        {
+            return new FastWriteQueueBuilder(key);
         }
 
         public WriteReturn AddList<T>(List<T> list, bool IsTrans = false, bool isLog = true) where T : class, new()

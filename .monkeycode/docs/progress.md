@@ -57,7 +57,20 @@
 - [x] FastData.Example 示例代码
 - [x] README.md 消息队列文档
 
-### 5. 文档整合
+### 5. 写入后端队列实现（FastWrite 链式 API + 数据库降级）
+- [x] WriteBehindConfig 配置类（队列类型/降级开关/自动恢复/批量刷写）
+- [x] WriteBehindRegistry 注册表（表级别队列配置管理）
+- [x] FastWriteQueueBuilder 链式构建器（Fluent API：QueueBuilder().Add().Execute()）
+- [x] WriteBehindExecutor 执行器（数据库异常自动降级到可信队列）
+- [x] QueueFlushService 恢复服务（后台监控队列，数据库恢复后自动刷写）
+- [x] WriteOperation 操作模型（支持 Add/Update/Delete 操作类型）
+- [x] FastWrite.QueueBuilder() 静态方法
+- [x] FastWriteDb.Queue() 实例方法
+- [x] FastWrite.ConfigureQueue<T>() 配置方法
+- [x] FastWrite.IsQueueEnabled<T>() 查询方法
+- [x] FastWriteExtensions 扩展方法
+
+### 6. 文档整合
 - [x] CHANGELOG.md 更新至最新版本
 - [x] README.md 全面更新（455+ 行，10 个示例，文档导航链接）
 - [x] DEVELOPMENT_PROGRESS.md 整合开发进度

@@ -7,6 +7,7 @@ using FastData.Base;
 using FastData.Model;
 using System.Diagnostics;
 using FastData.Context;
+using FastData.Queue;
 
 namespace FastData
 {
@@ -19,6 +20,57 @@ namespace FastData
         public static FastWriteDb Use(string key)
         {
             return new FastWriteDb(key);
+        }
+
+        /// <summary>
+        /// 创建链式写入构建器（带消息队列支持）
+        /// 支持 Fluent API：FastWrite.QueueBuilder().Add(user).Add(user2).Execute()
+        /// </summary>
+        /// <param name="databaseKey">数据库 Key（可选）</param>
+        /// <returns>链式构建器</returns>
+        public static FastWriteQueueBuilder QueueBuilder(string databaseKey = null)
+        {
+            return new FastWriteQueueBuilder(databaseKey);
+        }
+
+        /// <summary>
+        /// 配置表级别的消息队列
+        /// </summary>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="config">队列配置</param>
+        public static void ConfigureQueue<T>(WriteBehindConfig config) where T : class
+        {
+            WriteBehindRegistry.Register<T>(config);
+        }
+
+        /// <summary>
+        /// 配置表级别的消息队列
+        /// </summary>
+        /// <param name="tableName">表名</param>
+        /// <param name="config">队列配置</param>
+        public static void ConfigureQueue(string tableName, WriteBehindConfig config)
+        {
+            WriteBehindRegistry.Register(tableName, config);
+        }
+
+        /// <summary>
+        /// 检查表是否启用了消息队列
+        /// </summary>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <returns>是否启用队列</returns>
+        public static bool IsQueueEnabled<T>() where T : class
+        {
+            return WriteBehindRegistry.IsQueueEnabled<T>();
+        }
+
+        /// <summary>
+        /// 检查表是否启用了消息队列
+        /// </summary>
+        /// <param name="tableName">表名</param>
+        /// <returns>是否启用队列</returns>
+        public static bool IsQueueEnabled(string tableName)
+        {
+            return WriteBehindRegistry.IsQueueEnabled(tableName);
         }
 
         #region 批量增加
