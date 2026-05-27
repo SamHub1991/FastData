@@ -1,6 +1,8 @@
 using FastData.Context;
 using FastData.Model;
+#if !NETFRAMEWORK
 using FastData.Queue;
+#endif
 using FastUntility.Page;
 using System;
 using System.Collections.Generic;
@@ -28,6 +30,7 @@ namespace FastData
             this.key = key;
         }
 
+#if !NETFRAMEWORK
         /// <summary>
         /// 创建链式读取构建器（带消息队列支持）
         /// </summary>
@@ -37,6 +40,7 @@ namespace FastData
         {
             return new FastReadQueueBuilder<T>(key);
         }
+#endif
 
         public DataQuery Query<T>(Expression<Func<T, bool>> predicate, Expression<Func<T, object>> field = null, string dbFile = "db.config")
         {

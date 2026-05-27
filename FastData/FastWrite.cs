@@ -7,7 +7,9 @@ using FastData.Base;
 using FastData.Model;
 using System.Diagnostics;
 using FastData.Context;
+#if !NETFRAMEWORK
 using FastData.Queue;
+#endif
 
 namespace FastData
 {
@@ -22,6 +24,7 @@ namespace FastData
             return new FastWriteDb(key);
         }
 
+#if !NETFRAMEWORK
         /// <summary>
         /// 创建链式写入构建器（带消息队列支持）
         /// 支持 Fluent API：FastWrite.QueueBuilder().Add(user).Add(user2).Execute()
@@ -72,6 +75,7 @@ namespace FastData
         {
             return WriteBehindRegistry.IsQueueEnabled(tableName);
         }
+#endif
 
         #region 批量增加
         /// <summary>

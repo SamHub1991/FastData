@@ -11,7 +11,9 @@ using System.Diagnostics;
 using FastData.Context;
 using System.Data;
 using System.Reflection;
+#if !NETFRAMEWORK
 using FastData.Queue;
+#endif
 
 namespace FastData
 {
@@ -25,6 +27,7 @@ namespace FastData
             return new FastReadDb(key);
         }
 
+#if !NETFRAMEWORK
         /// <summary>
         /// 创建链式读取构建器（带消息队列支持）
         /// 支持 Fluent API：FastRead.QueueBuilder&lt;User&gt;().Where(u => u.IsActive).Execute()
@@ -76,6 +79,7 @@ namespace FastData
         {
             return WriteBehindRegistry.IsQueueEnabled(tableName);
         }
+#endif
 
         #region 查询join
         /// <summary>

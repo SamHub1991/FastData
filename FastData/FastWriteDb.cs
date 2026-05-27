@@ -1,6 +1,8 @@
 using FastData.Context;
 using FastData.Model;
+#if !NETFRAMEWORK
 using FastData.Queue;
+#endif
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
@@ -26,6 +28,7 @@ namespace FastData
             this.key = key;
         }
 
+#if !NETFRAMEWORK
         /// <summary>
         /// 创建链式写入构建器（带消息队列支持）
         /// </summary>
@@ -34,6 +37,7 @@ namespace FastData
         {
             return new FastWriteQueueBuilder(key);
         }
+#endif
 
         public WriteReturn AddList<T>(List<T> list, bool IsTrans = false, bool isLog = true) where T : class, new()
         {

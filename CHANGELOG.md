@@ -52,6 +52,19 @@
 - DataRowSerializer 反序列化 IDictionary vs Dictionary 类型问题
 - 业务主键配置参数未传递到同步方法（GetPrimaryKeyColumns 优先使用配置参数）
 
+### Added (Latest)
+
+- **Model Generator XML Map SQL 生成器**
+  - XmlMapSqlGenerator.cs：从数据库表结构生成 FastData XML Map SQL
+  - 自动生成 Select All / Select By PK / Select Dynamic / Insert / Update / Delete
+  - MainForm 新增「预览XML」和「生成XML Map」按钮
+- **FastData.Example 场景化教程示例**
+  - MapSqlExample.cs：XML Map SQL 使用示例
+  - TransactionExample.cs：事务使用示例
+  - MultiDbExample.cs：多数据库使用示例
+  - RawSqlExample.cs：原始 SQL 示例
+  - Program.cs 菜单更新：覆盖全部 10 种 ORM 功能场景
+
 ### Changed
 
 - FastData.Tooling 目录重构：按功能分层（Logging/Models/Services/Utils）

@@ -534,6 +534,46 @@ dotnet test FastData.Tests/FastData.Tests.csproj --framework net10.0
 | Microsoft.Extensions.Caching.Memory | - | 8.0.0 | 内存缓存 |
 | System.Configuration.ConfigurationManager | - | 8.0.0 | 配置管理 |
 
+## Model Generator 工具
+
+### XML Map SQL 生成器
+
+Model Generator 内置 XML Map SQL 生成功能，可从数据库表结构自动生成 FastData XML Map SQL。
+
+**支持的 SQL 类型**：
+- Select All - 全量查询
+- Select By PK - 按主键查询
+- Select with Dynamic Conditions - 动态条件查询
+- Insert - 插入
+- Update - 更新
+- Delete - 删除
+
+**使用方式**：
+1. 在 Model Generator 中选择数据库表
+2. 点击「预览XML」查看生成的 XML Map SQL
+3. 点击「生成XML Map」保存为文件
+
+```csharp
+// 生成的 XML Map SQL 示例
+var sql = XmlMapSqlGenerator.GenerateSelectAllSql("Users", provider);
+// 输出: <FastDataSQL Name="Users_SelectAll" SQL="SELECT * FROM Users" />
+```
+
+## 示例项目
+
+FastData.Example 包含完整的场景化教程示例：
+
+| 文件 | 示例内容 |
+|------|----------|
+| BasicCrudExample.cs | 基本 CRUD 操作 |
+| LambdaQueryExample.cs | Lambda 查询（Where/OrderBy/GroupBy） |
+| RawSqlExample.cs | 原始 SQL 查询 |
+| MapSqlExample.cs | XML Map SQL 使用 |
+| TransactionExample.cs | 事务使用 |
+| MultiDbExample.cs | 多数据库使用 |
+| DataSyncExample.cs | 数据同步 |
+| MessageQueueExample.cs | 消息队列 |
+
 ## 文档导航
 
 | 文档 | 说明 |

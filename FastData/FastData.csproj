@@ -38,4 +38,9 @@
     <ProjectReference Include="..\FastUntility\FastUntility.csproj" />
   </ItemGroup>
 
+  <!-- 排除 net45 的 Queue 目录 -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net45'">
+    <Compile Remove="Queue\**" />
+  </ItemGroup>
+
 </Project>
