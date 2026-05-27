@@ -6,7 +6,7 @@
 
 ### Added
 
-- **分表功能完整示例和演示**（bc832f7, 6304250, b1d0216）
+- **分表功能完整示例和演示**（bc832f7, 6304250, b1d0216, d2efa79）
   - ShardingFullExample.cs：SQL Server 分表完整示例
     - 批量数据插入（10000 条日志、5000 条订单）
     - 时间/哈希/列表/查询频率分表策略
@@ -48,6 +48,20 @@
     - 5种分表策略可视化配置
     - 预览分表结构
     - 启动后台任务
+  - ShardingConfigSnapshot.cs：分表配置快照模型
+    - 配置导入/导出（JSON格式）
+    - 跨环境一致性验证
+    - 验证结果（错误/警告）
+  - ShardingConfigVisualizer.cs：可视化配置编辑器
+    - DataGridView 显示所有配置
+    - PropertyGrid 显示配置详情
+    - 添加/编辑/删除配置
+    - 颜色标识分表类型
+    - 验证与开发环境一致性
+    - 应用配置到分表管理器
+  - ShardingConfigEditDialog.cs：配置编辑对话框
+    - 5种分表策略独立配置面板
+    - 可视化值映射编辑
   - DataQuery.cs：分表属性改为 public
   - MainForm.cs：集成 ShardingSyncControl
 
