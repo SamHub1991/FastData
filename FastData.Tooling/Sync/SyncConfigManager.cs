@@ -47,8 +47,9 @@ namespace FastData.Tooling.Sync
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                System.Diagnostics.Trace.WriteLine("SyncConfigManager: Failed to load configs - " + ex.Message);
                 configs = new Dictionary<string, SyncTaskConfig>(StringComparer.OrdinalIgnoreCase);
             }
         }

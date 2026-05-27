@@ -161,7 +161,7 @@ namespace FastData.Base
 
                 return item;
             }
-            catch { return item; }
+            catch (Exception ex) { DbLog.LogException(config.IsOutError, config.DbType, ex, "ToModel", ""); return item; }
         }
 
     }

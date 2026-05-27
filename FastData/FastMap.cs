@@ -25,7 +25,13 @@ namespace FastData
     /// </summary>
     public static class FastMap
     {
-        public static IFastAop fastAop;
+        private static volatile IFastAop _fastAop;
+
+        public static IFastAop fastAop
+        {
+            get { return _fastAop; }
+            set { _fastAop = value; }
+        }
 
         #region 初始化model成员 1
         /// <summary>
@@ -259,7 +265,7 @@ namespace FastData
             if (DbCache.Exists(config.CacheType, name.ToLower()))
             {
                 var sql = MapXml.GetMapSql(name, ref param, db, key);
-                isOutSql = isOutSql ? isOutSql : IsMapLog(name);
+                isOutSql = isOutSql || IsMapLog(name);
 
                 AopMapBefore(name, sql, param, config,AopType.Map_List_Model);
 
@@ -345,7 +351,7 @@ namespace FastData
             if (DbCache.Exists(config.CacheType, name.ToLower()))
             {
                 var sql = MapXml.GetMapSql(name, ref param, db, key);
-                isOutSql = isOutSql ? isOutSql : IsMapLog(name);
+                isOutSql = isOutSql || IsMapLog(name);
 
                 AopMapBefore(name, sql, param, config, AopType.Map_Write);
 
@@ -412,7 +418,7 @@ namespace FastData
             if (DbCache.Exists(config.CacheType, name.ToLower()))
             {
                 var sql = MapXml.GetMapSql(name, ref param, db, key);
-                isOutSql = isOutSql ? isOutSql : IsMapLog(name);
+                isOutSql = isOutSql || IsMapLog(name);
 
                 AopMapBefore(name, sql, param, config,AopType.Map_List_Dic);
 
@@ -511,7 +517,7 @@ namespace FastData
 
             stopwatch.Stop();
 
-            config.IsOutSql = config.IsOutSql ? config.IsOutSql : isOutSql;
+            config.IsOutSql = config.IsOutSql || isOutSql;
             DbLog.LogSql(config.IsOutSql, result.Sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
             return result.PageResult;
@@ -531,7 +537,7 @@ namespace FastData
             if (DbCache.Exists(config.CacheType, name.ToLower()))
             {
                 var sql = MapXml.GetMapSql(name, ref param, db, key);
-                isOutSql = isOutSql ? isOutSql : IsMapLog(name);
+                isOutSql = isOutSql || IsMapLog(name);
 
                 AopMapBefore(name, sql, param, config,AopType.Map_Page_Dic);
 
@@ -630,7 +636,7 @@ namespace FastData
 
             stopwatch.Stop();
 
-            config.IsOutSql = config.IsOutSql ? config.IsOutSql : isOutSql;
+            config.IsOutSql = config.IsOutSql || isOutSql;
             DbLog.LogSql(config.IsOutSql, result.sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
             return result.pageResult;
@@ -650,7 +656,7 @@ namespace FastData
             if (DbCache.Exists(config.CacheType, name.ToLower()))
             {
                 var sql = MapXml.GetMapSql(name, ref param, db, key);
-                isOutSql = isOutSql ? isOutSql : IsMapLog(name);
+                isOutSql = isOutSql || IsMapLog(name);
 
                 AopMapBefore(name, sql, param, config,AopType.Map_Page_Model);
 

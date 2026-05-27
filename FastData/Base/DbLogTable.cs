@@ -7,6 +7,8 @@ namespace FastData.Base
 {
     internal static class DbLogTable
     {
+        private static bool _isSaving = false;
+
         /// <summary>
         /// 数据库出错日志
         /// </summary>
@@ -29,45 +31,53 @@ namespace FastData.Base
         /// </summary>
         private static void SaveToDb(ConfigModel config, Exception ex, string CurrentMethod, string sql,string type)
         {
-            if (config.IsOutError)
+            if (config.IsOutError && !_isSaving)
             {
-                using (var db = new DataContext(config.Key))
+                _isSaving = true;
+                try
                 {
-                    if (config.DbType == DataDbType.MySql)
+                    using (var db = new DataContext(config.Key))
                     {
-                        var model = new FastData.DataModel.MySql.Data_LogError();
-                        model.AddTime = DateTime.Now;
-                        model.Content = ex.StackTrace;
-                        model.ErrorId = Guid.NewGuid().ToString();
-                        model.Method = CurrentMethod;
-                        model.Type = type;
-                        model.Sql = sql;
-                        db.Add(model);
-                    }
+                        if (config.DbType == DataDbType.MySql)
+                        {
+                            var model = new FastData.DataModel.MySql.Data_LogError();
+                            model.AddTime = DateTime.Now;
+                            model.Content = ex.StackTrace;
+                            model.ErrorId = Guid.NewGuid().ToString();
+                            model.Method = CurrentMethod;
+                            model.Type = type;
+                            model.Sql = sql;
+                            db.Add(model);
+                        }
 
-                    if (config.DbType == DataDbType.Oracle)
-                    {
-                        var model = new FastData.DataModel.Oracle.Data_LogError();
-                        model.AddTime = DateTime.Now;
-                        model.Content = ex.StackTrace;
-                        model.ErrorId = Guid.NewGuid().ToString();
-                        model.Method = CurrentMethod;
-                        model.Type = type;
-                        model.Sql = sql;
-                        db.Add(model);
-                    }
+                        if (config.DbType == DataDbType.Oracle)
+                        {
+                            var model = new FastData.DataModel.Oracle.Data_LogError();
+                            model.AddTime = DateTime.Now;
+                            model.Content = ex.StackTrace;
+                            model.ErrorId = Guid.NewGuid().ToString();
+                            model.Method = CurrentMethod;
+                            model.Type = type;
+                            model.Sql = sql;
+                            db.Add(model);
+                        }
 
-                    if (config.DbType == DataDbType.SqlServer)
-                    {
-                        var model = new FastData.DataModel.SqlServer.Data_LogError();
-                        model.AddTime = DateTime.Now;
-                        model.Content = ex.StackTrace;
-                        model.ErrorId = Guid.NewGuid().ToString();
-                        model.Method = CurrentMethod;
-                        model.Type = type;
-                        model.Sql = sql;
-                        db.Add(model);
+                        if (config.DbType == DataDbType.SqlServer)
+                        {
+                            var model = new FastData.DataModel.SqlServer.Data_LogError();
+                            model.AddTime = DateTime.Now;
+                            model.Content = ex.StackTrace;
+                            model.ErrorId = Guid.NewGuid().ToString();
+                            model.Method = CurrentMethod;
+                            model.Type = type;
+                            model.Sql = sql;
+                            db.Add(model);
+                        }
                     }
+                }
+                finally
+                {
+                    _isSaving = false;
                 }
             }
         }

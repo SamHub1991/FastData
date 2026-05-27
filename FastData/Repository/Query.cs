@@ -167,7 +167,7 @@ namespace FastData.Repository
 
             stopwatch.Stop();
 
-            this.Data.Config.IsOutSql = this.Data.Config.IsOutSql ? this.Data.Config.IsOutSql : isOutSql;
+            this.Data.Config.IsOutSql = this.Data.Config.IsOutSql || isOutSql;
             DbLog.LogSql(this.Data.Config.IsOutSql, result.sql, this.Data.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
             return result.list;
         }
@@ -247,7 +247,7 @@ namespace FastData.Repository
 
             stopwatch.Stop();
 
-            this.Data.Config.IsOutSql = this.Data.Config.IsOutSql ? this.Data.Config.IsOutSql : isOutSql;
+            this.Data.Config.IsOutSql = this.Data.Config.IsOutSql || isOutSql;
             DbLog.LogSql(this.Data.Config.IsOutSql, result.Sql, this.Data.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
             return result.Json;
         }
@@ -327,7 +327,7 @@ namespace FastData.Repository
 
             stopwatch.Stop();
 
-            this.Data.Config.IsOutSql = this.Data.Config.IsOutSql ? this.Data.Config.IsOutSql : isOutSql;
+            this.Data.Config.IsOutSql = this.Data.Config.IsOutSql || isOutSql;
             DbLog.LogSql(this.Data.Config.IsOutSql, result.sql, this.Data.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
             return result.item;
         }
@@ -407,7 +407,7 @@ namespace FastData.Repository
 
             stopwatch.Stop();
 
-            this.Data.Config.IsOutSql = this.Data.Config.IsOutSql ? this.Data.Config.IsOutSql : isOutSql;
+            this.Data.Config.IsOutSql = this.Data.Config.IsOutSql || isOutSql;
             DbLog.LogSql(this.Data.Config.IsOutSql, result.Sql, this.Data.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
             return result.Count;
@@ -460,7 +460,7 @@ namespace FastData.Repository
 
             stopwatch.Stop();
 
-            this.Data.Config.IsOutSql = this.Data.Config.IsOutSql ? this.Data.Config.IsOutSql : isOutSql;
+            this.Data.Config.IsOutSql = this.Data.Config.IsOutSql || isOutSql;
             DbLog.LogSql(this.Data.Config.IsOutSql, result.sql, this.Data.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
             return result.pageResult;
         }
@@ -544,7 +544,7 @@ namespace FastData.Repository
 
             stopwatch.Stop();
 
-            this.Data.Config.IsOutSql = this.Data.Config.IsOutSql ? this.Data.Config.IsOutSql : isOutSql;
+            this.Data.Config.IsOutSql = this.Data.Config.IsOutSql || isOutSql;
             DbLog.LogSql(this.Data.Config.IsOutSql, result.Sql, this.Data.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
             return result.PageResult;
         }
@@ -626,7 +626,7 @@ namespace FastData.Repository
 
             stopwatch.Stop();
 
-            this.Data.Config.IsOutSql = this.Data.Config.IsOutSql ? this.Data.Config.IsOutSql : isOutSql;
+            this.Data.Config.IsOutSql = this.Data.Config.IsOutSql || isOutSql;
             DbLog.LogSql(this.Data.Config.IsOutSql, result.Sql, this.Data.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
             return result.Table;
         }
@@ -703,7 +703,7 @@ namespace FastData.Repository
 
             stopwatch.Stop();
 
-            this.Data.Config.IsOutSql = this.Data.Config.IsOutSql ? this.Data.Config.IsOutSql : isOutSql;
+            this.Data.Config.IsOutSql = this.Data.Config.IsOutSql || isOutSql;
             DbLog.LogSql(this.Data.Config.IsOutSql, result.Sql, this.Data.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
             return result.DicList;
         }
@@ -781,7 +781,7 @@ namespace FastData.Repository
 
             stopwatch.Stop();
 
-            this.Data.Config.IsOutSql = this.Data.Config.IsOutSql ? this.Data.Config.IsOutSql : isOutSql;
+            this.Data.Config.IsOutSql = this.Data.Config.IsOutSql || isOutSql;
             DbLog.LogSql(this.Data.Config.IsOutSql, result.Sql, this.Data.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
             return result.Dic;
         }

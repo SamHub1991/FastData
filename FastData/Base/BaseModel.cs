@@ -455,20 +455,29 @@ namespace FastData.Base
                 cmd.CommandText = string.Format("select column_name from INFORMATION_SCHEMA.KEY_COLUMN_USAGE a where TABLE_NAME='{0}' and constraint_name='PRIMARY'", tableName.ToUpper());
 
             if (config.DbType == DataDbType.DB2)
-                cmd.CommandText = string.Format("select a.colname from sysibm.syskeycoluse a，syscat.tabconst b where a.tabname=b.tabnameand b.tabname='{0}' and b.type=p", tableName.ToUpper());
+                cmd.CommandText = string.Format("select a.colname from sysibm.syskeycoluse a, syscat.tabconst b where a.tabname = b.tabname and b.tabname = '{0}' and b.type = 'P'", tableName.ToUpper());
 
             if (string.IsNullOrEmpty(cmd.CommandText))
                 return list;
             else
             {
-                var dr = cmd.ExecuteReader();
+                var savedCommandText = cmd.CommandText;
+                var savedParams = new List<System.Data.Common.DbParameter>();
+                foreach (System.Data.Common.DbParameter p in cmd.Parameters)
+                    savedParams.Add(p);
+                cmd.Parameters.Clear();
 
-                while (dr.Read())
+                using (var dr = cmd.ExecuteReader())
                 {
-                    list.Add(dr[0].ToString());
+                    while (dr.Read())
+                    {
+                        list.Add(dr[0].ToString());
+                    }
                 }
 
-                dr.Close();
+                cmd.CommandText = savedCommandText;
+                foreach (var p in savedParams)
+                    cmd.Parameters.Add(p);
                 return list;
             }
         }

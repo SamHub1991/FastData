@@ -204,7 +204,7 @@ namespace FastData
 
             stopwatch.Stop();
 
-            item.Config.IsOutSql = item.Config.IsOutSql ? item.Config.IsOutSql : isOutSql;
+            item.Config.IsOutSql = item.Config.IsOutSql || isOutSql;
             DbLog.LogSql(item.Config.IsOutSql, result.sql, item.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
             return result.list;
         }
@@ -284,7 +284,7 @@ namespace FastData
 
             stopwatch.Stop();
 
-            item.Config.IsOutSql = item.Config.IsOutSql ? item.Config.IsOutSql : isOutSql;
+            item.Config.IsOutSql = item.Config.IsOutSql || isOutSql;
             DbLog.LogSql(item.Config.IsOutSql, result.Sql, item.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
             return result.Json;
         }
@@ -364,7 +364,7 @@ namespace FastData
 
             stopwatch.Stop();
 
-            item.Config.IsOutSql = item.Config.IsOutSql ? item.Config.IsOutSql : isOutSql;
+            item.Config.IsOutSql = item.Config.IsOutSql || isOutSql;
             DbLog.LogSql(item.Config.IsOutSql, result.sql, item.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
             return result.item;
@@ -445,7 +445,7 @@ namespace FastData
 
             stopwatch.Stop();
 
-            item.Config.IsOutSql = item.Config.IsOutSql ? item.Config.IsOutSql : isOutSql;
+            item.Config.IsOutSql = item.Config.IsOutSql || isOutSql;
             DbLog.LogSql(item.Config.IsOutSql, result.Sql, item.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
             return result.Count;
@@ -498,7 +498,7 @@ namespace FastData
 
             stopwatch.Stop();
 
-            item.Config.IsOutSql = item.Config.IsOutSql ? item.Config.IsOutSql : isOutSql;
+            item.Config.IsOutSql = item.Config.IsOutSql || isOutSql;
             DbLog.LogSql(item.Config.IsOutSql, result.sql, item.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
             return result.pageResult;
@@ -583,7 +583,7 @@ namespace FastData
 
             stopwatch.Stop();
 
-            item.Config.IsOutSql = item.Config.IsOutSql ? item.Config.IsOutSql : isOutSql;
+            item.Config.IsOutSql = item.Config.IsOutSql || isOutSql;
             DbLog.LogSql(item.Config.IsOutSql, result.Sql, item.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
             return result.PageResult;
@@ -670,7 +670,7 @@ namespace FastData
 
             stopwatch.Stop();
 
-            config.IsOutSql = config.IsOutSql ? config.IsOutSql : isOutSql;
+            config.IsOutSql = config.IsOutSql || isOutSql;
             DbLog.LogSql(config.IsOutSql, result.sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
             return result.list;
@@ -754,7 +754,7 @@ namespace FastData
 
             stopwatch.Stop();
 
-            item.Config.IsOutSql = item.Config.IsOutSql ? item.Config.IsOutSql : isOutSql;
+            item.Config.IsOutSql = item.Config.IsOutSql || isOutSql;
             DbLog.LogSql(item.Config.IsOutSql, result.Sql, item.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
             return result.DicList;
@@ -833,7 +833,7 @@ namespace FastData
 
             stopwatch.Stop();
 
-            item.Config.IsOutSql = item.Config.IsOutSql ? item.Config.IsOutSql : isOutSql;
+            item.Config.IsOutSql = item.Config.IsOutSql || isOutSql;
             DbLog.LogSql(item.Config.IsOutSql, result.Sql, item.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
             return result.Dic;
@@ -912,7 +912,7 @@ namespace FastData
 
             stopwatch.Stop();
 
-            item.Config.IsOutSql = item.Config.IsOutSql ? item.Config.IsOutSql : isOutSql;
+            item.Config.IsOutSql = item.Config.IsOutSql || isOutSql;
             DbLog.LogSql(item.Config.IsOutSql, result.Sql, item.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
             return result.Table;
@@ -994,7 +994,7 @@ namespace FastData
 
             stopwatch.Stop();
 
-            config.IsOutSql = config.IsOutSql ? config.IsOutSql : isOutSql;
+            config.IsOutSql = config.IsOutSql || isOutSql;
             DbLog.LogSql(config.IsOutSql, result.Sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
             return result.DicList;

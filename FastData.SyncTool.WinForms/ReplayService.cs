@@ -165,8 +165,9 @@ namespace FastData.SyncTool
 
                 return table;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                System.Diagnostics.Trace.WriteLine("GetTableSchema error: " + ex.Message);
                 return null;
             }
         }
@@ -253,9 +254,9 @@ namespace FastData.SyncTool
                     }
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // 忽略错误，返回空集合
+                System.Diagnostics.Trace.WriteLine("LoadExistingKeys error: " + ex.Message);
             }
 
             return keys;

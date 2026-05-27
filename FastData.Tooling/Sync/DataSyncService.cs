@@ -74,8 +74,9 @@ namespace FastData.Tooling.Sync
                                 InsertRowBatch(target, options.TargetTable, table, batchRows);
                                 writeCount += batchRows.Count;
                             }
-                            catch
+                            catch (Exception ex)
                             {
+                                System.Diagnostics.Debug.WriteLine(string.Format("Batch insert failed, falling back to row-by-row: {0}", ex.Message));
                                 // 批量失败则逐行重试
                                 foreach (var batchRow in batchRows)
                                 {
@@ -84,8 +85,9 @@ namespace FastData.Tooling.Sync
                                         InsertRow(target, options.TargetTable, table, batchRow);
                                         writeCount++;
                                     }
-                                    catch
+                                    catch (Exception rowEx)
                                     {
+                                        System.Diagnostics.Debug.WriteLine(string.Format("Row insert failed: {0}", rowEx.Message));
                                         failedCount++;
                                         SaveFailedRecord(options, taskId, table, batchRow);
                                     }
@@ -106,8 +108,9 @@ namespace FastData.Tooling.Sync
                         InsertRowBatch(target, options.TargetTable, table, batchRows);
                         writeCount += batchRows.Count;
                     }
-                    catch
+                    catch (Exception ex)
                     {
+                        System.Diagnostics.Debug.WriteLine(string.Format("Final batch insert failed, falling back to row-by-row: {0}", ex.Message));
                         // 批量失败则逐行重试
                         foreach (var batchRow in batchRows)
                         {
@@ -116,8 +119,9 @@ namespace FastData.Tooling.Sync
                                 InsertRow(target, options.TargetTable, table, batchRow);
                                 writeCount++;
                             }
-                            catch
+                            catch (Exception rowEx)
                             {
+                                System.Diagnostics.Debug.WriteLine(string.Format("Final row insert failed: {0}", rowEx.Message));
                                 failedCount++;
                                 SaveFailedRecord(options, taskId, table, batchRow);
                             }
@@ -340,8 +344,9 @@ private static string BuildSourceSql(DataSyncOptions options, DbCommand command)
                         return true;
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
+                    System.Diagnostics.Debug.WriteLine(string.Format("TryInsertRowWithDedup attempt {0} failed: {1}", i, ex.Message));
                     if (i == maxRetryCount)
                         return false;
 
@@ -362,8 +367,9 @@ private static string BuildSourceSql(DataSyncOptions options, DbCommand command)
                     UpsertRow(connection, tableName, table, row);
                     return true;
                 }
-                catch
+                catch (Exception ex)
                 {
+                    System.Diagnostics.Debug.WriteLine(string.Format("TryInsertRow attempt {0} failed: {1}", i, ex.Message));
                     if (i == maxRetryCount)
                         return false;
 

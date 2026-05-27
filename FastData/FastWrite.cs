@@ -104,7 +104,7 @@ namespace FastData
 
             stopwatch.Stop();
 
-            config.IsOutSql = config.IsOutSql ? config.IsOutSql : isOutSql;
+            config.IsOutSql = config.IsOutSql || isOutSql;
             DbLog.LogSql(config.IsOutSql, result.sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
             return result.writeReturn;
@@ -163,7 +163,7 @@ namespace FastData
 
             stopwatch.Stop();
 
-            config.IsOutSql = config.IsOutSql ? config.IsOutSql : isOutSql;
+            config.IsOutSql = config.IsOutSql || isOutSql;
             DbLog.LogSql(config.IsOutSql, result.sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
             return result.writeReturn;
@@ -219,7 +219,7 @@ namespace FastData
 
             stopwatch.Stop();
 
-            config.IsOutSql = config.IsOutSql ? config.IsOutSql : isOutSql;
+            config.IsOutSql = config.IsOutSql || isOutSql;
             DbLog.LogSql(config.IsOutSql, result.sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
             return result.writeReturn;
@@ -276,7 +276,7 @@ namespace FastData
 
             stopwatch.Stop();
 
-            config.IsOutSql = config.IsOutSql ? config.IsOutSql : isOutSql;
+            config.IsOutSql = config.IsOutSql || isOutSql;
             DbLog.LogSql(config.IsOutSql, result.sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
             return result.writeReturn;
@@ -334,7 +334,7 @@ namespace FastData
 
             stopwatch.Stop();
 
-            config.IsOutSql = config.IsOutSql ? config.IsOutSql : isOutSql;
+            config.IsOutSql = config.IsOutSql || isOutSql;
             DbLog.LogSql(config.IsOutSql, result.sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
             return result.writeReturn;
@@ -387,7 +387,7 @@ namespace FastData
 
             stopwatch.Stop();
 
-            config.IsOutSql = config.IsOutSql ? config.IsOutSql : isOutSql;
+            config.IsOutSql = config.IsOutSql || isOutSql;
             DbLog.LogSql(config.IsOutSql, result.sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
             return result.writeReturn;
@@ -430,14 +430,14 @@ namespace FastData
                 using (var tempDb = new DataContext(key))
                 {
                     config = tempDb.config;
-                    config.IsOutSql = config.IsOutSql ? config.IsOutSql : isOutSql;
+                    config.IsOutSql = config.IsOutSql || isOutSql;
                     result = tempDb.ExecuteSql(sql, param, false,config.IsOutSql);
                 }
             }
             else
             {
                 config = db.config;
-                config.IsOutSql = config.IsOutSql ? config.IsOutSql : isOutSql;
+                config.IsOutSql = config.IsOutSql || isOutSql;
                 result = db.ExecuteSql(sql, param, false, config.IsOutSql);
             }
 

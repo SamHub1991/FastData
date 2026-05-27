@@ -109,7 +109,7 @@ namespace FastData.Context
             if (FastMap.fastAop != null)
             {
                 var context = new ExceptionContext();
-                context.dbType = context.dbType;
+                context.dbType = config.DbType;
                 context.ex = ex;
                 context.name = name;
                 context.type = type;
@@ -125,9 +125,9 @@ namespace FastData.Context
         public void Dispose()
         {
             Dispose(cmd);
-            conn.Close();
-            cmd.Dispose();
-            conn.Dispose();
+            try { if (conn != null) conn.Close(); } catch { }
+            if (cmd != null) cmd.Dispose();
+            if (conn != null) conn.Dispose();
             GC.SuppressFinalize(this);
         }
         #endregion
@@ -1486,9 +1486,8 @@ namespace FastData.Context
                 {
                     #region sqlite
                     Dispose(cmd);
-
-
-
+                    result.writeReturn.IsSuccess = false;
+                    result.writeReturn.Message = "SQLite batch insert is not supported. Use individual Add calls instead.";
                     #endregion
                 }
 

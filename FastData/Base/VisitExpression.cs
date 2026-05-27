@@ -312,8 +312,9 @@ namespace FastData.Base
                         else
                             return sb.ToString();
                     }
-                    catch
+                    catch (Exception ex)
                     {
+                        DbLog.LogException(true, "", ex, "RouteExpressionHandler", "");
                         return "";
                     }
                 }
