@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>FastData.Demo</AssemblyName>
+    <RootNamespace>FastData.Demo</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FastData\FastData.csproj" />
+    <ProjectReference Include="..\FastRedis\FastRedis.csproj" />
+    <ProjectReference Include="..\FastUntility\FastUntility.csproj" />
+    <ProjectReference Include="..\FastData.Tooling\FastData.Tooling.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+  </ItemGroup>
+
+</Project>

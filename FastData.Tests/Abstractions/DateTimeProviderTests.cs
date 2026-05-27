@@ -1,5 +1,6 @@
 using FastData.Abstractions;
 using System;
+using Xunit;
 
 namespace FastData.Tests.Abstractions
 {
@@ -8,42 +9,47 @@ namespace FastData.Tests.Abstractions
     /// </summary>
     public class DateTimeProviderTests
     {
+        [Fact]
         public void DefaultDateTimeProvider_Now_ReturnsCurrentTime()
         {
             var provider = new DefaultDateTimeProvider();
             var result = provider.Now;
             
             var now = DateTime.Now;
-            Assert.IsTrue(result >= now.AddSeconds(-1) && result <= now.AddSeconds(1));
+            Assert.True(result >= now.AddSeconds(-1) && result <= now.AddSeconds(1));
         }
 
+        [Fact]
         public void DefaultDateTimeProvider_UtcNow_ReturnsCurrentUtcTime()
         {
             var provider = new DefaultDateTimeProvider();
             var result = provider.UtcNow;
             
             var utcNow = DateTime.UtcNow;
-            Assert.IsTrue(result >= utcNow.AddSeconds(-1) && result <= utcNow.AddSeconds(1));
+            Assert.True(result >= utcNow.AddSeconds(-1) && result <= utcNow.AddSeconds(1));
         }
 
+        [Fact]
         public void DefaultDateTimeProvider_Today_ReturnsCurrentDate()
         {
             var provider = new DefaultDateTimeProvider();
             var result = provider.Today;
             
             var today = DateTime.Today;
-            Assert.AreEqual(today.Date, result.Date);
+            Assert.Equal(today.Date, result.Date);
         }
 
+        [Fact]
         public void TestableDateTimeProvider_InitiallyNotFixed_ReturnsCurrentTime()
         {
             var provider = new TestableDateTimeProvider();
             var result = provider.Now;
             
             var now = DateTime.Now;
-            Assert.IsTrue(result >= now.AddSeconds(-1) && result <= now.AddSeconds(1));
+            Assert.True(result >= now.AddSeconds(-1) && result <= now.AddSeconds(1));
         }
 
+        [Fact]
         public void TestableDateTimeProvider_SetNow_ReturnsFixedTime()
         {
             var fixedTime = new DateTime(2026, 5, 26, 12, 0, 0);
@@ -51,9 +57,10 @@ namespace FastData.Tests.Abstractions
             provider.SetNow(fixedTime);
             
             var result = provider.Now;
-            Assert.AreEqual(fixedTime, result);
+            Assert.Equal(fixedTime, result);
         }
 
+        [Fact]
         public void TestableDateTimeProvider_SetUtcNow_ReturnsFixedUtcTime()
         {
             var fixedTime = new DateTime(2026, 5, 26, 12, 0, 0, DateTimeKind.Utc);
@@ -61,9 +68,10 @@ namespace FastData.Tests.Abstractions
             provider.SetUtcNow(fixedTime);
             
             var result = provider.UtcNow;
-            Assert.AreEqual(fixedTime, result);
+            Assert.Equal(fixedTime, result);
         }
 
+        [Fact]
         public void TestableDateTimeProvider_SetToday_ReturnsFixedDate()
         {
             var fixedDate = new DateTime(2026, 12, 25);
@@ -71,9 +79,10 @@ namespace FastData.Tests.Abstractions
             provider.SetToday(fixedDate);
             
             var result = provider.Today;
-            Assert.AreEqual(fixedDate.Date, result.Date);
+            Assert.Equal(fixedDate.Date, result.Date);
         }
 
+        [Fact]
         public void TestableDateTimeProvider_SetMultipleTimes_AllPropertiesUpdated()
         {
             var fixedTime = new DateTime(2026, 6, 15, 10, 30, 0);
@@ -82,34 +91,37 @@ namespace FastData.Tests.Abstractions
             provider.SetUtcNow(fixedTime.ToUniversalTime());
             provider.SetToday(fixedTime.Date);
             
-            Assert.AreEqual(fixedTime, provider.Now);
-            Assert.AreEqual(fixedTime.ToUniversalTime(), provider.UtcNow);
-            Assert.AreEqual(fixedTime.Date, provider.Today);
+            Assert.Equal(fixedTime, provider.Now);
+            Assert.Equal(fixedTime.ToUniversalTime(), provider.UtcNow);
+            Assert.Equal(fixedTime.Date, provider.Today);
         }
 
+        [Fact]
         public void TestableDateTimeProvider_Reset_RestoresCurrentTime()
         {
             var fixedTime = new DateTime(2026, 1, 1, 0, 0, 0);
             var provider = new TestableDateTimeProvider();
             provider.SetNow(fixedTime);
             
-            Assert.AreEqual(fixedTime, provider.Now);
+            Assert.Equal(fixedTime, provider.Now);
             
             provider.Reset();
             
             var afterReset = provider.Now;
             var now = DateTime.Now;
-            Assert.IsTrue(afterReset >= now.AddSeconds(-1) && afterReset <= now.AddSeconds(1));
+            Assert.True(afterReset >= now.AddSeconds(-1) && afterReset <= now.AddSeconds(1));
         }
 
+        [Fact]
         public void DateTimeProvider_Global_InitiallyUsesDefault()
         {
             var result = DateTimeProvider.Now;
             var now = DateTime.Now;
             
-            Assert.IsTrue(result >= now.AddSeconds(-1) && result <= now.AddSeconds(1));
+            Assert.True(result >= now.AddSeconds(-1) && result <= now.AddSeconds(1));
         }
 
+        [Fact]
         public void DateTimeProvider_SetProvider_UsesCustomProvider()
         {
             var fixedTime = new DateTime(2026, 7, 4, 15, 45, 0);
@@ -121,7 +133,7 @@ namespace FastData.Tests.Abstractions
             try
             {
                 var result = DateTimeProvider.Now;
-                Assert.AreEqual(fixedTime, result);
+                Assert.Equal(fixedTime, result);
             }
             finally
             {
@@ -129,6 +141,7 @@ namespace FastData.Tests.Abstractions
             }
         }
 
+        [Fact]
         public void DateTimeProvider_SetToFixedTime_AllGlobalMethodsUseFixedTime()
         {
             var fixedTime = new DateTime(2026, 8, 20, 8, 0, 0);
@@ -141,9 +154,9 @@ namespace FastData.Tests.Abstractions
             
             try
             {
-                Assert.AreEqual(fixedTime, DateTimeProvider.Now);
-                Assert.AreEqual(fixedTime.ToUniversalTime(), DateTimeProvider.UtcNow);
-                Assert.AreEqual(fixedTime.Date, DateTimeProvider.Today);
+                Assert.Equal(fixedTime, DateTimeProvider.Now);
+                Assert.Equal(fixedTime.ToUniversalTime(), DateTimeProvider.UtcNow);
+                Assert.Equal(fixedTime.Date, DateTimeProvider.Today);
             }
             finally
             {
@@ -151,6 +164,7 @@ namespace FastData.Tests.Abstractions
             }
         }
 
+        [Fact]
         public void DateTimeProvider_ResetToDefault_RestoresCurrentTime()
         {
             var fixedTime = new DateTime(2026, 9, 10, 9, 0, 0);
@@ -158,15 +172,16 @@ namespace FastData.Tests.Abstractions
             testProvider.SetNow(fixedTime);
             DateTimeProvider.Current = testProvider;
             
-            Assert.AreEqual(fixedTime, DateTimeProvider.Now);
+            Assert.Equal(fixedTime, DateTimeProvider.Now);
             
             DateTimeProvider.ResetToDefault();
             
             var afterReset = DateTimeProvider.Now;
             var now = DateTime.Now;
-            Assert.IsTrue(afterReset >= now.AddSeconds(-1) && afterReset <= now.AddSeconds(1));
+            Assert.True(afterReset >= now.AddSeconds(-1) && afterReset <= now.AddSeconds(1));
         }
 
+        [Fact]
         public void DateTimeProvider_SetCurrentToNull_ThrowsArgumentNullException()
         {
             try

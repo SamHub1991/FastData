@@ -1,7 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+
+#if NETFRAMEWORK
 using System.Web.Script.Serialization;
+#else
+using System.Text.Json;
+#endif
 
 namespace FastData.Tooling.Sync
 {
@@ -11,7 +16,9 @@ namespace FastData.Tooling.Sync
     /// </summary>
     public static class DataRowSerializer
     {
+#if NETFRAMEWORK
         private static readonly JavaScriptSerializer Serializer = new JavaScriptSerializer();
+#endif
 
         /// <summary>
         /// 将 DataRow 序列化为 JSON 字符串
@@ -45,7 +52,11 @@ namespace FastData.Tooling.Sync
             }
             data["Values"] = values;
 
+#if NETFRAMEWORK
             return Serializer.Serialize(data);
+#else
+            return JsonSerializer.Serialize(data, new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
+#endif
         }
 
         /// <summary>
@@ -58,17 +69,17 @@ namespace FastData.Tooling.Sync
             if (string.IsNullOrWhiteSpace(json))
                 return new DataTable();
 
+            var table = new DataTable();
+
+#if NETFRAMEWORK
             var data = Serializer.Deserialize<Dictionary<string, object>>(json);
             if (data == null)
-                return new DataTable();
-
-            var table = new DataTable();
+                return table;
 
             if (data.ContainsKey("Columns"))
             {
-                var columnsObj = data["Columns"];
-                var columns = columnsObj as System.Collections.IEnumerable;
-                if (columns != null && !(columnsObj is string))
+                var columns = data["Columns"] as System.Collections.IEnumerable;
+                if (columns != null)
                 {
                     foreach (var colObj in columns)
                     {
@@ -97,9 +108,61 @@ namespace FastData.Tooling.Sync
                     table.Rows.Add(row);
                 }
             }
+#else
+            using (var doc = JsonDocument.Parse(json))
+            {
+                var root = doc.RootElement;
+
+                if (root.TryGetProperty("Columns", out var columnsElement))
+                {
+                    foreach (var colElement in columnsElement.EnumerateArray())
+                    {
+                        if (colElement.TryGetProperty("ColumnName", out var nameElement) &&
+                            colElement.TryGetProperty("DataType", out var typeElement))
+                        {
+                            var columnName = nameElement.GetString();
+                            var dataTypeName = typeElement.GetString();
+                            var type = Type.GetType(dataTypeName) ?? typeof(string);
+                            table.Columns.Add(columnName, type);
+                        }
+                    }
+                }
+
+                if (root.TryGetProperty("Values", out var valuesElement) && table.Columns.Count > 0)
+                {
+                    var row = table.NewRow();
+                    foreach (var prop in valuesElement.EnumerateObject())
+                    {
+                        row[prop.Name] = ConvertJsonValue(prop.Value);
+                    }
+                    table.Rows.Add(row);
+                }
+            }
+#endif
 
             return table;
         }
+
+#if !NETFRAMEWORK
+        private static object ConvertJsonValue(JsonElement element)
+        {
+            switch (element.ValueKind)
+            {
+                case JsonValueKind.Null:
+                    return DBNull.Value;
+                case JsonValueKind.Number:
+                    if (element.TryGetInt64(out var longValue))
+                        return longValue;
+                    return element.GetDouble();
+                case JsonValueKind.True:
+                    return true;
+                case JsonValueKind.False:
+                    return false;
+                default:
+                    return element.GetString();
+            }
+        }
+#endif
 
         /// <summary>
         /// 将 DataTable 批量序列化为 JSON 数组
@@ -121,7 +184,11 @@ namespace FastData.Tooling.Sync
                 rows.Add(rowData);
             }
 
+#if NETFRAMEWORK
             return Serializer.Serialize(rows);
+#else
+            return JsonSerializer.Serialize(rows, new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
+#endif
         }
 
         /// <summary>
@@ -134,11 +201,12 @@ namespace FastData.Tooling.Sync
             if (string.IsNullOrWhiteSpace(json))
                 return new DataTable();
 
+            var table = new DataTable();
+
+#if NETFRAMEWORK
             var rows = Serializer.Deserialize<object[]>(json);
             if (rows == null || rows.Length == 0)
-                return new DataTable();
-
-            var table = new DataTable();
+                return table;
 
             var firstRow = rows[0] as IDictionary<string, object>;
             if (firstRow == null)
@@ -162,6 +230,30 @@ namespace FastData.Tooling.Sync
                     table.Rows.Add(row);
                 }
             }
+#else
+            using (var doc = JsonDocument.Parse(json))
+            {
+                var root = doc.RootElement;
+                if (root.GetArrayLength() == 0)
+                    return table;
+
+                var firstRow = root[0];
+                foreach (var prop in firstRow.EnumerateObject())
+                {
+                    table.Columns.Add(prop.Name, typeof(object));
+                }
+
+                    foreach (var prop in root.EnumerateArray())
+                    {
+                        var row = table.NewRow();
+                        foreach (var p in prop.EnumerateObject())
+                        {
+                            row[p.Name] = ConvertJsonValue(p.Value);
+                        }
+                        table.Rows.Add(row);
+                    }
+            }
+#endif
 
             return table;
         }

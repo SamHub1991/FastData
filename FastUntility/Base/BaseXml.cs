@@ -3,7 +3,10 @@ using System.Linq;
 using System.Xml;
 using System.Xml.Serialization;
 using System.IO;
+
+#if NETFRAMEWORK
 using System.Web;
+#endif
 
 namespace FastUntility.Base
 {
@@ -52,6 +55,7 @@ namespace FastUntility.Base
         }
         #endregion
 
+#if NETFRAMEWORK
         #region 返回字符串列表
         /// <summary>
         /// 返回字符串列表
@@ -113,6 +117,7 @@ namespace FastUntility.Base
             }
         }
         #endregion
+#endif
 
         #region 返回字符串列表
         /// <summary>
@@ -145,6 +150,7 @@ namespace FastUntility.Base
         }
         #endregion
 
+#if NETFRAMEWORK
         #region 返回字符串 文件 
         /// <summary>
         /// 返回字符串 文件 
@@ -162,6 +168,7 @@ namespace FastUntility.Base
                 return "";
         }
         #endregion
+#endif
 
         #region 返回字符串
         /// <summary>

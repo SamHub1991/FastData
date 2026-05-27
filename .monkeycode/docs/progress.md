@@ -336,8 +336,8 @@ FrameworkPathOverride="/root/.nuget/packages/microsoft.netframework.referenceass
 
 ---
 
-**最后更新**: 2026-05-25  
-**项目状态**: 代码实现完成，构建 0 Warning(s), 0 Error(s)
+**最后更新**: 2026-05-27  
+**项目状态**: 全部任务完成，构建 0 Error(s)，73 个测试通过，4 个 NuGet 包已生成
 
 
 #### 7. 项目改进（2026-05-25）
@@ -352,4 +352,33 @@ FrameworkPathOverride="/root/.nuget/packages/microsoft.netframework.referenceass
 - [x] 添加 FastData.Example 示例项目（CRUD、Lambda 查询、数据同步示例）。
 - [x] 更新 MEMORY.md 记录项目结构和构建知识。
 - [x] 构建验证通过：0 Warning(s), 0 Error(s)。
+
+#### 8. 多目标框架迁移（2026-05-27）
+
+- [x] SDK-style csproj 格式迁移（所有项目）
+- [x] 多目标框架支持（net45/net6.0/net8.0/net10.0）
+- [x] 条件编译处理框架差异（NETFRAMEWORK/NET6_0_OR_GREATER）
+- [x] CallContext → AsyncLocal（FastDb.cs 条件编译）
+- [x] IFastRepository 接口拆分：IReadRepository、IWriteRepository、IMapRepository
+- [x] 连接字符串加密支持（DataContext.IsEncrypt + BaseSymmetric.Decrypto）
+- [x] Redis 单例模式（Lazy<FullRedis>）
+- [x] NewLife.Redis 6.0.2024.1006 替换 StackExchange.Redis（net6.0+）
+- [x] Newtonsoft.Json 升级至 13.0.3
+- [x] NPOI 分版本：2.5.6(net45) / 2.7.0(net6.0+)
+- [x] System.CodeDom 8.0.0（net6.0+ 条件编译）
+- [x] BinaryFormatter 替换为 System.Text.Json（net6.0+）
+- [x] xUnit 2.6.2 测试框架迁移
+- [x] 73 个单元测试全部通过（net10.0）
+- [x] FastData.Demo 验证项目（完整技术栈验证）
+- [x] 全量构建验证通过：6 个项目 x 4 框架
+
+#### 9. NuGet 包生成与验证（2026-05-27）
+
+- [x] NuGet 包生成脚本（generate-nupkg.sh）
+- [x] 生成 4 个 NuGet 包：FastUntility/FastData.Tooling/FastData/FastRedis
+- [x] 综合验证测试脚本（verify-all.sh，34 项测试）
+- [x] 大表主键加载优化（GetMaxPrimaryKeyValueFromDb）
+- [x] 依赖注入服务注册扩展（SyncService/LogService/TaskSchedulerService）
+- [x] MainForm 拆分为 4 个 UserControl（DbConfigControl/SyncConfigControl/TaskManagerControl/ReplayControl）
+- [x] 文档整合与更新
 

@@ -1,5 +1,9 @@
 using System;
+#if NETFRAMEWORK
 using System.Runtime.Remoting.Messaging;
+#else
+using System.Threading;
+#endif
 
 namespace FastData
 {
@@ -10,6 +14,10 @@ namespace FastData
     {
         private const string ScopeKey = "FastData.CurrentDbKey";
 
+#if !NETFRAMEWORK
+        private static readonly AsyncLocal<string> _currentKey = new AsyncLocal<string>();
+#endif
+
         /// <summary>
         /// 当前数据库Key
         /// </summary>
@@ -17,7 +25,11 @@ namespace FastData
         {
             get
             {
+#if NETFRAMEWORK
                 return CallContext.LogicalGetData(ScopeKey) as string;
+#else
+                return _currentKey.Value;
+#endif
             }
         }
 
@@ -36,15 +48,23 @@ namespace FastData
             public FastDbScope(string key)
             {
                 oldKey = CurrentKey;
+#if NETFRAMEWORK
                 CallContext.LogicalSetData(ScopeKey, key);
+#else
+                _currentKey.Value = key;
+#endif
             }
 
             public void Dispose()
             {
+#if NETFRAMEWORK
                 if (string.IsNullOrEmpty(oldKey))
                     CallContext.FreeNamedDataSlot(ScopeKey);
                 else
                     CallContext.LogicalSetData(ScopeKey, oldKey);
+#else
+                _currentKey.Value = oldKey;
+#endif
             }
         }
     }

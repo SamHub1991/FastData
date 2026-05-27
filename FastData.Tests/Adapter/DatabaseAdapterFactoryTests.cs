@@ -1,10 +1,12 @@
 using System;
 using FastData.Tooling.Sync;
+using Xunit;
 
 namespace FastData.Tests.Adapter
 {
     public class DatabaseAdapterFactoryTests
     {
+        [Fact]
         public void DbProviderFactories_GetFactory_ThrowsForInvalidProvider()
         {
             Assert.Throws<ArgumentException>(() =>
@@ -13,22 +15,24 @@ namespace FastData.Tests.Adapter
             });
         }
 
+        [Fact]
         public void DataSyncResult_DefaultValues_AreZero()
         {
             var result = new DataSyncResult();
-            Assert.AreEqual(0, result.ReadCount);
-            Assert.AreEqual(0, result.WriteCount);
-            Assert.AreEqual(0, result.FailedCount);
-            Assert.AreEqual(0, result.RetryCount);
-            Assert.AreEqual(0, result.RecoveredCount);
-            Assert.IsNull(result.MaxPkValue);
-            Assert.IsNull(result.LastSyncTime);
+            Assert.Equal(0, result.ReadCount);
+            Assert.Equal(0, result.WriteCount);
+            Assert.Equal(0, result.FailedCount);
+            Assert.Equal(0, result.RetryCount);
+            Assert.Equal(0, result.RecoveredCount);
+            Assert.Null(result.MaxPkValue);
+            Assert.Null(result.LastSyncTime);
         }
 
+        [Fact]
         public void SyncDataType_Enum_HasStaticAndDynamic()
         {
-            Assert.IsTrue(SyncDataType.Static == (SyncDataType)0);
-            Assert.IsTrue(SyncDataType.Dynamic == (SyncDataType)1);
+            Assert.True(SyncDataType.Static == (SyncDataType)0);
+            Assert.True(SyncDataType.Dynamic == (SyncDataType)1);
         }
     }
 }

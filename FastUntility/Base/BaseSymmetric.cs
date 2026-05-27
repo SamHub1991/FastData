@@ -196,13 +196,21 @@ namespace FastUntility.Base
         /// <returns></returns>
         public static string md5(int code, string Source)
         {
-            if (code == 16) //16位MD5加密（取32位加密的9~25字符） 
+            using (var md5 = MD5.Create())
             {
-                return System.Web.Security.FormsAuthentication.HashPasswordForStoringInConfigFile(Source, "MD5").ToLower().Substring(8, 16);
-            }
-            else//32位加密 
-            {
-                return System.Web.Security.FormsAuthentication.HashPasswordForStoringInConfigFile(Source, "MD5").ToLower();
+                var inputBytes = Encoding.UTF8.GetBytes(Source);
+                var hashBytes = md5.ComputeHash(inputBytes);
+                var sb = new StringBuilder();
+                foreach (var b in hashBytes)
+                {
+                    sb.Append(b.ToString("x2"));
+                }
+                var hash = sb.ToString();
+                if (code == 16)
+                {
+                    return hash.Substring(8, 16);
+                }
+                return hash;
             }
         }
         #endregion

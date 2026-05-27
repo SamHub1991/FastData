@@ -45,6 +45,7 @@
     <Compile Include="IoC\ServiceContainer.cs" />
     <Compile Include="IoC\ServiceCollectionExtensions.cs" />
     <Compile Include="MainForm.cs" />
+    <Compile Include="MainFormRefactored.cs" />
     <Compile Include="PrimaryKeyConfigForm.cs" />
     <Compile Include="TableSelectForm.cs" />
     <Compile Include="FieldSelectForm.cs" />
@@ -53,6 +54,16 @@
     <Compile Include="ReplayService.cs" />
     <Compile Include="DbConnectionConfig.cs" />
     <Compile Include="ListExtensions.cs" />
+    <Compile Include="Components\DbConnectionPanel.cs" />
+    <Compile Include="Components\SyncConfigPanel.cs" />
+    <Compile Include="Components\TableListManager.cs" />
+    <Compile Include="Components\TaskManager.cs" />
+    <Compile Include="Components\FieldSelectorDialog.cs" />
+    <Compile Include="Components\TableSelectorDialog.cs" />
+    <Compile Include="Components\PrimaryKeyConfigDialog.cs" />
+    <Compile Include="Services\SyncService.cs" />
+    <Compile Include="Services\LogService.cs" />
+    <Compile Include="Services\TaskSchedulerService.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\FastData\FastData.csproj">

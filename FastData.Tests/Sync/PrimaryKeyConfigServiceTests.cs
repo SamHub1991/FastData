@@ -1,10 +1,12 @@
 using FastData.Tooling.Sync;
 using System.Collections.Generic;
+using Xunit;
 
 namespace FastData.Tests.Sync
 {
     public class PrimaryKeyConfigServiceTests
     {
+        [Fact]
         public void AddTableConfig_ValidConfig_AddsSuccessfully()
         {
             var service = new PrimaryKeyConfigService();
@@ -18,31 +20,34 @@ namespace FastData.Tests.Sync
             service.AddTableConfig(config);
 
             var result = service.GetTableConfig("orders");
-            Assert.IsNotNull(result);
-            Assert.AreEqual("orders", result.TableName);
-            Assert.AreEqual(1, result.PrimaryKeyColumns.Count);
-            Assert.AreEqual("order_id", result.PrimaryKeyColumns[0]);
-            Assert.IsTrue(result.IsAutoIncrement);
+            Assert.NotNull(result);
+            Assert.Equal("orders", result.TableName);
+            Assert.Equal(1, result.PrimaryKeyColumns.Count);
+            Assert.Equal("order_id", result.PrimaryKeyColumns[0]);
+            Assert.True(result.IsAutoIncrement);
         }
 
+        [Fact]
         public void AddTableConfig_NullConfig_DoesNotAdd()
         {
             var service = new PrimaryKeyConfigService();
             service.AddTableConfig(null);
 
             var all = service.GetAllConfigs();
-            Assert.AreEqual(0, all.Count);
+            Assert.Equal(0, all.Count);
         }
 
+        [Fact]
         public void AddTableConfig_EmptyTableName_DoesNotAdd()
         {
             var service = new PrimaryKeyConfigService();
             service.AddTableConfig(new TablePrimaryKeyConfig { TableName = "" });
 
             var all = service.GetAllConfigs();
-            Assert.AreEqual(0, all.Count);
+            Assert.Equal(0, all.Count);
         }
 
+        [Fact]
         public void AddTableConfig_DuplicateTableName_Overwrites()
         {
             var service = new PrimaryKeyConfigService();
@@ -60,10 +65,11 @@ namespace FastData.Tests.Sync
             });
 
             var result = service.GetTableConfig("users");
-            Assert.AreEqual(2, result.PrimaryKeyColumns.Count);
-            Assert.IsFalse(result.IsAutoIncrement);
+            Assert.Equal(2, result.PrimaryKeyColumns.Count);
+            Assert.False(result.IsAutoIncrement);
         }
 
+        [Fact]
         public void RemoveTableConfig_ExistingTable_RemovesSuccessfully()
         {
             var service = new PrimaryKeyConfigService();
@@ -75,9 +81,10 @@ namespace FastData.Tests.Sync
             service.RemoveTableConfig("products");
 
             var result = service.GetTableConfig("products");
-            Assert.IsNull(result);
+            Assert.Null(result);
         }
 
+        [Fact]
         public void RemoveTableConfig_NonExistingTable_NoEffect()
         {
             var service = new PrimaryKeyConfigService();
@@ -88,9 +95,10 @@ namespace FastData.Tests.Sync
             });
             service.RemoveTableConfig("nonexistent");
 
-            Assert.IsNotNull(service.GetTableConfig("products"));
+            Assert.NotNull(service.GetTableConfig("products"));
         }
 
+        [Fact]
         public void RemoveTableConfig_NullTableName_NoEffect()
         {
             var service = new PrimaryKeyConfigService();
@@ -101,23 +109,26 @@ namespace FastData.Tests.Sync
             });
             service.RemoveTableConfig(null);
 
-            Assert.IsNotNull(service.GetTableConfig("products"));
+            Assert.NotNull(service.GetTableConfig("products"));
         }
 
+        [Fact]
         public void GetTableConfig_UnknownTable_ReturnsNull()
         {
             var service = new PrimaryKeyConfigService();
             var result = service.GetTableConfig("unknown");
-            Assert.IsNull(result);
+            Assert.Null(result);
         }
 
+        [Fact]
         public void GetTableConfig_NullTableName_ReturnsNull()
         {
             var service = new PrimaryKeyConfigService();
             var result = service.GetTableConfig(null);
-            Assert.IsNull(result);
+            Assert.Null(result);
         }
 
+        [Fact]
         public void GetAllConfigs_ReturnsAllAddedConfigs()
         {
             var service = new PrimaryKeyConfigService();
@@ -126,9 +137,10 @@ namespace FastData.Tests.Sync
             service.AddTableConfig(new TablePrimaryKeyConfig { TableName = "t3", PrimaryKeyColumns = new List<string> { "id" } });
 
             var all = service.GetAllConfigs();
-            Assert.AreEqual(3, all.Count);
+            Assert.Equal(3, all.Count);
         }
 
+        [Fact]
         public void BuildPrimaryKeyWhereClause_SingleKey_ReturnsCorrectClause()
         {
             var service = new PrimaryKeyConfigService();
@@ -138,9 +150,10 @@ namespace FastData.Tests.Sync
                 PrimaryKeyColumns = new List<string> { "order_id" }
             };
             var result = service.BuildPrimaryKeyWhereClause(config, null);
-            Assert.AreEqual("order_id = @pk0", result);
+            Assert.Equal("order_id = @pk0", result);
         }
 
+        [Fact]
         public void BuildPrimaryKeyWhereClause_CompositeKey_ReturnsAndClause()
         {
             var service = new PrimaryKeyConfigService();
@@ -150,9 +163,10 @@ namespace FastData.Tests.Sync
                 PrimaryKeyColumns = new List<string> { "order_id", "item_id" }
             };
             var result = service.BuildPrimaryKeyWhereClause(config, null);
-            Assert.AreEqual("order_id = @pk0 AND item_id = @pk1", result);
+            Assert.Equal("order_id = @pk0 AND item_id = @pk1", result);
         }
 
+        [Fact]
         public void BuildPrimaryKeyWhereClause_CustomParamNames_ReturnsCustomClause()
         {
             var service = new PrimaryKeyConfigService();
@@ -163,16 +177,18 @@ namespace FastData.Tests.Sync
             };
             var paramNames = new List<string> { "@oid", "@seq" };
             var result = service.BuildPrimaryKeyWhereClause(config, paramNames);
-            Assert.AreEqual("order_id = @oid AND item_seq = @seq", result);
+            Assert.Equal("order_id = @oid AND item_seq = @seq", result);
         }
 
+        [Fact]
         public void BuildPrimaryKeyWhereClause_NullConfig_ReturnsFallback()
         {
             var service = new PrimaryKeyConfigService();
             var result = service.BuildPrimaryKeyWhereClause(null, null);
-            Assert.AreEqual("1=1", result);
+            Assert.Equal("1=1", result);
         }
 
+        [Fact]
         public void BuildPrimaryKeyWhereClause_EmptyColumns_ReturnsFallback()
         {
             var service = new PrimaryKeyConfigService();
@@ -182,9 +198,10 @@ namespace FastData.Tests.Sync
                 PrimaryKeyColumns = new List<string>()
             };
             var result = service.BuildPrimaryKeyWhereClause(config, null);
-            Assert.AreEqual("1=1", result);
+            Assert.Equal("1=1", result);
         }
 
+        [Fact]
         public void BuildIncrementalWhereClause_AutoIncrementSingleKey_ReturnsSimpleClause()
         {
             var service = new PrimaryKeyConfigService();
@@ -195,9 +212,10 @@ namespace FastData.Tests.Sync
                 IsAutoIncrement = true
             };
             var result = service.BuildIncrementalWhereClause(config, 100);
-            Assert.AreEqual("id > @lastValue", result);
+            Assert.Equal("id > @lastValue", result);
         }
 
+        [Fact]
         public void BuildIncrementalWhereClause_CompositeKey_ReturnsOrClause()
         {
             var service = new PrimaryKeyConfigService();
@@ -208,16 +226,18 @@ namespace FastData.Tests.Sync
                 IsAutoIncrement = false
             };
             var result = service.BuildIncrementalWhereClause(config, 0);
-            Assert.AreEqual("order_id > @lastValue0 OR item_id IS NOT NULL", result);
+            Assert.Equal("order_id > @lastValue0 OR item_id IS NOT NULL", result);
         }
 
+        [Fact]
         public void BuildIncrementalWhereClause_NullConfig_ReturnsFallback()
         {
             var service = new PrimaryKeyConfigService();
             var result = service.BuildIncrementalWhereClause(null, 0);
-            Assert.AreEqual("1=1", result);
+            Assert.Equal("1=1", result);
         }
 
+        [Fact]
         public void BuildIncrementalWhereClause_EmptyColumns_ReturnsFallback()
         {
             var service = new PrimaryKeyConfigService();
@@ -227,9 +247,10 @@ namespace FastData.Tests.Sync
                 PrimaryKeyColumns = new List<string>()
             };
             var result = service.BuildIncrementalWhereClause(config, 0);
-            Assert.AreEqual("1=1", result);
+            Assert.Equal("1=1", result);
         }
 
+        [Fact]
         public void ExportToSql_GeneratesCreateTableAndInserts()
         {
             var service = new PrimaryKeyConfigService();
@@ -249,11 +270,11 @@ namespace FastData.Tests.Sync
             });
 
             var sql = service.ExportToSql();
-            Assert.IsTrue(sql.Contains("fd_table_pk_config"));
-            Assert.IsTrue(sql.Contains("users"));
-            Assert.IsTrue(sql.Contains("orders"));
-            Assert.IsTrue(sql.Contains("id,dept_id"));
-            Assert.IsTrue(sql.Contains("update_time"));
+            Assert.True(sql.Contains("fd_table_pk_config"));
+            Assert.True(sql.Contains("users"));
+            Assert.True(sql.Contains("orders"));
+            Assert.True(sql.Contains("id,dept_id"));
+            Assert.True(sql.Contains("update_time"));
         }
     }
 }

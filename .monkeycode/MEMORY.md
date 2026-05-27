@@ -117,3 +117,64 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
   - 补录时间范围：自动识别时间字段（CreateTime/UpdateTime 等）
   - 复合主键支持：多个字段用逗号分隔（如：UserId,OrderDate）
 
+[多目标框架迁移]
+- Date: 2026-05-27
+- Context: Agent 在执行多目标框架迁移时发现
+- Category: 构建方法
+- Instructions:
+  - SDK-style csproj 格式：所有项目使用 `<Project Sdk="Microsoft.NET.Sdk">`
+  - 多目标框架：`<TargetFrameworks>net45;net6.0;net8.0;net10.0</TargetFrameworks>`
+  - 条件编译符号：`NETFRAMEWORK`（net45）、`NET6_0_OR_GREATER`（net6.0+）、`!NETFRAMEWORK`（net6.0+）
+  - CallContext → AsyncLocal：FastDb.cs 使用 `#if !NETFRAMEWORK` 条件编译
+  - Redis 替换：net45 使用 NServiceKit.Redis，net6.0+ 使用 NewLife.Redis 6.0.2024.1006
+  - Redis 单例模式：`Lazy<FullRedis>` 实现线程安全单例
+  - 接口拆分：IFastRepository 拆分为 IReadRepository + IWriteRepository + IMapRepository
+  - 连接字符串加密：DataContext 自动检测 IsEncrypt 并解密
+  - Newtonsoft.Json 升级：6.0.8 → 13.0.3
+  - NPOI 分版本：2.5.6(net45) / 2.7.0(net6.0+)
+  - xUnit 测试框架：替代自定义 Assert 类，使用 [Fact] 属性
+  - 测试结果：73 个测试全部通过（net10.0）
+  - 构建验证：6 个项目 x 4 框架全部构建成功
+
+[NuGet 包生成]
+- Date: 2026-05-27
+- Context: Agent 在执行 NuGet 包生成时发现
+- Category: 构建方法
+- Instructions:
+  - 生成脚本：generate-nupkg.sh
+  - 输出目录：nupkgs/
+  - 生成的包：FastUntility.1.0.0.nupkg、FastData.Tooling.1.0.0.nupkg、FastData.1.0.0.nupkg、FastRedis.1.0.0.nupkg
+  - 构建顺序：先 Release 构建，再 pack
+  - 注意：需要先构建再打包，否则会报 NU5026 错误
+
+[综合验证测试]
+- Date: 2026-05-27
+- Context: Agent 在执行综合验证时发现
+- Category: 构建方法
+- Instructions:
+  - 验证脚本：verify-all.sh
+  - 测试数量：34 项
+  - 测试类别：构建验证、单元测试、NuGet 包验证、多目标框架验证、接口拆分验证、Redis 单例模式验证、连接字符串加密验证、Demo 项目验证、文档验证、条件编译验证
+  - 测试结果：全部通过
+
+[大表主键优化]
+- Date: 2026-05-27
+- Context: Agent 在执行性能优化时发现
+- Category: 构建方法
+- Instructions:
+  - 新增方法：GetMaxPrimaryKeyValueFromDb
+  - 优化原理：直接从数据库查询 SELECT MAX(pk_column) FROM table
+  - 优势：避免加载所有行到内存
+  - 回退机制：优先使用数据库查询，失败时回退到内存计算
+
+[MainForm 组件化拆分]
+- Date: 2026-05-27
+- Context: Agent 在执行 SyncTool 重构时发现
+- Category: 构建方法
+- Instructions:
+  - 拆分为 4 个 UserControl：DbConfigControl、SyncConfigControl、TaskManagerControl、ReplayControl
+  - 文件位置：FastData.SyncTool.WinForms/Components/
+  - 依赖注入：通过构造函数注入服务
+  - 优势：职责分离，易于维护和测试
+
+

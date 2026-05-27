@@ -3,7 +3,12 @@ using System.Text.RegularExpressions;
 using System.Reflection;
 using FastUntility.Attributes;
 using System.IO;
+
+#if NET6_0_OR_GREATER
+using System.Text.Json;
+#else
 using System.Runtime.Serialization.Formatters.Binary;
+#endif
 
 namespace FastUntility.Base
 {
@@ -22,12 +27,16 @@ namespace FastUntility.Base
         /// <returns></returns>
         public static byte[] ToByte(this object value)
         {
+#if NET6_0_OR_GREATER
+            return JsonSerializer.SerializeToUtf8Bytes(value);
+#else
             using (var stream = new MemoryStream())
             {
                 var formatter = new BinaryFormatter();
                 formatter.Serialize(stream, value);
                 return stream.GetBuffer();
             }
+#endif
         }
         #endregion
 
@@ -39,20 +48,28 @@ namespace FastUntility.Base
         /// <returns></returns>
         public static T ToModel<T>(this byte[] value) where T : class, new()
         {
+#if NET6_0_OR_GREATER
+            return JsonSerializer.Deserialize<T>(value);
+#else
             using (var stream = new MemoryStream(value))
             {
                 var formatter = new BinaryFormatter();
                 return formatter.Deserialize(stream) as T;
             }
+#endif
         }
 
         public static object ToModel(this byte[] value)
         {
+#if NET6_0_OR_GREATER
+            return JsonSerializer.Deserialize<object>(value);
+#else
             using (var stream = new MemoryStream(value))
             {
                 var formatter = new BinaryFormatter();
                 return formatter.Deserialize(stream);
             }
+#endif
         }
         #endregion
 

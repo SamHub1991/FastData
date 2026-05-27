@@ -142,7 +142,22 @@ namespace FastData.Context
             {
                 this.config = DataConfig.GetConfig(key);
                 conn = DbProviderFactories.GetFactory(this.config.ProviderName).CreateConnection();
-                conn.ConnectionString = this.config.ConnStr;
+                
+                // 支持连接字符串加密
+                var connStr = this.config.ConnStr;
+                if (this.config.IsEncrypt && !string.IsNullOrEmpty(connStr))
+                {
+                    try
+                    {
+                        connStr = BaseSymmetric.Decrypto(connStr);
+                    }
+                    catch
+                    {
+                        // 解密失败则使用原始值
+                    }
+                }
+                
+                conn.ConnectionString = connStr;
                 conn.Open();
                 cmd = conn.CreateCommand();
             }

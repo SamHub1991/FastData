@@ -1,7 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+
+#if NETFRAMEWORK
 using System.Web.Script.Serialization;
+#else
+using System.Text.Json;
+#endif
 
 namespace FastData.Tooling.Sync
 {
@@ -33,8 +38,12 @@ namespace FastData.Tooling.Sync
                 var json = File.ReadAllText(configPath);
                 configs = new Dictionary<string, SyncTaskConfig>(StringComparer.OrdinalIgnoreCase);
 
+#if NETFRAMEWORK
                 var serializer = new JavaScriptSerializer();
                 var items = serializer.Deserialize<List<SyncTaskConfig>>(json);
+#else
+                var items = JsonSerializer.Deserialize<List<SyncTaskConfig>>(json);
+#endif
 
                 if (items != null)
                 {
@@ -63,8 +72,12 @@ namespace FastData.Tooling.Sync
             if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
                 Directory.CreateDirectory(dir);
 
+#if NETFRAMEWORK
             var serializer = new JavaScriptSerializer();
             var json = serializer.Serialize(new List<SyncTaskConfig>(configs.Values));
+#else
+            var json = JsonSerializer.Serialize(new List<SyncTaskConfig>(configs.Values));
+#endif
 
             File.WriteAllText(configPath, json);
         }

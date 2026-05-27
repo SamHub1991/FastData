@@ -1,12 +1,16 @@
 ﻿using System;
 using System.IO;
+
+#if NETFRAMEWORK
 using System.Drawing;
 using System.Drawing.Imaging;
+#endif
 
 namespace FastUntility.Base
 {
     public static class BaseCode
     {
+#if NETFRAMEWORK
         #region 生成验证代码
         /// <summary>
         /// 生成验证代码
@@ -96,5 +100,27 @@ namespace FastUntility.Base
             }
         }
         #endregion
+#else
+        #region 生成验证代码（跨平台版本，返回纯文本）
+        /// <summary>
+        /// 生成验证代码（跨平台版本，返回纯文本字节）
+        /// </summary>
+        /// <returns></returns>
+        public static byte[] CreateValidateGraphic(out String Code, int CodeLength, int Width, int Height, int FontSize)
+        {
+            var sCode = String.Empty;
+            char[] oCharacter = { '1', '2', '3', '4', '5', '6', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'P', 'R', 'S', 'T', 'W', 'X', 'Y' };
+            Random oRnd = new Random();
+
+            for (int N1 = 0; N1 <= CodeLength - 1; N1++)
+            {
+                sCode += oCharacter[oRnd.Next(oCharacter.Length)];
+            }
+
+            Code = sCode;
+            return System.Text.Encoding.UTF8.GetBytes(sCode);
+        }
+        #endregion
+#endif
     }
 }

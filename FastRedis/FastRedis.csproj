@@ -1,61 +1,17 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{0BE95CBF-5B8B-4E53-BF3F-73B22F597247}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>FastRedis</RootNamespace>
+    <TargetFrameworks>net45;net6.0;net8.0;net10.0</TargetFrameworks>
     <AssemblyName>FastRedis</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <TargetFrameworkProfile />
+    <RootNamespace>FastRedis</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <LangVersion>latest</LangVersion>
+    <NoWarn>CS1591</NoWarn>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <DocumentationFile>bin\Debug\FastRedis.xml</DocumentationFile>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
-  <PropertyGroup>
-    <SignAssembly>false</SignAssembly>
-  </PropertyGroup>
-  <PropertyGroup>
-    <NuGetPackageRoot Condition=" '$(NuGetPackageRoot)' == '' ">$(UserProfile)\.nuget\packages\</NuGetPackageRoot>
-  </PropertyGroup>
-  <ItemGroup>
-    <Reference Include="NServiceKit.Common, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>$(NuGetPackageRoot)nservicekit.common\1.0.31\lib\net35\NServiceKit.Common.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="NServiceKit.Interfaces, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>$(NuGetPackageRoot)nservicekit.common\1.0.31\lib\net35\NServiceKit.Interfaces.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="NServiceKit.Redis, Version=1.0.17.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>$(NuGetPackageRoot)nservicekit.redis\1.0.17\lib\net35\NServiceKit.Redis.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="NServiceKit.Text, Version=1.0.10.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>$(NuGetPackageRoot)nservicekit.text\1.0.10\lib\net35\NServiceKit.Text.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
+
+  <!-- .NET Framework 4.5 专用引用 -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net45'">
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
@@ -66,26 +22,24 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
+    <!-- net45 使用 NServiceKit.Redis -->
+    <PackageReference Include="NServiceKit.Redis" Version="1.0.17" />
+    <PackageReference Include="NServiceKit.Common" Version="1.0.31" />
+    <PackageReference Include="NServiceKit.Text" Version="1.0.10" />
   </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="RedisConfig.cs" />
-    <Compile Include="RedisInfo.cs" />
-    <Compile Include="Repository\IRedisRepository.cs" />
-    <Compile Include="Repository\RedisRepository.cs" />
+
+  <!-- .NET 6/8/10 使用 NewLife.Redis -->
+  <ItemGroup Condition="'$(TargetFramework)' != 'net45'">
+    <PackageReference Include="NewLife.Redis" Version="5.8.2024.802" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.0" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
+
+  <!-- 排除 net45 专用文件（.NET 6+ 不编译） -->
+  <ItemGroup Condition="'$(TargetFramework)' != 'net45'">
+    <Compile Remove="RedisInfo.cs" />
+    <Compile Remove="Repository\RedisRepository.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <Content Include="redis说明.txt" />
-  </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
-  -->
+
 </Project>

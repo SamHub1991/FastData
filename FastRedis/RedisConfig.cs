@@ -2,8 +2,13 @@
 using System.Configuration;
 using System.IO;
 using System.Reflection;
-using System.Runtime.Caching;
 using System.Xml;
+
+#if NETFRAMEWORK
+using System.Runtime.Caching;
+#else
+using Microsoft.Extensions.Caching.Memory;
+#endif
 
 namespace FastRedis.Config
 {
@@ -180,16 +185,27 @@ namespace FastRedis.Config
 
     internal static class BaseCache
     {
+#if NETFRAMEWORK
         public static ObjectCache cache = MemoryCache.Default;
+#else
+        private static readonly MemoryCache _cache = new MemoryCache(new MemoryCacheOptions());
+#endif
 
         public static void Set<T>(string key, T value, int Hours = 24 * 30 * 12) where T : class, new()
         {
             if (!string.IsNullOrEmpty(key))
             {
+#if NETFRAMEWORK
                 cache.Remove(key);
                 var policy = new CacheItemPolicy();
                 policy.AbsoluteExpiration = DateTime.Now.AddHours(Hours);
                 cache.Set(key, value, policy);
+#else
+                _cache.Remove(key);
+                var options = new MemoryCacheEntryOptions();
+                options.AbsoluteExpiration = DateTimeOffset.Now.AddHours(Hours);
+                _cache.Set(key, value, options);
+#endif
             }
         }
 
@@ -197,11 +213,15 @@ namespace FastRedis.Config
         {
             if (!string.IsNullOrEmpty(key))
             {
+#if NETFRAMEWORK
                 var result = new T();
                 var obj = cache.Get(key);
                 if (obj != null)
                     result = (T)obj;
                 return result;
+#else
+                return _cache.Get<T>(key) ?? new T();
+#endif
             }
             else
                 return new T();
@@ -210,7 +230,13 @@ namespace FastRedis.Config
         public static bool Exists(string key)
         {
             if (!string.IsNullOrEmpty(key))
+            {
+#if NETFRAMEWORK
                 return cache.Contains(key);
+#else
+                return _cache.TryGetValue(key, out _);
+#endif
+            }
             else
                 return false;
         }

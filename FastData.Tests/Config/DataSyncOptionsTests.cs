@@ -1,21 +1,24 @@
 using FastData.Tooling.Sync;
+using Xunit;
 
 namespace FastData.Tests.Config
 {
     public class DataSyncOptionsTests
     {
+        [Fact]
         public void DefaultValues_AreCorrect()
         {
             var options = new DataSyncOptions();
-            Assert.IsTrue(options.IsFullSyncForFirstTime);
-            Assert.IsTrue(options.AlwaysDeduplicate);
-            Assert.AreEqual(0, options.GlobalRangeDays);
-            Assert.IsFalse(options.EnableGlobalConfig);
-            Assert.AreEqual(3, options.RangeDays);
-            Assert.AreEqual(0, options.BatchSize);
-            Assert.AreEqual(0, options.RetryCount);
+            Assert.True(options.IsFullSyncForFirstTime);
+            Assert.True(options.AlwaysDeduplicate);
+            Assert.Equal(0, options.GlobalRangeDays);
+            Assert.False(options.EnableGlobalConfig);
+            Assert.Equal(3, options.RangeDays);
+            Assert.Equal(0, options.BatchSize);
+            Assert.Equal(0, options.RetryCount);
         }
 
+        [Fact]
         public void EnableGlobalConfig_True_WithGlobalRangeDays_OverridesRangeDays()
         {
             var options = new DataSyncOptions
@@ -26,9 +29,10 @@ namespace FastData.Tests.Config
             };
 
             ApplyGlobalConfigLogic(options);
-            Assert.AreEqual(7, options.RangeDays);
+            Assert.Equal(7, options.RangeDays);
         }
 
+        [Fact]
         public void EnableGlobalConfig_False_DoesNotOverrideRangeDays()
         {
             var options = new DataSyncOptions
@@ -39,9 +43,10 @@ namespace FastData.Tests.Config
             };
 
             ApplyGlobalConfigLogic(options);
-            Assert.AreEqual(3, options.RangeDays);
+            Assert.Equal(3, options.RangeDays);
         }
 
+        [Fact]
         public void EnableGlobalConfig_True_WithZeroGlobalRangeDays_DoesNotOverride()
         {
             var options = new DataSyncOptions
@@ -52,7 +57,7 @@ namespace FastData.Tests.Config
             };
 
             ApplyGlobalConfigLogic(options);
-            Assert.AreEqual(3, options.RangeDays);
+            Assert.Equal(3, options.RangeDays);
         }
 
         private static void ApplyGlobalConfigLogic(DataSyncOptions options)
@@ -67,18 +72,20 @@ namespace FastData.Tests.Config
 
     public class TableSyncConfigTests
     {
+        [Fact]
         public void DefaultValues_AreCorrect()
         {
             var config = new TableSyncConfig();
-            Assert.AreEqual(3, config.RangeDays);
-            Assert.IsFalse(config.EnableGlobalConfig);
-            Assert.AreEqual(0, config.GlobalRangeDays);
-            Assert.IsTrue(config.AlwaysDeduplicate);
-            Assert.IsTrue(config.IsEnabled);
-            Assert.AreEqual(TableSyncStatus.Pending, config.Status);
-            Assert.AreEqual(SyncDataType.Static, config.DataType);
+            Assert.Equal(3, config.RangeDays);
+            Assert.False(config.EnableGlobalConfig);
+            Assert.Equal(0, config.GlobalRangeDays);
+            Assert.True(config.AlwaysDeduplicate);
+            Assert.True(config.IsEnabled);
+            Assert.Equal(TableSyncStatus.Pending, config.Status);
+            Assert.Equal(SyncDataType.Static, config.DataType);
         }
 
+        [Fact]
         public void TargetTableName_CanBeSetIndependently()
         {
             var config = new TableSyncConfig
@@ -86,8 +93,8 @@ namespace FastData.Tests.Config
                 TableName = "source_table",
                 TargetTableName = "target_table"
             };
-            Assert.AreEqual("source_table", config.TableName);
-            Assert.AreEqual("target_table", config.TargetTableName);
+            Assert.Equal("source_table", config.TableName);
+            Assert.Equal("target_table", config.TargetTableName);
         }
     }
 }

@@ -1,4 +1,5 @@
 using FastData.Tooling.Sync;
+using FastData.SyncTool.WinForms.Services;
 
 namespace FastData.SyncTool.WinForms.IoC
 {
@@ -20,6 +21,15 @@ namespace FastData.SyncTool.WinForms.IoC
 
             // 注册同步配置管理器（单例，管理应用程序配置）
             container.RegisterInstance<SyncConfigManager>(new SyncConfigManager());
+
+            // 注册同步执行服务（每次请求创建新实例，因为包含取消令牌等状态）
+            container.Register<SyncService, SyncService>();
+
+            // 注册日志服务（单例）
+            container.RegisterInstance<LogService>(new LogService());
+
+            // 注册任务调度服务（单例）
+            container.RegisterInstance<TaskSchedulerService>(new TaskSchedulerService());
 
             // ReplayService 需要运行时参数，不在此处注册，使用时手动创建
         }

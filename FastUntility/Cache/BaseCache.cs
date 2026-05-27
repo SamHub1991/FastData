@@ -1,6 +1,11 @@
-﻿using System.Runtime.Caching;
-using System;
+﻿using System;
 using FastUntility.Base;
+
+#if NETFRAMEWORK
+using System.Runtime.Caching;
+#else
+using Microsoft.Extensions.Caching.Memory;
+#endif
 
 namespace FastUntility.Cache
 {
@@ -9,7 +14,11 @@ namespace FastUntility.Cache
     /// </summary>
     public static class BaseCache
     {
+#if NETFRAMEWORK
         public static ObjectCache cache = MemoryCache.Default;
+#else
+        private static readonly MemoryCache _cache = new MemoryCache(new MemoryCacheOptions());
+#endif
 
         /// <summary>
         /// 设置缓存
@@ -21,10 +30,17 @@ namespace FastUntility.Cache
         {
             if (!string.IsNullOrEmpty(key))
             {
+#if NETFRAMEWORK
                 cache.Remove(key);
                 var policy = new CacheItemPolicy();
                 policy.AbsoluteExpiration = DateTime.Now.AddHours(Hours);
                 cache.Set(key, value, policy);
+#else
+                _cache.Remove(key);
+                var options = new MemoryCacheEntryOptions();
+                options.AbsoluteExpiration = DateTimeOffset.Now.AddHours(Hours);
+                _cache.Set(key, value, options);
+#endif
             }
         }
 
@@ -38,10 +54,17 @@ namespace FastUntility.Cache
         {
             if (!string.IsNullOrEmpty(key))
             {
+#if NETFRAMEWORK
                 cache.Remove(key);
                 var policy = new CacheItemPolicy();
                 policy.AbsoluteExpiration = DateTime.Now.AddHours(Hours);
                 cache.Set(key, value, policy);
+#else
+                _cache.Remove(key);
+                var options = new MemoryCacheEntryOptions();
+                options.AbsoluteExpiration = DateTimeOffset.Now.AddHours(Hours);
+                _cache.Set(key, value, options);
+#endif
             }
         }
 
@@ -54,7 +77,13 @@ namespace FastUntility.Cache
             try
             {
                 if (!string.IsNullOrEmpty(key))
+                {
+#if NETFRAMEWORK
                     return cache.Get(key).ToStr();
+#else
+                    return _cache.Get<string>(key);
+#endif
+                }
                 else
                     return null;
             }
@@ -74,11 +103,15 @@ namespace FastUntility.Cache
             {
                 if (!string.IsNullOrEmpty(key))
                 {
+#if NETFRAMEWORK
                     var result = new T();
                     var obj = cache.Get(key);
                     if (obj != null)
                         result = (T)obj;
                     return result;
+#else
+                    return _cache.Get<T>(key) ?? new T();
+#endif
                 }
                 else
                     return new T();
@@ -96,7 +129,13 @@ namespace FastUntility.Cache
         public static void Remove(string key)
         {
             if (!string.IsNullOrEmpty(key))
+            {
+#if NETFRAMEWORK
                 cache.Remove(key);
+#else
+                _cache.Remove(key);
+#endif
+            }
         }
 
         /// <summary>
@@ -106,7 +145,13 @@ namespace FastUntility.Cache
         public static bool Exists(string key)
         {
             if (!string.IsNullOrEmpty(key))
+            {
+#if NETFRAMEWORK
                 return cache.Contains(key);
+#else
+                return _cache.TryGetValue(key, out _);
+#endif
+            }
             else
                 return false;
         }

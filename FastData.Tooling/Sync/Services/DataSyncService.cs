@@ -139,7 +139,8 @@ namespace FastData.Tooling.Sync
                 RetryCount = retryCount,
                 RecoveredCount = recoveredCount,
                 Message = string.Format("同步完成 [去重模式：{0}]", options.AlwaysDeduplicate ? "是" : "否"),
-                MaxPkValue = GetMaxPrimaryKeyValue(table, options.PrimaryKeyColumns)
+                MaxPkValue = GetMaxPrimaryKeyValueFromDb(options.SourceProvider, options.SourceConnectionString, options.SourceTable, options.PrimaryKeyColumns)
+                    ?? GetMaxPrimaryKeyValue(table, options.PrimaryKeyColumns)
             };
 
             var syncTime = DateTime.Now;
@@ -489,6 +490,38 @@ private static string BuildSourceSql(DataSyncOptions options, DbCommand command)
             }
 
             return hasValue ? maxValue : (long?)null;
+        }
+
+        /// <summary>
+        /// 直接从数据库查询最大主键值（优化大表性能）
+        /// </summary>
+        private static long? GetMaxPrimaryKeyValueFromDb(string provider, string connectionString, string tableName, string pkColumnsStr)
+        {
+            if (string.IsNullOrEmpty(pkColumnsStr))
+                return null;
+
+            var pkColumn = pkColumnsStr.Split(',')[0].Trim();
+
+            try
+            {
+                using (var connection = CreateConnection(provider, connectionString))
+                {
+                    connection.Open();
+                    using (var command = connection.CreateCommand())
+                    {
+                        command.CommandText = string.Format("SELECT MAX({0}) FROM {1}", pkColumn, tableName);
+                        var result = command.ExecuteScalar();
+                        if (result != null && result != DBNull.Value)
+                            return Convert.ToInt64(result);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(string.Format("查询最大主键值失败: {0}", ex.Message));
+            }
+
+            return null;
         }
 
         private static void SaveFailedRecord(DataSyncOptions options, string taskId, DataTable table, DataRow row)

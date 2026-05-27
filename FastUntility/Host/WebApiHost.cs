@@ -6,9 +6,9 @@ using System.Web;
 using System.Web.Http;
 using System.Web.Http.SelfHost;
 using System.IO;
-using Untility.Base;
+using FastUntility.Base;
 
-namespace Untility.Host
+namespace FastUntility.Host
 {
     public sealed class WebApiHost
     {
