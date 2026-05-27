@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Linq;
 using System.Web.Script.Serialization;
 
 namespace FastData.Tooling.Sync
@@ -65,15 +64,15 @@ namespace FastData.Tooling.Sync
 
             var table = new DataTable();
 
-            // 重建列
             if (data.ContainsKey("Columns"))
             {
-                var columns = data["Columns"] as IEnumerable<object>;
-                if (columns != null)
+                var columnsObj = data["Columns"];
+                var columns = columnsObj as System.Collections.IEnumerable;
+                if (columns != null && !(columnsObj is string))
                 {
                     foreach (var colObj in columns)
                     {
-                        var colDict = colObj as Dictionary<string, object>;
+                        var colDict = colObj as IDictionary<string, object>;
                         if (colDict != null && colDict.ContainsKey("ColumnName") && colDict.ContainsKey("DataType"))
                         {
                             var columnName = colDict["ColumnName"].ToString();
@@ -85,19 +84,15 @@ namespace FastData.Tooling.Sync
                 }
             }
 
-            // 重建数据行
             if (data.ContainsKey("Values"))
             {
-                var values = data["Values"] as Dictionary<string, object>;
-                if (values != null)
+                var values = data["Values"] as IDictionary<string, object>;
+                if (values != null && table.Columns.Count > 0)
                 {
                     var row = table.NewRow();
                     foreach (var kvp in values)
                     {
-                        if (table.Columns.Contains(kvp.Key))
-                        {
-                            row[kvp.Key] = kvp.Value ?? DBNull.Value;
-                        }
+                        row[kvp.Key] = kvp.Value ?? DBNull.Value;
                     }
                     table.Rows.Add(row);
                 }
@@ -139,27 +134,33 @@ namespace FastData.Tooling.Sync
             if (string.IsNullOrWhiteSpace(json))
                 return new DataTable();
 
-            var rows = Serializer.Deserialize<List<Dictionary<string, object>>>(json);
-            if (rows == null || rows.Count == 0)
+            var rows = Serializer.Deserialize<object[]>(json);
+            if (rows == null || rows.Length == 0)
                 return new DataTable();
 
             var table = new DataTable();
 
-            // 使用第一行的键创建列
-            foreach (var kvp in rows.First())
+            var firstRow = rows[0] as IDictionary<string, object>;
+            if (firstRow == null)
+                return table;
+
+            foreach (var kvp in firstRow)
             {
                 table.Columns.Add(kvp.Key, typeof(object));
             }
 
-            // 添加数据行
             foreach (var rowData in rows)
             {
-                var row = table.NewRow();
-                foreach (var kvp in rowData)
+                var rowDict = rowData as IDictionary<string, object>;
+                if (rowDict != null)
                 {
-                    row[kvp.Key] = kvp.Value ?? DBNull.Value;
+                    var row = table.NewRow();
+                    foreach (var kvp in rowDict)
+                    {
+                        row[kvp.Key] = kvp.Value ?? DBNull.Value;
+                    }
+                    table.Rows.Add(row);
                 }
-                table.Rows.Add(row);
             }
 
             return table;

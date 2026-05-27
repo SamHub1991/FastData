@@ -51,11 +51,9 @@ namespace FastData.Tooling.Sync
                 foreach (DataRow row in table.Rows)
                 {
                     int rowRetryCount = 0;
-                    // 根据配置决定是否去重
                     if (options.AlwaysDeduplicate && !string.IsNullOrEmpty(options.PrimaryKeyColumns))
                     {
-                        // 始终去重模式：检查是否存在，存在则跳过，不存在则插入
-                        if (TryInsertRowWithDedup(target, options.TargetTable, table, row, maxRetryCount, out rowRetryCount))
+                        if (TryInsertRowWithDedup(target, options.TargetTable, table, row, maxRetryCount, out rowRetryCount, options.PrimaryKeyColumns))
                             writeCount++;
                         else
                         {
@@ -319,27 +317,20 @@ private static string BuildSourceSql(DataSyncOptions options, DbCommand command)
             return connection;
         }
 
-        /// <summary>
-        /// 尝试插入行（带去重检查，只插入不存在的记录）
-        /// 用于 AlwaysDeduplicate = true 的场景
-        /// </summary>
-        private static bool TryInsertRowWithDedup(DbConnection connection, string tableName, DataTable table, DataRow row, int maxRetryCount, out int retryCount)
+        private static bool TryInsertRowWithDedup(DbConnection connection, string tableName, DataTable table, DataRow row, int maxRetryCount, out int retryCount, string primaryKeyColumns = null)
         {
             retryCount = 0;
             for (var i = 0; i <= maxRetryCount; i++)
             {
                 try
                 {
-                    // 检查记录是否存在
-                    var exists = CheckRowExists(connection, tableName, table, row);
+                    var exists = CheckRowExists(connection, tableName, table, row, primaryKeyColumns);
                     if (exists)
                     {
-                        // 记录已存在，跳过插入（不更新）
-                        return true; // 返回 true 表示成功处理（跳过）
+                        return true;
                     }
                     else
                     {
-                        // 记录不存在，执行插入
                         InsertRow(connection, tableName, table, row);
                         return true;
                     }
@@ -380,19 +371,18 @@ private static string BuildSourceSql(DataSyncOptions options, DbCommand command)
             return false;
         }
 
-        private static void UpsertRow(DbConnection connection, string tableName, DataTable table, DataRow row)
+        private static void UpsertRow(DbConnection connection, string tableName, DataTable table, DataRow row, string primaryKeyColumns = null)
         {
-            // 先检查记录是否存在
-            var exists = CheckRowExists(connection, tableName, table, row);
+            var exists = CheckRowExists(connection, tableName, table, row, primaryKeyColumns);
             if (exists)
-                UpdateRow(connection, tableName, table, row);
+                UpdateRow(connection, tableName, table, row, primaryKeyColumns);
             else
                 InsertRow(connection, tableName, table, row);
         }
 
-        private static bool CheckRowExists(DbConnection connection, string tableName, DataTable table, DataRow row)
+        private static bool CheckRowExists(DbConnection connection, string tableName, DataTable table, DataRow row, string primaryKeyColumns = null)
         {
-            var pkColumns = GetPrimaryKeyColumns(table);
+            var pkColumns = GetPrimaryKeyColumns(table, primaryKeyColumns);
             if (pkColumns.Count == 0)
                 return false;
 
@@ -417,11 +407,11 @@ private static string BuildSourceSql(DataSyncOptions options, DbCommand command)
             }
         }
 
-        private static void UpdateRow(DbConnection connection, string tableName, DataTable table, DataRow row)
+        private static void UpdateRow(DbConnection connection, string tableName, DataTable table, DataRow row, string primaryKeyColumns = null)
         {
             using (var command = connection.CreateCommand())
             {
-                var pkColumns = GetPrimaryKeyColumns(table);
+                var pkColumns = GetPrimaryKeyColumns(table, primaryKeyColumns);
                 var setClauses = new System.Collections.Generic.List<string>();
                 var whereClauses = new System.Collections.Generic.List<string>();
 
@@ -454,9 +444,21 @@ private static string BuildSourceSql(DataSyncOptions options, DbCommand command)
             }
         }
 
-        private static System.Collections.Generic.IList<string> GetPrimaryKeyColumns(DataTable table)
+        private static System.Collections.Generic.IList<string> GetPrimaryKeyColumns(DataTable table, string primaryKeyColumns = null)
         {
             var pkColumns = new System.Collections.Generic.List<string>();
+            
+            if (!string.IsNullOrEmpty(primaryKeyColumns))
+            {
+                foreach (var col in primaryKeyColumns.Split(','))
+                {
+                    var trimmed = col.Trim();
+                    if (!string.IsNullOrEmpty(trimmed))
+                        pkColumns.Add(trimmed);
+                }
+                return pkColumns;
+            }
+            
             foreach (DataColumn column in table.PrimaryKey)
             {
                 pkColumns.Add(column.ColumnName);

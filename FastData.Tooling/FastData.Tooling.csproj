@@ -49,17 +49,18 @@
     <Compile Include="Database\MetadataReaderFactory.cs" />
     <Compile Include="Database\ProviderMetadataReader.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Sync\DataSyncOptions.cs" />
-    <Compile Include="Sync\DataSyncResult.cs" />
-    <Compile Include="Sync\DataSyncService.cs" />
-    <Compile Include="Sync\DataRowSerializer.cs" />
-    <Compile Include="Sync\PrimaryKeyConfigService.cs" />
-    <Compile Include="Sync\SyncTaskConfig.cs" />
-    <Compile Include="Sync\TableSyncConfig.cs" />
-    <Compile Include="Sync\SyncConfigManager.cs" />
-    <Compile Include="Sync\TimeRangeCalculator.cs" />
-    <Compile Include="Sync\SyncDataType.cs" />
-    <Compile Include="Sync\IntermediateSchemaBuilder.cs" />
+    <Compile Include="Sync\Models\DataSyncOptions.cs" />
+    <Compile Include="Sync\Models\DataSyncResult.cs" />
+    <Compile Include="Sync\Models\SyncDataType.cs" />
+    <Compile Include="Sync\Models\SyncTaskConfig.cs" />
+    <Compile Include="Sync\Models\TableSyncConfig.cs" />
+    <Compile Include="Sync\Services\DataSyncService.cs" />
+    <Compile Include="Sync\Services\PrimaryKeyConfigService.cs" />
+    <Compile Include="Sync\Services\SyncConfigManager.cs" />
+    <Compile Include="Sync\Utils\DataRowSerializer.cs" />
+    <Compile Include="Sync\Utils\IntermediateSchemaBuilder.cs" />
+    <Compile Include="Sync\Utils\TimeRangeCalculator.cs" />
+    <Compile Include="Sync\Logging\Logger.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

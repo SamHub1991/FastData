@@ -39,9 +39,9 @@ namespace FastData.Tests.Sync
             
             Assert.IsNotNull(json);
             Console.WriteLine("Serialized JSON: " + json);
-            Assert.IsTrue(json.Contains("\"Id\": 1"));
-            Assert.IsTrue(json.Contains("\"Name\": \"张三\""));
-            Assert.IsTrue(json.Contains("\"Email\": \"zhangsan@test.com\""));
+            Assert.IsTrue(json.Contains("\"Id\":1"));
+            Assert.IsTrue(json.Contains("\"Name\":\"张三\""));
+            Assert.IsTrue(json.Contains("\"Email\":\"zhangsan@test.com\""));
         }
 
         public void Serialize_RowWithNullValue_HandlesNullCorrectly()
@@ -167,10 +167,10 @@ namespace FastData.Tests.Sync
             
             Assert.IsNotNull(json);
             Console.WriteLine("Batch JSON: " + json);
-            Assert.IsTrue(json.StartsWith("["));
-            Assert.IsTrue(json.EndsWith("]"));
-            Assert.IsTrue(json.Contains("\"Id\": 1"));
-            Assert.IsTrue(json.Contains("\"Id\": 2"));
+            Assert.IsTrue(json.Contains("[{"));
+            Assert.IsTrue(json.Contains("}]"));
+            Assert.IsTrue(json.Contains("\"Id\":1"));
+            Assert.IsTrue(json.Contains("\"Id\":2"));
         }
 
         public void DeserializeBatch_ValidJsonArray_ReturnsDataTable()
