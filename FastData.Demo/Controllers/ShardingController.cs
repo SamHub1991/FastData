@@ -1,13 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.SqlClient;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using FastData.Sharding;
+using Microsoft.Data.SqlClient;
 using FastData.Sharding.Strategies;
 
 namespace FastData.Demo.Controllers

@@ -1,133 +1,148 @@
-# FastData.Example 使用示例
+# FastData.Example
 
-本项目包含 FastData ORM 的完整使用示例，覆盖所有主要功能。
+FastData.Example is a console application providing interactive, runnable examples covering all major FastData ORM features. It serves as a learning reference and quick-start guide.
 
-## 示例列表
+## Target Frameworks
 
-| 示例 | 文件 | 说明 |
-|------|------|------|
-| 基本 CRUD | `BasicCrudExample.cs` | 增删改查基本操作 |
-| Lambda 查询 | `LambdaQueryExample.cs` | DataQuery<T> 链式查询、Where<T> 条件构建器 |
-| 原始 SQL | `RawSqlExample.cs` | 原始 SQL 查询 |
-| XML Map SQL | `MapSqlExample.cs` | XML 映射 SQL 使用 |
-| 事务操作 | `TransactionExample.cs` | 事务使用 |
-| 多数据库 | `MultiDbExample.cs` | 多数据库连接切换 |
-| 数据同步 | `DataSyncExample.cs` | 数据同步工具 |
-| 消息队列 | `MessageQueueExample.cs` | RTU 削峰/多方推送 |
-| 分页查询 | `PaginationExample.cs` | 分页 API |
+| Framework | Notes |
+|-----------|-------|
+| `net45` | .NET Framework 4.5 |
+| `net6.0` / `net8.0` / `net10.0` | Modern .NET |
 
-## 运行方式
+## Examples
+
+| # | File | Description |
+|---|------|-------------|
+| 1 | `BasicCrudExample.cs` | Basic CRUD operations (Create, Read, Update, Delete) |
+| 2 | `LambdaQueryExample.cs` | `DataQuery<T>` chainable queries, `Where<T>` condition builder |
+| 3 | `RawSqlExample.cs` | Raw SQL query execution |
+| 4 | `MapSqlExample.cs` | XML-mapped SQL usage |
+| 5 | `TransactionExample.cs` | Database transaction handling |
+| 6 | `MultiDbExample.cs` | Multiple database connection switching |
+| 7 | `DataSyncExample.cs` | Data synchronization tool usage |
+| 8 | `MessageQueueExample.cs` | Message queue (RTU peak-shaving / multi-party push) |
+| 9 | `PaginationExample.cs` | Pagination API with `PaginationResult<T>` |
+| 10 | `ShardingExample.cs` | Basic sharding (data partitioning) |
+| 11 | `ShardingFullExample.cs` | Complete sharding example with SQL Server |
+
+## Running Examples
 
 ```bash
-# 运行所有示例
-dotnet run
+# Interactive mode
+dotnet run --project FastData.Example --framework net10.0
 
-# 或选择特定示例
-dotnet run -- 1  # 基本 CRUD
-dotnet run -- 2  # Lambda 查询
+# Direct example selection
+echo "1" | dotnet run --project FastData.Example --framework net10.0
 ```
 
-## 核心 API 速查
+## Example Details
 
-### DataQuery<T> 链式查询
+### 1. Basic CRUD
+Demonstrates Create, Read, Update, Delete operations using `FastWrite` and `FastRead`.
 
+### 2. Lambda Query
+Shows `DataQuery<T>` chainable API with `Where<T>` condition builder:
 ```csharp
-// 只需写一次 <User>
-var users = FastRead.Query<User>(u => u.IsActive)
-    .And(u => u.Age > 18)
-    .Or(u => u.Role == "Admin")
-    .Like(u => u.UserName, "张%")
-    .In(u => u.Department, new[] { "IT", "HR" })
-    .Between(u => u.Age, 18, 65)
-    .OrderBy(u => u.Id)
-    .Select(u => new { u.Id, u.UserName, u.Department })
+var users = FastRead.Query<User>()
+    .Where(u => u.IsActive)
+    .Where(u => u.Age > 18)
+    .OrderBy(u => u.Name)
+    .Select(u => new { u.Id, u.Name })
     .ToList();
 ```
 
-### Where<T> 条件构建器
+### 3. Raw SQL
+Execute raw SQL queries with parameterized inputs.
 
+### 4. XML Map SQL
+Use XML-mapped SQL statements (similar to MyBatis):
 ```csharp
-// 分开写条件，更清晰
-var where = new Where<User>();
-where.Add(u => u.IsActive);
-where.And(u => u.Age > 18);
-where.Or(u => u.Role == "Admin");
-where.Like(u => u.UserName, "张%");
-where.In(u => u.Department, new[] { "IT", "HR" });
-where.Between(u => u.Age, 18, 65);
-
-var users = FastRead.Query<User>(u => true)
-    .Where(where)
-    .ToList();
+FastMap.Init("Maps/UserMap.xml");
+var users = FastMap.Query<List<User>>("GetActiveUsers", new { DepartmentId = 1 });
 ```
 
-### 动态条件构建
+### 5. Transaction
+Database transaction handling with commit/rollback.
 
+### 6. Multi-Database
+Switch between multiple database connections using `FastDb.Use(key)`.
+
+### 7. Data Sync
+Demonstrate data synchronization between databases.
+
+### 8. Message Queue (.NET 6+ only)
+- **ReliableQueue**: Single consumer with acknowledgment
+- **Stream**: Multiple consumer groups
+- **FastWrite Queue**: Write-behind caching with `FastWrite.Queue<T>()`
+- **FastRead Queue**: Read from queue with `FastRead.Queue<T>()`
+
+### 9. Pagination
+Pagination API with `PaginationResult<T>`:
 ```csharp
-var where = new Where<User>();
-where.Add(u => u.IsActive);
-
-if (!string.IsNullOrEmpty(keyword))
-    where.Like(u => u.UserName, keyword + "%");
-
-if (minAge > 0)
-    where.And(u => u.Age >= minAge);
-
-var users = FastRead.Query<User>(u => true)
-    .Where(where)
-    .ToList();
+var page = FastRead.Query<User>()
+    .Where(u => u.IsActive)
+    .ToPagination(1, 20);
+// page.Data, page.Total, page.TotalPages
 ```
 
-### 分页查询
+### 10. Basic Sharding
+Demonstrate table sharding with different strategies:
+- Time-based sharding
+- Hash-based sharding
+- List-based sharding
 
-```csharp
-var result = FastRead.Query<User>(u => u.IsActive)
-    .OrderBy(u => u.Id)
-    .ToPagination(page: 1, pageSize: 10);
+### 11. Full Sharding Example
+Complete sharding example with SQL Server:
+- 10000 log records with time-based sharding
+- 5000 order records with hash-based sharding
+- Query frequency sharding with hot data detection
+- Chainable API with `UseSharding()` and `WithShardingParam()`
 
-// result.Total      - 总记录数
-// result.TotalPages - 总页数
-// result.Data       - 当前页数据
-```
+## Configuration
 
-### 匿名类型投影
-
-```csharp
-var users = FastRead.Query<User>(u => u.IsActive)
-    .Select(u => new { u.Id, u.UserName, u.Email })
-    .ToList();
-```
-
-## 配置数据库
-
-在 `db.config` 中配置数据库连接：
-
-```xml
-<DataConfig Default="DefaultDb">
-  <Connections>
-    <Add Provider="SqlServer" 
-         Key="DefaultDb" 
-         ConnStr="server=.;database=demo;uid=sa;pwd=123456" 
-         IsDefault="true" />
-  </Connections>
-</DataConfig>
-```
-
-## 模型定义
-
-```csharp
-public class User
+### appsettings.json (.NET 6+)
+```json
 {
-    public int Id { get; set; }
-    public string UserName { get; set; }
-    public string Email { get; set; }
-    public int Age { get; set; }
-    public string Department { get; set; }
-    public string Role { get; set; }
-    public bool IsActive { get; set; }
-    public decimal Salary { get; set; }
-    public string Address { get; set; }
-    public string Phone { get; set; }
-    public DateTime CreateTime { get; set; }
+  "ConnectionStrings": {
+    "SqlServer": "Server=localhost;Database=FastDataDemo;Trusted_Connection=true;",
+    "MySql": "Server=localhost;Database=FastDataDemo;Uid=root;Pwd=;",
+    "Sqlite": "Data Source=FastDataDemo.db"
+  },
+  "Sharding": {
+    "DefaultConnectionString": "Server=localhost;Database=FastDataDemo;Trusted_Connection=true;"
+  }
 }
 ```
+
+### db.config (.NET Framework 4.5)
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<db>
+  <config>
+    <add name="SqlServer" 
+         providerName="System.Data.SqlClient" 
+         connectionString="Server=.;Database=TestDb;Trusted_Connection=true;" />
+  </config>
+</db>
+```
+
+## Building
+
+```bash
+# Build for all targets
+dotnet build FastData.Example
+
+# Build for specific target
+dotnet build FastData.Example --framework net10.0
+```
+
+## Dependencies
+
+- FastData
+- FastRedis
+- FastUntility
+- Microsoft.Extensions.Configuration.FileExtensions (net6+)
+
+## License
+
+MIT License - see [LICENSE](../LICENSE) for details.

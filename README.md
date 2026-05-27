@@ -30,6 +30,22 @@ dotnet add package Fast.Data
 
 ## 项目结构
 
+FastData 包含以下子项目：
+
+| 项目 | 说明 | 目标框架 | 文档 |
+|------|------|----------|------|
+| **[FastData](FastData/)** | 核心 ORM 组件 | net45/net6.0/net8.0/net10.0 | [README](FastData/README.md) |
+| **[FastUntility](FastUntility/)** | 通用工具库 | net45/net6.0/net8.0/net10.0 | [README](FastUntility/README.md) |
+| **[FastRedis](FastRedis/)** | Redis 缓存与消息队列 | net45/net6.0/net8.0/net10.0 | [README](FastRedis/README.md) |
+| **[FastData.Tooling](FastData.Tooling/)** | 工具库（元数据读取、代码生成） | net45/net6.0/net8.0/net10.0 | [README](FastData.Tooling/README.md) |
+| **[FastData.SyncTool.WinForms](FastData.SyncTool.WinForms/)** | 数据同步工具（WinForms） | net45 | [README](FastData.SyncTool.WinForms/README.md) |
+| **[FastData.ModelGenerator.WinForms](FastData.ModelGenerator.WinForms/)** | 代码生成工具（WinForms） | net6.0-windows/net8.0-windows/net10.0-windows | [README](FastData.ModelGenerator.WinForms/README.md) |
+| **[FastData.Tests](FastData.Tests/)** | 单元测试 | net462/net6.0/net8.0/net10.0 | [README](FastData.Tests/README.md) |
+| **[FastData.Demo](FastData.Demo/)** | Web API 示例 | net10.0 | [README](FastData.Demo/README.md) |
+| **[FastData.Example](FastData.Example/)** | 控制台示例 | net45/net6.0/net8.0/net10.0 | [README](FastData.Example/README.md) |
+
+### 目录结构
+
 ```
 FastData/
 ├── FastData/                          # 核心 ORM 组件（多目标框架）
@@ -37,16 +53,18 @@ FastData/
 │   ├── FastWrite.cs                   # 写入入口（INSERT/UPDATE/DELETE）
 │   ├── FastDb.cs                      # 数据库上下文切换
 │   ├── FastMap.cs                     # XML Map SQL 解析
+│   ├── Sharding/                      # 分表功能
+│   │   ├── ShardingManager.cs        # 分表管理器
+│   │   └── Strategies/               # 分表策略（Time/Hash/List/Composite/QueryFrequency）
+│   ├── Queue/                         # 消息队列（FastWrite/FastRead Queue）
 │   └── Repository/                    # Repository 模式实现
 │       ├── IReadRepository.cs         # 读取接口
 │       ├── IWriteRepository.cs        # 写入接口
 │       ├── IMapRepository.cs          # Map 配置接口
 │       └── IFastRepository.cs         # 组合接口
 │
-├── FastData.Tooling/                  # 公共工具库
-│   ├── Database/                      # 数据库适配器
-│   ├── CodeGeneration/                # 代码生成器
-│   └── Sync/                          # 数据同步服务
+├── FastUntility/                      # 通用工具库
+│   └── Base/                          # 日志、Excel、HTTP、加密等工具类
 │
 ├── FastRedis/                         # Redis 缓存组件
 │   ├── RedisInfo.NewLife.cs           # NewLife.Redis 实现（.NET 6+）
@@ -55,18 +73,46 @@ FastData/
 │   ├── Messaging/                     # 消息队列实现
 │   │   ├── IMessageProducer.cs        # 生产者接口
 │   │   ├── IMessageConsumer.cs        # 消费者接口
-│   │   ├── MessageQueueModels.cs      # 队列模型和配置
 │   │   ├── ReliableQueueService.cs    # 可信队列实现
 │   │   ├── StreamService.cs           # Stream 队列实现
 │   │   └── MessageQueueFactory.cs     # 队列工厂
 │   └── Services/                      # 集成服务
-│       └── MessageQueueIntegrationService.cs
 │
-├── FastUntility/                      # 通用工具库
-│   └── Base/                          # 日志、Excel、HTTP 等工具类
+├── FastData.Tooling/                  # 工具库
+│   ├── Database/                      # 数据库元数据读取
+│   ├── CodeGeneration/                # C#/XML 代码生成
+│   └── Sync/                          # 数据同步服务
+│
+├── FastData.SyncTool.WinForms/        # 数据同步工具（WinForms）
+│   ├── Components/                    # UI 组件
+│   │   ├── ShardingSyncControl.cs    # 分表同步
+│   │   ├── ShardingTaskControl.cs    # 任务管理
+│   │   ├── ShardingImportControl.cs  # 数据导入
+│   │   └── ShardingDataControl.cs    # 数据操作
+│   └── Models/                        # 数据模型
+│
+├── FastData.ModelGenerator.WinForms/  # 代码生成工具（WinForms）
 │
 ├── FastData.Tests/                    # 单元测试（xUnit）
-└── FastData.Example/                  # 使用示例项目
+│   ├── ShardingTests.cs               # 分表测试
+│   ├── ChainableWhereTests.cs         # 链式条件测试
+│   ├── PaginationTests.cs             # 分页测试
+│   └── WhereBuilderTests.cs           # 条件构建器测试
+│
+├── FastData.Demo/                     # Web API 示例
+│   ├── Controllers/                   # API 控制器
+│   │   ├── UsersController.cs         # 用户 CRUD
+│   │   ├── OrdersController.cs        # 订单 CRUD
+│   │   ├── ShardingController.cs      # 分表 API
+│   │   └── MessageQueueController.cs  # 消息队列 API
+│   └── Program.cs                     # 入口
+│
+└── FastData.Example/                  # 控制台示例
+    └── Example/
+        ├── BasicCrudExample.cs        # 基础 CRUD
+        ├── LambdaQueryExample.cs      # Lambda 查询
+        ├── ShardingExample.cs         # 分表示例
+        └── MessageQueueExample.cs     # 消息队列示例
 ```
 
 ## 快速配置
