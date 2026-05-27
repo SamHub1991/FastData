@@ -57,7 +57,7 @@ namespace FastData.Model
         /// <summary>
         /// 链式追加的 WHERE 条件（AND/OR）
         /// </summary>
-        internal List<ChainedCondition> ChainedConditions { set; get; } = new List<ChainedCondition>();
+        public List<ChainedCondition> ChainedConditions { set; get; } = new List<ChainedCondition>();
     }
     #endregion
 
@@ -65,7 +65,7 @@ namespace FastData.Model
     /// <summary>
     /// 链式条件（用于 Where/Or 链式调用）
     /// </summary>
-    internal class ChainedCondition
+    public class ChainedCondition
     {
         /// <summary>
         /// 逻辑运算符（AND/OR）

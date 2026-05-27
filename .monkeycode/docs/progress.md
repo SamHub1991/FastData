@@ -6,9 +6,9 @@
 
 **当前状态**：全部主要任务完成，已推送到 GitHub  
 **构建状态**：0 Error(s)，0 Warning(s)  
-**测试状态**：73 个单元测试通过，34 项综合验证测试通过  
+**测试状态**：108 个单元测试通过，34 项综合验证测试通过  
 **NuGet 包**：4 个已生成（FastUntility/FastData.Tooling/FastData/FastRedis）  
-**GitHub**：https://github.com/SamHub1991/FastData（commit 545a6bc）
+**GitHub**：https://github.com/SamHub1991/FastData（commit 39577ab）
 
 ## 最近完成任务（2026-05-27）
 
@@ -26,7 +26,7 @@
 - [x] System.CodeDom 8.0.0（net6.0+ 条件编译）
 - [x] BinaryFormatter 替换为 System.Text.Json（net6.0+）
 - [x] xUnit 2.6.2 测试框架迁移
-- [x] 73 个单元测试全部通过（net10.0）
+- [x] 108 个单元测试全部通过（net10.0）
 - [x] FastData.Demo 验证项目（完整技术栈验证）
 - [x] 全量构建验证通过：6 个项目 x 4 框架
 
@@ -89,6 +89,31 @@
 - [x] FastData.SyncTool.WinForms/REFACTOR_README.md 更新
 - [x] .monkeycode/MEMORY.md 更新项目知识库
 - [x] .monkeycode/docs/progress.md 更新进度文档
+
+### 8. Lambda 查询扩展 API
+- [x] FastRead.Query<T>() Lambda 表达式查询
+- [x] FastRead.Select<T, TResult>() 匿名类型投影查询
+- [x] 支持复杂条件组合（Where/And/Or/In/Like/Between）
+- [x] ProjectedQuery<T, TResult> 投影查询类
+- [x] 分页查询 API（ToPagination/ToPaginationAsync）
+- [x] PaginationRequest/PaginationResult<T> 模型
+
+### 9. 链式 WHERE 条件
+- [x] DataQuery.ChainedConditions 链式条件列表
+- [x] ChainedCondition 类（Operator/Where/Param）
+- [x] FastRead.Where<T>() / Or<T>() 扩展方法
+- [x] WhereBuilder 统一 WHERE 子句构建
+- [x] DataContext.cs SQL 生成逻辑更新（5 处）
+- [x] FastData.Tests 单元测试（WhereBuilderTests + ChainableWhereTests）
+- [x] InternalsVisibleTo 配置（允许测试项目访问内部成员）
+
+### 10. FastWrite 匿名类型支持
+- [x] Add/AddRange/Update/Delete 支持 tableName 参数
+- [x] 无 new() 约束，支持匿名类型推断
+
+### 11. XML Map SQL 生成器
+- [x] Model Generator 新增 XML Map SQL 生成功能
+- [x] 支持多表关联查询配置
 
 ---
 

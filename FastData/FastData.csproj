@@ -10,6 +10,11 @@
     <NoWarn>CS1591;CS1570;CS1572;CS1573;CS1711;CS1712</NoWarn>
   </PropertyGroup>
 
+  <!-- 允许测试项目访问内部成员 -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="FastData.Tests" />
+  </ItemGroup>
+
   <!-- .NET Framework 4.5 专用引用 -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net45'">
     <Reference Include="System" />
