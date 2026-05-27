@@ -7,10 +7,17 @@ using FastRedis.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// 添加配置文件
+builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+
 // 添加服务
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// 从配置读取 Redis 设置
+var redisServer = builder.Configuration["Redis:Server"] ?? "127.0.0.1:6379";
+var redisDb = int.Parse(builder.Configuration["Redis:Db"] ?? "7");
 
 // 注册 Redis 服务（单例模式）
 builder.Services.AddSingleton<IRedisRepository, RedisRepository>();
@@ -22,8 +29,8 @@ builder.Services.AddSingleton<MessageQueueFactory>(sp =>
 {
     var redis = new NewLife.Caching.FullRedis
     {
-        Server = "127.0.0.1:6379",
-        Db = 7,
+        Server = redisServer,
+        Db = redisDb,
         Timeout = 15000
     };
     return new MessageQueueFactory(redis);
@@ -32,8 +39,8 @@ builder.Services.AddSingleton<MessageQueueIntegrationService>(sp =>
 {
     var redis = new NewLife.Caching.FullRedis
     {
-        Server = "127.0.0.1:6379",
-        Db = 7,
+        Server = redisServer,
+        Db = redisDb,
         Timeout = 15000
     };
     return new MessageQueueIntegrationService(redis);

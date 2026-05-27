@@ -2,11 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using FastData.Sharding;
 using FastData.Sharding.Strategies;
 #if NET6_0_OR_GREATER
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
 #else
 using System.Data.SqlClient;
 #endif
@@ -19,7 +21,28 @@ namespace FastData.Example.Example
     /// </summary>
     public class ShardingFullExample
     {
-        private static string _connectionString = "server=.;database=FastDataDemo;uid=sa;pwd=YourPassword123";
+        private static string _connectionString;
+
+        static ShardingFullExample()
+        {
+            LoadConfiguration();
+        }
+
+        private static void LoadConfiguration()
+        {
+#if NET6_0_OR_GREATER
+            var config = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: true)
+                .Build();
+
+            _connectionString = config.GetConnectionString("SqlServer")
+                ?? config["Sharding:DefaultConnectionString"]
+                ?? "server=.;database=FastDataDemo;uid=sa;pwd=YourPassword123";
+#else
+            _connectionString = "server=.;database=FastDataDemo;uid=sa;pwd=YourPassword123";
+#endif
+        }
 
         /// <summary>
         /// 运行所有分表示例

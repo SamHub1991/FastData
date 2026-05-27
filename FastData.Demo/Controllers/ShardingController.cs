@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using FastData.Sharding;
 using FastData.Sharding.Strategies;
 
@@ -18,7 +19,13 @@ namespace FastData.Demo.Controllers
     [Route("api/[controller]")]
     public class ShardingController : ControllerBase
     {
-        private static string _connectionString = "server=.;database=FastDataDemo;uid=sa;pwd=YourPassword123";
+        private readonly string _connectionString;
+
+        public ShardingController(IConfiguration configuration)
+        {
+            _connectionString = configuration.GetConnectionString("SqlServer")
+                ?? "server=.;database=FastDataDemo;uid=sa;pwd=YourPassword123";
+        }
 
         /// <summary>
         /// 初始化分表测试环境
