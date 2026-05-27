@@ -1,84 +1,58 @@
 # FastData 项目进度总结
 
-更新时间：2026-05-25
+更新时间：2026-05-27
 
-## 2026 年 5 月需求实施总结
+## 项目状态
 
-### 已完成（代码实现与构建验证）
+**当前状态**：全部主要任务完成，已推送到 GitHub  
+**构建状态**：0 Error(s)，0 Warning(s)  
+**测试状态**：73 个单元测试通过，34 项综合验证测试通过  
+**NuGet 包**：4 个已生成（FastUntility/FastData.Tooling/FastData/FastRedis）  
+**GitHub**：https://github.com/SamHub1991/FastData（commit 05c3ee6）
 
-#### 1. 架构优化
-- [x] 梳理现有多数据库重复代码。
-- [x] 抽取数据库适配器接口 (`IDatabaseAdapter`)。
-- [x] 抽取 SQL 方言接口 (`ISqlDialect`)。
-- [x] 抽取元数据读取接口 (`IDatabaseMetadataReader`)。
-- [x] 将工具项目与 ORM 核心项目分离。
+## 最近完成任务（2026-05-27）
 
-#### 2. 多数据库配置简化
-- [x] 新增统一 `Connections` 配置结构。
-- [x] 保留旧配置格式兼容读取。
-- [x] 实现默认数据库配置。
-- [x] 实现 `FastRead.Use(key)` 和 `FastWrite.Use(key)`。
-- [x] 实现 `FastDb.Use(key)` 作用域切换。
-- [x] 实现 `IFastRepositoryFactory` 指定库 Repository。
-- [x] 补充配置错误提示和可用 Key 提示。
+### 1. 多目标框架迁移
+- [x] SDK-style csproj 格式迁移（所有项目）
+- [x] 多目标框架支持（net45/net6.0/net8.0/net10.0）
+- [x] 条件编译处理框架差异（NETFRAMEWORK/NET6_0_OR_GREATER）
+- [x] CallContext → AsyncLocal（FastDb.cs 条件编译）
+- [x] IFastRepository 接口拆分：IReadRepository、IWriteRepository、IMapRepository
+- [x] 连接字符串加密支持（DataContext.IsEncrypt + BaseSymmetric.Decrypto）
+- [x] Redis 单例模式（Lazy<FullRedis>）
+- [x] NewLife.Redis 6.0.2024.1006 替换 StackExchange.Redis（net6.0+）
+- [x] Newtonsoft.Json 升级至 13.0.3
+- [x] NPOI 分版本：2.5.6(net45) / 2.7.0(net6.0+)
+- [x] System.CodeDom 8.0.0（net6.0+ 条件编译）
+- [x] BinaryFormatter 替换为 System.Text.Json（net6.0+）
+- [x] xUnit 2.6.2 测试框架迁移
+- [x] 73 个单元测试全部通过（net10.0）
+- [x] FastData.Demo 验证项目（完整技术栈验证）
+- [x] 全量构建验证通过：6 个项目 x 4 框架
 
-#### 3. Model 生成工具
-- [x] 新建 `FastData.Tooling` 公共工具项目。
-- [x] 新建 `FastData.ModelGenerator.WinForms` 项目。
-- [x] 实现数据库连接测试。
-- [x] 实现表加载、多选和代码预览。
-- [x] 实现默认命名空间配置。
-- [x] 实现表搜索过滤。
-- [x] 实现字段预览。
-- [x] 实现单表命名空间覆盖。
-- [x] 实现 Model 代码预览、编辑和生成。
-- [x] 验证生成工具项目可编译。
+### 2. NuGet 包生成与验证
+- [x] NuGet 包生成脚本（generate-nupkg.sh）
+- [x] 生成 4 个 NuGet 包：FastUntility/FastData.Tooling/FastData/FastRedis
+- [x] 综合验证测试脚本（verify-all.sh，34 项测试）
+- [x] 大表主键加载优化（GetMaxPrimaryKeyValueFromDb）
+- [x] 依赖注入服务注册扩展（SyncService/LogService/TaskSchedulerService）
+- [x] MainForm 拆分为 4 个 UserControl（DbConfigControl/SyncConfigControl/TaskManagerControl/ReplayControl）
+- [x] 文档整合与更新
 
-#### 4. 数据同步工具
-- [x] 新建 `FastData.SyncTool.WinForms` 项目。
-- [x] 实现源库和目标库配置。
-- [x] 设计中间库表结构。
-- [x] 实现 SQL Server、MySQL、Oracle 中间库脚本生成。
-- [x] 实现中间库 SQL 导出。
-- [x] 实现基础全量同步。
-- [x] 实现增量同步基础入口（增量字段 + 增量起点）。
-- [x] 实现同步重试和错误计数。
-- [x] 实现失败记录保存与恢复。
-- [x] 实现中间库历史数据清理。
-- [x] 实现自动创建中间库表。
-- [x] 实现任务状态和错误日志界面。
-- [x] 新增：定时同步功能（支持准实时同步）。
-- [x] 新增：复合主键支持（多字段主键配置）。
-- [x] 新增：UPSERT 模式（自动判断 INSERT 或 UPDATE）。
-- [x] 新增：智能范围同步（首次全量，后续按最近 N 天增量）。
-- [x] 新增：多表批量同步（DataGridView 批量执行）。
-- [x] 新增：表选择对话框（支持搜索过滤）。
-- [x] 新增：字段选择对话框（支持全选/反选，主键强制校验）。
-- [x] 新增：配置持久化（JSON 格式存储任务配置）。
-- [x] 新增：时间范围计算器（快速选择 1/3/7/30 天/本月/上月）。
-- [x] 新增：任务管理功能（增删改查，状态更新）。
-- [x] 新增：批量操作（批量启用/禁用/删除）。
-- [x] 新增：导入导出配置（JSON 格式）。
-- [x] 新增：任务状态实时刷新。
-- [x] 验证同步工具项目可编译。
-- [x] **新增**：复合主键增量同步（支持多字段主键）。
-- [x] **新增**：UPSERT 模式（自动判断 INSERT 或 UPDATE）。
-- [x] **新增**：主键配置管理界面（可视化配置表主键）。
+### 3. 依赖库升级
+- [x] Newtonsoft.Json: 6.0.8 → 13.0.3
+- [x] NPOI: 2.1.3.1 → 2.5.6(net45) / 2.7.0(net6.0+)
+- [x] Redis: NServiceKit.Redis(net45) + NewLife.Redis 6.0.2024.1006(net6.0+)
+- [x] System.CodeDom: 8.0.0（net6.0+）
 
-#### 5. 中文文档
-- [x] 编写快速开始文档。
-- [x] 编写多数据库配置和优雅切换文档。
-- [x] 编写 Model 生成工具文档（`.monkeycode/docs/model-generator.md`）。
-- [x] 编写数据同步工具文档（`.monkeycode/docs/sync-tool.md`）。
-- [x] 编写 XML SQL Map、Repository、AOP 和 FAQ 文档。
-- [x] 更新 README.md 添加新文档链接。
-- [x] 更新项目进度总结文档。
-
-#### 6. 构建与代码质量
-- [x] 构建通过，`0 Warning(s)`、`0 Error(s)`。
-- [x] 修复 `BaseCodeDom` 过期 API。
-- [x] 屏蔽既有 XML 文档注释警告，保留真实编译警告。
-- [x] 新增数据库适配器与 SQL 方言抽象。
+### 4. 文档整合
+- [x] CHANGELOG.md 更新至最新版本
+- [x] README.md 全面更新（455 行，9 个示例，文档导航链接）
+- [x] DEVELOPMENT_PROGRESS.md 整合开发进度
+- [x] REFACTOR_SUMMARY.md 更新重构总结
+- [x] FastData.SyncTool.WinForms/REFACTOR_README.md 更新
+- [x] .monkeycode/MEMORY.md 更新项目知识库
+- [x] .monkeycode/docs/progress.md 更新进度文档
 
 ---
 
@@ -306,6 +280,9 @@ FrameworkPathOverride="/root/.nuget/packages/microsoft.netframework.referenceass
 | 数据同步工具 | 100% | ✅ 完成 |
 | 中文文档 | 100% | ✅ 完成 |
 | 构建验证 | 100% | ✅ 完成 |
+| 多目标框架迁移 | 100% | ✅ 完成 |
+| NuGet 包生成 | 100% | ✅ 完成 |
+| 综合验证测试 | 100% | ✅ 完成 |
 
 ### 数据同步工具功能清单
 
@@ -321,6 +298,9 @@ FrameworkPathOverride="/root/.nuget/packages/microsoft.netframework.referenceass
 | 批量操作 | ✅ | 批量启用/禁用/删除 |
 | 导入导出 | ✅ | JSON 格式任务配置 |
 | 状态跟踪 | ✅ | 实时同步状态更新 |
+| 大表主键优化 | ✅ | GetMaxPrimaryKeyValueFromDb 方法 |
+| 依赖注入 | ✅ | SyncService/LogService/TaskSchedulerService |
+| 组件化拆分 | ✅ | 4 个 UserControl（DbConfigControl/SyncConfigControl/TaskManagerControl/ReplayControl） |
 
 ### 待环境验证（需真实数据库）
 
@@ -337,7 +317,8 @@ FrameworkPathOverride="/root/.nuget/packages/microsoft.netframework.referenceass
 ---
 
 **最后更新**: 2026-05-27  
-**项目状态**: 全部任务完成，构建 0 Error(s)，73 个测试通过，4 个 NuGet 包已生成
+**项目状态**: 全部主要任务完成，已推送到 GitHub（commit 05c3ee6）  
+**GitHub**: https://github.com/SamHub1991/FastData
 
 
 #### 7. 项目改进（2026-05-25）
