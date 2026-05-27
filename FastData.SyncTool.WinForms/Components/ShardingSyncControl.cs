@@ -7,226 +7,386 @@ using System.Linq;
 using System.Windows.Forms;
 using FastData.Sharding;
 using FastData.Sharding.Strategies;
+using FastData.SyncTool.WinForms.Services;
 
 namespace FastData.SyncTool.WinForms.Components
 {
     /// <summary>
     /// 分表数据同步控件
-    /// 支持从源表同步数据到分表
+    /// 支持从源表同步数据到分表，集成任务管理
     /// </summary>
     public class ShardingSyncControl : UserControl
     {
+        private readonly ShardingTaskService _taskService;
+        private readonly LogService _logService;
+
+        // 源数据库配置
         private readonly TextBox sourceConnectionStringBox = new TextBox();
         private readonly ComboBox sourceProviderBox = new ComboBox();
-        private readonly TextBox sourceTableBox = new TextBox();
+        private readonly ComboBox sourceTableCombo = new ComboBox();
         private readonly Button loadSourceTablesButton = new Button();
 
+        // 分表配置
         private readonly ComboBox shardingTypeBox = new ComboBox();
+        private readonly TabControl configTabControl = new TabControl();
+
+        // 时间分表配置
+        private TabPage _timeConfigTab;
+        private readonly TextBox timeFieldBox = new TextBox();
         private readonly ComboBox granularityBox = new ComboBox();
+        private readonly DateTimePicker startTimePicker = new DateTimePicker();
+
+        // 哈希分表配置
+        private TabPage _hashConfigTab;
         private readonly TextBox hashFieldBox = new TextBox();
         private readonly NumericUpDown shardCountBox = new NumericUpDown();
+        private readonly ComboBox hashAlgorithmBox = new ComboBox();
+
+        // 列表分表配置
+        private TabPage _listConfigTab;
         private readonly TextBox listFieldBox = new TextBox();
-        private readonly TextBox timeFieldBox = new TextBox();
+        private readonly DataGridView listMappingGrid = new DataGridView();
 
-        private readonly Button configureButton = new Button();
-        private readonly Button syncButton = new Button();
-        private readonly Button statsButton = new Button();
-        private readonly Button createShardingTablesButton = new Button();
+        // 组合键分表配置
+        private TabPage _compositeConfigTab;
+        private readonly TextBox compositeFieldsBox = new TextBox();
+        private readonly NumericUpDown compositeShardCountBox = new NumericUpDown();
 
-        private readonly DataGridView statsGrid = new DataGridView();
+        // 查询频率分表配置
+        private TabPage _frequencyConfigTab;
+        private readonly TextBox frequencyFieldBox = new TextBox();
+        private readonly NumericUpDown hotThresholdBox = new NumericUpDown();
+        private readonly TextBox hotSuffixBox = new TextBox();
+        private readonly TextBox coldSuffixBox = new TextBox();
+
+        // 操作按钮
+        private readonly Button previewButton = new Button();
+        private readonly Button startTaskButton = new Button();
+        private readonly Button createTablesButton = new Button();
+
+        // 预览和日志
+        private readonly DataGridView previewGrid = new DataGridView();
         private readonly TextBox logBox = new TextBox();
         private readonly Label statusLabel = new Label();
 
-        private ShardingConfig currentConfig;
-        private string currentConnectionString;
+        // 任务管理
+        private readonly ShardingTaskControl _taskControl;
 
-        public ShardingSyncControl()
+        private ShardingConfig _currentConfig;
+        private string _currentConnectionString;
+
+        public ShardingSyncControl(ShardingTaskService taskService, LogService logService)
         {
+            _taskService = taskService;
+            _logService = logService;
+            _taskControl = new ShardingTaskControl(taskService, logService);
+
             InitializeComponent();
         }
 
         private void InitializeComponent()
         {
-            this.Size = new Size(900, 700);
+            this.Size = new Size(1000, 800);
+
+            // 主布局 - 使用 SplitContainer
+            var mainSplit = new SplitContainer
+            {
+                Dock = DockStyle.Fill,
+                Orientation = Orientation.Horizontal,
+                SplitterDistance = 450
+            };
+
+            // 上半部分：配置区域
+            var topPanel = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 2,
+                RowCount = 1
+            };
+            topPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+            topPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+
+            // 左侧：源数据库和分表配置
+            var leftPanel = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 2
+            };
+            leftPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 120));
+            leftPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
             // 源数据库配置
             var sourceGroup = new GroupBox
             {
                 Text = "源数据库配置",
-                Location = new Point(10, 10),
-                Size = new Size(430, 150)
+                Dock = DockStyle.Fill,
+                Padding = new Padding(10)
+            };
+            var sourceLayout = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 2,
+                RowCount = 4
             };
 
-            var sourceProviderLabel = new Label { Text = "数据库类型:", Location = new Point(10, 25), AutoSize = true };
+            sourceLayout.Controls.Add(new Label { Text = "数据库类型:", TextAlign = ContentAlignment.MiddleRight }, 0, 0);
             sourceProviderBox.DropDownStyle = ComboBoxStyle.DropDownList;
             sourceProviderBox.Items.AddRange(new object[] { "SqlServer", "MySql", "SQLite" });
             sourceProviderBox.SelectedIndex = 0;
-            sourceProviderBox.Location = new Point(120, 22);
-            sourceProviderBox.Width = 150;
+            sourceLayout.Controls.Add(sourceProviderBox, 1, 0);
 
-            var sourceConnectionLabel = new Label { Text = "连接字符串:", Location = new Point(10, 55), AutoSize = true };
-            sourceConnectionStringBox.Location = new Point(120, 52);
-            sourceConnectionStringBox.Width = 290;
+            sourceLayout.Controls.Add(new Label { Text = "连接字符串:", TextAlign = ContentAlignment.MiddleRight }, 0, 1);
             sourceConnectionStringBox.Text = "server=.;database=FastDataDemo;uid=sa;pwd=YourPassword123";
+            sourceLayout.Controls.Add(sourceConnectionStringBox, 1, 1);
 
-            var sourceTableLabel = new Label { Text = "源表名:", Location = new Point(10, 85), AutoSize = true };
-            sourceTableBox.Location = new Point(120, 82);
-            sourceTableBox.Width = 150;
-            sourceTableBox.Text = "UserLog";
+            sourceLayout.Controls.Add(new Label { Text = "源表名:", TextAlign = ContentAlignment.MiddleRight }, 0, 2);
+            sourceTableCombo.DropDownStyle = ComboBoxStyle.DropDown;
+            sourceLayout.Controls.Add(sourceTableCombo, 1, 2);
 
             loadSourceTablesButton.Text = "加载表";
-            loadSourceTablesButton.Location = new Point(280, 80);
-            loadSourceTablesButton.Width = 80;
             loadSourceTablesButton.Click += LoadSourceTablesButton_Click;
+            sourceLayout.Controls.Add(loadSourceTablesButton, 1, 3);
 
-            sourceGroup.Controls.AddRange(new Control[]
-            {
-                sourceProviderLabel, sourceProviderBox,
-                sourceConnectionLabel, sourceConnectionStringBox,
-                sourceTableLabel, sourceTableBox,
-                loadSourceTablesButton
-            });
+            sourceGroup.Controls.Add(sourceLayout);
+            leftPanel.Controls.Add(sourceGroup, 0, 0);
 
             // 分表配置
             var shardingGroup = new GroupBox
             {
-                Text = "分表配置",
-                Location = new Point(450, 10),
-                Size = new Size(430, 150)
+                Text = "分表策略配置",
+                Dock = DockStyle.Fill,
+                Padding = new Padding(10)
             };
-
-            var shardingTypeLabel = new Label { Text = "分表类型:", Location = new Point(10, 25), AutoSize = true };
-            shardingTypeBox.DropDownStyle = ComboBoxStyle.DropDownList;
-            shardingTypeBox.Items.AddRange(new object[] { "Time", "Hash", "List" });
-            shardingTypeBox.SelectedIndex = 0;
-            shardingTypeBox.Location = new Point(120, 22);
-            shardingTypeBox.Width = 150;
-            shardingTypeBox.SelectedIndexChanged += ShardingTypeBox_SelectedIndexChanged;
-
-            var timeFieldLabel = new Label { Text = "时间字段:", Location = new Point(10, 55), AutoSize = true };
-            timeFieldBox.Location = new Point(120, 52);
-            timeFieldBox.Width = 150;
-            timeFieldBox.Text = "CreateTime";
-
-            var granularityLabel = new Label { Text = "时间粒度:", Location = new Point(10, 85), AutoSize = true };
-            granularityBox.DropDownStyle = ComboBoxStyle.DropDownList;
-            granularityBox.Items.AddRange(new object[] { "Day", "Week", "Month", "Quarter", "Year" });
-            granularityBox.SelectedIndex = 2; // Month
-            granularityBox.Location = new Point(120, 82);
-            granularityBox.Width = 150;
-
-            var hashFieldLabel = new Label { Text = "哈希字段:", Location = new Point(10, 55), AutoSize = true };
-            hashFieldBox.Location = new Point(120, 52);
-            hashFieldBox.Width = 150;
-            hashFieldBox.Text = "UserId";
-            hashFieldBox.Visible = false;
-
-            var shardCountLabel = new Label { Text = "分表数量:", Location = new Point(10, 85), AutoSize = true };
-            shardCountBox.Minimum = 1;
-            shardCountBox.Maximum = 100;
-            shardCountBox.Value = 4;
-            shardCountBox.Location = new Point(120, 82);
-            shardCountBox.Width = 80;
-            shardCountBox.Visible = false;
-
-            var listFieldLabel = new Label { Text = "列表字段:", Location = new Point(10, 55), AutoSize = true };
-            listFieldBox.Location = new Point(120, 52);
-            listFieldBox.Width = 150;
-            listFieldBox.Text = "Status";
-            listFieldBox.Visible = false;
-
-            shardingGroup.Controls.AddRange(new Control[]
+            var shardingLayout = new TableLayoutPanel
             {
-                shardingTypeLabel, shardingTypeBox,
-                timeFieldLabel, timeFieldBox,
-                granularityLabel, granularityBox,
-                hashFieldLabel, hashFieldBox,
-                shardCountLabel, shardCountBox,
-                listFieldLabel, listFieldBox
-            });
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 2
+            };
+            shardingLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
+            shardingLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+            // 分表类型选择
+            var typePanel = new FlowLayoutPanel { Dock = DockStyle.Fill };
+            typePanel.Controls.Add(new Label { Text = "分表类型:", Margin = new Padding(0, 5, 0, 0) });
+            shardingTypeBox.DropDownStyle = ComboBoxStyle.DropDownList;
+            shardingTypeBox.Items.AddRange(new object[] { "时间分表", "哈希分表", "列表分表", "组合键分表", "查询频率分表" });
+            shardingTypeBox.SelectedIndex = 0;
+            shardingTypeBox.SelectedIndexChanged += ShardingTypeBox_SelectedIndexChanged;
+            shardingTypeBox.Width = 150;
+            typePanel.Controls.Add(shardingTypeBox);
+            shardingLayout.Controls.Add(typePanel, 0, 0);
+
+            // 配置选项卡
+            InitializeConfigTabs();
+            shardingLayout.Controls.Add(configTabControl, 0, 1);
+
+            shardingGroup.Controls.Add(shardingLayout);
+            leftPanel.Controls.Add(shardingGroup, 0, 1);
+
+            topPanel.Controls.Add(leftPanel, 0, 0);
+
+            // 右侧：预览和操作
+            var rightPanel = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 3
+            };
+            rightPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 50));
+            rightPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 60));
+            rightPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 40));
 
             // 操作按钮
-            var buttonPanel = new Panel
+            var buttonPanel = new FlowLayoutPanel { Dock = DockStyle.Fill };
+
+            previewButton.Text = "预览分表";
+            previewButton.Width = 80;
+            previewButton.Height = 35;
+            previewButton.Click += PreviewButton_Click;
+            buttonPanel.Controls.Add(previewButton);
+
+            createTablesButton.Text = "创建分表";
+            createTablesButton.Width = 80;
+            createTablesButton.Height = 35;
+            createTablesButton.Click += CreateTablesButton_Click;
+            buttonPanel.Controls.Add(createTablesButton);
+
+            startTaskButton.Text = "启动分表任务";
+            startTaskButton.Width = 100;
+            startTaskButton.Height = 35;
+            startTaskButton.BackColor = Color.FromArgb(76, 175, 80);
+            startTaskButton.ForeColor = Color.White;
+            startTaskButton.Click += StartTaskButton_Click;
+            buttonPanel.Controls.Add(startTaskButton);
+
+            rightPanel.Controls.Add(buttonPanel, 0, 0);
+
+            // 预览网格
+            var previewGroup = new GroupBox
             {
-                Location = new Point(10, 170),
-                Size = new Size(870, 40)
+                Text = "分表预览",
+                Dock = DockStyle.Fill,
+                Padding = new Padding(5)
             };
-
-            configureButton.Text = "配置分表";
-            configureButton.Location = new Point(0, 5);
-            configureButton.Width = 100;
-            configureButton.Click += ConfigureButton_Click;
-
-            createShardingTablesButton.Text = "创建分表";
-            createShardingTablesButton.Location = new Point(110, 5);
-            createShardingTablesButton.Width = 100;
-            createShardingTablesButton.Click += CreateShardingTablesButton_Click;
-
-            syncButton.Text = "同步数据";
-            syncButton.Location = new Point(220, 5);
-            syncButton.Width = 100;
-            syncButton.Click += SyncButton_Click;
-
-            statsButton.Text = "统计信息";
-            statsButton.Location = new Point(330, 5);
-            statsButton.Width = 100;
-            statsButton.Click += StatsButton_Click;
-
-            buttonPanel.Controls.AddRange(new Control[]
-            {
-                configureButton, createShardingTablesButton, syncButton, statsButton
-            });
-
-            // 统计信息
-            var statsGroup = new GroupBox
-            {
-                Text = "分表统计",
-                Location = new Point(10, 220),
-                Size = new Size(430, 200)
-            };
-
-            statsGrid.Dock = DockStyle.Fill;
-            statsGrid.AllowUserToAddRows = false;
-            statsGrid.ReadOnly = true;
-            statsGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-            statsGroup.Controls.Add(statsGrid);
+            previewGrid.Dock = DockStyle.Fill;
+            previewGrid.ReadOnly = true;
+            previewGrid.AllowUserToAddRows = false;
+            previewGroup.Controls.Add(previewGrid);
+            rightPanel.Controls.Add(previewGroup, 0, 1);
 
             // 日志
             var logGroup = new GroupBox
             {
                 Text = "操作日志",
-                Location = new Point(450, 220),
-                Size = new Size(430, 200)
+                Dock = DockStyle.Fill,
+                Padding = new Padding(5)
             };
-
             logBox.Dock = DockStyle.Fill;
             logBox.Multiline = true;
             logBox.ScrollBars = ScrollBars.Vertical;
+            logBox.ReadOnly = true;
             logGroup.Controls.Add(logBox);
+            rightPanel.Controls.Add(logGroup, 0, 2);
+
+            topPanel.Controls.Add(rightPanel, 1, 0);
+            mainSplit.Panel1.Controls.Add(topPanel);
+
+            // 下半部分：任务列表
+            var taskTab = new TabControl { Dock = DockStyle.Fill };
+            var taskPage = new TabPage("分表任务");
+            _taskControl.Dock = DockStyle.Fill;
+            taskPage.Controls.Add(_taskControl);
+            taskTab.TabPages.Add(taskPage);
+            mainSplit.Panel2.Controls.Add(taskTab);
 
             // 状态栏
             statusLabel.Text = "就绪";
-            statusLabel.Location = new Point(10, 430);
-            statusLabel.AutoSize = true;
+            statusLabel.Dock = DockStyle.Bottom;
 
-            this.Controls.AddRange(new Control[]
-            {
-                sourceGroup, shardingGroup,
-                buttonPanel,
-                statsGroup, logGroup,
-                statusLabel
-            });
+            this.Controls.Add(mainSplit);
+            this.Controls.Add(statusLabel);
+        }
+
+        private void InitializeConfigTabs()
+        {
+            // 时间分表配置
+            _timeConfigTab = new TabPage("时间分表");
+            var timeLayout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 3, Padding = new Padding(10) };
+            timeLayout.Controls.Add(new Label { Text = "时间字段:", TextAlign = ContentAlignment.MiddleRight }, 0, 0);
+            timeFieldBox.Text = "CreateTime";
+            timeFieldBox.Dock = DockStyle.Fill;
+            timeLayout.Controls.Add(timeFieldBox, 1, 0);
+            timeLayout.Controls.Add(new Label { Text = "时间粒度:", TextAlign = ContentAlignment.MiddleRight }, 0, 1);
+            granularityBox.DropDownStyle = ComboBoxStyle.DropDownList;
+            granularityBox.Items.AddRange(new object[] { "Day", "Week", "Month", "Quarter", "Year" });
+            granularityBox.SelectedIndex = 2;
+            granularityBox.Dock = DockStyle.Fill;
+            timeLayout.Controls.Add(granularityBox, 1, 1);
+            timeLayout.Controls.Add(new Label { Text = "起始时间:", TextAlign = ContentAlignment.MiddleRight }, 0, 2);
+            startTimePicker.Dock = DockStyle.Fill;
+            startTimePicker.Format = DateTimePickerFormat.Short;
+            startTimePicker.Value = new DateTime(2025, 1, 1);
+            timeLayout.Controls.Add(startTimePicker, 1, 2);
+            _timeConfigTab.Controls.Add(timeLayout);
+            configTabControl.TabPages.Add(_timeConfigTab);
+
+            // 哈希分表配置
+            _hashConfigTab = new TabPage("哈希分表");
+            var hashLayout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 3, Padding = new Padding(10) };
+            hashLayout.Controls.Add(new Label { Text = "哈希字段:", TextAlign = ContentAlignment.MiddleRight }, 0, 0);
+            hashFieldBox.Text = "UserId";
+            hashFieldBox.Dock = DockStyle.Fill;
+            hashLayout.Controls.Add(hashFieldBox, 1, 0);
+            hashLayout.Controls.Add(new Label { Text = "分表数量:", TextAlign = ContentAlignment.MiddleRight }, 0, 1);
+            shardCountBox.Minimum = 1;
+            shardCountBox.Maximum = 100;
+            shardCountBox.Value = 4;
+            shardCountBox.Dock = DockStyle.Fill;
+            hashLayout.Controls.Add(shardCountBox, 1, 1);
+            hashLayout.Controls.Add(new Label { Text = "哈希算法:", TextAlign = ContentAlignment.MiddleRight }, 0, 2);
+            hashAlgorithmBox.DropDownStyle = ComboBoxStyle.DropDownList;
+            hashAlgorithmBox.Items.AddRange(new object[] { "Modulo", "Consistent", "Crc32" });
+            hashAlgorithmBox.SelectedIndex = 0;
+            hashAlgorithmBox.Dock = DockStyle.Fill;
+            hashLayout.Controls.Add(hashAlgorithmBox, 1, 2);
+            _hashConfigTab.Controls.Add(hashLayout);
+            configTabControl.TabPages.Add(_hashConfigTab);
+
+            // 列表分表配置
+            _listConfigTab = new TabPage("列表分表");
+            var listLayout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 2, Padding = new Padding(10) };
+            listLayout.Controls.Add(new Label { Text = "列表字段:", TextAlign = ContentAlignment.MiddleRight }, 0, 0);
+            listFieldBox.Text = "Status";
+            listFieldBox.Dock = DockStyle.Fill;
+            listLayout.Controls.Add(listFieldBox, 1, 0);
+            listLayout.Controls.Add(new Label { Text = "值映射:", TextAlign = ContentAlignment.TopRight }, 0, 1);
+            listMappingGrid.Dock = DockStyle.Fill;
+            listMappingGrid.AllowUserToAddRows = true;
+            listMappingGrid.AllowUserToDeleteRows = true;
+            listMappingGrid.ColumnCount = 2;
+            listMappingGrid.Columns[0].HeaderText = "值";
+            listMappingGrid.Columns[1].HeaderText = "表后缀";
+            listMappingGrid.Rows.Add("Pending", "pending");
+            listMappingGrid.Rows.Add("Processing", "processing");
+            listMappingGrid.Rows.Add("Completed", "completed");
+            listMappingGrid.Rows.Add("Cancelled", "cancelled");
+            listLayout.Controls.Add(listMappingGrid, 1, 1);
+            _listConfigTab.Controls.Add(listLayout);
+            configTabControl.TabPages.Add(_listConfigTab);
+
+            // 组合键分表配置
+            _compositeConfigTab = new TabPage("组合键分表");
+            var compositeLayout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 2, Padding = new Padding(10) };
+            compositeLayout.Controls.Add(new Label { Text = "组合字段:", TextAlign = ContentAlignment.MiddleRight }, 0, 0);
+            compositeFieldsBox.Text = "Region,CustomerType";
+            compositeFieldsBox.Dock = DockStyle.Fill;
+            compositeLayout.Controls.Add(compositeFieldsBox, 1, 0);
+            compositeLayout.Controls.Add(new Label { Text = "分表数量:", TextAlign = ContentAlignment.MiddleRight }, 0, 1);
+            compositeShardCountBox.Minimum = 1;
+            compositeShardCountBox.Maximum = 100;
+            compositeShardCountBox.Value = 16;
+            compositeShardCountBox.Dock = DockStyle.Fill;
+            compositeLayout.Controls.Add(compositeShardCountBox, 1, 1);
+            _compositeConfigTab.Controls.Add(compositeLayout);
+            configTabControl.TabPages.Add(_compositeConfigTab);
+
+            // 查询频率分表配置
+            _frequencyConfigTab = new TabPage("查询频率分表");
+            var frequencyLayout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 4, Padding = new Padding(10) };
+            frequencyLayout.Controls.Add(new Label { Text = "频率字段:", TextAlign = ContentAlignment.MiddleRight }, 0, 0);
+            frequencyFieldBox.Text = "UserId";
+            frequencyFieldBox.Dock = DockStyle.Fill;
+            frequencyLayout.Controls.Add(frequencyFieldBox, 1, 0);
+            frequencyLayout.Controls.Add(new Label { Text = "热数据阈值:", TextAlign = ContentAlignment.MiddleRight }, 0, 1);
+            hotThresholdBox.Minimum = 1;
+            hotThresholdBox.Maximum = 1000000;
+            hotThresholdBox.Value = 50;
+            hotThresholdBox.Dock = DockStyle.Fill;
+            frequencyLayout.Controls.Add(hotThresholdBox, 1, 1);
+            frequencyLayout.Controls.Add(new Label { Text = "热数据后缀:", TextAlign = ContentAlignment.MiddleRight }, 0, 2);
+            hotSuffixBox.Text = "_hot";
+            hotSuffixBox.Dock = DockStyle.Fill;
+            frequencyLayout.Controls.Add(hotSuffixBox, 1, 2);
+            frequencyLayout.Controls.Add(new Label { Text = "冷数据后缀:", TextAlign = ContentAlignment.MiddleRight }, 0, 3);
+            coldSuffixBox.Text = "_cold";
+            coldSuffixBox.Dock = DockStyle.Fill;
+            frequencyLayout.Controls.Add(coldSuffixBox, 1, 3);
+            _frequencyConfigTab.Controls.Add(frequencyLayout);
+            configTabControl.TabPages.Add(_frequencyConfigTab);
         }
 
         private void ShardingTypeBox_SelectedIndexChanged(object sender, EventArgs e)
         {
-            var shardingType = shardingTypeBox.SelectedItem.ToString();
-
-            timeFieldBox.Visible = shardingType == "Time";
-            granularityBox.Visible = shardingType == "Time";
-            hashFieldBox.Visible = shardingType == "Hash";
-            shardCountBox.Visible = shardingType == "Hash";
-            listFieldBox.Visible = shardingType == "List";
+            switch (shardingTypeBox.SelectedIndex)
+            {
+                case 0: configTabControl.SelectedTab = _timeConfigTab; break;
+                case 1: configTabControl.SelectedTab = _hashConfigTab; break;
+                case 2: configTabControl.SelectedTab = _listConfigTab; break;
+                case 3: configTabControl.SelectedTab = _compositeConfigTab; break;
+                case 4: configTabControl.SelectedTab = _frequencyConfigTab; break;
+            }
         }
 
         private void LoadSourceTablesButton_Click(object sender, EventArgs e)
@@ -234,13 +394,6 @@ namespace FastData.SyncTool.WinForms.Components
             try
             {
                 var connectionString = sourceConnectionStringBox.Text;
-                var provider = sourceProviderBox.SelectedItem.ToString();
-
-                if (provider != "SqlServer")
-                {
-                    MessageBox.Show("目前仅支持 SQL Server", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    return;
-                }
 
                 using (var conn = new SqlConnection(connectionString))
                 {
@@ -257,13 +410,15 @@ namespace FastData.SyncTool.WinForms.Components
                         }
                     }
 
+                    sourceTableCombo.Items.Clear();
+                    sourceTableCombo.Items.AddRange(tables.ToArray());
+
                     if (tables.Count > 0)
                     {
-                        sourceTableBox.Items.Clear();
-                        sourceTableBox.Items.AddRange(tables.ToArray());
-                        sourceTableBox.SelectedIndex = 0;
-                        Log($"已加载 {tables.Count} 个表");
+                        sourceTableCombo.SelectedIndex = 0;
                     }
+
+                    Log($"已加载 {tables.Count} 个表");
                 }
             }
             catch (Exception ex)
@@ -273,147 +428,183 @@ namespace FastData.SyncTool.WinForms.Components
             }
         }
 
-        private void ConfigureButton_Click(object sender, EventArgs e)
+        private ShardingConfig BuildShardingConfig()
+        {
+            var config = new ShardingConfig
+            {
+                BaseTableName = sourceTableCombo.Text
+            };
+
+            switch (shardingTypeBox.SelectedIndex)
+            {
+                case 0: // 时间分表
+                    config.ShardingType = ShardingType.Time;
+                    config.TimeConfig = new TimeShardingConfig
+                    {
+                        TimeField = timeFieldBox.Text,
+                        Granularity = Enum.Parse<TimeGranularity>(granularityBox.SelectedItem.ToString()),
+                        StartTime = startTimePicker.Value
+                    };
+                    break;
+
+                case 1: // 哈希分表
+                    config.ShardingType = ShardingType.Hash;
+                    config.HashConfig = new HashShardingConfig
+                    {
+                        HashField = hashFieldBox.Text,
+                        ShardCount = (int)shardCountBox.Value,
+                        Algorithm = Enum.Parse<HashAlgorithm>(hashAlgorithmBox.SelectedItem.ToString())
+                    };
+                    break;
+
+                case 2: // 列表分表
+                    config.ShardingType = ShardingType.List;
+                    var valueMapping = new Dictionary<string, string>();
+                    foreach (DataGridViewRow row in listMappingGrid.Rows)
+                    {
+                        if (row.Cells[0].Value != null && row.Cells[1].Value != null)
+                        {
+                            valueMapping[row.Cells[0].Value.ToString()] = row.Cells[1].Value.ToString();
+                        }
+                    }
+                    config.ListConfig = new ListShardingConfig
+                    {
+                        ListField = listFieldBox.Text,
+                        ValueMapping = valueMapping
+                    };
+                    break;
+
+                case 3: // 组合键分表
+                    config.ShardingType = ShardingType.Composite;
+                    config.CompositeConfig = new CompositeShardingConfig
+                    {
+                        CompositeFields = compositeFieldsBox.Text.Split(',').Select(f => f.Trim()).ToList(),
+                        UseHash = true,
+                        ShardCount = (int)compositeShardCountBox.Value
+                    };
+                    break;
+
+                case 4: // 查询频率分表
+                    config.ShardingType = ShardingType.QueryFrequency;
+                    config.FrequencyConfig = new QueryFrequencyShardingConfig
+                    {
+                        Field = frequencyFieldBox.Text,
+                        HotThreshold = (long)hotThresholdBox.Value,
+                        HotSuffix = hotSuffixBox.Text,
+                        ColdSuffix = coldSuffixBox.Text,
+                        ColdShardingType = ColdShardingType.ByHash,
+                        ColdShardCount = 4
+                    };
+                    break;
+            }
+
+            return config;
+        }
+
+        private void PreviewButton_Click(object sender, EventArgs e)
         {
             try
             {
-                var shardingType = shardingTypeBox.SelectedItem.ToString();
-                var baseTableName = sourceTableBox.Text;
+                _currentConfig = BuildShardingConfig();
+                ShardingManager.Configure<object>(_currentConfig);
 
-                switch (shardingType)
+                var tableNames = ShardingManager.GetAllTableNames<object>();
+
+                previewGrid.DataSource = null;
+                previewGrid.Columns.Clear();
+                previewGrid.Columns.Add("TableName", "分表名称");
+                previewGrid.Columns.Add("Type", "分表类型");
+                previewGrid.Columns.Add("Status", "状态");
+
+                foreach (var tableName in tableNames)
                 {
-                    case "Time":
-                        currentConfig = new ShardingConfig
-                        {
-                            BaseTableName = baseTableName,
-                            ShardingType = ShardingType.Time,
-                            TimeConfig = new TimeShardingConfig
-                            {
-                                TimeField = timeFieldBox.Text,
-                                Granularity = Enum.Parse<TimeGranularity>(granularityBox.SelectedItem.ToString())
-                            }
-                        };
-                        break;
-
-                    case "Hash":
-                        currentConfig = new ShardingConfig
-                        {
-                            BaseTableName = baseTableName,
-                            ShardingType = ShardingType.Hash,
-                            HashConfig = new HashShardingConfig
-                            {
-                                HashField = hashFieldBox.Text,
-                                ShardCount = (int)shardCountBox.Value
-                            }
-                        };
-                        break;
-
-                    case "List":
-                        currentConfig = new ShardingConfig
-                        {
-                            BaseTableName = baseTableName,
-                            ShardingType = ShardingType.List,
-                            ListConfig = new ListShardingConfig
-                            {
-                                ListField = listFieldBox.Text,
-                                ValueMapping = new Dictionary<string, string>
-                                {
-                                    { "Pending", "pending" },
-                                    { "Processing", "processing" },
-                                    { "Completed", "completed" },
-                                    { "Cancelled", "cancelled" }
-                                }
-                            }
-                        };
-                        break;
+                    previewGrid.Rows.Add(tableName, _currentConfig.ShardingType.ToString(), "待创建");
                 }
 
-                currentConnectionString = sourceConnectionStringBox.Text;
-
-                Log($"分表配置完成: {shardingType}");
-                statusLabel.Text = "分表配置完成";
-
-                // 显示分表信息
-                var tableNames = ShardingManager.GetAllTableNames<object>();
-                Log($"将创建 {tableNames.Count} 个分表");
+                Log($"预览: 将创建 {tableNames.Count} 个分表");
+                statusLabel.Text = $"预览: {tableNames.Count} 个分表";
             }
             catch (Exception ex)
             {
-                Log($"配置失败: {ex.Message}");
-                MessageBox.Show($"配置失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Log($"预览失败: {ex.Message}");
+                MessageBox.Show($"预览失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        private void CreateShardingTablesButton_Click(object sender, EventArgs e)
+        private void CreateTablesButton_Click(object sender, EventArgs e)
         {
-            if (currentConfig == null)
+            if (_currentConfig == null)
             {
-                MessageBox.Show("请先配置分表", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("请先预览分表配置", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
             try
             {
                 var tableNames = ShardingManager.GetAllTableNames<object>();
+                var connectionString = sourceConnectionStringBox.Text;
 
-                using (var conn = new SqlConnection(currentConnectionString))
+                using (var conn = new SqlConnection(connectionString))
                 {
                     conn.Open();
 
+                    // 获取源表结构
+                    var schemaSql = $@"
+                        SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, IS_NULLABLE
+                        FROM INFORMATION_SCHEMA.COLUMNS
+                        WHERE TABLE_NAME = '{_currentConfig.BaseTableName}'
+                        ORDER BY ORDINAL_POSITION";
+
+                    var columns = new List<string>();
+                    using (var cmd = new SqlCommand(schemaSql, conn))
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            var colName = reader.GetString(0);
+                            var dataType = reader.GetString(1);
+                            var maxLength = reader.IsDBNull(2) ? (int?)null : reader.GetInt32(2);
+                            var isNullable = reader.GetString(3) == "YES";
+
+                            var columnDef = $"[{colName}] {dataType}";
+                            if (maxLength.HasValue && maxLength.Value > 0)
+                            {
+                                columnDef += $"({maxLength.Value})";
+                            }
+                            if (!isNullable)
+                            {
+                                columnDef += " NOT NULL";
+                            }
+
+                            columns.Add(columnDef);
+                        }
+                    }
+
                     foreach (var tableName in tableNames)
                     {
-                        // 获取源表结构
-                        var schemaSql = $@"
-                            SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, IS_NULLABLE
-                            FROM INFORMATION_SCHEMA.COLUMNS
-                            WHERE TABLE_NAME = '{currentConfig.BaseTableName}'
-                            ORDER BY ORDINAL_POSITION";
+                        var createSql = $@"
+                            IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='{tableName}' AND xtype='U')
+                            CREATE TABLE [{tableName}] (
+                                {string.Join(",\n                                ", columns)}
+                            );";
 
-                        var columns = new List<string>();
-                        using (var cmd = new SqlCommand(schemaSql, conn))
-                        using (var reader = cmd.ExecuteReader())
+                        using (var cmd = new SqlCommand(createSql, conn))
                         {
-                            while (reader.Read())
-                            {
-                                var colName = reader.GetString(0);
-                                var dataType = reader.GetString(1);
-                                var maxLength = reader.IsDBNull(2) ? (int?)null : reader.GetInt32(2);
-                                var isNullable = reader.GetString(3) == "YES";
-
-                                var columnDef = $"[{colName}] {dataType}";
-                                if (maxLength.HasValue && maxLength.Value > 0)
-                                {
-                                    columnDef += $"({maxLength.Value})";
-                                }
-                                if (!isNullable)
-                                {
-                                    columnDef += " NOT NULL";
-                                }
-
-                                columns.Add(columnDef);
-                            }
+                            cmd.ExecuteNonQuery();
                         }
 
-                        if (columns.Count > 0)
-                        {
-                            var createSql = $@"
-                                IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='{tableName}' AND xtype='U')
-                                CREATE TABLE [{tableName}] (
-                                    {string.Join(",\n                                    ", columns)}
-                                );";
-
-                            using (var cmd = new SqlCommand(createSql, conn))
-                            {
-                                cmd.ExecuteNonQuery();
-                            }
-
-                            Log($"创建分表: {tableName}");
-                        }
+                        Log($"创建分表: {tableName}");
                     }
                 }
 
                 Log($"分表创建完成: {tableNames.Count} 个表");
-                statusLabel.Text = "分表创建完成";
+                statusLabel.Text = $"分表创建完成: {tableNames.Count} 个表";
+
+                // 更新预览状态
+                foreach (DataGridViewRow row in previewGrid.Rows)
+                {
+                    row.Cells["Status"].Value = "已创建";
+                }
             }
             catch (Exception ex)
             {
@@ -422,217 +613,34 @@ namespace FastData.SyncTool.WinForms.Components
             }
         }
 
-        private void SyncButton_Click(object sender, EventArgs e)
+        private void StartTaskButton_Click(object sender, EventArgs e)
         {
-            if (currentConfig == null)
-            {
-                MessageBox.Show("请先配置分表", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
             try
             {
-                syncButton.Enabled = false;
-                statusLabel.Text = "正在同步...";
-                Application.DoEvents();
+                _currentConfig = BuildShardingConfig();
+                _currentConnectionString = sourceConnectionStringBox.Text;
 
-                var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-                var sourceTable = sourceTableBox.Text;
+                ShardingManager.Configure<object>(_currentConfig);
 
-                using (var conn = new SqlConnection(currentConnectionString))
-                {
-                    conn.Open();
+                var sourceTable = sourceTableCombo.Text;
+                var taskName = $"分表任务: {sourceTable} -> {_currentConfig.ShardingType}";
 
-                    // 查询源数据
-                    var selectSql = $"SELECT * FROM [{sourceTable}]";
-                    var totalRecords = 0;
-                    var syncedRecords = 0;
-                    var errorRecords = 0;
+                var task = _taskService.StartTask(
+                    taskName,
+                    sourceTable,
+                    _currentConnectionString,
+                    _currentConfig);
 
-                    using (var cmd = new SqlCommand(selectSql, conn))
-                    using (var reader = cmd.ExecuteReader())
-                    {
-                        var schemaTable = reader.GetSchemaTable();
-                        var columnNames = new List<string>();
-                        foreach (DataRow row in schemaTable.Rows)
-                        {
-                            columnNames.Add(row["ColumnName"].ToString());
-                        }
+                Log($"分表任务已启动: {taskName} (ID: {task.TaskId})");
+                statusLabel.Text = $"任务已启动: {taskName}";
 
-                        while (reader.Read())
-                        {
-                            totalRecords++;
-
-                            try
-                            {
-                                // 构建实体对象用于分表计算
-                                var entity = new Dictionary<string, object>();
-                                foreach (var colName in columnNames)
-                                {
-                                    entity[colName] = reader[colName];
-                                }
-
-                                // 根据分表类型确定目标表
-                                string targetTable;
-                                switch (currentConfig.ShardingType)
-                                {
-                                    case ShardingType.Time:
-                                        var timeField = currentConfig.TimeConfig.TimeField;
-                                        var timeValue = Convert.ToDateTime(entity[timeField]);
-                                        targetTable = GetTimeTableName(currentConfig.BaseTableName, timeValue, currentConfig.TimeConfig.Granularity);
-                                        break;
-
-                                    case ShardingType.Hash:
-                                        var hashField = currentConfig.HashConfig.HashField;
-                                        var hashValue = entity[hashField]?.ToString();
-                                        var hash = Math.Abs(hashValue.GetHashCode()) % currentConfig.HashConfig.ShardCount;
-                                        targetTable = $"{currentConfig.BaseTableName}_{hash}";
-                                        break;
-
-                                    case ShardingType.List:
-                                        var listField = currentConfig.ListConfig.ListField;
-                                        var listValue = entity[listField]?.ToString();
-                                        if (currentConfig.ListConfig.ValueMapping.TryGetValue(listValue, out var suffix))
-                                        {
-                                            targetTable = $"{currentConfig.BaseTableName}_{suffix}";
-                                        }
-                                        else
-                                        {
-                                            targetTable = $"{currentConfig.BaseTableName}_other";
-                                        }
-                                        break;
-
-                                    default:
-                                        targetTable = currentConfig.BaseTableName;
-                                        break;
-                                }
-
-                                // 插入到分表
-                                InsertRecordToShardingTable(conn, targetTable, entity, columnNames);
-                                syncedRecords++;
-                            }
-                            catch (Exception ex)
-                            {
-                                errorRecords++;
-                                if (errorRecords <= 10) // 只记录前10个错误
-                                {
-                                    Log($"同步记录失败: {ex.Message}");
-                                }
-                            }
-
-                            if (totalRecords % 1000 == 0)
-                            {
-                                statusLabel.Text = $"正在同步... {totalRecords} 条";
-                                Application.DoEvents();
-                            }
-                        }
-                    }
-
-                    stopwatch.Stop();
-
-                    Log($"同步完成: 总计 {totalRecords} 条, 成功 {syncedRecords} 条, 失败 {errorRecords} 条");
-                    Log($"耗时: {stopwatch.Elapsed.TotalSeconds:F2} 秒");
-
-                    statusLabel.Text = $"同步完成: {syncedRecords}/{totalRecords}";
-                }
+                MessageBox.Show($"分表任务已启动!\n\n任务名称: {taskName}\n任务ID: {task.TaskId}\n\n请在任务列表中查看进度。",
+                    "任务启动成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
-                Log($"同步失败: {ex.Message}");
-                MessageBox.Show($"同步失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                statusLabel.Text = "同步失败";
-            }
-            finally
-            {
-                syncButton.Enabled = true;
-            }
-        }
-
-        private void StatsButton_Click(object sender, EventArgs e)
-        {
-            if (currentConfig == null)
-            {
-                MessageBox.Show("请先配置分表", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            try
-            {
-                var tableNames = ShardingManager.GetAllTableNames<object>();
-                var stats = new DataTable();
-                stats.Columns.Add("分表名称", typeof(string));
-                stats.Columns.Add("记录数", typeof(int));
-
-                using (var conn = new SqlConnection(currentConnectionString))
-                {
-                    conn.Open();
-
-                    foreach (var tableName in tableNames)
-                    {
-                        try
-                        {
-                            var sql = $"SELECT COUNT(*) FROM [{tableName}]";
-                            using (var cmd = new SqlCommand(sql, conn))
-                            {
-                                var count = (int)cmd.ExecuteScalar();
-                                stats.Rows.Add(tableName, count);
-                            }
-                        }
-                        catch
-                        {
-                            stats.Rows.Add(tableName, -1);
-                        }
-                    }
-                }
-
-                statsGrid.DataSource = stats;
-
-                var totalRecords = stats.AsEnumerable().Sum(r => r.Field<int>("记录数"));
-                Log($"统计完成: 共 {tableNames.Count} 个分表, {totalRecords} 条记录");
-                statusLabel.Text = $"统计完成: {tableNames.Count} 个分表";
-            }
-            catch (Exception ex)
-            {
-                Log($"统计失败: {ex.Message}");
-                MessageBox.Show($"统计失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
-        private string GetTimeTableName(string baseTableName, DateTime time, TimeGranularity granularity)
-        {
-            switch (granularity)
-            {
-                case TimeGranularity.Day:
-                    return $"{baseTableName}_{time:yyyyMMdd}";
-                case TimeGranularity.Week:
-                    var weekStart = time.AddDays(-(int)time.DayOfWeek);
-                    return $"{baseTableName}_{weekStart:yyyyMMdd}";
-                case TimeGranularity.Month:
-                    return $"{baseTableName}_{time:yyyyMM}";
-                case TimeGranularity.Quarter:
-                    var quarter = (time.Month - 1) / 3 + 1;
-                    return $"{baseTableName}_{time.Year}Q{quarter}";
-                case TimeGranularity.Year:
-                    return $"{baseTableName}_{time.Year}";
-                default:
-                    return $"{baseTableName}_{time:yyyyMM}";
-            }
-        }
-
-        private void InsertRecordToShardingTable(SqlConnection conn, string tableName, Dictionary<string, object> entity, List<string> columnNames)
-        {
-            var columns = string.Join(", ", columnNames.Select(c => $"[{c}]"));
-            var parameters = string.Join(", ", columnNames.Select(c => $"@{c}"));
-            var sql = $"INSERT INTO [{tableName}] ({columns}) VALUES ({parameters})";
-
-            using (var cmd = new SqlCommand(sql, conn))
-            {
-                foreach (var colName in columnNames)
-                {
-                    var value = entity[colName] ?? DBNull.Value;
-                    cmd.Parameters.AddWithValue($"@{colName}", value);
-                }
-                cmd.ExecuteNonQuery();
+                Log($"启动任务失败: {ex.Message}");
+                MessageBox.Show($"启动任务失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 

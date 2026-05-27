@@ -568,7 +568,9 @@ namespace FastData.SyncTool.WinForms
 
         private void BuildShardingTab(TabPage tab)
         {
-            var shardingSyncControl = new FastData.SyncTool.WinForms.Components.ShardingSyncControl
+            var logService = serviceProvider.GetService<LogService>();
+            var shardingTaskService = new FastData.SyncTool.WinForms.Services.ShardingTaskService(logService);
+            var shardingSyncControl = new FastData.SyncTool.WinForms.Components.ShardingSyncControl(shardingTaskService, logService)
             {
                 Dock = DockStyle.Fill
             };

@@ -6,7 +6,7 @@
 
 ### Added
 
-- **分表功能完整示例和演示**（bc832f7）
+- **分表功能完整示例和演示**（bc832f7, 6304250）
   - ShardingFullExample.cs：SQL Server 分表完整示例
     - 批量数据插入（10000 条日志、5000 条订单）
     - 时间/哈希/列表/查询频率分表策略
@@ -26,6 +26,12 @@
     - 创建分表
     - 数据同步
     - 分表统计
+  - ShardingCrudControl.cs：分表 CRUD 操作界面
+    - 查询：执行 SQL 查询并显示结果
+    - 插入：向分表插入数据
+    - 更新：更新分表数据
+    - 删除：删除分表数据
+    - 双击表名自动填充
   - DataQuery.cs：分表属性改为 public
   - MainForm.cs：集成 ShardingSyncControl
 
