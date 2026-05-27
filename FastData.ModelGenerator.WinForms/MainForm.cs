@@ -22,7 +22,9 @@ namespace FastData.ModelGenerator.WinForms
         private readonly Button testButton = new Button();
         private readonly Button loadButton = new Button();
         private readonly Button previewButton = new Button();
+        private readonly Button previewXmlButton = new Button();
         private readonly Button generateButton = new Button();
+        private readonly Button generateXmlButton = new Button();
         private readonly CheckBox includeViewsBox = new CheckBox();
         private IList<DatabaseTable> tables = new List<DatabaseTable>();
 
@@ -76,12 +78,16 @@ namespace FastData.ModelGenerator.WinForms
             var buttonPanel = new FlowLayoutPanel { Dock = DockStyle.Fill };
             testButton.Text = "测试连接";
             loadButton.Text = "加载表";
-            previewButton.Text = "预览代码";
-            generateButton.Text = "生成文件";
+            previewButton.Text = "预览Model";
+            previewXmlButton.Text = "预览XML";
+            generateButton.Text = "生成Model";
+            generateXmlButton.Text = "生成XML Map";
             buttonPanel.Controls.Add(testButton);
             buttonPanel.Controls.Add(loadButton);
             buttonPanel.Controls.Add(previewButton);
+            buttonPanel.Controls.Add(previewXmlButton);
             buttonPanel.Controls.Add(generateButton);
+            buttonPanel.Controls.Add(generateXmlButton);
             panel.Controls.Add(buttonPanel, 1, 6);
 
             AddLabel(panel, "表搜索", 7);
@@ -123,7 +129,9 @@ namespace FastData.ModelGenerator.WinForms
             testButton.Click += delegate { TestConnection(); };
             loadButton.Click += delegate { LoadTables(); };
             previewButton.Click += delegate { PreviewCode(); };
+            previewXmlButton.Click += delegate { PreviewXmlMap(); };
             generateButton.Click += delegate { GenerateFiles(); };
+            generateXmlButton.Click += delegate { GenerateXmlMapFiles(); };
             searchBox.TextChanged += delegate { RefreshTableList(); };
             tableList.SelectedIndexChanged += delegate { PreviewColumns(); };
         }
@@ -174,6 +182,17 @@ namespace FastData.ModelGenerator.WinForms
             previewBox.Text = new ModelCodeGenerator().Generate(GetNamespace(), table, columns);
         }
 
+        private void PreviewXmlMap()
+        {
+            var table = GetSelectedTable();
+            if (table == null)
+                return;
+
+            var reader = MetadataReaderFactory.Create(GetOptions());
+            var columns = reader.GetColumns(table.FullName);
+            previewBox.Text = new XmlMapSqlGenerator().Generate(GetNamespace(), table, columns);
+        }
+
         private void GenerateFiles()
         {
             Directory.CreateDirectory(outputBox.Text);
@@ -188,7 +207,24 @@ namespace FastData.ModelGenerator.WinForms
                 var code = generator.Generate(GetNamespace(), table, reader.GetColumns(table.FullName));
                 File.WriteAllText(Path.Combine(outputBox.Text, table.Name + ".cs"), code);
             }
-            MessageBox.Show("生成完成");
+            MessageBox.Show("Model 文件生成完成");
+        }
+
+        private void GenerateXmlMapFiles()
+        {
+            Directory.CreateDirectory(outputBox.Text);
+            var reader = MetadataReaderFactory.Create(GetOptions());
+            var generator = new XmlMapSqlGenerator();
+            foreach (var item in tableList.SelectedItems)
+            {
+                var table = FindTable(Convert.ToString(item));
+                if (table == null)
+                    continue;
+
+                var xml = generator.Generate(GetNamespace(), table, reader.GetColumns(table.FullName));
+                File.WriteAllText(Path.Combine(outputBox.Text, table.Name + ".xml"), xml);
+            }
+            MessageBox.Show("XML Map 文件生成完成");
         }
 
         private void RefreshTableList()
