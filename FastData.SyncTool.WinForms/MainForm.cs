@@ -147,10 +147,12 @@ namespace FastData.SyncTool.WinForms
             var configTab = new TabPage("同步配置");
             var taskTab = new TabPage("任务管理");
             replayTab = new TabPage("数据补录");
+            var shardingTab = new TabPage("分表同步");
             tabControl.TabPages.Add(dbConfigTab);
             tabControl.TabPages.Add(configTab);
             tabControl.TabPages.Add(taskTab);
             tabControl.TabPages.Add(replayTab);
+            tabControl.TabPages.Add(shardingTab);
             mainSplitContainer.Panel1.Controls.Add(tabControl);
 
             // 下部分：共享日志
@@ -187,6 +189,7 @@ namespace FastData.SyncTool.WinForms
             BuildConfigTab(configTab);
             BuildTaskTab(taskTab);
             BuildReplayTab(replayTab);
+            BuildShardingTab(shardingTab);
         }
 
         private void BuildDbConfigTab(TabPage tab)
@@ -561,6 +564,15 @@ namespace FastData.SyncTool.WinForms
             for (var i = 0; i < 12; i++)
                 mainPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
             mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        }
+
+        private void BuildShardingTab(TabPage tab)
+        {
+            var shardingSyncControl = new FastData.SyncTool.WinForms.Components.ShardingSyncControl
+            {
+                Dock = DockStyle.Fill
+            };
+            tab.Controls.Add(shardingSyncControl);
         }
 
         private void InitTaskGrid()

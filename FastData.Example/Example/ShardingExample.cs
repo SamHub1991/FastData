@@ -50,14 +50,14 @@ namespace FastData.Example.Example
             };
 
             // 注册配置
-            ShardingManager.Configure<UserLog>(config);
+            ShardingManager.Configure<ShardingExampleUserLog>(config);
 
             // 创建不同时间的日志
-            var logs = new List<UserLog>
+            var logs = new List<ShardingExampleUserLog>
             {
-                new UserLog { Id = 1, Message = "January log", CreateTime = new DateTime(2026, 1, 15) },
-                new UserLog { Id = 2, Message = "February log", CreateTime = new DateTime(2026, 2, 20) },
-                new UserLog { Id = 3, Message = "March log", CreateTime = new DateTime(2026, 3, 10) }
+                new ShardingExampleUserLog { Id = 1, Message = "January log", CreateTime = new DateTime(2026, 1, 15) },
+                new ShardingExampleUserLog { Id = 2, Message = "February log", CreateTime = new DateTime(2026, 2, 20) },
+                new ShardingExampleUserLog { Id = 3, Message = "March log", CreateTime = new DateTime(2026, 3, 10) }
             };
 
             // 获取分表名称
@@ -73,7 +73,7 @@ namespace FastData.Example.Example
                 { "CreateTime_Start", new DateTime(2026, 1, 1) },
                 { "CreateTime_End", new DateTime(2026, 2, 28) }
             };
-            var tableNames = ShardingManager.GetTableNames<UserLog>(queryParams);
+            var tableNames = ShardingManager.GetTableNames<ShardingExampleUserLog>(queryParams);
             Console.WriteLine($"  查询表: {string.Join(", ", tableNames)}");
         }
 
@@ -97,15 +97,15 @@ namespace FastData.Example.Example
                 }
             };
 
-            ShardingManager.Configure<Order>(config);
+            ShardingManager.Configure<ShardingExampleOrder>(config);
 
             // 创建不同订单号的订单
-            var orders = new List<Order>
+            var orders = new List<ShardingExampleOrder>
             {
-                new Order { Id = 1, OrderNo = "ORD20260101001" },
-                new Order { Id = 2, OrderNo = "ORD20260202002" },
-                new Order { Id = 3, OrderNo = "ORD20260303003" },
-                new Order { Id = 4, OrderNo = "ORD20260404004" }
+                new ShardingExampleOrder { Id = 1, OrderNo = "ORD20260101001" },
+                new ShardingExampleOrder { Id = 2, OrderNo = "ORD20260202002" },
+                new ShardingExampleOrder { Id = 3, OrderNo = "ORD20260303003" },
+                new ShardingExampleOrder { Id = 4, OrderNo = "ORD20260404004" }
             };
 
             // 获取分表名称
@@ -116,7 +116,7 @@ namespace FastData.Example.Example
             }
 
             // 获取所有分表
-            var allTables = ShardingManager.GetAllTableNames<Order>();
+            var allTables = ShardingManager.GetAllTableNames<ShardingExampleOrder>();
             Console.WriteLine($"  所有分表: {string.Join(", ", allTables)}");
         }
 
@@ -145,14 +145,14 @@ namespace FastData.Example.Example
                 }
             };
 
-            ShardingManager.Configure<Order>(config);
+            ShardingManager.Configure<ShardingExampleOrder>(config);
 
             // 创建不同状态的订单
-            var orders = new List<Order>
+            var orders = new List<ShardingExampleOrder>
             {
-                new Order { Id = 1, OrderNo = "ORD001", Status = "Pending" },
-                new Order { Id = 2, OrderNo = "ORD002", Status = "Processing" },
-                new Order { Id = 3, OrderNo = "ORD003", Status = "Completed" }
+                new ShardingExampleOrder { Id = 1, OrderNo = "ORD001", Status = "Pending" },
+                new ShardingExampleOrder { Id = 2, OrderNo = "ORD002", Status = "Processing" },
+                new ShardingExampleOrder { Id = 3, OrderNo = "ORD003", Status = "Completed" }
             };
 
             // 获取分表名称
@@ -183,14 +183,14 @@ namespace FastData.Example.Example
                 }
             };
 
-            ShardingManager.Configure<Order>(config);
+            ShardingManager.Configure<ShardingExampleOrder>(config);
 
             // 创建不同组合的订单
-            var orders = new List<Order>
+            var orders = new List<ShardingExampleOrder>
             {
-                new Order { Id = 1, OrderNo = "ORD001", Region = "Beijing", CustomerType = "VIP" },
-                new Order { Id = 2, OrderNo = "ORD002", Region = "Shanghai", CustomerType = "Normal" },
-                new Order { Id = 3, OrderNo = "ORD003", Region = "Guangzhou", CustomerType = "VIP" }
+                new ShardingExampleOrder { Id = 1, OrderNo = "ORD001", Region = "Beijing", CustomerType = "VIP" },
+                new ShardingExampleOrder { Id = 2, OrderNo = "ORD002", Region = "Shanghai", CustomerType = "Normal" },
+                new ShardingExampleOrder { Id = 3, OrderNo = "ORD003", Region = "Guangzhou", CustomerType = "VIP" }
             };
 
             // 获取分表名称
@@ -224,7 +224,7 @@ namespace FastData.Example.Example
                 }
             };
 
-            ShardingManager.Configure<UserLog>(config);
+            ShardingManager.Configure<ShardingExampleUserLog>(config);
 
             // 模拟查询频率
             Console.WriteLine("  模拟查询频率...");
@@ -248,8 +248,8 @@ namespace FastData.Example.Example
             Console.WriteLine($"  热数据: {string.Join(", ", hotValues)}");
 
             // 创建日志
-            var log1 = new UserLog { Id = 1, Message = "Hot data", UserId = "user123" };
-            var log2 = new UserLog { Id = 2, Message = "Cold data", UserId = "user456" };
+            var log1 = new ShardingExampleUserLog { Id = 1, Message = "Hot data", UserId = "user123" };
+            var log2 = new ShardingExampleUserLog { Id = 2, Message = "Cold data", UserId = "user456" };
 
             var tableName1 = ShardingManager.GetTableName(log1);
             var tableName2 = ShardingManager.GetTableName(log2);
@@ -275,7 +275,7 @@ namespace FastData.Example.Example
                     Granularity = TimeGranularity.Month
                 }
             };
-            ShardingManager.Configure<UserLog>(config);
+            ShardingManager.Configure<ShardingExampleUserLog>(config);
 
             // 查询参数
             var queryParams = new Dictionary<string, object>
@@ -285,7 +285,7 @@ namespace FastData.Example.Example
             };
 
             Console.WriteLine("  查询 2026 年第一季度的日志...");
-            Console.WriteLine($"  查询表: {string.Join(", ", ShardingManager.GetTableNames<UserLog>(queryParams))}");
+            Console.WriteLine($"  查询表: {string.Join(", ", ShardingManager.GetTableNames<ShardingExampleUserLog>(queryParams))}");
 
             // 实际查询（需要数据库连接）
             // var logs = ShardingReadHelper.Query<UserLog>(
@@ -321,10 +321,10 @@ namespace FastData.Example.Example
                     Granularity = TimeGranularity.Month
                 }
             };
-            ShardingManager.Configure<UserLog>(config);
+            ShardingManager.Configure<ShardingExampleUserLog>(config);
 
             // 创建日志
-            var log = new UserLog
+            var log = new ShardingExampleUserLog
             {
                 Id = 1,
                 Message = "Test log",
@@ -340,10 +340,10 @@ namespace FastData.Example.Example
             // ShardingWriteHelper.Add(log);
 
             // 批量写入
-            var logs = new List<UserLog>
+            var logs = new List<ShardingExampleUserLog>
             {
-                new UserLog { Id = 2, Message = "Log 1", CreateTime = DateTime.Now.AddDays(-1) },
-                new UserLog { Id = 3, Message = "Log 2", CreateTime = DateTime.Now.AddDays(-2) }
+                new ShardingExampleUserLog { Id = 2, Message = "Log 1", CreateTime = DateTime.Now.AddDays(-1) },
+                new ShardingExampleUserLog { Id = 3, Message = "Log 2", CreateTime = DateTime.Now.AddDays(-2) }
             };
 
             Console.WriteLine($"  批量写入 {logs.Count} 条记录...");
@@ -352,16 +352,16 @@ namespace FastData.Example.Example
     }
 
     // 示例实体类
-    public class UserLog
+    public class ShardingExampleUserLog
     {
         public int Id { get; set; }
+        public string UserId { get; set; }
         public string Message { get; set; }
         public string Level { get; set; }
         public DateTime CreateTime { get; set; }
-        public string UserId { get; set; }
     }
 
-    public class Order
+    public class ShardingExampleOrder
     {
         public int Id { get; set; }
         public string OrderNo { get; set; }

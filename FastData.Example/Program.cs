@@ -33,7 +33,8 @@ namespace FastData.Example
                 Console.WriteLine("  9. FastWrite/FastRead 链式 API（写入后端队列/查询队列）");
                 Console.WriteLine("  10. 分页查询 API");
                 Console.WriteLine("  11. 分表（数据分片）");
-                Console.WriteLine("  12. 运行所有示例");
+                Console.WriteLine("  12. 分表完整示例（SQL Server）");
+                Console.WriteLine("  13. 运行所有示例");
                 Console.WriteLine("  0. 退出");
                 Console.WriteLine();
 
@@ -89,6 +90,9 @@ namespace FastData.Example
                         ShardingExample.Run();
                         break;
                     case "12":
+                        ShardingFullExample.Run();
+                        break;
+                    case "13":
                         BasicCrudExample.Run();
                         LambdaQueryExample.Run();
                         RawSqlExample.Run();
