@@ -570,11 +570,29 @@ namespace FastData.SyncTool.WinForms
         {
             var logService = serviceProvider.GetService<LogService>();
             var shardingTaskService = new FastData.SyncTool.WinForms.Services.ShardingTaskService(logService);
+
+            // 使用 TabControl 组织分表功能
+            var shardingTabControl = new TabControl { Dock = DockStyle.Fill };
+
+            // 配置管理标签页
+            var configTab = new TabPage("分表配置");
+            var configVisualizer = new FastData.SyncTool.WinForms.Components.ShardingConfigVisualizer
+            {
+                Dock = DockStyle.Fill
+            };
+            configTab.Controls.Add(configVisualizer);
+            shardingTabControl.TabPages.Add(configTab);
+
+            // 数据同步标签页
+            var syncTab = new TabPage("数据同步");
             var shardingSyncControl = new FastData.SyncTool.WinForms.Components.ShardingSyncControl(shardingTaskService, logService)
             {
                 Dock = DockStyle.Fill
             };
-            tab.Controls.Add(shardingSyncControl);
+            syncTab.Controls.Add(shardingSyncControl);
+            shardingTabControl.TabPages.Add(syncTab);
+
+            tab.Controls.Add(shardingTabControl);
         }
 
         private void InitTaskGrid()
