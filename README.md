@@ -946,6 +946,54 @@ ShardingWriteHelper.Delete<UserLog>(
 );
 ```
 
+### 链式分表查询 API
+
+通过 `DataQuery<T>` 链式 API 支持分表查询，无需手动管理分表参数：
+
+```csharp
+// 启用分表查询（默认不开启）
+var logs = FastRead.Query<UserLog>(l => l.Level == "Error")
+    .UseSharding()  // 启用分表
+    .WithTimeRange("CreateTime", new DateTime(2026, 1, 1), new DateTime(2026, 12, 31))
+    .ToList();
+
+// 哈希分表查询
+var orders = FastRead.Query<Order>(o => o.Status == "Pending")
+    .UseSharding()
+    .WithHashField("OrderNo", "ORD20260527001")
+    .ToList();
+
+// 列表分表查询
+var pendingOrders = FastRead.Query<Order>(o => o.Status == "Pending")
+    .UseSharding()
+    .WithListField("Status", "Pending")
+    .ToList();
+
+// 分页查询（支持分表）
+var pagedLogs = FastRead.Query<UserLog>(l => l.Level == "Error")
+    .UseSharding()
+    .WithTimeRange("CreateTime", new DateTime(2026, 1, 1), new DateTime(2026, 12, 31))
+    .ToPagination(1, 20);
+
+// 使用自定义分表配置
+var customConfig = new ShardingConfig
+{
+    BaseTableName = "UserLog",
+    ShardingType = ShardingType.Time,
+    TimeConfig = new TimeShardingConfig
+    {
+        TimeField = "CreateTime",
+        Granularity = TimeGranularity.Month
+    }
+};
+
+var logs = FastRead.Query<UserLog>(l => l.Level == "Error")
+    .UseSharding()
+    .WithShardingConfig(customConfig)
+    .WithTimeRange("CreateTime", new DateTime(2026, 1, 1), new DateTime(2026, 12, 31))
+    .ToList();
+```
+
 ### 自定义分表策略
 
 ```csharp

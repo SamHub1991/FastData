@@ -64,6 +64,21 @@ namespace FastData.Model
         /// 链式追加的 WHERE 条件（AND/OR）
         /// </summary>
         public List<ChainedCondition> ChainedConditions { set; get; } = new List<ChainedCondition>();
+
+        /// <summary>
+        /// 是否启用分表
+        /// </summary>
+        internal bool EnableSharding { get; set; }
+
+        /// <summary>
+        /// 分表查询参数
+        /// </summary>
+        internal Dictionary<string, object> ShardingQueryParams { get; set; } = new Dictionary<string, object>();
+
+        /// <summary>
+        /// 分表配置（覆盖全局配置）
+        /// </summary>
+        internal Sharding.ShardingConfig ShardingConfigOverride { get; set; }
     }
     #endregion
 

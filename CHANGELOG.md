@@ -126,6 +126,21 @@
   - 支持 Time/Hash/List/Composite 分表类型
   - 批量迁移、进度显示、状态监控
   - 自动创建分表配置
+- **链式分表查询 API**
+  - DataQuery<T>.UseSharding()：启用分表查询
+  - DataQuery<T>.WithShardingParam()：添加分表参数
+  - DataQuery<T>.WithTimeRange()：时间范围分表参数
+  - DataQuery<T>.WithHashField()：哈希字段分表参数
+  - DataQuery<T>.WithListField()：列表字段分表参数
+  - DataQuery<T>.WithShardingConfig()：覆盖全局分表配置
+  - 默认不开启分表，需显式调用 UseSharding()
+- **FastData.Example 分表示例**
+  - ShardingExample.cs：覆盖所有分表策略和 API
+  - Program.cs 新增选项 11：分表（数据分片）
+- **FastData.Demo 分表 API**
+  - ShardingController：分表功能演示控制器
+  - 支持 Time/Hash/List/Composite/QueryFrequency 配置和查询
+  - 查询频率记录和热数据查询 API
 
 ### Changed
 

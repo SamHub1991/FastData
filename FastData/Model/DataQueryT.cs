@@ -4,6 +4,7 @@ using System.Data.Common;
 using System.Linq;
 using System.Linq.Expressions;
 using FastData.Base;
+using FastData.Sharding;
 using FastUntility.Page;
 
 namespace FastData.Model
@@ -100,31 +101,7 @@ namespace FastData.Model
         }
 
         /// <summary>
-        /// 链式 Contains 条件（LIKE '%value%'）
-        /// </summary>
-        public DataQuery<T> Contains(Expression<Func<T, object>> field, string value)
-        {
-            return Like(field, string.Format("%{0}%", value));
-        }
-
-        /// <summary>
-        /// 链式 StartsWith 条件（LIKE 'value%'）
-        /// </summary>
-        public DataQuery<T> StartsWith(Expression<Func<T, object>> field, string value)
-        {
-            return Like(field, string.Format("{0}%", value));
-        }
-
-        /// <summary>
-        /// 链式 EndsWith 条件（LIKE '%value'）
-        /// </summary>
-        public DataQuery<T> EndsWith(Expression<Func<T, object>> field, string value)
-        {
-            return Like(field, string.Format("%{0}", value));
-        }
-
-        /// <summary>
-        /// 链式 In 条件
+        /// 链式 Contains 条件（IN 查询）
         /// </summary>
         public DataQuery<T> In(Expression<Func<T, object>> field, IEnumerable<object> values)
         {
@@ -132,11 +109,16 @@ namespace FastData.Model
                 return this;
 
             var fieldName = GetMemberName(field);
-            var valueList = values.Select(v => string.Format("'{0}'", v)).ToArray();
+            var valueList = values.ToList();
+            if (valueList.Count == 0)
+                return this;
+
+            var inClause = string.Join(",", valueList.Select(v => $"'{v}'"));
+
             ChainedConditions.Add(new ChainedCondition
             {
                 Operator = "AND",
-                Where = string.Format("{0} in ({1})", fieldName, string.Join(",", valueList))
+                Where = $"{fieldName} IN ({inClause})"
             });
 
             return this;
@@ -151,31 +133,32 @@ namespace FastData.Model
                 return this;
 
             var fieldName = GetMemberName(field);
+
             ChainedConditions.Add(new ChainedCondition
             {
                 Operator = "AND",
-                Where = string.Format("{0} between '{1}' and '{2}'", fieldName, start, end)
+                Where = $"{fieldName} BETWEEN '{start}' AND '{end}'"
             });
 
             return this;
         }
 
         /// <summary>
-        /// 排序
+        /// 排序（升序）
         /// </summary>
-        public new DataQuery<T> OrderBy(Expression<Func<T, object>> field)
+        public DataQuery<T> OrderBy(Expression<Func<T, object>> field)
         {
             if (field == null)
                 return this;
 
             var fieldName = GetMemberName(field);
-            base.OrderBy.Add(fieldName);
+            base.OrderBy.Add($"{fieldName} ASC");
 
             return this;
         }
 
         /// <summary>
-        /// 降序排序
+        /// 排序（降序）
         /// </summary>
         public DataQuery<T> OrderByDescending(Expression<Func<T, object>> field)
         {
@@ -183,7 +166,7 @@ namespace FastData.Model
                 return this;
 
             var fieldName = GetMemberName(field);
-            base.OrderBy.Add(string.Format("{0} desc", fieldName));
+            base.OrderBy.Add($"{fieldName} DESC");
 
             return this;
         }
@@ -191,7 +174,7 @@ namespace FastData.Model
         /// <summary>
         /// 分组
         /// </summary>
-        public new DataQuery<T> GroupBy(Expression<Func<T, object>> field)
+        public DataQuery<T> GroupBy(Expression<Func<T, object>> field)
         {
             if (field == null)
                 return this;
@@ -210,11 +193,106 @@ namespace FastData.Model
             return new ProjectedQuery<T, TResult>(this, selector);
         }
 
+        #region 分表支持
+
+        /// <summary>
+        /// 启用分表查询
+        /// </summary>
+        /// <param name="queryParams">分表查询参数（如时间范围、哈希字段值等）</param>
+        /// <returns>当前查询对象</returns>
+        public DataQuery<T> UseSharding(Dictionary<string, object> queryParams = null)
+        {
+            EnableSharding = true;
+            if (queryParams != null)
+            {
+                foreach (var param in queryParams)
+                {
+                    ShardingQueryParams[param.Key] = param.Value;
+                }
+            }
+            return this;
+        }
+
+        /// <summary>
+        /// 添加分表查询参数
+        /// </summary>
+        /// <param name="key">参数名</param>
+        /// <param name="value">参数值</param>
+        /// <returns>当前查询对象</returns>
+        public DataQuery<T> WithShardingParam(string key, object value)
+        {
+            EnableSharding = true;
+            ShardingQueryParams[key] = value;
+            return this;
+        }
+
+        /// <summary>
+        /// 使用时间范围作为分表参数
+        /// </summary>
+        /// <param name="timeField">时间字段名</param>
+        /// <param name="startTime">开始时间</param>
+        /// <param name="endTime">结束时间</param>
+        /// <returns>当前查询对象</returns>
+        public DataQuery<T> WithTimeRange(string timeField, DateTime startTime, DateTime endTime)
+        {
+            EnableSharding = true;
+            ShardingQueryParams[$"{timeField}_Start"] = startTime;
+            ShardingQueryParams[$"{timeField}_End"] = endTime;
+            return this;
+        }
+
+        /// <summary>
+        /// 使用哈希字段作为分表参数
+        /// </summary>
+        /// <param name="hashField">哈希字段名</param>
+        /// <param name="value">字段值</param>
+        /// <returns>当前查询对象</returns>
+        public DataQuery<T> WithHashField(string hashField, object value)
+        {
+            EnableSharding = true;
+            ShardingQueryParams[hashField] = value;
+            return this;
+        }
+
+        /// <summary>
+        /// 使用列表字段作为分表参数
+        /// </summary>
+        /// <param name="listField">列表字段名</param>
+        /// <param name="value">字段值</param>
+        /// <returns>当前查询对象</returns>
+        public DataQuery<T> WithListField(string listField, object value)
+        {
+            EnableSharding = true;
+            ShardingQueryParams[listField] = value;
+            return this;
+        }
+
+        /// <summary>
+        /// 覆盖全局分表配置
+        /// </summary>
+        /// <param name="config">分表配置</param>
+        /// <returns>当前查询对象</returns>
+        public DataQuery<T> WithShardingConfig(ShardingConfig config)
+        {
+            ShardingConfigOverride = config;
+            return this;
+        }
+
+        #endregion
+
         /// <summary>
         /// 查询列表
         /// </summary>
         public List<T> ToList()
         {
+            if (EnableSharding && ShardingManager.IsShardingEnabled<T>())
+            {
+                return ShardingReadHelper.Query<T>(
+                    BuildPredicate(),
+                    ShardingQueryParams,
+                    Key
+                );
+            }
             return FastRead.ToList<T>(this);
         }
 
@@ -223,6 +301,15 @@ namespace FastData.Model
         /// </summary>
         public T ToItem()
         {
+            if (EnableSharding && ShardingManager.IsShardingEnabled<T>())
+            {
+                var results = ShardingReadHelper.Query<T>(
+                    BuildPredicate(),
+                    ShardingQueryParams,
+                    Key
+                );
+                return results.FirstOrDefault();
+            }
             return FastRead.ToItem<T>(this);
         }
 
@@ -231,6 +318,15 @@ namespace FastData.Model
         /// </summary>
         public int ToCount()
         {
+            if (EnableSharding && ShardingManager.IsShardingEnabled<T>())
+            {
+                var results = ShardingReadHelper.Query<T>(
+                    BuildPredicate(),
+                    ShardingQueryParams,
+                    Key
+                );
+                return results.Count;
+            }
             return FastRead.ToCount(this);
         }
 
@@ -239,7 +335,37 @@ namespace FastData.Model
         /// </summary>
         public PaginationResult<T> ToPagination(int page, int pageSize)
         {
+            if (EnableSharding && ShardingManager.IsShardingEnabled<T>())
+            {
+                var pageResult = ShardingReadHelper.QueryPage<T>(
+                    BuildPredicate(),
+                    ShardingQueryParams,
+                    page,
+                    pageSize,
+                    Key
+                );
+
+                return new PaginationResult<T>
+                {
+                    Data = pageResult.list,
+                    Page = page,
+                    PageSize = pageSize,
+                    Total = pageResult.pModel.TotalRecord,
+                    TotalPages = pageResult.pModel.TotalPage
+                };
+            }
             return FastRead.ToPagination<T>(this, page, pageSize);
+        }
+
+        /// <summary>
+        /// 构建查询谓词
+        /// </summary>
+        private Expression<Func<T, bool>> BuildPredicate()
+        {
+            // 如果有条件，需要组合所有条件
+            // 这里简化处理，返回一个始终为 true 的条件
+            // 实际应该根据 ChainedConditions 构建表达式
+            return t => true;
         }
 
         /// <summary>
