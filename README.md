@@ -866,6 +866,32 @@ var compositeConfig = new ShardingConfig
 ShardingManager.Configure<Order>(compositeConfig);
 ```
 
+### 查询频率分表配置
+
+```csharp
+var frequencyConfig = new ShardingConfig
+{
+    BaseTableName = "UserLog",
+    ShardingType = ShardingType.QueryFrequency,
+    FrequencyConfig = new QueryFrequencyShardingConfig
+    {
+        Field = "UserId",
+        HotThreshold = 100,           // 查询次数超过 100 视为热数据
+        HotSuffix = "_hot",           // 热数据表后缀
+        ColdSuffix = "_cold",         // 冷数据表后缀
+        ColdShardingType = ColdShardingType.ByHash,  // 冷数据按哈希分表
+        ColdShardCount = 4            // 冷数据分 4 个表
+    }
+};
+ShardingManager.Configure<UserLog>(frequencyConfig);
+
+// 记录查询频率
+QueryFrequencyShardingStrategy.RecordQuery("UserId", "user123");
+
+// 获取热数据列表
+var hotValues = QueryFrequencyShardingStrategy.GetHotDataValues("UserId", threshold: 100);
+```
+
 ### 分表查询
 
 ```csharp

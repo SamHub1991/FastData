@@ -31,7 +31,7 @@
 - Logger 日志工具（Debug/Info/Warn/Error，按日期/任务分割文件）
 - 数据库容器内存优化（SQL Server 1.5GB + MySQL 512MB + PostgreSQL 256MB）
 - xUnit 2.6.2 测试框架迁移
-- 123 个单元测试全部通过（net10.0）
+- 129 个单元测试全部通过（net10.0）
 - NuGet 包生成（FastUntility/FastData.Tooling/FastData/FastRedis）
 - 综合验证测试脚本（verify-all.sh，34 项测试）
 - 大表主键加载优化（GetMaxPrimaryKeyValueFromDb 直接查询数据库）
@@ -110,16 +110,22 @@
   - Program.cs 菜单更新：覆盖全部 11 种 ORM 功能场景
 - **分表功能（数据分片）**
   - IShardingStrategy 接口：分表策略抽象
-  - ShardingConfig：分表配置模型（Time/Hash/List/Composite/Geo）
+  - ShardingConfig：分表配置模型（Time/Hash/List/Composite/Geo/QueryFrequency）
   - ShardingManager：分表管理器（策略注册/配置/管理）
   - TimeShardingStrategy：时间分表策略（Day/Week/Month/Quarter/Year 粒度）
   - HashShardingStrategy：哈希分表策略（Modulo/Consistent/CRC32 算法）
   - ListShardingStrategy：列表分表策略（枚举值映射）
   - CompositeShardingStrategy：组合键分表策略（组合键哈希/拼接）
+  - QueryFrequencyShardingStrategy：查询频率分表策略（热数据/冷数据分离）
   - ShardingReadHelper：分表查询助手（Query/QueryPage）
   - ShardingWriteHelper：分表写入助手（Add/AddList/Update/Delete）
-  - ShardingTests：18 个分表单元测试
+  - ShardingTests：21 个分表单元测试
   - README.md：分表功能完整文档
+- **SyncTool 分表迁移组件**
+  - ShardingMigrationControl：分表迁移管理组件
+  - 支持 Time/Hash/List/Composite 分表类型
+  - 批量迁移、进度显示、状态监控
+  - 自动创建分表配置
 
 ### Changed
 

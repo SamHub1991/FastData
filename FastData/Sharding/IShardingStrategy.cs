@@ -78,7 +78,12 @@ namespace FastData.Sharding
         /// <summary>
         /// 地理位置分表
         /// </summary>
-        Geo = 5
+        Geo = 5,
+
+        /// <summary>
+        /// 查询频率分表（热数据/冷数据分离）
+        /// </summary>
+        QueryFrequency = 6
     }
 
     /// <summary>

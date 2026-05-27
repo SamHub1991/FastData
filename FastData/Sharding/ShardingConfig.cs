@@ -54,6 +54,11 @@ namespace FastData.Sharding
         public GeoShardingConfig GeoConfig { get; set; }
 
         /// <summary>
+        /// 查询频率分表配置
+        /// </summary>
+        public QueryFrequencyShardingConfig FrequencyConfig { get; set; }
+
+        /// <summary>
         /// 分表数量限制（防止查询太多表）
         /// </summary>
         public int MaxTableCount { get; set; } = 100;
@@ -177,5 +182,72 @@ namespace FastData.Sharding
         /// 默认地区（未知地区使用）
         /// </summary>
         public string DefaultRegion { get; set; } = "default";
+    }
+
+    /// <summary>
+    /// 查询频率分表配置
+    /// </summary>
+    public class QueryFrequencyShardingConfig
+    {
+        /// <summary>
+        /// 频率统计字段（如 "UserId", "ProductId"）
+        /// </summary>
+        public string Field { get; set; }
+
+        /// <summary>
+        /// 热数据阈值（查询次数超过此值视为热数据）
+        /// </summary>
+        public long HotThreshold { get; set; } = 100;
+
+        /// <summary>
+        /// 热数据表后缀
+        /// </summary>
+        public string HotSuffix { get; set; } = "_hot";
+
+        /// <summary>
+        /// 冷数据表后缀
+        /// </summary>
+        public string ColdSuffix { get; set; } = "_cold";
+
+        /// <summary>
+        /// 冷数据分表类型
+        /// </summary>
+        public ColdShardingType ColdShardingType { get; set; } = ColdShardingType.ByHash;
+
+        /// <summary>
+        /// 冷数据哈希分表数量
+        /// </summary>
+        public int? ColdShardCount { get; set; } = 4;
+
+        /// <summary>
+        /// 时间字段（ColdShardingType.ByTime 时使用）
+        /// </summary>
+        public string TimeField { get; set; }
+
+        /// <summary>
+        /// 时间分表粒度（ColdShardingType.ByTime 时使用）
+        /// </summary>
+        public TimeGranularity? TimeGranularity { get; set; }
+    }
+
+    /// <summary>
+    /// 冷数据分表类型
+    /// </summary>
+    public enum ColdShardingType
+    {
+        /// <summary>
+        /// 按哈希分表
+        /// </summary>
+        ByHash = 0,
+
+        /// <summary>
+        /// 按时间分表
+        /// </summary>
+        ByTime = 1,
+
+        /// <summary>
+        /// 单表存储
+        /// </summary>
+        Single = 2
     }
 }

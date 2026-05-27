@@ -16,6 +16,7 @@ namespace FastData.Tests
         public DateTime CreateTime { get; set; }
         public string LogLevel { get; set; }
         public string Module { get; set; }
+        public string UserId { get; set; }
     }
 
     /// <summary>
@@ -498,6 +499,198 @@ namespace FastData.Tests
             // Assert
             Assert.NotNull(result);
             Assert.Equal("TestSharding", result.Name);
+        }
+
+        #endregion
+
+        #region 查询频率分表测试
+
+        [Fact]
+        public void QueryFrequencySharding_GetTableName_HotData()
+        {
+            // Arrange
+            var config = new ShardingConfig
+            {
+                BaseTableName = "UserLog",
+                ShardingType = ShardingType.QueryFrequency,
+                FrequencyConfig = new QueryFrequencyShardingConfig
+                {
+                    Field = "UserId",
+                    HotThreshold = 10,
+                    HotSuffix = "_hot",
+                    ColdSuffix = "_cold"
+                }
+            };
+            ShardingManager.Configure<TestLog>(config);
+
+            // 记录查询频率（模拟热数据）
+            QueryFrequencyShardingStrategy.ResetFrequencyStats("UserId");
+            for (int i = 0; i < 10; i++)
+            {
+                QueryFrequencyShardingStrategy.RecordQuery("UserId", "user123");
+            }
+
+            var entity = new TestLog
+            {
+                Id = 1,
+                Message = "Test",
+                CreateTime = DateTime.Now,
+                UserId = "user123"
+            };
+
+            // Act
+            var tableName = ShardingManager.GetTableName(entity);
+
+            // Assert
+            Assert.Equal("UserLog_hot", tableName);
+        }
+
+        [Fact]
+        public void QueryFrequencySharding_GetTableName_ColdData()
+        {
+            // Arrange
+            var config = new ShardingConfig
+            {
+                BaseTableName = "UserLog",
+                ShardingType = ShardingType.QueryFrequency,
+                FrequencyConfig = new QueryFrequencyShardingConfig
+                {
+                    Field = "UserId",
+                    HotThreshold = 10,
+                    HotSuffix = "_hot",
+                    ColdSuffix = "_cold",
+                    ColdShardingType = ColdShardingType.Single
+                }
+            };
+            ShardingManager.Configure<TestLog>(config);
+
+            // 重置频率统计
+            QueryFrequencyShardingStrategy.ResetFrequencyStats("UserId");
+
+            var entity = new TestLog
+            {
+                Id = 1,
+                Message = "Test",
+                CreateTime = DateTime.Now,
+                UserId = "user456"
+            };
+
+            // Act
+            var tableName = ShardingManager.GetTableName(entity);
+
+            // Assert
+            Assert.Equal("UserLog_cold", tableName);
+        }
+
+        [Fact]
+        public void QueryFrequencySharding_GetTableNames_WithHotData()
+        {
+            // Arrange
+            var config = new ShardingConfig
+            {
+                BaseTableName = "UserLog",
+                ShardingType = ShardingType.QueryFrequency,
+                FrequencyConfig = new QueryFrequencyShardingConfig
+                {
+                    Field = "UserId",
+                    HotThreshold = 5,
+                    HotSuffix = "_hot",
+                    ColdSuffix = "_cold"
+                }
+            };
+            ShardingManager.Configure<TestLog>(config);
+
+            // 记录查询频率
+            QueryFrequencyShardingStrategy.RecordQuery("UserId", "user123");
+            QueryFrequencyShardingStrategy.RecordQuery("UserId", "user123");
+            QueryFrequencyShardingStrategy.RecordQuery("UserId", "user123");
+            QueryFrequencyShardingStrategy.RecordQuery("UserId", "user123");
+            QueryFrequencyShardingStrategy.RecordQuery("UserId", "user123");
+
+            var queryParams = new Dictionary<string, object>
+            {
+                { "UserId", "user123" }
+            };
+
+            // Act
+            var tableNames = ShardingManager.GetTableNames<TestLog>(queryParams);
+
+            // Assert
+            Assert.Single(tableNames);
+            Assert.Contains("UserLog_hot", tableNames);
+        }
+
+        [Fact]
+        public void QueryFrequencySharding_GetTableNames_WithColdData()
+        {
+            // Arrange
+            var config = new ShardingConfig
+            {
+                BaseTableName = "UserLog",
+                ShardingType = ShardingType.QueryFrequency,
+                FrequencyConfig = new QueryFrequencyShardingConfig
+                {
+                    Field = "UserId",
+                    HotThreshold = 10,
+                    HotSuffix = "_hot",
+                    ColdSuffix = "_cold",
+                    ColdShardingType = ColdShardingType.Single
+                }
+            };
+            ShardingManager.Configure<TestLog>(config);
+
+            // 重置频率统计
+            QueryFrequencyShardingStrategy.ResetFrequencyStats("UserId");
+
+            var queryParams = new Dictionary<string, object>
+            {
+                { "UserId", "user789" }
+            };
+
+            // Act
+            var tableNames = ShardingManager.GetTableNames<TestLog>(queryParams);
+
+            // Assert
+            Assert.Single(tableNames);
+            Assert.Contains("UserLog_cold", tableNames);
+        }
+
+        [Fact]
+        public void QueryFrequencySharding_GetQueryFrequency()
+        {
+            // Arrange
+            QueryFrequencyShardingStrategy.ResetFrequencyStats("UserId");
+
+            // Act
+            QueryFrequencyShardingStrategy.RecordQuery("UserId", "user123");
+            QueryFrequencyShardingStrategy.RecordQuery("UserId", "user123");
+            QueryFrequencyShardingStrategy.RecordQuery("UserId", "user123");
+
+            var frequency = QueryFrequencyShardingStrategy.GetQueryFrequency("UserId", "user123");
+
+            // Assert
+            Assert.Equal(3, frequency);
+        }
+
+        [Fact]
+        public void QueryFrequencySharding_GetHotDataValues()
+        {
+            // Arrange
+            QueryFrequencyShardingStrategy.ResetFrequencyStats("UserId");
+
+            QueryFrequencyShardingStrategy.RecordQuery("UserId", "user1");
+            QueryFrequencyShardingStrategy.RecordQuery("UserId", "user1");
+            QueryFrequencyShardingStrategy.RecordQuery("UserId", "user1");
+            QueryFrequencyShardingStrategy.RecordQuery("UserId", "user2");
+            QueryFrequencyShardingStrategy.RecordQuery("UserId", "user3");
+            QueryFrequencyShardingStrategy.RecordQuery("UserId", "user3");
+
+            // Act
+            var hotValues = QueryFrequencyShardingStrategy.GetHotDataValues("UserId", 3);
+
+            // Assert
+            Assert.Single(hotValues);
+            Assert.Contains("user1", hotValues);
         }
 
         #endregion

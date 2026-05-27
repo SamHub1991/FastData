@@ -28,6 +28,7 @@ namespace FastData.Sharding
             RegisterStrategy(new HashShardingStrategy());
             RegisterStrategy(new ListShardingStrategy());
             RegisterStrategy(new CompositeShardingStrategy());
+            RegisterStrategy(new QueryFrequencyShardingStrategy());
         }
 
         /// <summary>
