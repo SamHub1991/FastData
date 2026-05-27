@@ -8,18 +8,19 @@ using Newtonsoft.Json;
 namespace FastData.Queue
 {
     /// <summary>
-    /// 链式写入构建器
-    /// 支持 Fluent API：FastWrite.QueueBuilder().Add(user).Add(user2).Execute()
-    /// 自动根据表配置决定是否使用消息队列
+    /// 链式读取构建器
+    /// 支持 Fluent API：FastRead.QueueBuilder<User>().Where(u => u.IsActive).Execute()
+    /// 将查询请求推送到消息队列，实现异步查询或查询审计
     /// </summary>
-    public class FastWriteQueueBuilder
+    /// <typeparam name="T">实体类型</typeparam>
+    public class FastReadQueueBuilder<T> where T : class, new()
     {
-        private readonly List<WriteOperation> _operations = new List<WriteOperation>();
+        private readonly List<ReadOperation> _operations = new List<ReadOperation>();
         private readonly string _databaseKey;
         private WriteBehindConfig _overrideConfig;
         private Dictionary<string, object> _globalMetadata;
 
-        internal FastWriteQueueBuilder(string databaseKey = null)
+        internal FastReadQueueBuilder(string databaseKey = null)
         {
             _databaseKey = databaseKey;
         }
@@ -29,7 +30,7 @@ namespace FastData.Queue
         /// </summary>
         /// <param name="metadata">扩展元数据</param>
         /// <returns>构建器（支持链式调用）</returns>
-        public FastWriteQueueBuilder WithMetadata(Dictionary<string, object> metadata)
+        public FastReadQueueBuilder<T> WithMetadata(Dictionary<string, object> metadata)
         {
             _globalMetadata = metadata;
             return this;
@@ -41,7 +42,7 @@ namespace FastData.Queue
         /// <param name="key">键</param>
         /// <param name="value">值</param>
         /// <returns>构建器（支持链式调用）</returns>
-        public FastWriteQueueBuilder AddMetadata(string key, object value)
+        public FastReadQueueBuilder<T> AddMetadata(string key, object value)
         {
             if (_globalMetadata == null)
                 _globalMetadata = new Dictionary<string, object>();
@@ -50,20 +51,19 @@ namespace FastData.Queue
         }
 
         /// <summary>
-        /// 添加实体（INSERT）
+        /// 添加查询单条请求
         /// </summary>
-        /// <typeparam name="T">实体类型</typeparam>
-        /// <param name="model">实体对象</param>
-        /// <param name="metadata">操作级别的扩展元数据（可选，会与全局元数据合并）</param>
+        /// <param name="predicate">查询条件</param>
+        /// <param name="metadata">操作级别的扩展元数据（可选）</param>
         /// <returns>构建器（支持链式调用）</returns>
-        public FastWriteQueueBuilder Add<T>(T model, Dictionary<string, object> metadata = null) where T : class, new()
+        public FastReadQueueBuilder<T> QuerySingle(Expression<Func<T, bool>> predicate, Dictionary<string, object> metadata = null)
         {
-            var operation = new WriteOperation
+            var operation = new ReadOperation
             {
-                OperationType = WriteOperationType.Add,
+                OperationType = ReadOperationType.QuerySingle,
                 TableName = typeof(T).Name,
                 EntityType = typeof(T).FullName,
-                Data = JsonConvert.SerializeObject(model),
+                Predicate = JsonConvert.SerializeObject(predicate),
                 DatabaseKey = _databaseKey,
                 Metadata = MergeMetadata(metadata)
             };
@@ -72,37 +72,23 @@ namespace FastData.Queue
         }
 
         /// <summary>
-        /// 批量添加实体（INSERT）
+        /// 添加查询列表请求
         /// </summary>
-        /// <typeparam name="T">实体类型</typeparam>
-        /// <param name="models">实体列表</param>
+        /// <param name="predicate">查询条件（可选）</param>
+        /// <param name="orderBy">排序字段（可选）</param>
+        /// <param name="isAscending">是否升序</param>
         /// <param name="metadata">操作级别的扩展元数据（可选）</param>
         /// <returns>构建器（支持链式调用）</returns>
-        public FastWriteQueueBuilder AddRange<T>(IEnumerable<T> models, Dictionary<string, object> metadata = null) where T : class, new()
+        public FastReadQueueBuilder<T> QueryList(Expression<Func<T, bool>> predicate = null, Expression<Func<T, object>> orderBy = null, bool isAscending = true, Dictionary<string, object> metadata = null)
         {
-            foreach (var model in models)
+            var operation = new ReadOperation
             {
-                Add(model, metadata);
-            }
-            return this;
-        }
-
-        /// <summary>
-        /// 更新实体（UPDATE by PrimaryKey）
-        /// </summary>
-        /// <typeparam name="T">实体类型</typeparam>
-        /// <param name="model">实体对象</param>
-        /// <param name="field">需要更新的字段（可选）</param>
-        /// <param name="metadata">操作级别的扩展元数据（可选）</param>
-        /// <returns>构建器（支持链式调用）</returns>
-        public FastWriteQueueBuilder Update<T>(T model, Expression<Func<T, object>> field = null, Dictionary<string, object> metadata = null) where T : class, new()
-        {
-            var operation = new WriteOperation
-            {
-                OperationType = WriteOperationType.Update,
+                OperationType = ReadOperationType.QueryList,
                 TableName = typeof(T).Name,
                 EntityType = typeof(T).FullName,
-                Data = JsonConvert.SerializeObject(model),
+                Predicate = predicate != null ? JsonConvert.SerializeObject(predicate) : null,
+                OrderBy = orderBy != null ? JsonConvert.SerializeObject(orderBy) : null,
+                IsAscending = isAscending,
                 DatabaseKey = _databaseKey,
                 Metadata = MergeMetadata(metadata)
             };
@@ -111,20 +97,48 @@ namespace FastData.Queue
         }
 
         /// <summary>
-        /// 删除实体（DELETE by PrimaryKey）
+        /// 添加查询数量请求
         /// </summary>
-        /// <typeparam name="T">实体类型</typeparam>
-        /// <param name="model">实体对象</param>
+        /// <param name="predicate">查询条件（可选）</param>
         /// <param name="metadata">操作级别的扩展元数据（可选）</param>
         /// <returns>构建器（支持链式调用）</returns>
-        public FastWriteQueueBuilder Delete<T>(T model, Dictionary<string, object> metadata = null) where T : class, new()
+        public FastReadQueueBuilder<T> QueryCount(Expression<Func<T, bool>> predicate = null, Dictionary<string, object> metadata = null)
         {
-            var operation = new WriteOperation
+            var operation = new ReadOperation
             {
-                OperationType = WriteOperationType.Delete,
+                OperationType = ReadOperationType.QueryCount,
                 TableName = typeof(T).Name,
                 EntityType = typeof(T).FullName,
-                Data = JsonConvert.SerializeObject(model),
+                Predicate = predicate != null ? JsonConvert.SerializeObject(predicate) : null,
+                DatabaseKey = _databaseKey,
+                Metadata = MergeMetadata(metadata)
+            };
+            _operations.Add(operation);
+            return this;
+        }
+
+        /// <summary>
+        /// 添加分页查询请求
+        /// </summary>
+        /// <param name="pageIndex">页码</param>
+        /// <param name="pageSize">每页大小</param>
+        /// <param name="predicate">查询条件（可选）</param>
+        /// <param name="orderBy">排序字段（可选）</param>
+        /// <param name="isAscending">是否升序</param>
+        /// <param name="metadata">操作级别的扩展元数据（可选）</param>
+        /// <returns>构建器（支持链式调用）</returns>
+        public FastReadQueueBuilder<T> QueryPaging(int pageIndex, int pageSize, Expression<Func<T, bool>> predicate = null, Expression<Func<T, object>> orderBy = null, bool isAscending = true, Dictionary<string, object> metadata = null)
+        {
+            var operation = new ReadOperation
+            {
+                OperationType = ReadOperationType.QueryPaging,
+                TableName = typeof(T).Name,
+                EntityType = typeof(T).FullName,
+                Predicate = predicate != null ? JsonConvert.SerializeObject(predicate) : null,
+                OrderBy = orderBy != null ? JsonConvert.SerializeObject(orderBy) : null,
+                IsAscending = isAscending,
+                PageIndex = pageIndex,
+                PageSize = pageSize,
                 DatabaseKey = _databaseKey,
                 Metadata = MergeMetadata(metadata)
             };
@@ -137,7 +151,7 @@ namespace FastData.Queue
         /// </summary>
         /// <param name="config">队列配置</param>
         /// <returns>构建器（支持链式调用）</returns>
-        public FastWriteQueueBuilder WithQueue(WriteBehindConfig config)
+        public FastReadQueueBuilder<T> WithQueue(WriteBehindConfig config)
         {
             _overrideConfig = config;
             return this;
@@ -145,25 +159,24 @@ namespace FastData.Queue
 
         /// <summary>
         /// 执行所有操作（同步）
-        /// 自动根据表配置决定：直接写数据库 或 写消息队列
-        /// 如果数据库异常且启用了降级，自动切换到可信队列
+        /// 将查询请求推送到消息队列
         /// </summary>
         /// <returns>执行结果</returns>
-        public WriteBehindResult Execute()
+        public ReadQueueResult Execute()
         {
             if (_operations.Count == 0)
             {
-                return new WriteBehindResult { Success = true, Message = "无操作" };
+                return new ReadQueueResult { Success = true, Message = "无操作" };
             }
 
-            return WriteBehindExecutor.Execute(_operations, _databaseKey, _overrideConfig);
+            return ReadQueueExecutor.Execute(_operations, _databaseKey, _overrideConfig);
         }
 
         /// <summary>
         /// 执行所有操作（异步）
         /// </summary>
         /// <returns>执行结果</returns>
-        public Task<WriteBehindResult> ExecuteAsync()
+        public Task<ReadQueueResult> ExecuteAsync()
         {
             return Task.Run(() => Execute());
         }
@@ -212,9 +225,9 @@ namespace FastData.Queue
     }
 
     /// <summary>
-    /// 写入后端执行结果
+    /// 读取队列执行结果
     /// </summary>
-    public class WriteBehindResult
+    public class ReadQueueResult
     {
         /// <summary>
         /// 是否成功
@@ -227,12 +240,7 @@ namespace FastData.Queue
         public string Message { get; set; }
 
         /// <summary>
-        /// 直接写入数据库的数量
-        /// </summary>
-        public int DirectWriteCount { get; set; }
-
-        /// <summary>
-        /// 写入队列的数量（降级）
+        /// 推送到队列的数量
         /// </summary>
         public int QueuedCount { get; set; }
 
@@ -242,25 +250,20 @@ namespace FastData.Queue
         public int FailedCount { get; set; }
 
         /// <summary>
-        /// 是否发生了降级
-        /// </summary>
-        public bool FallbackOccurred { get; set; }
-
-        /// <summary>
         /// 详细结果列表
         /// </summary>
-        public List<WriteOperationResult> Details { get; set; } = new List<WriteOperationResult>();
+        public List<ReadOperationResult> Details { get; set; } = new List<ReadOperationResult>();
     }
 
     /// <summary>
-    /// 单个操作的结果
+    /// 单个读取操作的结果
     /// </summary>
-    public class WriteOperationResult
+    public class ReadOperationResult
     {
         /// <summary>
         /// 操作类型
         /// </summary>
-        public WriteOperationType OperationType { get; set; }
+        public ReadOperationType OperationType { get; set; }
 
         /// <summary>
         /// 表名
@@ -271,11 +274,6 @@ namespace FastData.Queue
         /// 是否成功
         /// </summary>
         public bool Success { get; set; }
-
-        /// <summary>
-        /// 是否使用了队列
-        /// </summary>
-        public bool UsedQueue { get; set; }
 
         /// <summary>
         /// 错误消息（如果有）

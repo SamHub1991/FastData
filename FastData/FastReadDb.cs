@@ -1,5 +1,6 @@
 using FastData.Context;
 using FastData.Model;
+using FastData.Queue;
 using FastUntility.Page;
 using System;
 using System.Collections.Generic;
@@ -17,9 +18,24 @@ namespace FastData
     {
         private readonly string key;
 
+        /// <summary>
+        /// 获取数据库 Key
+        /// </summary>
+        public string Key => key;
+
         internal FastReadDb(string key)
         {
             this.key = key;
+        }
+
+        /// <summary>
+        /// 创建链式读取构建器（带消息队列支持）
+        /// </summary>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <returns>链式构建器</returns>
+        public FastReadQueueBuilder<T> Queue<T>() where T : class, new()
+        {
+            return new FastReadQueueBuilder<T>(key);
         }
 
         public DataQuery Query<T>(Expression<Func<T, bool>> predicate, Expression<Func<T, object>> field = null, string dbFile = "db.config")

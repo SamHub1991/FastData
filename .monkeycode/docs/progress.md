@@ -70,7 +70,18 @@
 - [x] FastWrite.IsQueueEnabled<T>() 查询方法
 - [x] FastWriteExtensions 扩展方法
 
-### 6. 文档整合
+### 6. 读取队列实现（FastRead 链式 API + 扩展元数据）
+- [x] ReadOperation 操作模型（支持 QuerySingle/QueryList/QueryCount/QueryPaging）
+- [x] FastReadQueueBuilder<T> 链式构建器（Fluent API：QueueBuilder<T>().QueryList().Execute()）
+- [x] ReadQueueExecutor 执行器（将查询请求推送到消息队列）
+- [x] FastRead.QueueBuilder<T>() 静态方法
+- [x] FastReadDb.Queue<T>() 实例方法
+- [x] FastRead.ConfigureQueue<T>() 配置方法
+- [x] FastRead.IsQueueEnabled<T>() 查询方法
+- [x] 扩展元数据支持（WithMetadata/AddMetadata，应用于 WriteOperation 和 ReadOperation）
+- [x] WriteBehindResult/ReadQueueResult 包含 Metadata 字段
+
+### 7. 文档整合
 - [x] CHANGELOG.md 更新至最新版本
 - [x] README.md 全面更新（455+ 行，10 个示例，文档导航链接）
 - [x] DEVELOPMENT_PROGRESS.md 整合开发进度
