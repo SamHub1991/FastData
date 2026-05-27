@@ -155,7 +155,7 @@ namespace FastData
         #region 链式 Where 条件（AND）
         /// <summary>
         /// 链式追加 WHERE 条件（AND）
-        /// 用法：FastRead.Query&lt;User&gt;().Where&lt;User&gt;(u => u.IsActive).Where&lt;User&gt;(u => u.Age > 18).ToList()
+        /// 用法：FastRead.Query&lt;User&gt;().Where&lt;User&gt;(u => u.IsActive).And&lt;User&gt;(u => u.Age > 18).ToList()
         /// </summary>
         /// <typeparam name="T">实体类型</typeparam>
         /// <param name="query">查询对象</param>
@@ -166,6 +166,7 @@ namespace FastData
             if (predicate == null)
                 return query;
 
+            query.EntityType = typeof(T);
             var visitModel = VisitExpression.LambdaWhere<T>(predicate, query.Config);
             if (visitModel.IsSuccess)
             {
@@ -178,6 +179,14 @@ namespace FastData
             }
 
             return query;
+        }
+
+        /// <summary>
+        /// 链式追加 WHERE 条件（AND）- And 别名
+        /// </summary>
+        public static DataQuery And<T>(this DataQuery query, Expression<Func<T, bool>> predicate) where T : class, new()
+        {
+            return Where<T>(query, predicate);
         }
         #endregion
 
@@ -195,6 +204,7 @@ namespace FastData
             if (predicate == null)
                 return query;
 
+            query.EntityType = typeof(T);
             var visitModel = VisitExpression.LambdaWhere<T>(predicate, query.Config);
             if (visitModel.IsSuccess)
             {
@@ -207,6 +217,113 @@ namespace FastData
             }
 
             return query;
+        }
+        #endregion
+
+        #region 链式 Like 条件
+        /// <summary>
+        /// 链式追加 LIKE 条件
+        /// 用法：FastRead.Query&lt;User&gt;().Like&lt;User&gt;(u => u.UserName, "张%")
+        /// </summary>
+        public static DataQuery Like<T>(this DataQuery query, Expression<Func<T, object>> field, string value) where T : class, new()
+        {
+            if (field == null || string.IsNullOrEmpty(value))
+                return query;
+
+            query.EntityType = typeof(T);
+            var fieldName = GetMemberName(field);
+            query.ChainedConditions.Add(new ChainedCondition
+            {
+                Operator = "AND",
+                Where = string.Format("{0} like '{1}'", fieldName, value)
+            });
+
+            return query;
+        }
+
+        /// <summary>
+        /// 链式追加 LIKE 条件（包含 - LIKE '%value%'）
+        /// </summary>
+        public static DataQuery Contains<T>(this DataQuery query, Expression<Func<T, object>> field, string value) where T : class, new()
+        {
+            return Like(query, field, string.Format("%{0}%", value));
+        }
+
+        /// <summary>
+        /// 链式追加 LIKE 条件（开头 - LIKE 'value%'）
+        /// </summary>
+        public static DataQuery StartsWith<T>(this DataQuery query, Expression<Func<T, object>> field, string value) where T : class, new()
+        {
+            return Like(query, field, string.Format("{0}%", value));
+        }
+
+        /// <summary>
+        /// 链式追加 LIKE 条件（结尾 - LIKE '%value'）
+        /// </summary>
+        public static DataQuery EndsWith<T>(this DataQuery query, Expression<Func<T, object>> field, string value) where T : class, new()
+        {
+            return Like(query, field, string.Format("%{0}", value));
+        }
+        #endregion
+
+        #region 链式 In 条件
+        /// <summary>
+        /// 链式追加 IN 条件
+        /// 用法：FastRead.Query&lt;User&gt;().In&lt;User&gt;(u => u.Department, new[] { "IT", "HR" })
+        /// </summary>
+        public static DataQuery In<T>(this DataQuery query, Expression<Func<T, object>> field, IEnumerable<object> values) where T : class, new()
+        {
+            if (field == null || values == null)
+                return query;
+
+            query.EntityType = typeof(T);
+            var fieldName = GetMemberName(field);
+            var valueList = System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Select(values, v => string.Format("'{0}'", v)));
+            query.ChainedConditions.Add(new ChainedCondition
+            {
+                Operator = "AND",
+                Where = string.Format("{0} in ({1})", fieldName, string.Join(",", valueList))
+            });
+
+            return query;
+        }
+        #endregion
+
+        #region 链式 Between 条件
+        /// <summary>
+        /// 链式追加 BETWEEN 条件
+        /// 用法：FastRead.Query&lt;User&gt;().Between&lt;User&gt;(u => u.Age, 18, 65)
+        /// </summary>
+        public static DataQuery Between<T>(this DataQuery query, Expression<Func<T, object>> field, object start, object end) where T : class, new()
+        {
+            if (field == null)
+                return query;
+
+            query.EntityType = typeof(T);
+            var fieldName = GetMemberName(field);
+            query.ChainedConditions.Add(new ChainedCondition
+            {
+                Operator = "AND",
+                Where = string.Format("{0} between '{1}' and '{2}'", fieldName, start, end)
+            });
+
+            return query;
+        }
+        #endregion
+
+        #region 辅助方法
+        /// <summary>
+        /// 从表达式中获取成员名称
+        /// </summary>
+        private static string GetMemberName<T>(Expression<Func<T, object>> expression)
+        {
+            if (expression.Body is MemberExpression member)
+                return member.Member.Name;
+
+            if (expression.Body is UnaryExpression unary && unary.Operand is MemberExpression unaryMember)
+                return unaryMember.Member.Name;
+
+            throw new ArgumentException("表达式必须是成员访问表达式");
         }
         #endregion
 

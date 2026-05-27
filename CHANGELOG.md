@@ -59,7 +59,12 @@
 - **链式 WHERE 条件**
   - DataQuery.ChainedConditions 链式条件列表
   - FastRead.Where<T>() / Or<T>() 扩展方法
+  - FastRead.And<T>() - Where 的别名
+  - FastRead.Like<T>() / Contains<T>() / StartsWith<T>() / EndsWith<T>() - LIKE 条件
+  - FastRead.In<T>() - IN 条件
+  - FastRead.Between<T>() - BETWEEN 条件
   - WhereBuilder 统一 WHERE 子句构建
+  - DataQuery.EntityType 属性（存储实体类型）
 - **FastWrite 匿名类型支持**
   - Add/AddRange/Update/Delete 支持 tableName 参数
   - 无 new() 约束，支持匿名类型推断

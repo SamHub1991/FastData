@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Data.Common;
 
 namespace FastData.Model
@@ -9,6 +10,11 @@ namespace FastData.Model
     /// </summary>
     public sealed class DataQuery
     {
+        /// <summary>
+        /// 实体类型（用于链式调用时省略泛型参数）
+        /// </summary>
+        public System.Type EntityType { get; set; }
+
         /// <summary>
         /// 条件集
         /// </summary>
