@@ -1,6 +1,7 @@
 using FastData.Demo.Models;
 using FastData.Demo.Repositories;
 using FastData.Demo.Services;
+using FastData.Model;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
@@ -176,6 +177,53 @@ namespace FastData.Demo.Controllers
                 await _cacheService.RemoveUserAsync(id);
 
                 return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// 动态条件查询（演示 Where&lt;T&gt; 条件构建器）
+        /// </summary>
+        [HttpGet("search")]
+        public async Task<ActionResult<List<User>>> Search(
+            [FromQuery] string keyword = null,
+            [FromQuery] string department = null,
+            [FromQuery] int? minAge = null,
+            [FromQuery] int? maxAge = null,
+            [FromQuery] bool? isActive = null)
+        {
+            try
+            {
+                var where = new Where<User>();
+
+                // 基础条件
+                where.Add(u => u.Id > 0);
+
+                // 动态添加条件
+                if (!string.IsNullOrEmpty(keyword))
+                    where.And(u => u.UserName.Contains(keyword) || u.Email.Contains(keyword));
+
+                if (!string.IsNullOrEmpty(department))
+                    where.And(u => u.Department == department);
+
+                if (minAge.HasValue)
+                    where.And(u => u.Age >= minAge.Value);
+
+                if (maxAge.HasValue)
+                    where.And(u => u.Age <= maxAge.Value);
+
+                if (isActive.HasValue)
+                    where.And(u => u.IsActive == isActive.Value);
+
+                var users = FastRead.Query<User>(u => true)
+                    .Where(where)
+                    .OrderBy(u => u.Id)
+                    .ToList();
+
+                return Ok(users);
             }
             catch (Exception ex)
             {
