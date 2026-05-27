@@ -31,7 +31,7 @@
 - Logger 日志工具（Debug/Info/Warn/Error，按日期/任务分割文件）
 - 数据库容器内存优化（SQL Server 1.5GB + MySQL 512MB + PostgreSQL 256MB）
 - xUnit 2.6.2 测试框架迁移
-- 129 个单元测试全部通过（net10.0）
+- 162 个单元测试全部通过（net10.0）
 - NuGet 包生成（FastUntility/FastData.Tooling/FastData/FastRedis）
 - 综合验证测试脚本（verify-all.sh，34 项测试）
 - 大表主键加载优化（GetMaxPrimaryKeyValueFromDb 直接查询数据库）
@@ -141,6 +141,15 @@
   - ShardingController：分表功能演示控制器
   - 支持 Time/Hash/List/Composite/QueryFrequency 配置和查询
   - 查询频率记录和热数据查询 API
+- **SyncTool 分表 CRUD 界面**
+  - ShardingCrudControl：分表管理组件
+  - 支持配置所有分表策略（Time/Hash/List/Composite/QueryFrequency）
+  - 分表列表查询和条件查询
+  - 数据查询和导出功能
+- **分表 CRUD 测试**
+  - ShardingCrudTests：33 个分表 CRUD 测试用例
+  - 覆盖配置、启用/禁用、增删改查、链式 API
+  - 总计 162 个单元测试全部通过
 
 ### Changed
 
