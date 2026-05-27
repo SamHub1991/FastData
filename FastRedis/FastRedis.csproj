@@ -30,7 +30,7 @@
 
   <!-- .NET 6/8/10 使用 NewLife.Redis -->
   <ItemGroup Condition="'$(TargetFramework)' != 'net45'">
-    <PackageReference Include="NewLife.Redis" Version="5.8.2024.802" />
+    <PackageReference Include="NewLife.Redis" Version="6.0.2024.1006" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.0" />

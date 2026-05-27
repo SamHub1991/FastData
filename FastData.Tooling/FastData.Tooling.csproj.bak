@@ -4,11 +4,11 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{B2C3D4E5-F6A7-8901-BCDE-F12345678901}</ProjectGuid>
-    <OutputType>Exe</OutputType>
+    <ProjectGuid>{B0FE51F7-9819-4F2C-B5AB-B5D53E6E6504}</ProjectGuid>
+    <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>FastData.Example</RootNamespace>
-    <AssemblyName>FastData.Example</AssemblyName>
+    <RootNamespace>FastData.Tooling</RootNamespace>
+    <AssemblyName>FastData.Tooling</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
@@ -36,32 +36,31 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
+    <Reference Include="System.Web.Extensions" />
     <Reference Include="System.Xml" />
-    <Reference Include="System.Configuration" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Program.cs" />
-    <Compile Include="Model\User.cs" />
-    <Compile Include="Model\Order.cs" />
-    <Compile Include="Example\BasicCrudExample.cs" />
-    <Compile Include="Example\LambdaQueryExample.cs" />
-    <Compile Include="Example\DataSyncExample.cs" />
-    <Compile Include="Example\MessageQueueExample.cs" />
+    <Compile Include="Abstractions\IDataSyncService.cs" />
+    <Compile Include="CodeGeneration\ModelCodeGenerator.cs" />
+    <Compile Include="Database\DatabaseColumn.cs" />
+    <Compile Include="Database\DatabaseConnectionOptions.cs" />
+    <Compile Include="Database\DatabaseTable.cs" />
+    <Compile Include="Database\IDatabaseMetadataReader.cs" />
+    <Compile Include="Database\MetadataReaderFactory.cs" />
+    <Compile Include="Database\ProviderMetadataReader.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\FastData\FastData.csproj">
-      <Project>{9347DC38-9B48-4581-9974-E6D6363BED40}</Project>
-      <Name>FastData</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\FastData.Tooling\FastData.Tooling.csproj">
-      <Project>{B0FE51F7-9819-4F2C-B5AB-B5D53E6E6504}</Project>
-      <Name>FastData.Tooling</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\FastRedis\FastRedis.csproj">
-      <Project>{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}</Project>
-      <Name>FastRedis</Name>
-    </ProjectReference>
+    <Compile Include="Sync\Models\DataSyncOptions.cs" />
+    <Compile Include="Sync\Models\DataSyncResult.cs" />
+    <Compile Include="Sync\Models\SyncDataType.cs" />
+    <Compile Include="Sync\Models\SyncTaskConfig.cs" />
+    <Compile Include="Sync\Models\TableSyncConfig.cs" />
+    <Compile Include="Sync\Services\DataSyncService.cs" />
+    <Compile Include="Sync\Services\PrimaryKeyConfigService.cs" />
+    <Compile Include="Sync\Services\SyncConfigManager.cs" />
+    <Compile Include="Sync\Utils\DataRowSerializer.cs" />
+    <Compile Include="Sync\Utils\IntermediateSchemaBuilder.cs" />
+    <Compile Include="Sync\Utils\TimeRangeCalculator.cs" />
+    <Compile Include="Sync\Logging\Logger.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

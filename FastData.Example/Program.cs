@@ -25,7 +25,8 @@ namespace FastData.Example
                 Console.WriteLine("  1. 基本 CRUD 操作");
                 Console.WriteLine("  2. Lambda 查询");
                 Console.WriteLine("  3. 数据同步工具");
-                Console.WriteLine("  4. 运行所有示例");
+                Console.WriteLine("  4. 消息队列（RTU 削峰/多方推送）");
+                Console.WriteLine("  5. 运行所有示例");
                 Console.WriteLine("  0. 退出");
                 Console.WriteLine();
 
@@ -49,9 +50,19 @@ namespace FastData.Example
                         DataSyncExample.Run();
                         break;
                     case "4":
+#if !NETFRAMEWORK
+                        MessageQueueExample.Run();
+#else
+                        Console.WriteLine("消息队列功能仅支持 .NET 6.0+");
+#endif
+                        break;
+                    case "5":
                         BasicCrudExample.Run();
                         LambdaQueryExample.Run();
                         DataSyncExample.Run();
+#if !NETFRAMEWORK
+                        MessageQueueExample.Run();
+#endif
                         break;
                     default:
                         Console.WriteLine("无效选项，请重新输入");

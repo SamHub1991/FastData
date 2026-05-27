@@ -51,7 +51,16 @@ FastData/
 ├── FastRedis/                         # Redis 缓存组件
 │   ├── RedisInfo.NewLife.cs           # NewLife.Redis 实现（.NET 6+）
 │   ├── RedisInfo.cs                   # NServiceKit.Redis 实现（.NET 4.5）
-│   └── Repository/                    # Redis 仓储实现
+│   ├── Repository/                    # Redis 仓储实现
+│   ├── Messaging/                     # 消息队列实现
+│   │   ├── IMessageProducer.cs        # 生产者接口
+│   │   ├── IMessageConsumer.cs        # 消费者接口
+│   │   ├── MessageQueueModels.cs      # 队列模型和配置
+│   │   ├── ReliableQueueService.cs    # 可信队列实现
+│   │   ├── StreamService.cs           # Stream 队列实现
+│   │   └── MessageQueueFactory.cs     # 队列工厂
+│   └── Services/                      # 集成服务
+│       └── MessageQueueIntegrationService.cs
 │
 ├── FastUntility/                      # 通用工具库
 │   └── Base/                          # 日志、Excel、HTTP 等工具类
@@ -301,7 +310,93 @@ public class CacheService
 }
 ```
 
-### 7. XML Map SQL
+### 7. 消息队列（RTU 削峰/多方推送）
+
+基于 NewLife.Redis 实现两种消息队列模式，适用于 RTU 数据上传场景：
+
+| 队列类型 | 适用场景 | 实现方式 | 特点 |
+|---------|---------|---------|------|
+| **ReliableQueue** | 数据库存储（削峰） | RedisReliableQueue | 单消费、消费确认、消息不丢失 |
+| **Stream** | 多方推送（解耦） | RedisStream | 多消费组、广播通知、独立消费 |
+
+#### 配置驱动使用
+
+```csharp
+// 配置可信队列（适合数据库存储）
+var config = new TableSyncConfig
+{
+    TableName = "sensor_data",
+    EnableMessageQueue = true,
+    MessageQueueType = MessageQueueType.ReliableQueue,
+    MessageQueueTopic = "rtu:sensor",
+    ConsumerConcurrency = 8
+};
+
+// 配置 Stream 多消费组（适合多方推送）
+var streamConfig = new TableSyncConfig
+{
+    TableName = "realtime_data",
+    EnableMessageQueue = true,
+    MessageQueueType = MessageQueueType.Stream,
+    MessageQueueTopic = "rtu:realtime",
+    ConsumerGroup = "default",
+    ConsumerConcurrency = 4
+};
+```
+
+#### 代码使用示例
+
+```csharp
+// 创建工厂
+var factory = new MessageQueueFactory(redis);
+
+// 可信队列生产者
+var producer = factory.CreateReliableProducer("fastdata");
+producer.Publish("rtu:sensor", sensorData);
+
+// 可信队列消费者
+var consumer = factory.CreateReliableConsumer("fastdata");
+await consumer.ConsumeLoopAsync<SensorData>("rtu:sensor", async (data) =>
+{
+    // 写入数据库
+    await SaveToDatabase(data);
+}, cancellationToken, concurrency: 8);
+
+// Stream 多消费组
+var streamProducer = factory.CreateStreamProducer("fastdata");
+streamProducer.Publish("rtu:realtime", sensorData);
+
+// 多个消费组独立消费
+var dbConsumer = factory.CreateStreamConsumer("db-writer", "fastdata");
+var alertConsumer = factory.CreateStreamConsumer("alert-system", "fastdata");
+```
+
+#### 集成服务使用
+
+```csharp
+var mqService = new MessageQueueIntegrationService(redis);
+
+// 发布数据
+mqService.PublishData("rtu:sensor", sensorData, MessageQueueType.ReliableQueue);
+
+// 启动消费者
+await mqService.StartConsumerAsync<SensorData>("rtu:sensor", async (data) =>
+{
+    await SaveToDatabase(data);
+}, cancellationToken, MessageQueueType.ReliableQueue, concurrency: 8);
+
+// 多消费组
+await mqService.StartMultiGroupConsumerAsync("rtu:realtime",
+    new[] { "db-writer", "alert-system", "analytics" },
+    new Func<SensorData, Task>[]
+    {
+        async (data) => await SaveToDatabase(data),
+        async (data) => { if (data.Temperature > 30) SendAlert(data); },
+        async (data) => await AnalyzeData(data)
+    }, cancellationToken);
+```
+
+### 8. XML Map SQL
 
 ```xml
 <!-- Maps/User.xml -->

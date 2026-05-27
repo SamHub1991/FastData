@@ -37,6 +37,15 @@
 - 大表主键加载优化（GetMaxPrimaryKeyValueFromDb 直接查询数据库）
 - 依赖注入服务注册扩展（SyncService/LogService/TaskSchedulerService）
 - MainForm 拆分为 4 个 UserControl（DbConfigControl/SyncConfigControl/TaskManagerControl/ReplayControl）
+- **消息队列支持**（基于 NewLife.Redis）
+  - RedisReliableQueue 可信队列（单消费、消费确认、消息不丢失，适合数据库存储削峰）
+  - RedisStream 多消费组队列（多消费组独立消费，适合多方推送解耦）
+  - IMessageProducer/IMessageConsumer 接口抽象
+  - MessageQueueFactory 工厂类
+  - MessageQueueIntegrationService 集成服务
+  - TableSyncConfig 配置驱动（EnableMessageQueue/MessageQueueType/MessageQueueTopic）
+  - FastData.Demo API 端点（/api/mq/demo/reliable, /api/mq/demo/stream）
+  - FastData.Example 示例代码
 
 ### Fixed
 
