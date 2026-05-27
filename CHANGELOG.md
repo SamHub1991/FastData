@@ -54,6 +54,14 @@
 
 ### Added (Latest)
 
+- **分页查询 API（简化版）**
+  - PaginationRequest：分页请求参数（Page/PageSize）
+  - PaginationResult<T>：分页结果（Total/TotalPages/Page/PageSize/HasPrevious/HasNext/Data）
+  - FastRead.ToPagination()：扩展方法，传入 page 和 pageSize 返回分页结果
+  - FastRead.ToPaginationAsync()：异步版本
+  - 支持泛型版本（PaginationResult<T>）和字典版本（PaginationResult）
+  - FastData.Demo PaginationController：Web API 分页示例
+  - FastData.Example PaginationExample：分页查询使用教程
 - **Model Generator XML Map SQL 生成器**
   - XmlMapSqlGenerator.cs：从数据库表结构生成 FastData XML Map SQL
   - 自动生成 Select All / Select By PK / Select Dynamic / Insert / Update / Delete
@@ -63,7 +71,7 @@
   - TransactionExample.cs：事务使用示例
   - MultiDbExample.cs：多数据库使用示例
   - RawSqlExample.cs：原始 SQL 示例
-  - Program.cs 菜单更新：覆盖全部 10 种 ORM 功能场景
+  - Program.cs 菜单更新：覆盖全部 11 种 ORM 功能场景
 
 ### Changed
 

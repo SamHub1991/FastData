@@ -688,8 +688,105 @@ namespace FastData
         {
             return Task.Run(() =>
            {
-               return new Lazy<PageResult>(() => ToPage(item, pModel, db, isOutSql));
-           });
+                return new Lazy<PageResult>(() => ToPage(item, pModel, db, isOutSql));
+            });
+         }
+        #endregion
+
+        #region 分页查询（简化API）
+        /// <summary>
+        /// 分页查询（简化API）
+        /// 返回格式：{ Total, TotalPages, Page, PageSize, Data }
+        /// </summary>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="item">查询条件</param>
+        /// <param name="page">页码（从 1 开始）</param>
+        /// <param name="pageSize">每页条数</param>
+        /// <param name="db">数据库上下文（可选）</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>分页结果</returns>
+        public static PaginationResult<T> ToPagination<T>(this DataQuery item, int page, int pageSize, DataContext db = null, bool isOutSql = false) where T : class, new()
+        {
+            page = page < 1 ? 1 : page;
+            pageSize = pageSize < 1 ? 10 : pageSize;
+
+            var pModel = new PageModel
+            {
+                PageId = page,
+                PageSize = pageSize
+            };
+
+            var pageResult = ToPage<T>(item, pModel, db, isOutSql);
+            var total = pageResult.pModel.TotalRecord;
+
+            return new PaginationResult<T>
+            {
+                Total = total,
+                TotalPages = (int)Math.Ceiling(total / (double)pageSize),
+                Page = page,
+                PageSize = pageSize,
+                Data = pageResult.list
+            };
+        }
+        #endregion
+
+        #region 分页查询（简化API）asy
+        /// <summary>
+        /// 分页查询（简化API）异步版本
+        /// </summary>
+        public static Task<PaginationResult<T>> ToPaginationAsync<T>(this DataQuery item, int page, int pageSize, DataContext db = null, bool isOutSql = false) where T : class, new()
+        {
+            return Task.Run(() => ToPagination<T>(item, page, pageSize, db, isOutSql));
+        }
+        #endregion
+
+        #region 分页查询（使用 PaginationRequest）
+        /// <summary>
+        /// 分页查询（使用 PaginationRequest 对象）
+        /// </summary>
+        public static PaginationResult<T> ToPagination<T>(this DataQuery item, PaginationRequest request, DataContext db = null, bool isOutSql = false) where T : class, new()
+        {
+            return ToPagination<T>(item, request.Page, request.PageSize, db, isOutSql);
+        }
+        #endregion
+
+        #region 分页查询（使用 PaginationRequest）asy
+        /// <summary>
+        /// 分页查询（使用 PaginationRequest 对象）异步版本
+        /// </summary>
+        public static Task<PaginationResult<T>> ToPaginationAsync<T>(this DataQuery item, PaginationRequest request, DataContext db = null, bool isOutSql = false) where T : class, new()
+        {
+            return Task.Run(() => ToPagination<T>(item, request, db, isOutSql));
+        }
+        #endregion
+
+        #region 分页查询（字典版本）
+        /// <summary>
+        /// 分页查询（返回字典格式）
+        /// </summary>
+        public static PaginationResult ToPagination(this DataQuery item, int page, int pageSize, DataContext db = null, bool isOutSql = false)
+        {
+            page = page < 1 ? 1 : page;
+            pageSize = pageSize < 1 ? 10 : pageSize;
+
+            var pModel = new PageModel
+            {
+                PageId = page,
+                PageSize = pageSize
+            };
+
+            var pageResult = ToPage(item, pModel, db, isOutSql);
+            return PaginationResult.FromPageResult(pageResult, page, pageSize);
+        }
+        #endregion
+
+        #region 分页查询（字典版本）asy
+        /// <summary>
+        /// 分页查询（返回字典格式）异步版本
+        /// </summary>
+        public static Task<PaginationResult> ToPaginationAsync(this DataQuery item, int page, int pageSize, DataContext db = null, bool isOutSql = false)
+        {
+            return Task.Run(() => ToPagination(item, page, pageSize, db, isOutSql));
         }
         #endregion
 

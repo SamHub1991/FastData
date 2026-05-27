@@ -425,7 +425,66 @@ var users = FastRead.Query<User>("GetActiveUsers", new[]
 });
 ```
 
-### 8. AOP 拦截器
+### 9. 分页查询 API
+
+```csharp
+// 基本分页查询（简化API）
+// 传入 page 和 pageSize，返回 total、totalPages、data
+var result = FastRead.Query<User>(u => u.IsActive)
+    .OrderBy<User>(u => u.Id)
+    .ToPagination<User>(page: 1, pageSize: 10);
+
+// 返回结果：
+// {
+//   "total": 100,
+//   "totalPages": 10,
+//   "page": 1,
+//   "pageSize": 10,
+//   "hasPrevious": false,
+//   "hasNext": true,
+//   "data": [...]
+// }
+
+// 使用 PaginationRequest 对象（适合 Web API）
+[HttpPost]
+public ActionResult<PaginationResult<User>> Search([FromBody] PaginationRequest request)
+{
+    var result = FastRead.Query<User>(u => u.IsActive)
+        .OrderBy<User>(u => u.CreateTime)
+        .ToPagination<User>(request);
+    return Ok(result);
+}
+
+// 异步版本
+var result = await FastRead.Query<User>(u => u.Id > 0)
+    .OrderBy<User>(u => u.Id)
+    .ToPaginationAsync<User>(page: 1, pageSize: 20);
+
+// 带条件的分页查询
+var result = FastRead.Query<User>(u => u.Department == "IT")
+    .OrderBy<User>(u => u.Id)
+    .ToPagination<User>(page: 1, pageSize: 10);
+
+// 返回字典格式（适合动态字段）
+var result = FastRead.Query<User>(u => u.Id > 0)
+    .OrderBy<User>(u => u.Id)
+    .ToPagination(page: 1, pageSize: 10);
+// 返回 PaginationResult（非泛型），Data 为 List<Dictionary<string, object>>
+```
+
+**PaginationResult 返回字段说明：**
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| Total | int | 总记录数 |
+| TotalPages | int | 总页数（自动计算） |
+| Page | int | 当前页码 |
+| PageSize | int | 每页条数 |
+| HasPrevious | bool | 是否有上一页 |
+| HasNext | bool | 是否有下一页 |
+| Data | List&lt;T&gt; | 数据列表 |
+
+### 10. AOP 拦截器
 
 ```csharp
 public class SqlLogAop : IFastAop

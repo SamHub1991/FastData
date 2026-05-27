@@ -31,7 +31,8 @@ namespace FastData.Example
                 Console.WriteLine("  7. 数据同步工具");
                 Console.WriteLine("  8. 消息队列（RTU 削峰/多方推送）");
                 Console.WriteLine("  9. FastWrite/FastRead 链式 API（写入后端队列/查询队列）");
-                Console.WriteLine("  10. 运行所有示例");
+                Console.WriteLine("  10. 分页查询 API");
+                Console.WriteLine("  11. 运行所有示例");
                 Console.WriteLine("  0. 退出");
                 Console.WriteLine();
 
@@ -81,6 +82,9 @@ namespace FastData.Example
 #endif
                         break;
                     case "10":
+                        PaginationExample.Run();
+                        break;
+                    case "11":
                         BasicCrudExample.Run();
                         LambdaQueryExample.Run();
                         RawSqlExample.Run();
@@ -91,6 +95,7 @@ namespace FastData.Example
 #if !NETFRAMEWORK
                         MessageQueueExample.Run();
 #endif
+                        PaginationExample.Run();
                         break;
                     default:
                         Console.WriteLine("无效选项，请重新输入");
