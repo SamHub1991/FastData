@@ -6,7 +6,7 @@
 
 ### Added
 
-- **分表功能完整示例和演示**（bc832f7, 6304250, b1d0216, d2efa79）
+- **分表功能完整示例和演示**（bc832f7, 6304250, b1d0216, d2efa79, 89783ea）
   - ShardingFullExample.cs：SQL Server 分表完整示例
     - 批量数据插入（10000 条日志、5000 条订单）
     - 时间/哈希/列表/查询频率分表策略
@@ -62,6 +62,11 @@
   - ShardingConfigEditDialog.cs：配置编辑对话框
     - 5种分表策略独立配置面板
     - 可视化值映射编辑
+  - ShardingDataControl.cs：数据操作控件
+    - 分表统计：显示所有表名、记录数、类型、大小
+    - 跨表查询：支持UNION ALL跨表查询，导出结果
+    - 批量增删改：批量插入/更新/删除，危险操作确认
+    - 数据导出：CSV格式导出
   - DataQuery.cs：分表属性改为 public
   - MainForm.cs：集成 ShardingSyncControl
 

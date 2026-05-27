@@ -592,6 +592,15 @@ namespace FastData.SyncTool.WinForms
             syncTab.Controls.Add(shardingSyncControl);
             shardingTabControl.TabPages.Add(syncTab);
 
+            // 数据导入标签页
+            var importTab = new TabPage("数据导入");
+            var shardingImportControl = new FastData.SyncTool.WinForms.Components.ShardingImportControl
+            {
+                Dock = DockStyle.Fill
+            };
+            importTab.Controls.Add(shardingImportControl);
+            shardingTabControl.TabPages.Add(importTab);
+
             // 数据操作标签页
             var dataTab = new TabPage("数据操作");
             var shardingDataControl = new FastData.SyncTool.WinForms.Components.ShardingDataControl
