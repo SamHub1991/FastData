@@ -188,45 +188,44 @@ var deptUsers = FastRead.Query<User>(u => u.Department == "IT")
 
 // 链式 Where/Or 条件（动态查询场景）
 // 先定义基础查询，再根据条件追加过滤
-var query = FastRead.Query<User>(u => u.IsActive);
-var users = query
-    .Where<User>(u => u.Age > 18)
-    .Or<User>(u => u.Role == "Admin")
-    .OrderBy<User>(u => u.Id)
+var users = FastRead.Query<User>(u => u.IsActive)
+    .Where(u => u.Age > 18)           // 不需要 <User>
+    .Or(u => u.Role == "Admin")       // 不需要 <User>
+    .OrderBy(u => u.Id)
     .ToList();
 // 生成 SQL: WHERE IsActive = 1 AND Age > 18 OR Role = 'Admin'
 
 // 链式 And 条件（And 是 Where 的别名）
 var users = FastRead.Query<User>(u => u.IsActive)
-    .And<User>(u => u.Age > 18)
-    .And<User>(u => u.Department == "IT")
+    .And(u => u.Age > 18)             // 不需要 <User>
+    .And(u => u.Department == "IT")   // 不需要 <User>
     .ToList();
 
 // 链式 Like 条件
 var users = FastRead.Query<User>()
-    .Like<User>(u => u.UserName, "张%")       // LIKE '张%'
-    .Contains<User>(u => u.Email, "test")     // LIKE '%test%'
-    .StartsWith<User>(u => u.Address, "北京") // LIKE '北京%'
-    .EndsWith<User>(u => u.Phone, "8888")     // LIKE '%8888'
+    .Like(u => u.UserName, "张%")       // LIKE '张%'
+    .Contains(u => u.Email, "test")     // LIKE '%test%'
+    .StartsWith(u => u.Address, "北京") // LIKE '北京%'
+    .EndsWith(u => u.Phone, "8888")     // LIKE '%8888'
     .ToList();
 
 // 链式 In 条件
 var users = FastRead.Query<User>()
-    .In<User>(u => u.Department, new[] { "IT", "HR", "Finance" })
+    .In(u => u.Department, new[] { "IT", "HR", "Finance" })
     .ToList();
 
 // 链式 Between 条件
 var users = FastRead.Query<User>()
-    .Between<User>(u => u.Age, 18, 65)
+    .Between(u => u.Age, 18, 65)
     .ToList();
 
-// 组合使用多种链式条件
+// 组合使用多种链式条件（只需写一次 <User>）
 var users = FastRead.Query<User>(u => u.IsActive)
-    .And<User>(u => u.Age > 18)
-    .Or<User>(u => u.Role == "Admin")
-    .Like<User>(u => u.UserName, "张%")
-    .In<User>(u => u.Department, new[] { "IT", "HR" })
-    .OrderBy<User>(u => u.Id)
+    .And(u => u.Age > 18)
+    .Or(u => u.Role == "Admin")
+    .Like(u => u.UserName, "张%")
+    .In(u => u.Department, new[] { "IT", "HR" })
+    .OrderBy(u => u.Id)
     .Select(u => new { u.Id, u.UserName, u.Department })
     .ToList();
 ```

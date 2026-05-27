@@ -116,11 +116,11 @@ namespace FastData
         /// <param name="field">字段</param>
         /// <param name="Key"></param>
         /// <returns></returns>
-        public static DataQuery Query<T>(Expression<Func<T, bool>> predicate, Expression<Func<T, object>> field = null, string key = null, string dbFile = "db.config")
+        public static DataQuery<T> Query<T>(Expression<Func<T, bool>> predicate, Expression<Func<T, object>> field = null, string key = null, string dbFile = "db.config") where T : class, new()
         {
             key = key ?? FastDb.CurrentKey;
             var projectName = Assembly.GetCallingAssembly().GetName().Name;
-            var result = new DataQuery();
+            var result = new DataQuery<T>();
             result.Config = DataConfig.GetConfig(key, projectName, dbFile);
             result.Key = key;
 

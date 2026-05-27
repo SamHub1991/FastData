@@ -8,7 +8,7 @@ namespace FastData.Model
     /// <summary>
     /// 查询
     /// </summary>
-    public sealed class DataQuery
+    public class DataQuery
     {
         /// <summary>
         /// 实体类型（用于链式调用时省略泛型参数）

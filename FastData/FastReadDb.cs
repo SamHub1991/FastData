@@ -42,7 +42,7 @@ namespace FastData
         }
 #endif
 
-        public DataQuery Query<T>(Expression<Func<T, bool>> predicate, Expression<Func<T, object>> field = null, string dbFile = "db.config")
+        public DataQuery<T> Query<T>(Expression<Func<T, bool>> predicate, Expression<Func<T, object>> field = null, string dbFile = "db.config") where T : class, new()
         {
             return FastRead.Query(predicate, field, key, dbFile);
         }
