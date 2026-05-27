@@ -447,7 +447,68 @@ var users = FastRead.Query<User>("GetActiveUsers", new[]
 });
 ```
 
-### 9. 分页查询 API
+### 9. 匿名类型支持
+
+#### FastWrite 队列支持匿名类型
+
+```csharp
+// 使用匿名类型推送到队列（需要指定表名）
+FastWrite.QueueBuilder()
+    .Add("SensorData", new { 
+        SensorId = "temp-001", 
+        Value = 25.5, 
+        Timestamp = DateTime.Now 
+    })
+    .Execute();
+
+// 批量添加匿名类型
+var sensors = new[] {
+    new { SensorId = "temp-001", Value = 25.5 },
+    new { SensorId = "temp-002", Value = 26.0 },
+    new { SensorId = "temp-003", Value = 24.8 }
+};
+
+FastWrite.QueueBuilder()
+    .AddRange("SensorData", sensors)
+    .Execute();
+
+// 更新匿名类型
+FastWrite.QueueBuilder()
+    .Update("SensorData", new { SensorId = "temp-001", Value = 30.0 })
+    .Execute();
+
+// 删除匿名类型
+FastWrite.QueueBuilder()
+    .Delete("SensorData", new { SensorId = "temp-001" })
+    .Execute();
+
+// 带元数据的匿名类型
+FastWrite.QueueBuilder()
+    .AddMetadata("source", "iot-device")
+    .AddMetadata("batch", "20260527")
+    .Add("SensorData", new { SensorId = "temp-001", Value = 25.5 })
+    .Execute();
+```
+
+#### FastRead 查询支持匿名类型投影
+
+```csharp
+// 只查询需要的字段
+var users = FastRead.Query<User>(u => u.IsActive)
+    .Select(u => new { u.Id, u.UserName, u.Email })
+    .ToList();
+
+// 投影 + 分页
+var result = FastRead.Query<User>(u => u.IsActive && u.Age > 18)
+    .OrderBy<User>(u => u.Id)
+    .Select(u => new { u.Id, u.UserName, u.Department })
+    .ToPagination(page: 1, pageSize: 10);
+// result.Total = 过滤后的总记录数
+// result.TotalPages = 总页数
+// result.Data = 当前页的投影数据
+```
+
+### 10. 分页查询 API
 
 ```csharp
 // 基本分页查询（简化API）

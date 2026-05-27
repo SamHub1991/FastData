@@ -54,6 +54,12 @@
 
 ### Added (Latest)
 
+- **FastWrite 队列匿名类型支持**
+  - Add<T>(tableName, model)：支持匿名类型 INSERT
+  - AddRange<T>(tableName, models)：支持匿名类型批量 INSERT
+  - Update<T>(tableName, model)：支持匿名类型 UPDATE
+  - Delete<T>(tableName, model)：支持匿名类型 DELETE
+  - 用法：`FastWrite.QueueBuilder().Add("TableName", new { ... }).Execute()`
 - **匿名类型投影查询（Select）**
   - ProjectedQuery<T, TResult>：投影查询类，支持匿名类型
   - FastRead.Select()：扩展方法，支持 `.Select(p => new { p.Id, p.Name })` 语法

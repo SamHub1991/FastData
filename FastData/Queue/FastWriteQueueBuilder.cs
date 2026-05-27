@@ -72,6 +72,32 @@ namespace FastData.Queue
         }
 
         /// <summary>
+        /// 添加实体（INSERT）- 支持匿名类型
+        /// </summary>
+        /// <typeparam name="T">实体类型（可以是匿名类型）</typeparam>
+        /// <param name="tableName">表名</param>
+        /// <param name="model">实体对象</param>
+        /// <param name="metadata">操作级别的扩展元数据（可选）</param>
+        /// <returns>构建器（支持链式调用）</returns>
+        public FastWriteQueueBuilder Add<T>(string tableName, T model, Dictionary<string, object> metadata = null) where T : class
+        {
+            if (string.IsNullOrEmpty(tableName))
+                throw new ArgumentNullException(nameof(tableName));
+
+            var operation = new WriteOperation
+            {
+                OperationType = WriteOperationType.Add,
+                TableName = tableName,
+                EntityType = typeof(T).FullName ?? "Anonymous",
+                Data = JsonConvert.SerializeObject(model),
+                DatabaseKey = _databaseKey,
+                Metadata = MergeMetadata(metadata)
+            };
+            _operations.Add(operation);
+            return this;
+        }
+
+        /// <summary>
         /// 批量添加实体（INSERT）
         /// </summary>
         /// <typeparam name="T">实体类型</typeparam>
@@ -83,6 +109,23 @@ namespace FastData.Queue
             foreach (var model in models)
             {
                 Add(model, metadata);
+            }
+            return this;
+        }
+
+        /// <summary>
+        /// 批量添加实体（INSERT）- 支持匿名类型
+        /// </summary>
+        /// <typeparam name="T">实体类型（可以是匿名类型）</typeparam>
+        /// <param name="tableName">表名</param>
+        /// <param name="models">实体列表</param>
+        /// <param name="metadata">操作级别的扩展元数据（可选）</param>
+        /// <returns>构建器（支持链式调用）</returns>
+        public FastWriteQueueBuilder AddRange<T>(string tableName, IEnumerable<T> models, Dictionary<string, object> metadata = null) where T : class
+        {
+            foreach (var model in models)
+            {
+                Add(tableName, model, metadata);
             }
             return this;
         }
@@ -111,6 +154,32 @@ namespace FastData.Queue
         }
 
         /// <summary>
+        /// 更新实体（UPDATE）- 支持匿名类型
+        /// </summary>
+        /// <typeparam name="T">实体类型（可以是匿名类型）</typeparam>
+        /// <param name="tableName">表名</param>
+        /// <param name="model">实体对象</param>
+        /// <param name="metadata">操作级别的扩展元数据（可选）</param>
+        /// <returns>构建器（支持链式调用）</returns>
+        public FastWriteQueueBuilder Update<T>(string tableName, T model, Dictionary<string, object> metadata = null) where T : class
+        {
+            if (string.IsNullOrEmpty(tableName))
+                throw new ArgumentNullException(nameof(tableName));
+
+            var operation = new WriteOperation
+            {
+                OperationType = WriteOperationType.Update,
+                TableName = tableName,
+                EntityType = typeof(T).FullName ?? "Anonymous",
+                Data = JsonConvert.SerializeObject(model),
+                DatabaseKey = _databaseKey,
+                Metadata = MergeMetadata(metadata)
+            };
+            _operations.Add(operation);
+            return this;
+        }
+
+        /// <summary>
         /// 删除实体（DELETE by PrimaryKey）
         /// </summary>
         /// <typeparam name="T">实体类型</typeparam>
@@ -124,6 +193,32 @@ namespace FastData.Queue
                 OperationType = WriteOperationType.Delete,
                 TableName = typeof(T).Name,
                 EntityType = typeof(T).FullName,
+                Data = JsonConvert.SerializeObject(model),
+                DatabaseKey = _databaseKey,
+                Metadata = MergeMetadata(metadata)
+            };
+            _operations.Add(operation);
+            return this;
+        }
+
+        /// <summary>
+        /// 删除实体（DELETE）- 支持匿名类型
+        /// </summary>
+        /// <typeparam name="T">实体类型（可以是匿名类型）</typeparam>
+        /// <param name="tableName">表名</param>
+        /// <param name="model">实体对象</param>
+        /// <param name="metadata">操作级别的扩展元数据（可选）</param>
+        /// <returns>构建器（支持链式调用）</returns>
+        public FastWriteQueueBuilder Delete<T>(string tableName, T model, Dictionary<string, object> metadata = null) where T : class
+        {
+            if (string.IsNullOrEmpty(tableName))
+                throw new ArgumentNullException(nameof(tableName));
+
+            var operation = new WriteOperation
+            {
+                OperationType = WriteOperationType.Delete,
+                TableName = tableName,
+                EntityType = typeof(T).FullName ?? "Anonymous",
                 Data = JsonConvert.SerializeObject(model),
                 DatabaseKey = _databaseKey,
                 Metadata = MergeMetadata(metadata)
