@@ -83,6 +83,8 @@ app.MapGet("/", () => new
         "POST /api/sync/all - 同步所有表",
         "POST /api/mq/demo/reliable - 消息队列示例（可信队列）",
         "POST /api/mq/demo/stream - 消息队列示例（多消费组）",
+        "POST /api/mq/demo/write-queue - FastWrite 链式 API 示例（写入后端队列）",
+        "POST /api/mq/demo/read-queue - FastRead 链式 API 示例（查询队列）",
         "GET  /api/mq/status/{topic} - 获取队列状态",
         "GET  /api/health - 健康检查"
     }
@@ -134,6 +136,50 @@ app.MapGet("/api/mq/status/{topic}", (string topic, string type, MessageQueueSer
         var queueType = type?.ToLower() == "stream" ? MessageQueueType.Stream : MessageQueueType.ReliableQueue;
         var status = mqService.GetQueueStatus(topic, queueType);
         return Results.Ok(status);
+    }
+    catch (Exception ex)
+    {
+        return Results.BadRequest(new { Success = false, Error = ex.Message });
+    }
+});
+
+// FastWrite 链式 API 示例（写入后端队列）
+app.MapPost("/api/mq/demo/write-queue", (MessageQueueService mqService) =>
+{
+    try
+    {
+        var result = mqService.DemoFastWriteQueue();
+        return Results.Ok(new
+        {
+            Success = result.Success,
+            Message = "FastWrite 链式 API 示例完成",
+            DirectWriteCount = result.DirectWriteCount,
+            QueuedCount = result.QueuedCount,
+            FailedCount = result.FailedCount,
+            FallbackOccurred = result.FallbackOccurred,
+            Description = "场景：数据库异常自动降级到可信队列，恢复后自动刷写"
+        });
+    }
+    catch (Exception ex)
+    {
+        return Results.BadRequest(new { Success = false, Error = ex.Message });
+    }
+});
+
+// FastRead 链式 API 示例（查询队列）
+app.MapPost("/api/mq/demo/read-queue", (MessageQueueService mqService) =>
+{
+    try
+    {
+        var result = mqService.DemoFastReadQueue();
+        return Results.Ok(new
+        {
+            Success = result.Success,
+            Message = "FastRead 链式 API 示例完成",
+            QueuedCount = result.QueuedCount,
+            FailedCount = result.FailedCount,
+            Description = "场景：将查询请求推送到消息队列，支持扩展元数据"
+        });
     }
     catch (Exception ex)
     {

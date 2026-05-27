@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using FastData.Demo.Models;
+using FastData.Queue;
 using FastRedis.Messaging;
 using FastRedis.Services;
 using NewLife.Caching;
@@ -14,6 +15,7 @@ namespace FastData.Demo.Services
     /// <summary>
     /// 消息队列示例服务
     /// 演示 RTU 数据上传场景：一边存库、多方推送
+    /// 演示 FastWrite/FastRead 链式 API 和扩展元数据
     /// </summary>
     public class MessageQueueService : IDisposable
     {
@@ -35,6 +37,10 @@ namespace FastData.Demo.Services
 
             _mqService = new MessageQueueIntegrationService(redis);
             _cts = new CancellationTokenSource();
+
+            // 初始化写入后端执行器
+            WriteBehindExecutor.Initialize(redis);
+            ReadQueueExecutor.Initialize(redis);
         }
 
         /// <summary>
@@ -124,7 +130,7 @@ namespace FastData.Demo.Services
                 {
                     if (data.Temperature > 30)
                     {
-                        Console.WriteLine($"  [Alert] ⚠ 高温告警: {data.DeviceId} - {data.Temperature}°C");
+                        Console.WriteLine($"  [Alert] 高温告警: {data.DeviceId} - {data.Temperature}°C");
                     }
                 },
                 // 消费组 3: 数据分析
@@ -187,12 +193,134 @@ namespace FastData.Demo.Services
         }
 
         /// <summary>
-        /// 示例 4: 配置驱动的消息队列（通过 TableSyncConfig）
+        /// 示例 4: FastWrite 链式 API（写入后端队列）
+        /// 场景：数据库异常自动降级到可信队列，恢复后自动刷写
+        /// </summary>
+        public WriteBehindResult DemoFastWriteQueue()
+        {
+            Console.WriteLine("=== 示例 4: FastWrite 链式 API（写入后端队列） ===");
+            Console.WriteLine("场景：数据库异常自动降级到可信队列");
+            Console.WriteLine();
+
+            // 1. 配置表级别的消息队列（启用降级）
+            FastWrite.ConfigureQueue<User>(new WriteBehindConfig
+            {
+                QueueType = WriteBehindQueueType.ReliableQueue,
+                EnableFallback = true,
+                EnableAutoRecovery = true,
+                Topic = "demo:users"
+            });
+
+            Console.WriteLine("已配置 User 表启用可信队列（降级模式）");
+
+            // 2. 使用链式 API 写入（带扩展元数据）
+            var users = new List<User>
+            {
+                new User { Id = 101, UserName = "rtu_user_001", Email = "rtu001@example.com", Age = 25, IsActive = true, CreateTime = DateTime.Now },
+                new User { Id = 102, UserName = "rtu_user_002", Email = "rtu002@example.com", Age = 30, IsActive = true, CreateTime = DateTime.Now },
+                new User { Id = 103, UserName = "rtu_user_003", Email = "rtu003@example.com", Age = 28, IsActive = false, CreateTime = DateTime.Now }
+            };
+
+            Console.WriteLine($"使用 FastWrite.QueueBuilder() 写入 {users.Count} 个用户...");
+
+            var result = FastWrite.QueueBuilder()
+                .WithMetadata(new Dictionary<string, object>
+                {
+                    {"source", "RTU-DataSync"},
+                    {"batchId", $"BATCH-{DateTime.Now:yyyyMMddHHmmss}"},
+                    {"operator", "system"}
+                })
+                .Add(users[0])
+                .Add(users[1], new Dictionary<string, object> { {"priority", "high"} })
+                .Add(users[2])
+                .Execute();
+
+            // 3. 输出结果
+            Console.WriteLine($"执行结果: Success={result.Success}");
+            Console.WriteLine($"  直接写入数据库: {result.DirectWriteCount} 条");
+            Console.WriteLine($"  写入队列（降级）: {result.QueuedCount} 条");
+            Console.WriteLine($"  失败: {result.FailedCount} 条");
+            Console.WriteLine($"  降级发生: {result.FallbackOccurred}");
+
+            if (result.Details.Count > 0)
+            {
+                Console.WriteLine("  详细结果:");
+                foreach (var detail in result.Details)
+                {
+                    Console.WriteLine($"    - {detail.TableName} {detail.OperationType}: Success={detail.Success}, UsedQueue={detail.UsedQueue}");
+                }
+            }
+
+            Console.WriteLine();
+            return result;
+        }
+
+        /// <summary>
+        /// 示例 5: FastRead 链式 API（查询请求推送到队列）
+        /// 场景：将查询请求推送到消息队列，实现异步查询或查询审计
+        /// </summary>
+        public ReadQueueResult DemoFastReadQueue()
+        {
+            Console.WriteLine("=== 示例 5: FastRead 链式 API（查询队列） ===");
+            Console.WriteLine("场景：将查询请求推送到消息队列");
+            Console.WriteLine();
+
+            // 1. 配置表级别的消息队列
+            FastRead.ConfigureQueue<User>(new WriteBehindConfig
+            {
+                QueueType = WriteBehindQueueType.ReliableQueue,
+                Topic = "demo:user-queries"
+            });
+
+            Console.WriteLine("已配置 User 表启用查询队列");
+
+            // 2. 使用链式 API 推送查询请求（带扩展元数据）
+            Console.WriteLine("使用 FastRead.QueueBuilder<User>() 推送查询请求...");
+
+            var result = FastRead.QueueBuilder<User>()
+                .WithMetadata(new Dictionary<string, object>
+                {
+                    {"requestId", Guid.NewGuid().ToString()},
+                    {"source", "web-ui"},
+                    {"userId", 1001}
+                })
+                .QueryList(u => u.IsActive, metadata: new Dictionary<string, object> { {"queryType", "active-users"} })
+                .QueryCount(u => u.Age > 25, metadata: new Dictionary<string, object> { {"queryType", "age-filter"} })
+                .QueryPaging(1, 10, u => u.IsActive, u => u.CreateTime, false, new Dictionary<string, object> { {"queryType", "paged-list"} })
+                .Execute();
+
+            // 3. 输出结果
+            Console.WriteLine($"执行结果: Success={result.Success}");
+            Console.WriteLine($"  推送到队列: {result.QueuedCount} 条");
+            Console.WriteLine($"  失败: {result.FailedCount} 条");
+
+            if (result.Details.Count > 0)
+            {
+                Console.WriteLine("  详细结果:");
+                foreach (var detail in result.Details)
+                {
+                    Console.WriteLine($"    - {detail.TableName} {detail.OperationType}: Success={detail.Success}");
+                    if (detail.Metadata != null && detail.Metadata.Count > 0)
+                    {
+                        foreach (var meta in detail.Metadata)
+                        {
+                            Console.WriteLine($"      Metadata: {meta.Key}={meta.Value}");
+                        }
+                    }
+                }
+            }
+
+            Console.WriteLine();
+            return result;
+        }
+
+        /// <summary>
+        /// 示例 6: 配置驱动的消息队列（通过 TableSyncConfig）
         /// 场景：同步配置自动启用消息队列
         /// </summary>
         public void DemoConfigDrivenQueue()
         {
-            Console.WriteLine("=== 示例 4: 配置驱动的消息队列 ===");
+            Console.WriteLine("=== 示例 6: 配置驱动的消息队列 ===");
             Console.WriteLine("场景：通过 TableSyncConfig 配置消息队列");
             Console.WriteLine();
 
