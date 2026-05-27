@@ -152,17 +152,39 @@ var activeUsers = FastRead.Query<User>(a => a.IsActive && a.Age > 18);
 var users = FastRead.Query<User>(a => a.Department == "IT" && a.Salary > 10000);
 
 // 排序
-var sortedUsers = FastRead.Query<User>(a => true).OrderByDescending(a => a.CreateTime);
+var sortedUsers = FastRead.Query<User>(a => true).OrderByDescending<User>(a => a.CreateTime);
 
-// 分页
-var pageResult = FastRead.QueryPage<User>(new PageModel { PageIndex = 1, PageSize = 20 }, a => a.IsActive);
+// 分页（简化API）
+var pageResult = FastRead.Query<User>(u => u.IsActive)
+    .OrderBy<User>(u => u.Id)
+    .ToPagination<User>(page: 1, pageSize: 10);
+// pageResult.Total, pageResult.TotalPages, pageResult.Data
 
 // 聚合
 var count = FastRead.Query<User>(a => a.IsActive).Count();
-var maxAge = FastRead.Query<User>(a => true).Max(a => a.Age);
 
-// 关联查询
-var orders = FastRead.Query<Order, User>((o, u) => o.UserId == u.Id && u.IsActive);
+// 匿名类型投影（Select）
+// 只查询需要的字段，减少数据传输
+var users = FastRead.Query<User>(u => u.IsActive)
+    .Select(u => new { u.Id, u.UserName, u.Email })
+    .ToList();
+// users 类型为 List<{ int Id, string UserName, string Email }>
+
+// 匿名类型投影 + 分页
+// 带过滤条件的分页投影查询
+var result = FastRead.Query<User>(u => u.IsActive && u.Age > 18)
+    .OrderBy<User>(u => u.Id)
+    .Select(u => new { u.Id, u.UserName, u.Department })
+    .ToPagination(page: 1, pageSize: 10);
+// result.Total = 过滤后的总记录数
+// result.TotalPages = 总页数
+// result.Data = 当前页的投影数据
+
+// 匿名类型投影 + 条件过滤
+var deptUsers = FastRead.Query<User>(u => u.Department == "IT")
+    .OrderBy<User>(u => u.UserName)
+    .Select(u => new { u.Id, u.UserName, u.Email })
+    .ToList();
 ```
 
 ### 3. 多数据库切换

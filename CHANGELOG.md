@@ -54,6 +54,11 @@
 
 ### Added (Latest)
 
+- **匿名类型投影查询（Select）**
+  - ProjectedQuery<T, TResult>：投影查询类，支持匿名类型
+  - FastRead.Select()：扩展方法，支持 `.Select(p => new { p.Id, p.Name })` 语法
+  - 支持 ToList()、ToPagination()、ToItem()、ToCount() 等操作
+  - 16 个单元测试验证分页计算和投影逻辑
 - **分页查询 API（简化版）**
   - PaginationRequest：分页请求参数（Page/PageSize）
   - PaginationResult<T>：分页结果（Total/TotalPages/Page/PageSize/HasPrevious/HasNext/Data）

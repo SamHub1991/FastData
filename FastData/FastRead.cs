@@ -136,6 +136,22 @@ namespace FastData
         }
         #endregion
 
+        #region Select 投影查询（支持匿名类型）
+        /// <summary>
+        /// 投影查询（支持匿名类型）
+        /// 用法：FastRead.Query&lt;User&gt;(u => u.IsActive).Select(p => new { p.Id, p.UserName }).ToList()
+        /// </summary>
+        /// <typeparam name="T">源实体类型</typeparam>
+        /// <typeparam name="TResult">投影结果类型（可以是匿名类型）</typeparam>
+        /// <param name="query">查询条件</param>
+        /// <param name="selector">投影表达式</param>
+        /// <returns>投影查询对象</returns>
+        public static ProjectedQuery<T, TResult> Select<T, TResult>(this DataQuery query, Expression<Func<T, TResult>> selector) where T : class, new()
+        {
+            return new ProjectedQuery<T, TResult>(query, selector);
+        }
+        #endregion
+
         #region 查询left join
         /// <summary>
         /// 查询left join
