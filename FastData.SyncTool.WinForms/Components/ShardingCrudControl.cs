@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.SqlClient;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
@@ -18,11 +19,15 @@ namespace FastData.SyncTool.WinForms.Components
         private readonly DatabaseService _dbService;
         private readonly LogService _logService;
 
+        // 连接字符串
+        private string _connectionString = "server=.;database=FastDataDemo;uid=sa;pwd=YourPassword123";
+
         // 配置区域
         private GroupBox _configGroup;
         private ComboBox _entityTypeCombo;
         private ComboBox _shardingTypeCombo;
         private TextBox _baseTableNameText;
+        private TextBox _connectionStringText;
         private TabControl _shardingConfigTabs;
 
         // 时间分表配置
@@ -65,12 +70,34 @@ namespace FastData.SyncTool.WinForms.Components
         private Button _queryAllButton;
         private Button _queryByConditionButton;
 
-        // 数据区域
+        // 数据操作区域
         private GroupBox _dataGroup;
         private DataGridView _dataGrid;
+        privateTabControl _operationTabs;
+
+        // 查询 Tab
+        private TabPage _queryTab;
         private TextBox _sqlText;
-        private Button _executeButton;
-        private Button _exportButton;
+        private Button _executeQueryButton;
+
+        // 插入 Tab
+        private TabPage _insertTab;
+        private TextBox _insertTableNameText;
+        private DataGridView _insertDataGrid;
+        private Button _insertButton;
+
+        // 更新 Tab
+        private TabPage _updateTab;
+        private TextBox _updateTableNameText;
+        private TextBox _updateSetClauseText;
+        private TextBox _updateWhereClauseText;
+        private Button _updateButton;
+
+        // 删除 Tab
+        private TabPage _deleteTab;
+        private TextBox _deleteTableNameText;
+        private TextBox _deleteWhereClauseText;
+        private Button _deleteButton;
 
         // 状态栏
         private StatusStrip _statusStrip;
@@ -113,17 +140,22 @@ namespace FastData.SyncTool.WinForms.Components
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 2,
-                RowCount = 8
+                RowCount = 9
             };
 
+            // 连接字符串
+            configLayout.Controls.Add(new Label { Text = "连接字符串:", TextAlign = ContentAlignment.MiddleRight }, 0, 0);
+            _connectionStringText = new TextBox { Dock = DockStyle.Fill, Text = _connectionString };
+            configLayout.Controls.Add(_connectionStringText, 1, 0);
+
             // 实体类型
-            configLayout.Controls.Add(new Label { Text = "实体类型:", TextAlign = ContentAlignment.MiddleRight }, 0, 0);
+            configLayout.Controls.Add(new Label { Text = "实体类型:", TextAlign = ContentAlignment.MiddleRight }, 0, 1);
             _entityTypeCombo = new ComboBox { Dock = DockStyle.Fill, DropDownStyle = ComboBoxStyle.DropDownList };
             _entityTypeCombo.SelectedIndexChanged += EntityTypeChanged;
-            configLayout.Controls.Add(_entityTypeCombo, 1, 0);
+            configLayout.Controls.Add(_entityTypeCombo, 1, 1);
 
             // 分表类型
-            configLayout.Controls.Add(new Label { Text = "分表类型:", TextAlign = ContentAlignment.MiddleRight }, 0, 1);
+            configLayout.Controls.Add(new Label { Text = "分表类型:", TextAlign = ContentAlignment.MiddleRight }, 0, 2);
             _shardingTypeCombo = new ComboBox
             {
                 Dock = DockStyle.Fill,
@@ -131,16 +163,16 @@ namespace FastData.SyncTool.WinForms.Components
                 DataSource = Enum.GetValues(typeof(ShardingType))
             };
             _shardingTypeCombo.SelectedIndexChanged += ShardingTypeChanged;
-            configLayout.Controls.Add(_shardingTypeCombo, 1, 1);
+            configLayout.Controls.Add(_shardingTypeCombo, 1, 2);
 
             // 基础表名
-            configLayout.Controls.Add(new Label { Text = "基础表名:", TextAlign = ContentAlignment.MiddleRight }, 0, 2);
+            configLayout.Controls.Add(new Label { Text = "基础表名:", TextAlign = ContentAlignment.MiddleRight }, 0, 3);
             _baseTableNameText = new TextBox { Dock = DockStyle.Fill };
-            configLayout.Controls.Add(_baseTableNameText, 1, 2);
+            configLayout.Controls.Add(_baseTableNameText, 1, 3);
 
             // 分表配置选项卡
             _shardingConfigTabs = new TabControl { Dock = DockStyle.Fill };
-            configLayout.Controls.Add(_shardingConfigTabs, 0, 3);
+            configLayout.Controls.Add(_shardingConfigTabs, 0, 4);
             configLayout.SetColumnSpan(_shardingConfigTabs, 2);
             configLayout.SetRowSpan(_shardingConfigTabs, 3);
 
@@ -255,7 +287,7 @@ namespace FastData.SyncTool.WinForms.Components
             _refreshButton.Click += (s, e) => RefreshTableList();
             buttonPanel.Controls.Add(_refreshButton);
 
-            configLayout.Controls.Add(buttonPanel, 0, 6);
+            configLayout.Controls.Add(buttonPanel, 0, 7);
             configLayout.SetColumnSpan(buttonPanel, 2);
 
             _configGroup.Controls.Add(configLayout);
@@ -300,16 +332,21 @@ namespace FastData.SyncTool.WinForms.Components
             _queryGroup.Controls.Add(queryLayout);
             mainLayout.Controls.Add(_queryGroup, 1, 0);
 
-            // 数据区域
+            // 数据操作区域
             _dataGroup = new GroupBox
             {
-                Text = "数据操作",
+                Text = "数据操作（增删改查）",
                 Dock = DockStyle.Fill,
                 Padding = new Padding(10)
             };
-            var dataLayout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 4 };
+            var dataLayout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2 };
 
-            // SQL 输入
+            // 操作选项卡
+            _operationTabs = new TabControl { Dock = DockStyle.Fill };
+
+            // 查询 Tab
+            _queryTab = new TabPage("查询");
+            var queryTabLayout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3 };
             _sqlText = new TextBox
             {
                 Dock = DockStyle.Fill,
@@ -317,19 +354,73 @@ namespace FastData.SyncTool.WinForms.Components
                 Height = 60,
                 Text = "SELECT * FROM "
             };
-            dataLayout.Controls.Add(_sqlText, 0, 0);
+            queryTabLayout.Controls.Add(_sqlText, 0, 0);
+            _executeQueryButton = new Button { Text = "执行查询", Width = 100, Height = 30 };
+            _executeQueryButton.Click += ExecuteQuery;
+            queryTabLayout.Controls.Add(_executeQueryButton, 0, 1);
+            var queryResultGrid = new DataGridView { Dock = DockStyle.Fill, ReadOnly = true, AllowUserToAddRows = false };
+            queryTabLayout.Controls.Add(queryResultGrid, 0, 2);
+            _queryTab.Controls.Add(queryTabLayout);
+            _operationTabs.TabPages.Add(_queryTab);
 
-            // 操作按钮
-            var dataButtonPanel = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.LeftToRight };
-            _executeButton = new Button { Text = "执行查询", Width = 80, Height = 30 };
-            _executeButton.Click += ExecuteQuery;
-            dataButtonPanel.Controls.Add(_executeButton);
+            // 插入 Tab
+            _insertTab = new TabPage("插入");
+            var insertTabLayout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 4 };
+            insertTabLayout.Controls.Add(new Label { Text = "目标表名:" }, 0, 0);
+            _insertTableNameText = new TextBox { Dock = DockStyle.Fill };
+            insertTabLayout.Controls.Add(_insertTableNameText, 1, 0);
+            insertTabLayout.Controls.Add(new Label { Text = "数据（列=值，每行一条）:" }, 0, 1);
+            insertTabLayout.SetColumnSpan(insertTabLayout.GetControlFromPosition(0, 1), 2);
+            _insertDataGrid = new DataGridView
+            {
+                Dock = DockStyle.Fill,
+                AllowUserToAddRows = true,
+                AllowUserToDeleteRows = true,
+                ColumnCount = 1,
+                Columns = { new DataGridViewTextBoxColumn { HeaderText = "列名=值", Name = "ColumnValue" } }
+            };
+            insertTabLayout.Controls.Add(_insertDataGrid, 0, 2);
+            insertTabLayout.SetColumnSpan(_insertDataGrid, 2);
+            _insertButton = new Button { Text = "执行插入", Width = 100, Height = 30 };
+            _insertButton.Click += ExecuteInsert;
+            insertTabLayout.Controls.Add(_insertButton, 1, 3);
+            _insertTab.Controls.Add(insertTabLayout);
+            _operationTabs.TabPages.Add(_insertTab);
 
-            _exportButton = new Button { Text = "导出数据", Width = 80, Height = 30 };
-            _exportButton.Click += ExportData;
-            dataButtonPanel.Controls.Add(_exportButton);
+            // 更新 Tab
+            _updateTab = new TabPage("更新");
+            var updateTabLayout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 4 };
+            updateTabLayout.Controls.Add(new Label { Text = "目标表名:" }, 0, 0);
+            _updateTableNameText = new TextBox { Dock = DockStyle.Fill };
+            updateTabLayout.Controls.Add(_updateTableNameText, 1, 0);
+            updateTabLayout.Controls.Add(new Label { Text = "SET 子句:" }, 0, 1);
+            _updateSetClauseText = new TextBox { Dock = DockStyle.Fill, Text = "Column1=Value1" };
+            updateTabLayout.Controls.Add(_updateSetClauseText, 1, 1);
+            updateTabLayout.Controls.Add(new Label { Text = "WHERE 子句:" }, 0, 2);
+            _updateWhereClauseText = new TextBox { Dock = DockStyle.Fill, Text = "Id=1" };
+            updateTabLayout.Controls.Add(_updateWhereClauseText, 1, 2);
+            _updateButton = new Button { Text = "执行更新", Width = 100, Height = 30 };
+            _updateButton.Click += ExecuteUpdate;
+            updateTabLayout.Controls.Add(_updateButton, 1, 3);
+            _updateTab.Controls.Add(updateTabLayout);
+            _operationTabs.TabPages.Add(_updateTab);
 
-            dataLayout.Controls.Add(dataButtonPanel, 0, 1);
+            // 删除 Tab
+            _deleteTab = new TabPage("删除");
+            var deleteTabLayout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 3 };
+            deleteTabLayout.Controls.Add(new Label { Text = "目标表名:" }, 0, 0);
+            _deleteTableNameText = new TextBox { Dock = DockStyle.Fill };
+            deleteTabLayout.Controls.Add(_deleteTableNameText, 1, 0);
+            deleteTabLayout.Controls.Add(new Label { Text = "WHERE 子句:" }, 0, 1);
+            _deleteWhereClauseText = new TextBox { Dock = DockStyle.Fill, Text = "Id=1" };
+            deleteTabLayout.Controls.Add(_deleteWhereClauseText, 1, 1);
+            _deleteButton = new Button { Text = "执行删除", Width = 100, Height = 30 };
+            _deleteButton.Click += ExecuteDelete;
+            deleteTabLayout.Controls.Add(_deleteButton, 1, 2);
+            _deleteTab.Controls.Add(deleteTabLayout);
+            _operationTabs.TabPages.Add(_deleteTab);
+
+            dataLayout.Controls.Add(_operationTabs, 0, 0);
 
             // 数据网格
             _dataGrid = new DataGridView
@@ -338,7 +429,7 @@ namespace FastData.SyncTool.WinForms.Components
                 ReadOnly = true,
                 AllowUserToAddRows = false
             };
-            dataLayout.Controls.Add(_dataGrid, 0, 2);
+            dataLayout.Controls.Add(_dataGrid, 0, 1);
 
             _dataGroup.Controls.Add(dataLayout);
             mainLayout.Controls.Add(_dataGroup, 0, 1);
@@ -418,6 +509,7 @@ namespace FastData.SyncTool.WinForms.Components
         {
             try
             {
+                _connectionString = _connectionStringText.Text;
                 var shardingType = (ShardingType)_shardingTypeCombo.SelectedItem;
                 var config = new ShardingConfig
                 {
@@ -618,7 +710,10 @@ namespace FastData.SyncTool.WinForms.Components
                 var tableName = _tableListGrid.Rows[e.RowIndex].Cells["TableName"].Value?.ToString();
                 if (!string.IsNullOrEmpty(tableName))
                 {
-                    _sqlText.Text = $"SELECT * FROM {tableName} WHERE 1=1";
+                    _sqlText.Text = $"SELECT * FROM [{tableName}] WHERE 1=1";
+                    _insertTableNameText.Text = tableName;
+                    _updateTableNameText.Text = tableName;
+                    _deleteTableNameText.Text = tableName;
                 }
             }
         }
@@ -634,19 +729,25 @@ namespace FastData.SyncTool.WinForms.Components
                     return;
                 }
 
-                // 这里需要实际执行 SQL 查询
-                // 暂时显示提示
-                _statusLabel.Text = $"执行查询: {sql}";
-                _logService.Info($"执行分表查询: {sql}");
+                _statusLabel.Text = $"执行查询...";
+                Application.DoEvents();
 
-                // 模拟数据
-                var dataTable = new DataTable();
-                dataTable.Columns.Add("Id", typeof(int));
-                dataTable.Columns.Add("Name", typeof(string));
-                dataTable.Columns.Add("CreateTime", typeof(DateTime));
+                using (var conn = new SqlConnection(_connectionString))
+                {
+                    conn.Open();
+                    using (var cmd = new SqlCommand(sql, conn))
+                    {
+                        var dataTable = new DataTable();
+                        using (var adapter = new SqlDataAdapter(cmd))
+                        {
+                            adapter.Fill(dataTable);
+                        }
 
-                _dataGrid.DataSource = dataTable;
-                _statusLabel.Text = $"查询完成: {dataTable.Rows.Count} 条记录";
+                        _dataGrid.DataSource = dataTable;
+                        _statusLabel.Text = $"查询完成: {dataTable.Rows.Count} 条记录";
+                        _logService.Info($"执行分表查询: {sql} - 返回 {dataTable.Rows.Count} 条");
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -656,32 +757,155 @@ namespace FastData.SyncTool.WinForms.Components
             }
         }
 
-        private void ExportData(object sender, EventArgs e)
+        private void ExecuteInsert(object sender, EventArgs e)
         {
             try
             {
-                if (_dataGrid.DataSource == null)
+                var tableName = _insertTableNameText.Text.Trim();
+                if (string.IsNullOrEmpty(tableName))
                 {
-                    MessageBox.Show("没有数据可导出", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    MessageBox.Show("请输入目标表名", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
 
-                using (var dialog = new SaveFileDialog())
+                // 解析列和值
+                var columns = new List<string>();
+                var values = new List<string>();
+
+                foreach (DataGridViewRow row in _insertDataGrid.Rows)
                 {
-                    dialog.Filter = "CSV 文件|*.csv|Excel 文件|*.xlsx";
-                    dialog.Title = "导出数据";
-                    if (dialog.ShowDialog() == DialogResult.OK)
+                    if (row.Cells["ColumnValue"].Value != null)
                     {
-                        // 这里实现导出逻辑
-                        _statusLabel.Text = $"数据已导出: {dialog.FileName}";
-                        _logService.Info($"分表数据已导出: {dialog.FileName}");
+                        var cellValue = row.Cells["ColumnValue"].Value.ToString();
+                        var parts = cellValue.Split('=');
+                        if (parts.Length == 2)
+                        {
+                            columns.Add(parts[0].Trim());
+                            values.Add(parts[1].Trim());
+                        }
+                    }
+                }
+
+                if (columns.Count == 0)
+                {
+                    MessageBox.Show("请输入要插入的数据", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                var sql = $"INSERT INTO [{tableName}] ({string.Join(", ", columns)}) VALUES ({string.Join(", ", values.Select(v => $"'{v}'"))})";
+
+                _statusLabel.Text = "执行插入...";
+                Application.DoEvents();
+
+                using (var conn = new SqlConnection(_connectionString))
+                {
+                    conn.Open();
+                    using (var cmd = new SqlCommand(sql, conn))
+                    {
+                        var affectedRows = cmd.ExecuteNonQuery();
+                        _statusLabel.Text = $"插入成功: {affectedRows} 条记录";
+                        _logService.Info($"执行分表插入: {sql} - 影响 {affectedRows} 条");
+                        MessageBox.Show($"插入成功: {affectedRows} 条记录", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
                 }
             }
             catch (Exception ex)
             {
-                _statusLabel.Text = $"导出失败: {ex.Message}";
-                _logService.Error($"导出分表数据失败: {ex.Message}");
+                _statusLabel.Text = $"插入失败: {ex.Message}";
+                _logService.Error($"执行分表插入失败: {ex.Message}");
+                MessageBox.Show($"插入失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void ExecuteUpdate(object sender, EventArgs e)
+        {
+            try
+            {
+                var tableName = _updateTableNameText.Text.Trim();
+                var setClause = _updateSetClauseText.Text.Trim();
+                var whereClause = _updateWhereClauseText.Text.Trim();
+
+                if (string.IsNullOrEmpty(tableName) || string.IsNullOrEmpty(setClause))
+                {
+                    MessageBox.Show("请输入目标表名和 SET 子句", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                var sql = $"UPDATE [{tableName}] SET {setClause}";
+                if (!string.IsNullOrEmpty(whereClause))
+                {
+                    sql += $" WHERE {whereClause}";
+                }
+
+                _statusLabel.Text = "执行更新...";
+                Application.DoEvents();
+
+                using (var conn = new SqlConnection(_connectionString))
+                {
+                    conn.Open();
+                    using (var cmd = new SqlCommand(sql, conn))
+                    {
+                        var affectedRows = cmd.ExecuteNonQuery();
+                        _statusLabel.Text = $"更新成功: {affectedRows} 条记录";
+                        _logService.Info($"执行分表更新: {sql} - 影响 {affectedRows} 条");
+                        MessageBox.Show($"更新成功: {affectedRows} 条记录", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _statusLabel.Text = $"更新失败: {ex.Message}";
+                _logService.Error($"执行分表更新失败: {ex.Message}");
+                MessageBox.Show($"更新失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void ExecuteDelete(object sender, EventArgs e)
+        {
+            try
+            {
+                var tableName = _deleteTableNameText.Text.Trim();
+                var whereClause = _deleteWhereClauseText.Text.Trim();
+
+                if (string.IsNullOrEmpty(tableName))
+                {
+                    MessageBox.Show("请输入目标表名", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                if (string.IsNullOrEmpty(whereClause))
+                {
+                    var confirmResult = MessageBox.Show("确定要删除所有数据吗？", "确认", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                    if (confirmResult != DialogResult.Yes)
+                        return;
+                }
+
+                var sql = $"DELETE FROM [{tableName}]";
+                if (!string.IsNullOrEmpty(whereClause))
+                {
+                    sql += $" WHERE {whereClause}";
+                }
+
+                _statusLabel.Text = "执行删除...";
+                Application.DoEvents();
+
+                using (var conn = new SqlConnection(_connectionString))
+                {
+                    conn.Open();
+                    using (var cmd = new SqlCommand(sql, conn))
+                    {
+                        var affectedRows = cmd.ExecuteNonQuery();
+                        _statusLabel.Text = $"删除成功: {affectedRows} 条记录";
+                        _logService.Info($"执行分表删除: {sql} - 影响 {affectedRows} 条");
+                        MessageBox.Show($"删除成功: {affectedRows} 条记录", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _statusLabel.Text = $"删除失败: {ex.Message}";
+                _logService.Error($"执行分表删除失败: {ex.Message}");
+                MessageBox.Show($"删除失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 

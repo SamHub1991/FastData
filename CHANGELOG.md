@@ -6,6 +6,29 @@
 
 ### Added
 
+- **分表功能完整示例和演示**（bc832f7）
+  - ShardingFullExample.cs：SQL Server 分表完整示例
+    - 批量数据插入（10000 条日志、5000 条订单）
+    - 时间/哈希/列表/查询频率分表策略
+    - 链式 API 演示
+  - ShardingController.cs：Demo API 端点
+    - /api/sharding/init：初始化分表环境
+    - /api/sharding/insert-data：插入批量测试数据
+    - /api/sharding/time/configure, /time/query：时间分表
+    - /api/sharding/hash/configure, /hash/query：哈希分表
+    - /api/sharding/list/configure, /list/query：列表分表
+    - /api/sharding/frequency/configure, /frequency/record, /frequency/simulate, /frequency/hot：查询频率分表
+    - /api/sharding/sync：数据同步到分表
+    - /api/sharding/stats：分表统计信息
+  - ShardingSyncControl.cs：SyncTool 分表同步 UI
+    - 源数据库配置
+    - 分表类型选择（时间/哈希/列表）
+    - 创建分表
+    - 数据同步
+    - 分表统计
+  - DataQuery.cs：分表属性改为 public
+  - MainForm.cs：集成 ShardingSyncControl
+
 - 多目标框架支持（net45/net6.0/net8.0/net10.0）
 - SDK-style csproj 格式迁移（所有项目）
 - 条件编译处理框架差异（NETFRAMEWORK/NET6_0_OR_GREATER）
