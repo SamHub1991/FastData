@@ -551,7 +551,7 @@ namespace FastData.Config
                     return (DataConfig)ConfigurationManager.GetSection("DataConfig");
                 
                 var exeConfig = new ExeConfigurationFileMap();
-                exeConfig.ExeConfigFilename = string.Format("{0}bin\\{1}", AppDomain.CurrentDomain.BaseDirectory, dbFile);
+                exeConfig.ExeConfigFilename = string.Format("{0}{1}", AppDomain.CurrentDomain.BaseDirectory, dbFile);
                 return (DataConfig)ConfigurationManager.OpenMappedExeConfiguration(exeConfig, ConfigurationUserLevel.None).GetSection("DataConfig");
             }
             catch
