@@ -1,16 +1,18 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using FastData.Property;
 
 namespace FastData.Demo.Models
 {
     /// <summary>
     /// 用户实体
     /// </summary>
-    public class User
+    public class AppUser
     {
         /// <summary>
         /// 用户ID
         /// </summary>
+        [Column(IsKey = true, IsIdentity = true)]
         public int Id { get; set; }
 
         /// <summary>
@@ -62,11 +64,12 @@ namespace FastData.Demo.Models
     /// <summary>
     /// 订单实体
     /// </summary>
-    public class Order
+    public class AppOrder
     {
         /// <summary>
         /// 订单ID
         /// </summary>
+        [Column(IsKey = true, IsIdentity = true)]
         public int Id { get; set; }
 
         /// <summary>

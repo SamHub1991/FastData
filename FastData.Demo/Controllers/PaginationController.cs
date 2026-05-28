@@ -18,13 +18,13 @@ namespace FastData.Demo.Controllers
         /// GET /api/pagination/users?page=1&amp;pageSize=10
         /// </summary>
         [HttpGet("users")]
-        public ActionResult<PaginationResult<User>> GetUsers([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        public ActionResult<PaginationResult<AppUser>> GetUsers([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
             try
             {
-                var result = FastRead.Query<User>(u => u.Id > 0)
-                    .OrderBy<User>(u => u.Id)
-                    .ToPagination<User>(page, pageSize);
+                var result = FastRead.Query<AppUser>(u => u.Id > 0)
+                    .OrderBy<AppUser>(u => u.Id)
+                    .ToPagination<AppUser>(page, pageSize);
 
                 return Ok(result);
             }
@@ -40,13 +40,13 @@ namespace FastData.Demo.Controllers
         /// Body: { "page": 1, "pageSize": 10 }
         /// </summary>
         [HttpPost("users/search")]
-        public ActionResult<PaginationResult<User>> SearchUsers([FromBody] PaginationRequest request)
+        public ActionResult<PaginationResult<AppUser>> SearchUsers([FromBody] PaginationRequest request)
         {
             try
             {
-                var result = FastRead.Query<User>(u => u.IsActive)
-                    .OrderBy<User>(u => u.CreateTime)
-                    .ToPagination<User>(request);
+                var result = FastRead.Query<AppUser>(u => u.IsActive)
+                    .OrderBy<AppUser>(u => u.CreateTime)
+                    .ToPagination<AppUser>(request);
 
                 return Ok(result);
             }
@@ -61,16 +61,16 @@ namespace FastData.Demo.Controllers
         /// GET /api/pagination/users/department/{dept}?page=1&amp;pageSize=10
         /// </summary>
         [HttpGet("users/department/{department}")]
-        public ActionResult<PaginationResult<User>> GetByDepartment(
+        public ActionResult<PaginationResult<AppUser>> GetByDepartment(
             string department,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10)
         {
             try
             {
-                var result = FastRead.Query<User>(u => u.Department == department)
-                    .OrderBy<User>(u => u.Id)
-                    .ToPagination<User>(page, pageSize);
+                var result = FastRead.Query<AppUser>(u => u.Department == department)
+                    .OrderBy<AppUser>(u => u.Id)
+                    .ToPagination<AppUser>(page, pageSize);
 
                 return Ok(result);
             }
@@ -85,13 +85,13 @@ namespace FastData.Demo.Controllers
         /// GET /api/pagination/users/async?page=1&amp;pageSize=10
         /// </summary>
         [HttpGet("users/async")]
-        public async Task<ActionResult<PaginationResult<User>>> GetUsersAsync([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        public async Task<ActionResult<PaginationResult<AppUser>>> GetUsersAsync([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
             try
             {
-                var result = await FastRead.Query<User>(u => u.Id > 0)
-                    .OrderBy<User>(u => u.Id)
-                    .ToPaginationAsync<User>(page, pageSize);
+                var result = await FastRead.Query<AppUser>(u => u.Id > 0)
+                    .OrderBy<AppUser>(u => u.Id)
+                    .ToPaginationAsync<AppUser>(page, pageSize);
 
                 return Ok(result);
             }
@@ -110,8 +110,8 @@ namespace FastData.Demo.Controllers
         {
             try
             {
-                var result = FastRead.Query<User>(u => u.Id > 0)
-                    .OrderBy<User>(u => u.Id)
+                var result = FastRead.Query<AppUser>(u => u.Id > 0)
+                    .OrderBy<AppUser>(u => u.Id)
                     .ToPagination(page, pageSize);
 
                 return Ok(result);

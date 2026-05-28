@@ -50,7 +50,6 @@ namespace FastData.Base
                 {
                     var temp = DbProviderFactories.GetFactory(config.ProviderName).CreateParameter();
                     temp.ParameterName = leftList[i] + i.ToString();
-                    temp.Value = rightList[i];
 
                     if (typeList.Count >= i + 1 && typeList[i].Name == "DateTime")
                     {
@@ -60,6 +59,42 @@ namespace FastData.Base
                             temp.DbType = DbType.DateTime;
 
                         temp.Value = rightList[i].ToDate();
+                    }
+                    else if (typeList.Count >= i + 1)
+                    {
+                        if (typeList[i] == typeof(int) || typeList[i] == typeof(int?))
+                        {
+                            temp.DbType = DbType.Int32;
+                            temp.Value = int.Parse(rightList[i]);
+                        }
+                        else if (typeList[i] == typeof(long) || typeList[i] == typeof(long?))
+                        {
+                            temp.DbType = DbType.Int64;
+                            temp.Value = long.Parse(rightList[i]);
+                        }
+                        else if (typeList[i] == typeof(decimal) || typeList[i] == typeof(decimal?))
+                        {
+                            temp.DbType = DbType.Decimal;
+                            temp.Value = decimal.Parse(rightList[i]);
+                        }
+                        else if (typeList[i] == typeof(double) || typeList[i] == typeof(double?))
+                        {
+                            temp.DbType = DbType.Double;
+                            temp.Value = double.Parse(rightList[i]);
+                        }
+                        else if (typeList[i] == typeof(bool) || typeList[i] == typeof(bool?))
+                        {
+                            temp.DbType = DbType.Boolean;
+                            temp.Value = bool.Parse(rightList[i]);
+                        }
+                        else
+                        {
+                            temp.Value = rightList[i];
+                        }
+                    }
+                    else
+                    {
+                        temp.Value = rightList[i];
                     }
 
                     result.Param.Add(temp);
@@ -168,8 +203,13 @@ namespace FastData.Base
             {
                 if ((exp as MemberExpression).Expression is ParameterExpression)
                 {
-                    //typeList.Add("".GetType());
-                    return (exp as MemberExpression).Member.Name;
+                    var memberName = (exp as MemberExpression).Member.Name;
+                    // Check if the member is a bool type - if used as predicate, convert to "= 1"
+                    if ((exp as MemberExpression).Type == typeof(bool))
+                    {
+                        return string.Format("{0}=1", memberName);
+                    }
+                    return memberName;
                 }
                 else
                 {
@@ -321,12 +361,22 @@ namespace FastData.Base
             }
             else if (exp is ConstantExpression)
             {
-                typeList.Add("".GetType());
                 ConstantExpression cExp = (ConstantExpression)exp;
                 if (cExp.Value == null)
+                {
+                    typeList.Add("".GetType());
                     return "null";
+                }
+                else if (cExp.Value is bool)
+                {
+                    typeList.Add(typeof(bool));
+                    return (bool)cExp.Value ? "1=1" : "1=0";
+                }
                 else
+                {
+                    typeList.Add(cExp.Value.GetType());
                     return cExp.Value.ToString();
+                }
             }
             else if (exp is UnaryExpression)
             {

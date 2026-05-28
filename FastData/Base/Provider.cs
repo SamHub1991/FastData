@@ -39,6 +39,6 @@ namespace FastData.Base
         /// <summary>
         /// PostgreSql test
         /// </summary>
-        public readonly static string PostgreSql = "PostgreSql.Client";
+        public readonly static string PostgreSql = "Npgsql";
     }
 }

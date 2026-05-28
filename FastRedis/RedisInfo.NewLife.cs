@@ -171,16 +171,16 @@ namespace FastRedis
             try
             {
                 if (string.IsNullOrEmpty(key))
-                    return new T();
+                    return null;
                 var json = Redis.Get<string>(key);
                 if (string.IsNullOrEmpty(json))
-                    return new T();
+                    return null;
                 return JsonConvert.DeserializeObject<T>(json);
             }
             catch (Exception ex)
             {
                 SaveLog(ex, "Get<T>", key);
-                return new T();
+                return null;
             }
         }
 

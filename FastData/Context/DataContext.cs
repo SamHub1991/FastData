@@ -136,11 +136,11 @@ namespace FastData.Context
         /// <summary>
         /// 初始化
         /// </summary>
-        public DataContext(string key = null)
+        public DataContext(string key = null, string projectName = null)
         {
             try
             {
-                this.config = DataConfig.GetConfig(key);
+                this.config = DataConfig.GetConfig(key, projectName);
                 conn = DbProviderFactories.GetFactory(this.config.ProviderName).CreateConnection();
                 
                 // 支持连接字符串加密
@@ -165,7 +165,7 @@ namespace FastData.Context
             {
                 AopException(ex, "DataContext :" + key,config,AopType.DataContext);
 
-                if (config.SqlErrorType.ToLower() == SqlErrorType.Db)
+                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
                     DbLogTable.LogException(config, ex, "DataContext", "");
                 else
                     DbLog.LogException(true, this.config.DbType, ex, "DataContext", "");
@@ -214,11 +214,11 @@ namespace FastData.Context
                 else if (item.Config.DbType == DataDbType.DB2 && item.Take != 0)
                     sql.AppendFormat(" and fetch first {0} rows only", item.Take);
                 else if (item.Config.DbType == DataDbType.MySql && item.Take != 0)
-                    sql.AppendFormat(" and limit {0}", item.Take);
+                    sql.AppendFormat(" limit {0}", item.Take);
                 else if (item.Config.DbType == DataDbType.PostgreSql && item.Take != 0)
-                    sql.AppendFormat(" and limit {0}", item.Take);
+                    sql.AppendFormat(" limit {0}", item.Take);
                 else if (item.Config.DbType == DataDbType.SQLite && item.Take != 0)
-                    sql.AppendFormat(" and limit 0 offset {0}", item.Take);
+                    sql.AppendFormat(" limit {0}", item.Take);
 
                 if (item.GroupBy.Count > 0)
                     sql.AppendFormat(" group by {0}", string.Join(",", item.GroupBy));
@@ -259,7 +259,7 @@ namespace FastData.Context
             {
                 AopException(ex, "to List tableName:" + typeof(T).Name,config, AopType.Query_List_Lambda);
 
-                if (config.SqlErrorType.ToLower() == SqlErrorType.Db)
+                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
                     DbLogTable.LogException<T>(config, ex, "GetList<T>", "");
                 else
                     DbLog.LogException<T>(item.Config.IsOutError, item.Config.DbType, ex, "GetList<T>", result.sql);
@@ -317,7 +317,7 @@ namespace FastData.Context
             {
                 AopException(ex, "to Page tableName:" + typeof(T).Name,config, AopType.Query_Page_Lambda_Model);
 
-                if (config.SqlErrorType.ToLower() == SqlErrorType.Db)
+                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
                     DbLogTable.LogException<T>(config, ex, "GetPage<T>", "");
                 else
                     DbLog.LogException<T>(item.Config.IsOutError, item.Config.DbType, ex, "GetPage<T>", result.sql);
@@ -438,7 +438,7 @@ namespace FastData.Context
             {
                 AopException(ex, "to Page sql",config, AopType.Query_Page_Lambda_Dic);
 
-                if (config.SqlErrorType.ToLower() == SqlErrorType.Db)
+                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
                     DbLogTable.LogException(config, ex, "GetPageSql", result.Sql);
                 else
                     DbLog.LogException(config.IsOutError, config.DbType, ex, "GetPageSql", result.Sql);
@@ -498,7 +498,7 @@ namespace FastData.Context
             {
                 AopException(ex, "to Page tableName:" + typeof(T).Name,config, AopType.Query_Page_Lambda_Model);
 
-                if (config.SqlErrorType.ToLower() == SqlErrorType.Db)
+                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
                     DbLogTable.LogException(config, ex, "GetPageSql", result.sql);
                 else
                     DbLog.LogException(config.IsOutError, config.DbType, ex, "GetPageSql", result.sql);
@@ -548,11 +548,11 @@ namespace FastData.Context
                 else if (item.Config.DbType == DataDbType.DB2 && item.Take != 0)
                     sql.AppendFormat(" and fetch first {0} rows only", item.Take);
                 else if (item.Config.DbType == DataDbType.MySql && item.Take != 0)
-                    sql.AppendFormat(" and limit {0}", item.Take);
+                    sql.AppendFormat(" limit {0}", item.Take);
                 else if (item.Config.DbType == DataDbType.PostgreSql && item.Take != 0)
-                    sql.AppendFormat(" and limit {0}", item.Take);
+                    sql.AppendFormat(" limit {0}", item.Take);
                 else if (item.Config.DbType == DataDbType.SQLite && item.Take != 0)
-                    sql.AppendFormat(" and limit 0 offset {0}", item.Take);
+                    sql.AppendFormat(" limit {0}", item.Take);
 
                 if (item.Predicate[0].Param.Count != 0)
                     param.AddRange(item.Predicate[0].Param);
@@ -587,7 +587,7 @@ namespace FastData.Context
             {
                 AopException(ex, "to Json",config, AopType.Query_Json_Lambda);
 
-                if (config.SqlErrorType.ToLower() == SqlErrorType.Db)
+                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
                     DbLogTable.LogException(config, ex, "GetJson", result.Sql);
                 else
                     DbLog.LogException(item.Config.IsOutError, item.Config.DbType, ex, "GetJson", result.Sql);
@@ -656,7 +656,7 @@ namespace FastData.Context
             {
                 AopException(ex, "to Count",config, AopType.Query_Json_Lambda);
 
-                if (config.SqlErrorType.ToLower() == SqlErrorType.Db)
+                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
                     DbLogTable.LogException(config, ex, "GetCount", result.Sql);
                 else
                     DbLog.LogException(item.Config.IsOutError, item.Config.DbType, ex, "GetCount", result.Sql);
@@ -700,7 +700,7 @@ namespace FastData.Context
             {
                 AopException(ex, "ExecuteSql tableName:" + typeof(T).Name,config, AopType.Execute_Sql_Model);
 
-                if (config.SqlErrorType.ToLower() == SqlErrorType.Db)
+                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
                     DbLogTable.LogException<T>(config, ex, "ExecuteSql<T>", "");
                 else
                     DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "ExecuteSql<T>", result.sql);
@@ -753,7 +753,7 @@ namespace FastData.Context
                 result.writeReturn.IsSuccess = false;
                 result.writeReturn.Message = ex.Message;
 
-                if (config.SqlErrorType.ToLower() == SqlErrorType.Db)
+                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
                     DbLogTable.LogException(config, ex, "ExecuteSqlList", result.Sql);
                 else
                     DbLog.LogException(config.IsOutError, config.DbType, ex, "ExecuteSqlList", result.Sql);
@@ -804,11 +804,11 @@ namespace FastData.Context
                 else if (item.Config.DbType == DataDbType.DB2 && item.Take != 0)
                     sql.AppendFormat(" and fetch first {0} rows only", item.Take);
                 else if (item.Config.DbType == DataDbType.MySql && item.Take != 0)
-                    sql.AppendFormat(" and limit {0}", item.Take);
+                    sql.AppendFormat(" limit {0}", item.Take);
                 else if (item.Config.DbType == DataDbType.PostgreSql && item.Take != 0)
-                    sql.AppendFormat(" and limit {0}", item.Take);
+                    sql.AppendFormat(" limit {0}", item.Take);
                 else if (item.Config.DbType == DataDbType.SQLite && item.Take != 0)
-                    sql.AppendFormat(" and limit 0 offset {0}", item.Take);
+                    sql.AppendFormat(" limit {0}", item.Take);
 
                 if (item.GroupBy.Count > 0)
                     sql.AppendFormat(" group by {0}", string.Join(",", item.GroupBy));
@@ -849,7 +849,7 @@ namespace FastData.Context
             {
                 AopException(ex, "to Dic",config, AopType.Query_Dic_Lambda);
 
-                if (config.SqlErrorType.ToLower() == SqlErrorType.Db)
+                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
                     DbLogTable.LogException(config, ex, "GetDic", result.Sql);
                 else
                     DbLog.LogException(item.Config.IsOutError, item.Config.DbType, ex, "GetDic", result.Sql);
@@ -898,11 +898,11 @@ namespace FastData.Context
                 else if (item.Config.DbType == DataDbType.DB2 && item.Take != 0)
                     sql.AppendFormat(" and fetch first {0} rows only", item.Take);
                 else if (item.Config.DbType == DataDbType.MySql && item.Take != 0)
-                    sql.AppendFormat(" and limit {0}", item.Take);
+                    sql.AppendFormat(" limit {0}", item.Take);
                 else if (item.Config.DbType == DataDbType.PostgreSql && item.Take != 0)
-                    sql.AppendFormat(" and limit {0}", item.Take);
+                    sql.AppendFormat(" limit {0}", item.Take);
                 else if (item.Config.DbType == DataDbType.SQLite && item.Take != 0)
-                    sql.AppendFormat(" and limit 0 offset {0}", item.Take);
+                    sql.AppendFormat(" limit {0}", item.Take);
 
                 if (item.GroupBy.Count > 0)
                     sql.AppendFormat(" group by {0}", string.Join(",", item.GroupBy));
@@ -934,7 +934,7 @@ namespace FastData.Context
             {
                 AopException(ex, "to DataTable",config, AopType.Query_DataTable_Lambda);
 
-                if (config.SqlErrorType.ToLower() == SqlErrorType.Db)
+                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
                     DbLogTable.LogException(config, ex, "GetDataTable", result.Sql);
                 else
                     DbLog.LogException(item.Config.IsOutError, item.Config.DbType, ex, "GetDataTable", result.Sql);
@@ -993,7 +993,7 @@ namespace FastData.Context
             {
                 AopException(ex, "Delete by Lambda tableName"+typeof(T).Name,config, AopType.Delete_Lambda);
 
-                if (config.SqlErrorType.ToLower() == SqlErrorType.Db)
+                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
                     DbLogTable.LogException<T>(config, ex, "Delete<T>", "");
                 else
                     DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "Delete<T>", result.sql);
@@ -1060,7 +1060,7 @@ namespace FastData.Context
                 if (isTrans)
                     RollbackTrans();
 
-                if (config.SqlErrorType.ToLower() == SqlErrorType.Db)
+                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
                     DbLogTable.LogException<T>(config, ex, "Delete<T>", "");
                 else
                     DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "Delete<T>", result.sql);
@@ -1137,7 +1137,7 @@ namespace FastData.Context
             {
                 AopException(ex, "Update by Lambda tableName:" + typeof(T).Name,config, AopType.Update_Lambda);
 
-                if (config.SqlErrorType.ToLower() == SqlErrorType.Db)
+                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
                     DbLogTable.LogException<T>(config, ex, "Update<T>", "");
                 else
                     DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "Update<T>", result.sql);
@@ -1206,7 +1206,7 @@ namespace FastData.Context
                 if (isTrans)
                     RollbackTrans();
 
-                if (config.SqlErrorType.ToLower() == SqlErrorType.Db)
+                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
                     DbLogTable.LogException<T>(config, ex, "UpdateModel<T>", "");
                 else
                     DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "UpdateModel<T>", result.sql);
@@ -1282,7 +1282,7 @@ namespace FastData.Context
             {
                 AopException(ex, "Update List tableName:" + typeof(T).Name,config, AopType.UpdateList);
 
-                if (config.SqlErrorType.ToLower() == SqlErrorType.Db)
+                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
                     DbLogTable.LogException<T>(config, ex, "UpdateList<T>", "");
                 else
                     DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "UpdateList<T>", result.sql);
@@ -1314,6 +1314,10 @@ namespace FastData.Context
 
                 insert = BaseModel.InsertToSql<T>(model, config);
 
+                if (!insert.IsSuccess)
+                {
+                }
+
                 if (insert.IsSuccess)
                 {
                     result.sql = ParameterToSql.ObjectParamToSql(insert.Param, insert.Sql, config);
@@ -1342,7 +1346,7 @@ namespace FastData.Context
             {
                 AopException(ex, "Add tableName: " + typeof(T).Name,config, AopType.Add);
 
-                if (config.SqlErrorType.ToLower() == SqlErrorType.Db)
+                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
                     DbLogTable.LogException<T>(config, ex, "Add<T>", "");
                 else
                     DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "Add<T>", result.sql);
@@ -1530,7 +1534,7 @@ namespace FastData.Context
                 if (IsTrans)
                     RollbackTrans();
 
-                if (config.SqlErrorType.ToLower() == SqlErrorType.Db)
+                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
                     DbLogTable.LogException<T>(config, ex, "AddList<T>", "");
                 else
                     DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "AddList<T>", result.sql);
@@ -1585,7 +1589,7 @@ namespace FastData.Context
                 if (isTrans)
                     RollbackTrans();
 
-                if (config.SqlErrorType.ToLower() == SqlErrorType.Db)
+                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
                     DbLogTable.LogException(config, ex, "ExecuteSql", result.Sql);
                 else
                     DbLog.LogException(config.IsOutError, config.DbType, ex, "ExecuteSql", result.Sql);

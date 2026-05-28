@@ -1,3 +1,5 @@
+using FastData;
+using FastData.Base;
 using FastData.Demo.Models;
 using FastData.Demo.Repositories;
 using FastData.Demo.Services;
@@ -29,7 +31,7 @@ namespace FastData.Demo.Controllers
         /// 获取所有用户
         /// </summary>
         [HttpGet]
-        public async Task<ActionResult<List<User>>> GetAll()
+        public async Task<ActionResult<List<AppUser>>> GetAll()
         {
             try
             {
@@ -45,8 +47,8 @@ namespace FastData.Demo.Controllers
         /// <summary>
         /// 根据 ID 获取用户
         /// </summary>
-        [HttpGet("{id}")]
-        public async Task<ActionResult<User>> GetById(int id)
+        [HttpGet("{id:int}")]
+        public async Task<ActionResult<AppUser>> GetById(int id)
         {
             try
             {
@@ -74,7 +76,7 @@ namespace FastData.Demo.Controllers
         /// 获取活跃用户
         /// </summary>
         [HttpGet("active")]
-        public async Task<ActionResult<List<User>>> GetActiveUsers()
+        public async Task<ActionResult<List<AppUser>>> GetActiveUsers()
         {
             try
             {
@@ -94,7 +96,7 @@ namespace FastData.Demo.Controllers
         /// 根据部门获取用户
         /// </summary>
         [HttpGet("department/{department}")]
-        public async Task<ActionResult<List<User>>> GetByDepartment(string department)
+        public async Task<ActionResult<List<AppUser>>> GetByDepartment(string department)
         {
             try
             {
@@ -111,7 +113,7 @@ namespace FastData.Demo.Controllers
         /// 分页获取用户
         /// </summary>
         [HttpGet("paged")]
-        public async Task<ActionResult<List<User>>> GetPaged([FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 20)
+        public async Task<ActionResult<List<AppUser>>> GetPaged([FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 20)
         {
             try
             {
@@ -128,16 +130,30 @@ namespace FastData.Demo.Controllers
         /// 创建用户
         /// </summary>
         [HttpPost]
-        public async Task<ActionResult<int>> Create([FromBody] User user)
+        public async Task<ActionResult<int>> Create([FromBody] AppUser user)
         {
             try
             {
-                var result = await _userRepository.AddAsync(user);
-                return Ok(result);
+                if (user == null)
+                {
+                    return BadRequest(new { error = "User is null" });
+                }
+                
+                // 直接调用 FastWrite.Add 诊断
+                user.CreateTime = DateTime.Now;
+                user.IsActive = true;
+                var writeResult = await Task.Run(() => FastWrite.Add(user));
+                
+                return Ok(new
+                {
+                    IsSuccess = writeResult.IsSuccess,
+                    Message = writeResult.Message,
+                    User = user
+                });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { error = ex.Message });
+                return StatusCode(500, new { error = ex.Message, stackTrace = ex.StackTrace });
             }
         }
 
@@ -145,7 +161,7 @@ namespace FastData.Demo.Controllers
         /// 更新用户
         /// </summary>
         [HttpPut("{id}")]
-        public async Task<ActionResult<int>> Update(int id, [FromBody] User user)
+        public async Task<ActionResult<int>> Update(int id, [FromBody] AppUser user)
         {
             try
             {
@@ -188,7 +204,7 @@ namespace FastData.Demo.Controllers
         /// 动态条件查询（演示 Where&lt;T&gt; 条件构建器）
         /// </summary>
         [HttpGet("search")]
-        public async Task<ActionResult<List<User>>> Search(
+        public async Task<ActionResult<List<AppUser>>> Search(
             [FromQuery] string keyword = null,
             [FromQuery] string department = null,
             [FromQuery] int? minAge = null,
@@ -197,7 +213,7 @@ namespace FastData.Demo.Controllers
         {
             try
             {
-                var where = new Where<User>();
+                var where = new Where<AppUser>();
 
                 // 基础条件
                 where.Add(u => u.Id > 0);
@@ -218,7 +234,7 @@ namespace FastData.Demo.Controllers
                 if (isActive.HasValue)
                     where.And(u => u.IsActive == isActive.Value);
 
-                var users = FastRead.Query<User>(u => true)
+                var users = FastRead.Query<AppUser>(u => true)
                     .Where(where)
                     .OrderBy(u => u.Id)
                     .ToList();
@@ -252,7 +268,7 @@ namespace FastData.Demo.Controllers
         /// 获取所有订单
         /// </summary>
         [HttpGet]
-        public async Task<ActionResult<List<Order>>> GetAll()
+        public async Task<ActionResult<List<AppOrder>>> GetAll()
         {
             try
             {
@@ -269,7 +285,7 @@ namespace FastData.Demo.Controllers
         /// 根据 ID 获取订单
         /// </summary>
         [HttpGet("{id}")]
-        public async Task<ActionResult<Order>> GetById(int id)
+        public async Task<ActionResult<AppOrder>> GetById(int id)
         {
             try
             {
@@ -294,7 +310,7 @@ namespace FastData.Demo.Controllers
         /// 获取用户订单
         /// </summary>
         [HttpGet("user/{userId}")]
-        public async Task<ActionResult<List<Order>>> GetByUserId(int userId)
+        public async Task<ActionResult<List<AppOrder>>> GetByUserId(int userId)
         {
             try
             {
@@ -316,7 +332,7 @@ namespace FastData.Demo.Controllers
         /// 创建订单
         /// </summary>
         [HttpPost]
-        public async Task<ActionResult<int>> Create([FromBody] Order order)
+        public async Task<ActionResult<int>> Create([FromBody] AppOrder order)
         {
             try
             {

@@ -7,6 +7,7 @@ using FastData.Base;
 using FastData.Model;
 using System.Diagnostics;
 using FastData.Context;
+using System.Reflection;
 #if !NETFRAMEWORK
 using FastData.Queue;
 #endif
@@ -88,13 +89,14 @@ namespace FastData
         public static WriteReturn AddList<T>(List<T> list, string key = null, bool IsTrans = false, bool isLog = true) where T : class, new()
         {
             key = key ?? FastDb.CurrentKey;
+            var projectName = Assembly.GetCallingAssembly().GetName().Name;
             ConfigModel config = null;
             var result = new DataReturn<T>();
             var stopwatch = new Stopwatch();
 
             stopwatch.Start();
 
-            using (var tempDb = new DataContext(key))
+            using (var tempDb = new DataContext(key, projectName))
             {
                 config = tempDb.config;
                 result = tempDb.AddList<T>(list, IsTrans, isLog);
@@ -138,6 +140,7 @@ namespace FastData
         public static WriteReturn Add<T>(T model, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
             key = key ?? FastDb.CurrentKey;
+            var projectName = Assembly.GetCallingAssembly().GetName().Name;
             ConfigModel config = null;
             var result = new DataReturn<T>();
             var stopwatch = new Stopwatch();
@@ -146,7 +149,7 @@ namespace FastData
 
             if (db == null)
             {
-                using (var tempDb = new DataContext(key))
+                using (var tempDb = new DataContext(key, projectName))
                 {
                     result = tempDb.Add<T>(model, false);
                     config = tempDb.config;
@@ -197,6 +200,7 @@ namespace FastData
         public static WriteReturn Delete<T>(Expression<Func<T, bool>> predicate, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
             key = key ?? FastDb.CurrentKey;
+            var projectName = Assembly.GetCallingAssembly().GetName().Name;
             ConfigModel config = null;
             var result = new DataReturn<T>();
             var stopwatch = new Stopwatch();
@@ -205,7 +209,7 @@ namespace FastData
 
             if (db == null)
             {
-                using (var tempDb = new DataContext(key))
+                using (var tempDb = new DataContext(key, projectName))
                 {
                     result = tempDb.Delete<T>(predicate);
                     config = tempDb.config;
@@ -253,6 +257,7 @@ namespace FastData
         public static WriteReturn Delete<T>(T model, DataContext db = null, string key = null, bool isTrans = false, bool isOutSql = false) where T : class, new()
         {
             key = key ?? FastDb.CurrentKey;
+            var projectName = Assembly.GetCallingAssembly().GetName().Name;
             ConfigModel config = null;
             var result = new DataReturn<T>();
             var stopwatch = new Stopwatch();
@@ -261,7 +266,7 @@ namespace FastData
 
             if (db == null)
             {
-                using (var tempDb = new DataContext(key))
+                using (var tempDb = new DataContext(key, projectName))
                 {
                     result = tempDb.Delete(model, isTrans);
                     config = tempDb.config;
@@ -310,6 +315,7 @@ namespace FastData
         public static WriteReturn Update<T>(T model, Expression<Func<T, bool>> predicate, Expression<Func<T, object>> field = null, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
             key = key ?? FastDb.CurrentKey;
+            var projectName = Assembly.GetCallingAssembly().GetName().Name;
             ConfigModel config = null;
             var result = new DataReturn<T>();
             var stopwatch = new Stopwatch();
@@ -318,7 +324,7 @@ namespace FastData
 
             if (db == null)
             {
-                using (var tempDb = new DataContext(key))
+                using (var tempDb = new DataContext(key, projectName))
                 {
                     result = tempDb.Update<T>(model, predicate, field);
                     config = tempDb.config;
@@ -368,6 +374,7 @@ namespace FastData
         public static WriteReturn Update<T>(T model, Expression<Func<T, object>> field = null, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
             key = key ?? FastDb.CurrentKey;
+            var projectName = Assembly.GetCallingAssembly().GetName().Name;
             ConfigModel config = null;
             var result = new DataReturn<T>();
             var stopwatch = new Stopwatch();
@@ -376,7 +383,7 @@ namespace FastData
 
             if (db == null)
             {
-                using (var tempDb = new DataContext(key))
+                using (var tempDb = new DataContext(key, projectName))
                 {
                     result = tempDb.Update(model, field);
                     config = tempDb.config;
@@ -421,6 +428,7 @@ namespace FastData
         public static WriteReturn UpdateList<T>(List<T> list, Expression<Func<T, object>> field = null, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
             key = key ?? FastDb.CurrentKey;
+            var projectName = Assembly.GetCallingAssembly().GetName().Name;
             ConfigModel config = null;
             var result = new DataReturn<T>();
             var stopwatch = new Stopwatch();
@@ -429,7 +437,7 @@ namespace FastData
 
             if (db == null)
             {
-                using (var tempDb = new DataContext(key))
+                using (var tempDb = new DataContext(key, projectName))
                 {
                     result = tempDb.UpdateList(list, field);
                     config = tempDb.config;
@@ -475,6 +483,7 @@ namespace FastData
         public static WriteReturn ExecuteSql(string sql, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
             key = key ?? FastDb.CurrentKey;
+            var projectName = Assembly.GetCallingAssembly().GetName().Name;
             ConfigModel config = null;
             var result = new DataReturn();
             var stopwatch = new Stopwatch();
@@ -483,7 +492,7 @@ namespace FastData
 
             if (db == null)
             {
-                using (var tempDb = new DataContext(key))
+                using (var tempDb = new DataContext(key, projectName))
                 {
                     config = tempDb.config;
                     config.IsOutSql = config.IsOutSql || isOutSql;

@@ -13,6 +13,11 @@ namespace FastData.Property
         public bool IsKey { get; set; }
         
         /// <summary>
+        /// 自增列
+        /// </summary>
+        public bool IsIdentity { get; set; }
+        
+        /// <summary>
         /// 长度
         /// </summary>
         public int Length { get; set; }

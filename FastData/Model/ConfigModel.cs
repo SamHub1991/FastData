@@ -81,7 +81,7 @@ namespace FastData.Model
         /// <summary>
         /// 缓存类型 web,redis
         /// </summary>
-        public string CacheType { get; set; }
+        public string CacheType { get; set; } = "web";
                 
         /// <summary>
         /// 是否更新缓存

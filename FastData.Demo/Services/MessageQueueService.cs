@@ -164,7 +164,7 @@ namespace FastData.Demo.Services
             var topic = "db:sync:users";
 
             // 1. 模拟数据库查询结果
-            var table = new System.Data.DataTable("Users");
+            var table = new System.Data.DataTable("User");
             table.Columns.Add("Id", typeof(int));
             table.Columns.Add("UserName", typeof(string));
             table.Columns.Add("Email", typeof(string));
@@ -203,7 +203,7 @@ namespace FastData.Demo.Services
             Console.WriteLine();
 
             // 1. 配置表级别的消息队列（启用降级）
-            FastWrite.ConfigureQueue<User>(new WriteBehindConfig
+            FastWrite.ConfigureQueue<AppUser>(new WriteBehindConfig
             {
                 QueueType = WriteBehindQueueType.ReliableQueue,
                 EnableFallback = true,
@@ -214,11 +214,11 @@ namespace FastData.Demo.Services
             Console.WriteLine("已配置 User 表启用可信队列（降级模式）");
 
             // 2. 使用链式 API 写入（带扩展元数据）
-            var users = new List<User>
+            var users = new List<AppUser>
             {
-                new User { Id = 101, UserName = "rtu_user_001", Email = "rtu001@example.com", Age = 25, IsActive = true, CreateTime = DateTime.Now },
-                new User { Id = 102, UserName = "rtu_user_002", Email = "rtu002@example.com", Age = 30, IsActive = true, CreateTime = DateTime.Now },
-                new User { Id = 103, UserName = "rtu_user_003", Email = "rtu003@example.com", Age = 28, IsActive = false, CreateTime = DateTime.Now }
+                new AppUser { Id = 101, UserName = "rtu_user_001", Email = "rtu001@example.com", Age = 25, IsActive = true, CreateTime = DateTime.Now },
+                new AppUser { Id = 102, UserName = "rtu_user_002", Email = "rtu002@example.com", Age = 30, IsActive = true, CreateTime = DateTime.Now },
+                new AppUser { Id = 103, UserName = "rtu_user_003", Email = "rtu003@example.com", Age = 28, IsActive = false, CreateTime = DateTime.Now }
             };
 
             Console.WriteLine($"使用 FastWrite.QueueBuilder() 写入 {users.Count} 个用户...");
@@ -266,7 +266,7 @@ namespace FastData.Demo.Services
             Console.WriteLine();
 
             // 1. 配置表级别的消息队列
-            FastRead.ConfigureQueue<User>(new WriteBehindConfig
+            FastRead.ConfigureQueue<AppUser>(new WriteBehindConfig
             {
                 QueueType = WriteBehindQueueType.ReliableQueue,
                 Topic = "demo:user-queries"
@@ -275,9 +275,9 @@ namespace FastData.Demo.Services
             Console.WriteLine("已配置 User 表启用查询队列");
 
             // 2. 使用链式 API 推送查询请求（带扩展元数据）
-            Console.WriteLine("使用 FastRead.QueueBuilder<User>() 推送查询请求...");
+            Console.WriteLine("使用 FastRead.QueueBuilder<AppUser>() 推送查询请求...");
 
-            var result = FastRead.QueueBuilder<User>()
+            var result = FastRead.QueueBuilder<AppUser>()
                 .WithMetadata(new Dictionary<string, object>
                 {
                     {"requestId", Guid.NewGuid().ToString()},

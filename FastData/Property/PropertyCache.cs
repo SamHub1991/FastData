@@ -5,6 +5,7 @@ using System.Reflection;
 using FastData.CacheModel;
 using FastData.Base;
 using FastData.Config;
+using FastData.Model;
 
 namespace FastData.Property
 {
@@ -19,16 +20,16 @@ namespace FastData.Property
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
-        public static List<PropertyModel> GetPropertyInfo<T>(bool IsCache = true)
+        public static List<PropertyModel> GetPropertyInfo<T>(bool IsCache = true, string projectName = null)
         {
             var list = new List<PropertyModel>();
             var key = string.Format("{0}.{1}", typeof(T).Namespace, typeof(T).Name);
-            var config = DataConfig.GetConfig();
+            var cacheType = "web";
 
             if (IsCache)
             {
-                if (DbCache.Exists(config.CacheType,key))
-                    return DbCache.Get<List<PropertyModel>>(config.CacheType, key);
+                if (DbCache.Exists(cacheType, key))
+                    return DbCache.Get<List<PropertyModel>>(cacheType, key);
                 else
                 {
                     typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly).ToList().ForEach(a =>
@@ -39,12 +40,12 @@ namespace FastData.Property
                             list.Add(temp);
                         });
 
-                    DbCache.Set<List<PropertyModel>>(config.CacheType,key, list);
+                    DbCache.Set<List<PropertyModel>>(cacheType, key, list);
                 }
             }
             else
             {
-                DbCache.Remove(config.CacheType,key);
+                DbCache.Remove(cacheType, key);
                 typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly).ToList().ForEach(a =>
                 {
                     var temp = new PropertyModel();
@@ -59,16 +60,16 @@ namespace FastData.Property
         #endregion
 
         #region 缓存发属性成员
-        public static List<PropertyModel> GetPropertyInfo(object model, bool IsCache = true)
+        public static List<PropertyModel> GetPropertyInfo(object model, bool IsCache = true, string projectName = null)
         {
             var list = new List<PropertyModel>();
             var key = string.Format("{0}.{1}", model.GetType().Namespace, model.GetType().Name);
-            var config = DataConfig.GetConfig();
+            var cacheType = "web";
 
             if (IsCache)
             {
-                if (DbCache.Exists(config.CacheType, key))
-                    return DbCache.Get<List<PropertyModel>>(config.CacheType, key);
+                if (DbCache.Exists(cacheType, key))
+                    return DbCache.Get<List<PropertyModel>>(cacheType, key);
                 else
                 {
                     model.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly).ToList().ForEach(a =>
@@ -79,7 +80,7 @@ namespace FastData.Property
                         list.Add(temp);
                     });
 
-                    DbCache.Set<List<PropertyModel>>(config.CacheType, key, list);
+                    DbCache.Set<List<PropertyModel>>(cacheType, key, list);
                 }
             }
             else

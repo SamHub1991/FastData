@@ -28,15 +28,29 @@ namespace FastData.Demo.Services
         public async Task<T> GetOrSetAsync<T>(string key, Func<Task<T>> factory, int hours = 24) where T : class, new()
         {
             // 尝试从缓存获取
-            var cached = RedisInfo.Get<T>(key);
-            if (cached != null && !EqualityComparer<T>.Default.Equals(cached, default))
-                return cached;
+            try
+            {
+                var cached = RedisInfo.Get<T>(key);
+                if (cached != null && !EqualityComparer<T>.Default.Equals(cached, default))
+                    return cached;
+            }
+            catch
+            {
+                // Redis not available, fall through to factory
+            }
 
             // 从工厂方法获取
             var value = await factory();
             if (value != null)
             {
-                RedisInfo.Set(key, value, hours);
+                try
+                {
+                    RedisInfo.Set(key, value, hours);
+                }
+                catch
+                {
+                    // Redis not available, skip caching
+                }
             }
 
             return value;
@@ -64,7 +78,14 @@ namespace FastData.Demo.Services
 
         public async Task<long> IncrementAsync(string key, int value = 1)
         {
-            return await Task.FromResult(RedisInfo.Increment(key, value));
+            try
+            {
+                return await Task.FromResult(RedisInfo.Increment(key, value));
+            }
+            catch
+            {
+                return await Task.FromResult(0L);
+            }
         }
 
         public async Task<bool> SetExpireAsync(string key, TimeSpan expire)
@@ -78,8 +99,8 @@ namespace FastData.Demo.Services
     /// </summary>
     public interface IUserCacheService
     {
-        Task<User> GetUserAsync(int userId, Func<Task<User>> factory);
-        Task<List<User>> GetActiveUsersAsync(Func<Task<List<User>>> factory);
+        Task<AppUser> GetUserAsync(int userId, Func<Task<AppUser>> factory);
+        Task<List<AppUser>> GetActiveUsersAsync(Func<Task<List<AppUser>>> factory);
         Task RemoveUserAsync(int userId);
         Task IncrementViewCountAsync(int userId);
     }
@@ -96,13 +117,13 @@ namespace FastData.Demo.Services
             _cacheService = cacheService;
         }
 
-        public async Task<User> GetUserAsync(int userId, Func<Task<User>> factory)
+        public async Task<AppUser> GetUserAsync(int userId, Func<Task<AppUser>> factory)
         {
             var key = $"user:{userId}";
             return await _cacheService.GetOrSetAsync(key, factory, hours: 2);
         }
 
-        public async Task<List<User>> GetActiveUsersAsync(Func<Task<List<User>>> factory)
+        public async Task<List<AppUser>> GetActiveUsersAsync(Func<Task<List<AppUser>>> factory)
         {
             var key = "users:active";
             return await _cacheService.GetOrSetAsync(key, factory, hours: 1);

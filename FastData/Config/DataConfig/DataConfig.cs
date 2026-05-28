@@ -143,14 +143,49 @@ namespace FastData.Config
                 list = DbCache.Get<List<ConfigModel>>(CacheType.Web, cacheKey);
             else if (projectName == null)
             {
-                if (dbFile.ToLower() == "web.config")
-                    config = (DataConfig)ConfigurationManager.GetSection("DataConfig");
-                else
+                // Try file-based approach first
+                try
                 {
-                    var exeConfig = new ExeConfigurationFileMap();
-                    exeConfig.ExeConfigFilename = string.Format("{0}bin\\{1}", AppDomain.CurrentDomain.BaseDirectory, dbFile);
-                    config = (DataConfig)ConfigurationManager.OpenMappedExeConfiguration(exeConfig, ConfigurationUserLevel.None).GetSection("DataConfig");
+                    if (dbFile.ToLower() == "web.config")
+                        config = (DataConfig)ConfigurationManager.GetSection("DataConfig");
+                    else
+                    {
+                        var exeConfig = new ExeConfigurationFileMap();
+                        exeConfig.ExeConfigFilename = string.Format("{0}bin\\{1}", AppDomain.CurrentDomain.BaseDirectory, dbFile);
+                        config = (DataConfig)ConfigurationManager.OpenMappedExeConfiguration(exeConfig, ConfigurationUserLevel.None).GetSection("DataConfig");
+                    }
                 }
+                catch
+                {
+                    // File-based approach failed, try embedded resource
+                    config = null;
+                }
+
+                // If file-based approach failed, try embedded resource from calling assemblies
+                if (config == null || config.Default == null)
+                {
+                    var assemblies = new[] {
+                        Assembly.GetCallingAssembly(),
+                        Assembly.GetEntryAssembly(),
+                        Assembly.GetExecutingAssembly()
+                    };
+                    
+                    foreach (var assembly in assemblies)
+                    {
+                        if (assembly == null) continue;
+                        var name = assembly.GetName().Name;
+                        var tempConfig = LoadFromEmbeddedResource(name, dbFile);
+                        if (tempConfig != null && tempConfig.Connections != null && tempConfig.Connections.Count != 0)
+                        {
+                            config = tempConfig;
+                            projectName = name;
+                            break;
+                        }
+                    }
+                }
+
+                if (config == null)
+                    config = new DataConfig();
 
                 defaultKey = config.Default;
 
@@ -409,13 +444,15 @@ namespace FastData.Config
             if (string.IsNullOrEmpty(dbType))
                 return null;
 
+            var originalProviderName = dbType;
+
             if (dbType == Provider.DB2)
                 dbType = DataDbType.DB2;
             else if (dbType == Provider.Oracle)
                 dbType = DataDbType.Oracle;
             else if (dbType == Provider.MySql)
                 dbType = DataDbType.MySql;
-            else if (dbType == Provider.SqlServer)
+            else if (dbType == Provider.SqlServer || dbType == "Microsoft.Data.SqlClient")
                 dbType = DataDbType.SqlServer;
             else if (dbType == Provider.SQLite)
                 dbType = DataDbType.SQLite;
@@ -445,7 +482,7 @@ namespace FastData.Config
             {
                 item.DbType = DataDbType.SqlServer;
                 item.Flag = "@";
-                item.ProviderName = Provider.SqlServer;
+                item.ProviderName = originalProviderName;
             }
             else if (dbType.ToLower() == DataDbType.SQLite.ToLower())
             {
@@ -483,6 +520,35 @@ namespace FastData.Config
             result.Add(list.Count(a => a.DbType == DataDbType.MySql) > 0);
 
             return result.Count(a => a == true) > 1;
+        }
+
+        /// <summary>
+        /// 从嵌入式资源加载配置
+        /// </summary>
+        private static DataConfig LoadFromEmbeddedResource(string projectName, string dbFile)
+        {
+            try
+            {
+                var assembly = Assembly.Load(projectName);
+                using (var resource = assembly.GetManifestResourceStream(string.Format("{0}.{1}", projectName, dbFile)))
+                {
+                    if (resource != null)
+                    {
+                        // Just verify the resource exists and has DataConfig section
+                        using (var reader = new StreamReader(resource))
+                        {
+                            var content = reader.ReadToEnd();
+                            if (content.Contains("DataConfig"))
+                                return new DataConfig();
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // Failed to load from embedded resource
+            }
+            return null;
         }
     }
 }

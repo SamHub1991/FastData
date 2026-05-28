@@ -78,7 +78,12 @@ namespace FastData.Base
         {
             try
             {
-                var id = dr.GetOrdinal(config.DbType == DataDbType.Oracle ? info.Name.ToUpper() : info.Name);
+                var ordinalName = info.Name;
+                if (config.DbType == DataDbType.Oracle)
+                    ordinalName = info.Name.ToUpper();
+                else if (config.DbType == DataDbType.PostgreSql)
+                    ordinalName = info.Name.ToLower();
+                var id = dr.GetOrdinal(ordinalName);
                 if (DataDbType.Oracle == config.DbType)
                 {
                     object value = null;

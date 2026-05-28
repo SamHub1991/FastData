@@ -1,8 +1,8 @@
+using FastData;
 using FastData.Demo.Models;
-using FastData.Repository;
+using FastUntility.Page;
 using System;
 using System.Collections.Generic;
-using System.Data.Common;
 using System.Threading.Tasks;
 
 namespace FastData.Demo.Repositories
@@ -12,14 +12,14 @@ namespace FastData.Demo.Repositories
     /// </summary>
     public interface IUserRepository
     {
-        Task<List<User>> GetAllAsync();
-        Task<User> GetByIdAsync(int id);
-        Task<List<User>> GetByDepartmentAsync(string department);
-        Task<List<User>> GetActiveUsersAsync();
-        Task<int> AddAsync(User user);
-        Task<int> UpdateAsync(User user);
+        Task<List<AppUser>> GetAllAsync();
+        Task<AppUser> GetByIdAsync(int id);
+        Task<List<AppUser>> GetByDepartmentAsync(string department);
+        Task<List<AppUser>> GetActiveUsersAsync();
+        Task<int> AddAsync(AppUser user);
+        Task<int> UpdateAsync(AppUser user);
         Task<int> DeleteAsync(int id);
-        Task<List<User>> GetPagedAsync(int pageIndex, int pageSize);
+        Task<List<AppUser>> GetPagedAsync(int pageIndex, int pageSize);
     }
 
     /// <summary>
@@ -27,67 +27,72 @@ namespace FastData.Demo.Repositories
     /// </summary>
     public class UserRepository : IUserRepository
     {
-        private readonly IReadRepository _readRepo;
-        private readonly IWriteRepository _writeRepo;
-
-        public UserRepository(IReadRepository readRepo, IWriteRepository writeRepo)
+        public async Task<List<AppUser>> GetAllAsync()
         {
-            _readRepo = readRepo;
-            _writeRepo = writeRepo;
+            return await Task.Run(() => 
+                FastRead.Query<AppUser>(u => u.Id > 0)
+                    .OrderBy(u => u.Id)
+                    .ToList());
         }
 
-        public async Task<List<User>> GetAllAsync()
+        public async Task<AppUser> GetByIdAsync(int id)
         {
-            return await _readRepo.QueryAsy<User>("SELECT * FROM Users ORDER BY Id", null);
+            return await Task.Run(() => 
+                FastRead.Query<AppUser>(u => u.Id == id)
+                    .ToItem());
         }
 
-        public async Task<User> GetByIdAsync(int id)
+        public async Task<List<AppUser>> GetByDepartmentAsync(string department)
         {
-            var users = await _readRepo.QueryAsy<User>(
-                "SELECT * FROM Users WHERE Id = @Id",
-                new DbParameter[] { });
-            return users.Count > 0 ? users[0] : null;
+            return await Task.Run(() => 
+                FastRead.Query<AppUser>(u => u.Department == department)
+                    .ToList());
         }
 
-        public async Task<List<User>> GetByDepartmentAsync(string department)
+        public async Task<List<AppUser>> GetActiveUsersAsync()
         {
-            return await _readRepo.QueryAsy<User>(
-                "SELECT * FROM Users WHERE Department = @Department",
-                new DbParameter[] { });
+            return await Task.Run(() => 
+                FastRead.Query<AppUser>(u => u.IsActive == true)
+                    .ToList());
         }
 
-        public async Task<List<User>> GetActiveUsersAsync()
+        public async Task<int> AddAsync(AppUser user)
         {
-            return await _readRepo.QueryAsy<User>(
-                "SELECT * FROM Users WHERE IsActive = 1",
-                null);
+            try
+            {
+                user.CreateTime = DateTime.Now;
+                user.IsActive = true;
+                var result = await Task.Run(() => FastWrite.Add(user));
+                return result.IsSuccess ? 1 : 0;
+            }
+            catch (Exception)
+            {
+                return 0;
+            }
         }
 
-        public async Task<int> AddAsync(User user)
-        {
-            user.CreateTime = DateTime.Now;
-            user.IsActive = true;
-            var result = await _writeRepo.AddAsy(user);
-            return result.IsSuccess ? 1 : 0;
-        }
-
-        public async Task<int> UpdateAsync(User user)
+        public async Task<int> UpdateAsync(AppUser user)
         {
             user.UpdateTime = DateTime.Now;
-            var result = await _writeRepo.UpdateAsy(user, a => new { a.UserName, a.Email, a.Phone, a.Age, a.Department, a.Salary, a.UpdateTime });
+            var result = await Task.Run(() => 
+                FastWrite.Update(user, a => new { a.UserName, a.Email, a.Phone, a.Age, a.Department, a.Salary, a.UpdateTime }));
             return result.IsSuccess ? 1 : 0;
         }
 
         public async Task<int> DeleteAsync(int id)
         {
-            var result = await _writeRepo.DeleteAsy<User>(a => a.Id == id);
+            var result = await Task.Run(() => 
+                FastWrite.Delete<AppUser>(a => a.Id == id));
             return result.IsSuccess ? 1 : 0;
         }
 
-        public async Task<List<User>> GetPagedAsync(int pageIndex, int pageSize)
+        public async Task<List<AppUser>> GetPagedAsync(int pageIndex, int pageSize)
         {
-            var sql = $"SELECT * FROM Users ORDER BY Id OFFSET {(pageIndex - 1) * pageSize} ROWS FETCH NEXT {pageSize} ROWS ONLY";
-            return await _readRepo.QueryAsy<User>(sql, null);
+            var result = await Task.Run(() => 
+                FastRead.Query<AppUser>(u => true)
+                    .OrderBy(u => u.Id)
+                    .ToPage<AppUser>(new PageModel { PageId = pageIndex, PageSize = pageSize }));
+            return result.list;
         }
     }
 
@@ -96,11 +101,11 @@ namespace FastData.Demo.Repositories
     /// </summary>
     public interface IOrderRepository
     {
-        Task<List<Order>> GetAllAsync();
-        Task<Order> GetByIdAsync(int id);
-        Task<List<Order>> GetByUserIdAsync(int userId);
-        Task<List<Order>> GetByStatusAsync(int status);
-        Task<int> AddAsync(Order order);
+        Task<List<AppOrder>> GetAllAsync();
+        Task<AppOrder> GetByIdAsync(int id);
+        Task<List<AppOrder>> GetByUserIdAsync(int userId);
+        Task<List<AppOrder>> GetByStatusAsync(int status);
+        Task<int> AddAsync(AppOrder order);
         Task<int> UpdateStatusAsync(int id, int status);
     }
 
@@ -109,48 +114,42 @@ namespace FastData.Demo.Repositories
     /// </summary>
     public class OrderRepository : IOrderRepository
     {
-        private readonly IReadRepository _readRepo;
-        private readonly IWriteRepository _writeRepo;
-
-        public OrderRepository(IReadRepository readRepo, IWriteRepository writeRepo)
+        public async Task<List<AppOrder>> GetAllAsync()
         {
-            _readRepo = readRepo;
-            _writeRepo = writeRepo;
+            return await Task.Run(() => 
+                FastRead.Query<AppOrder>(o => true)
+                    .OrderByDescending(o => o.Id)
+                    .ToList());
         }
 
-        public async Task<List<Order>> GetAllAsync()
+        public async Task<AppOrder> GetByIdAsync(int id)
         {
-            return await _readRepo.QueryAsy<Order>("SELECT * FROM Orders ORDER BY Id DESC", null);
+            return await Task.Run(() => 
+                FastRead.Query<AppOrder>(o => o.Id == id)
+                    .ToItem());
         }
 
-        public async Task<Order> GetByIdAsync(int id)
+        public async Task<List<AppOrder>> GetByUserIdAsync(int userId)
         {
-            var orders = await _readRepo.QueryAsy<Order>(
-                "SELECT * FROM Orders WHERE Id = @Id",
-                new DbParameter[] { });
-            return orders.Count > 0 ? orders[0] : null;
+            return await Task.Run(() => 
+                FastRead.Query<AppOrder>(o => o.UserId == userId)
+                    .OrderByDescending(o => o.CreateTime)
+                    .ToList());
         }
 
-        public async Task<List<Order>> GetByUserIdAsync(int userId)
+        public async Task<List<AppOrder>> GetByStatusAsync(int status)
         {
-            return await _readRepo.QueryAsy<Order>(
-                "SELECT * FROM Orders WHERE UserId = @UserId ORDER BY CreateTime DESC",
-                new DbParameter[] { });
+            return await Task.Run(() => 
+                FastRead.Query<AppOrder>(o => o.Status == status)
+                    .ToList());
         }
 
-        public async Task<List<Order>> GetByStatusAsync(int status)
-        {
-            return await _readRepo.QueryAsy<Order>(
-                "SELECT * FROM Orders WHERE Status = @Status",
-                new DbParameter[] { });
-        }
-
-        public async Task<int> AddAsync(Order order)
+        public async Task<int> AddAsync(AppOrder order)
         {
             order.CreateTime = DateTime.Now;
             order.Status = 0;
             order.OrderNo = $"ORD{DateTime.Now:yyyyMMddHHmmss}{new Random().Next(1000, 9999)}";
-            var result = await _writeRepo.AddAsy(order);
+            var result = await Task.Run(() => FastWrite.Add(order));
             return result.IsSuccess ? 1 : 0;
         }
 
@@ -161,7 +160,8 @@ namespace FastData.Demo.Repositories
 
             order.Status = status;
             if (status == 1) order.PayTime = DateTime.Now;
-            var result = await _writeRepo.UpdateAsy(order, a => new { a.Status, a.PayTime });
+            var result = await Task.Run(() => 
+                FastWrite.Update(order, a => new { a.Status, a.PayTime }));
             return result.IsSuccess ? 1 : 0;
         }
     }

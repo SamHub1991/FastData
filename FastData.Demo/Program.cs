@@ -1,9 +1,18 @@
 using FastData.Demo.Repositories;
 using FastData.Demo.Services;
+using FastData.Repository;
 using FastRedis;
 using FastRedis.Messaging;
 using FastRedis.Repository;
 using FastRedis.Services;
+using System.Data.Common;
+using MySql.Data.MySqlClient;
+
+// 注册数据库提供程序（.NET Core 需要手动注册）
+DbProviderFactories.RegisterFactory("Microsoft.Data.SqlClient", Microsoft.Data.SqlClient.SqlClientFactory.Instance);
+DbProviderFactories.RegisterFactory("MySql.Data.MySqlClient", MySql.Data.MySqlClient.MySqlClientFactory.Instance);
+DbProviderFactories.RegisterFactory("System.Data.SQLite", System.Data.SQLite.SQLiteFactory.Instance);
+DbProviderFactories.RegisterFactory("Npgsql", Npgsql.NpgsqlFactory.Instance);
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,6 +32,12 @@ var redisDb = int.Parse(builder.Configuration["Redis:Db"] ?? "7");
 builder.Services.AddSingleton<IRedisRepository, RedisRepository>();
 builder.Services.AddSingleton<ICacheService, CacheService>();
 builder.Services.AddSingleton<IUserCacheService, UserCacheService>();
+
+// 注册 FastData 仓储服务
+builder.Services.AddScoped<IFastRepository, FastRepository>();
+builder.Services.AddScoped<IReadRepository>(sp => sp.GetRequiredService<IFastRepository>());
+builder.Services.AddScoped<IWriteRepository>(sp => sp.GetRequiredService<IFastRepository>());
+builder.Services.AddScoped<IMapRepository>(sp => sp.GetRequiredService<IFastRepository>());
 
 // 注册消息队列服务（单例模式）
 builder.Services.AddSingleton<MessageQueueFactory>(sp =>

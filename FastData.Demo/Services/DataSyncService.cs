@@ -28,7 +28,7 @@ namespace FastData.Demo.Services
             {
                 new TableSyncConfig
                 {
-                    TableName = "Users",
+                    TableName = "User",
                     TargetTableName = "Users_Archive",
                     PrimaryKeyColumns = "Id",
                     TimeColumn = "UpdateTime",

@@ -119,11 +119,18 @@ namespace FastData.Base
             {
                 sbName.AppendFormat("insert into {0} (", typeof(T).Name);
                 sbValue.Append(" values (");
-
-                PropertyCache.GetPropertyInfo<T>(config.IsPropertyCache).ForEach(p =>
+                var props = PropertyCache.GetPropertyInfo<T>(config?.IsPropertyCache ?? true);
+                props.ForEach(p =>
                 {
                     if (!list.Exists(a => a.Name == p.Name))
                     {
+                        // Skip identity columns
+                        var propInfo = typeof(T).GetProperty(p.Name);
+                        var columnAttr = propInfo?.GetCustomAttributes(typeof(Property.ColumnAttribute), true)
+                            .OfType<Property.ColumnAttribute>().FirstOrDefault();
+                        if (columnAttr != null && columnAttr.IsIdentity)
+                            return;
+
                         sbName.AppendFormat("{0},", p.Name);
 
                         sbValue.AppendFormat("{1}{0},", p.Name, config.Flag);
