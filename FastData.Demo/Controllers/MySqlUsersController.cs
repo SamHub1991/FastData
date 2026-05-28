@@ -64,7 +64,7 @@ namespace FastData.Demo.Controllers
         {
             try
             {
-                user.CreateTime = DateTime.UtcNow;
+                user.CreateTime = DateTime.Now;
                 user.IsActive = true;
                 var result = await Task.Run(() =>
                     FastWrite.Add(user, key: DbKey));
@@ -103,7 +103,7 @@ namespace FastData.Demo.Controllers
             try
             {
                 user.Id = id;
-                user.UpdateTime = DateTime.UtcNow;
+                user.UpdateTime = DateTime.Now;
                 var result = await Task.Run(() =>
                     FastWrite.Update(user, key: DbKey));
                 return Ok(result);
