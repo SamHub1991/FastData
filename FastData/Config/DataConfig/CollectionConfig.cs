@@ -25,5 +25,13 @@ namespace FastData.Config
         {
             return ((ElementConfig)element).ConnStr;
         }
+
+        /// <summary>
+        /// 添加元素
+        /// </summary>
+        public void AddElement(ElementConfig element)
+        {
+            BaseAdd(element);
+        }
     }
 }

@@ -1,5 +1,6 @@
 using FastData.Base;
 using FastData.Database;
+using FastData.Shared;
 using FastData.Tooling.CodeGeneration;
 using FastData.Tooling.Database;
 using System;
@@ -82,6 +83,9 @@ namespace FastData.ModelGenerator.WinForms
             previewXmlButton.Text = "预览XML";
             generateButton.Text = "生成Model";
             generateXmlButton.Text = "生成XML Map";
+            var manageConnectionsButton = new Button { Text = "管理连接" };
+            manageConnectionsButton.Click += ManageConnectionsButton_Click;
+            buttonPanel.Controls.Add(manageConnectionsButton);
             buttonPanel.Controls.Add(testButton);
             buttonPanel.Controls.Add(loadButton);
             buttonPanel.Controls.Add(previewButton);
@@ -134,6 +138,19 @@ namespace FastData.ModelGenerator.WinForms
             generateXmlButton.Click += delegate { GenerateXmlMapFiles(); };
             searchBox.TextChanged += delegate { RefreshTableList(); };
             tableList.SelectedIndexChanged += delegate { PreviewColumns(); };
+        }
+
+        private void ManageConnectionsButton_Click(object sender, EventArgs e)
+        {
+            using (var form = new ConnectionManagerForm())
+            {
+                if (form.ShowDialog(this) == DialogResult.OK && form.ConnectionSelected)
+                {
+                    var config = form.SelectedConnection;
+                    providerBox.Text = config.Provider;
+                    connectionBox.Text = config.ConnectionString;
+                }
+            }
         }
 
         private DatabaseConnectionOptions GetOptions()

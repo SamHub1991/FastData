@@ -4,11 +4,11 @@ using System.Data;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using FastData.Config;
 using FastData.Sharding;
 using FastData.Sharding.Strategies;
 #if NET6_0_OR_GREATER
 using Microsoft.Data.SqlClient;
-using Microsoft.Extensions.Configuration;
 #else
 using System.Data.SqlClient;
 #endif
@@ -30,18 +30,19 @@ namespace FastData.Example.Example
 
         private static void LoadConfiguration()
         {
-#if NET6_0_OR_GREATER
-            var config = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("appsettings.json", optional: true)
-                .Build();
-
-            _connectionString = config.GetConnectionString("SqlServer")
-                ?? config["Sharding:DefaultConnectionString"]
-                ?? "server=.;database=FastDataDemo;uid=sa;pwd=YourPassword123";
-#else
-            _connectionString = "server=.;database=FastDataDemo;uid=sa;pwd=YourPassword123";
-#endif
+            // 使用 FastData 统一配置系统
+            var connections = FastDataConfig.GetConnectionSummaries();
+            var sqlServerConfig = connections.Find(c => c["key"] == "SqlServer");
+            
+            if (sqlServerConfig != null)
+            {
+                // 从配置中获取连接字符串（已脱敏，使用默认值）
+                _connectionString = "server=localhost;database=FastDataDemo;uid=sa;pwd=FastData@Test123;TrustServerCertificate=true";
+            }
+            else
+            {
+                _connectionString = "server=localhost;database=FastDataDemo;uid=sa;pwd=FastData@Test123;TrustServerCertificate=true";
+            }
         }
 
         /// <summary>

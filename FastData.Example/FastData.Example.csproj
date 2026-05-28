@@ -29,8 +29,19 @@
     <Reference Include="System.Data.SqlClient" />
   </ItemGroup>
   <ItemGroup>
-    <None Update="appsettings.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    <EmbeddedResource Include="db.config">
+      <LogicalName>FastData.Example.db.config</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="db.dev.config">
+      <LogicalName>FastData.Example.db.dev.config</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="db.pro.config">
+      <LogicalName>FastData.Example.db.pro.config</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="db.pro.config.example" />
+    <None Include="db.pro.config.example" />
   </ItemGroup>
 </Project>

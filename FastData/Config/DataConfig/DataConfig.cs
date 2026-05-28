@@ -26,6 +26,15 @@ namespace FastData.Config
             }
         }
 
+        [ConfigurationProperty("Active", IsRequired = false, DefaultValue = "")]
+        public string Active
+        {
+            get
+            {
+                return this["Active"].ToString();
+            }
+        }
+
         [ConfigurationProperty("Connections", IsRequired = false)]
         [ConfigurationCollection(typeof(CollectionConfig), AddItemName = "Add")]
         public CollectionConfig Connections
@@ -126,6 +135,20 @@ namespace FastData.Config
         }
         #endregion
 
+        #region Redis 节点
+        /// <summary>
+        /// Redis 配置
+        /// </summary>
+        [ConfigurationProperty("Redis", IsRequired = false)]
+        public RedisElement Redis
+        {
+            get
+            {
+                return (RedisElement)this["Redis"];
+            }
+        }
+        #endregion
+
         #region 获取配置节点
         /// <summary>
         /// 获取配置节点
@@ -143,21 +166,23 @@ namespace FastData.Config
                 list = DbCache.Get<List<ConfigModel>>(CacheType.Web, cacheKey);
             else if (projectName == null)
             {
-                // Support environment-specific config files
-                var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
-                    ?? Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT")
-                    ?? "Production";
+                // Load db.config to get Active value
+                var baseConfig = TryLoadConfig(dbFile);
+                var activeEnv = ResolveActiveEnvironment(baseConfig);
 
-                // Try environment-specific config first (e.g., db.Development.config)
-                var envDbFile = Path.GetFileNameWithoutExtension(dbFile) + "." + environment + Path.GetExtension(dbFile);
-                config = TryLoadConfig(envDbFile);
+                // Try to load environment-specific config (e.g., db.dev.config, db.pro.config)
+                if (!string.IsNullOrEmpty(activeEnv))
+                {
+                    var envDbFile = $"db.{activeEnv}.config";
+                    config = TryLoadConfig(envDbFile);
+                }
 
-                // Fall back to base config
-                if (config == null || config.Default == null)
-                    config = TryLoadConfig(dbFile);
+                // Fall back to base db.config (if it has connections directly)
+                if (config == null || config.Connections == null || config.Connections.Count == 0)
+                    config = baseConfig;
 
                 // If file-based approach failed, try embedded resource from calling assemblies
-                if (config == null || config.Default == null)
+                if (config == null || (config.Connections == null || config.Connections.Count == 0))
                 {
                     var assemblies = new[] {
                         Assembly.GetCallingAssembly(),
@@ -171,19 +196,23 @@ namespace FastData.Config
                         var name = assembly.GetName().Name;
                         
                         // Try environment-specific embedded resource first
-                        var tempConfig = LoadFromEmbeddedResource(name, envDbFile);
-                        if (tempConfig != null && tempConfig.Connections != null && tempConfig.Connections.Count != 0)
+                        if (!string.IsNullOrEmpty(activeEnv))
                         {
-                            config = tempConfig;
-                            projectName = name;
-                            break;
+                            var envDbFile = $"db.{activeEnv}.config";
+                            var tempConfig = LoadFromEmbeddedResource(name, envDbFile);
+                            if (tempConfig != null && tempConfig.Connections != null && tempConfig.Connections.Count != 0)
+                            {
+                                config = tempConfig;
+                                projectName = name;
+                                break;
+                            }
                         }
                         
                         // Fall back to base embedded resource
-                        tempConfig = LoadFromEmbeddedResource(name, dbFile);
-                        if (tempConfig != null && tempConfig.Connections != null && tempConfig.Connections.Count != 0)
+                        var baseTempConfig = LoadFromEmbeddedResource(name, dbFile);
+                        if (baseTempConfig != null && baseTempConfig.Connections != null && baseTempConfig.Connections.Count != 0)
                         {
-                            config = tempConfig;
+                            config = baseTempConfig;
                             projectName = name;
                             break;
                         }
@@ -550,6 +579,108 @@ namespace FastData.Config
             }
         }
 
+        /// <summary>
+        /// Resolve active environment from config or environment variable
+        /// Priority: FASTDATA_ACTIVE env var > db.config Active attribute > default "dev"
+        /// </summary>
+        private static string ResolveActiveEnvironment(DataConfig baseConfig)
+        {
+            // 1. Check environment variable first
+            var envActive = Environment.GetEnvironmentVariable("FASTDATA_ACTIVE");
+            if (!string.IsNullOrEmpty(envActive))
+                return NormalizeEnvironment(envActive);
+
+            // 2. Check db.config Active attribute
+            if (baseConfig != null && !string.IsNullOrEmpty(baseConfig.Active))
+                return NormalizeEnvironment(baseConfig.Active);
+
+            // 3. Default to "dev"
+            return "dev";
+        }
+
+        /// <summary>
+        /// Normalize environment name aliases
+        /// dev/development/Development → dev
+        /// pro/production/Production → pro
+        /// staging/Staging → staging
+        /// Others: lowercase
+        /// </summary>
+        private static string NormalizeEnvironment(string env)
+        {
+            if (string.IsNullOrEmpty(env)) return "dev";
+            
+            var lower = env.ToLower();
+            switch (lower)
+            {
+                case "dev":
+                case "development":
+                    return "dev";
+                case "pro":
+                case "production":
+                    return "pro";
+                case "staging":
+                    return "staging";
+                default:
+                    return lower;
+            }
+        }
+
+        /// <summary>
+        /// Get Redis config from current active environment config
+        /// </summary>
+        /// <returns>Redis config, or null if not configured</returns>
+        public static RedisConfig GetRedisConfig(string dbFile = "db.config")
+        {
+            var cacheKey = "FastData.redis.config";
+            
+            if (DbCache.Exists(CacheType.Web, cacheKey))
+                return DbCache.Get<RedisConfig>(CacheType.Web, cacheKey);
+
+            DataConfig config = null;
+            
+            // Load base config to get Active value
+            var baseConfig = TryLoadConfig(dbFile);
+            var activeEnv = ResolveActiveEnvironment(baseConfig);
+
+            // Try environment-specific config
+            if (!string.IsNullOrEmpty(activeEnv))
+            {
+                var envDbFile = $"db.{activeEnv}.config";
+                config = TryLoadConfig(envDbFile);
+            }
+
+            // Fall back to base config
+            if (config == null)
+                config = baseConfig;
+
+            // Extract Redis config
+            var redisConfig = new RedisConfig();
+            if (config?.Redis != null)
+            {
+                redisConfig.Server = config.Redis.Server;
+                redisConfig.Db = config.Redis.Db;
+                redisConfig.Password = config.Redis.Password;
+                redisConfig.ConnectTimeout = config.Redis.ConnectTimeout;
+                redisConfig.SyncTimeout = config.Redis.SyncTimeout;
+            }
+
+            // Check environment variable overrides
+            var envServer = Environment.GetEnvironmentVariable("FASTDATA_REDIS_SERVER");
+            if (!string.IsNullOrEmpty(envServer))
+                redisConfig.Server = envServer;
+
+            var envDb = Environment.GetEnvironmentVariable("FASTDATA_REDIS_DB");
+            if (!string.IsNullOrEmpty(envDb) && int.TryParse(envDb, out var dbIndex))
+                redisConfig.Db = dbIndex;
+
+            var envPassword = Environment.GetEnvironmentVariable("FASTDATA_REDIS_PASSWORD");
+            if (!string.IsNullOrEmpty(envPassword))
+                redisConfig.Password = envPassword;
+
+            DbCache.Set<RedisConfig>(CacheType.Web, cacheKey, redisConfig);
+            return redisConfig;
+        }
+
         public static bool DataType(string key = null, string projectName = null, string dbFile = "db.config")
         {
             var result = new List<bool>();
@@ -577,17 +708,67 @@ namespace FastData.Config
         {
             try
             {
-                var assembly = Assembly.Load(projectName);
-                using (var resource = assembly.GetManifestResourceStream(string.Format("{0}.{1}", projectName, dbFile)))
+                Assembly assembly = null;
+                
+                // Try to find assembly from current AppDomain first
+                foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+                {
+                    if (asm.GetName().Name == projectName && !asm.IsDynamic)
+                    {
+                        assembly = asm;
+                        break;
+                    }
+                }
+                
+                // If not found in AppDomain, try Assembly.Load
+                if (assembly == null)
+                {
+                    try
+                    {
+                        assembly = Assembly.Load(projectName);
+                    }
+                    catch
+                    {
+                        // Assembly not found in default probing paths
+                        // Try to load from file system
+                        var basePath = AppDomain.CurrentDomain.BaseDirectory;
+                        var possiblePaths = new[]
+                        {
+                            Path.Combine(basePath, projectName + ".dll"),
+                            Path.Combine(basePath, "bin", projectName + ".dll"),
+                            Path.Combine(basePath, "publish", projectName + ".dll")
+                        };
+                        
+                        foreach (var path in possiblePaths)
+                        {
+                            if (File.Exists(path))
+                            {
+                                try
+                                {
+                                    assembly = Assembly.LoadFrom(path);
+                                    break;
+                                }
+                                catch
+                                {
+                                    // Failed to load from this path
+                                }
+                            }
+                        }
+                        
+                        if (assembly == null)
+                            return null;
+                    }
+                }
+                
+                var resourceName = string.Format("{0}.{1}", projectName, dbFile);
+                using (var resource = assembly.GetManifestResourceStream(resourceName))
                 {
                     if (resource != null)
                     {
-                        // Just verify the resource exists and has DataConfig section
                         using (var reader = new StreamReader(resource))
                         {
                             var content = reader.ReadToEnd();
-                            if (content.Contains("DataConfig"))
-                                return new DataConfig();
+                            return ParseXmlConfig(content);
                         }
                     }
                 }
@@ -598,5 +779,149 @@ namespace FastData.Config
             }
             return null;
         }
+
+        /// <summary>
+        /// Parse XML config content into DataConfig object
+        /// </summary>
+        private static DataConfig ParseXmlConfig(string xmlContent)
+        {
+            try
+            {
+                var doc = new System.Xml.XmlDocument();
+                doc.LoadXml(xmlContent);
+
+                var dataConfigNode = doc.SelectSingleNode("//DataConfig");
+                if (dataConfigNode == null)
+                    return null;
+
+                var config = new DataConfig();
+
+                // Read Active attribute
+                var activeAttr = dataConfigNode.Attributes?["Active"];
+                if (activeAttr != null)
+                    config["Active"] = activeAttr.Value;
+
+                // Read Default attribute
+                var defaultAttr = dataConfigNode.Attributes?["Default"];
+                if (defaultAttr != null)
+                    config["Default"] = defaultAttr.Value;
+
+                // Read Connections
+                var connectionsNode = dataConfigNode.SelectSingleNode("Connections");
+                if (connectionsNode != null)
+                {
+                    var collection = new CollectionConfig();
+                    foreach (System.Xml.XmlNode addNode in connectionsNode.SelectNodes("Add"))
+                    {
+                        var element = new ElementConfig();
+                        element.Key = addNode.Attributes?["Key"]?.Value ?? "";
+                        element.Provider = addNode.Attributes?["Provider"]?.Value ?? "";
+                        element.ConnStr = addNode.Attributes?["ConnStr"]?.Value ?? "";
+                        element.IsDefault = addNode.Attributes?["IsDefault"]?.Value?.ToLower() == "true";
+                        collection.AddElement(element);
+                    }
+                    config["Connections"] = collection;
+                }
+
+                // Read Redis
+                var redisNode = dataConfigNode.SelectSingleNode("Redis");
+                if (redisNode != null)
+                {
+                    var redisElement = new RedisElement();
+                    redisElement.Server = redisNode.Attributes?["Server"]?.Value ?? "";
+                    redisElement.Db = int.TryParse(redisNode.Attributes?["Db"]?.Value, out var db) ? db : 0;
+                    redisElement.Password = redisNode.Attributes?["Password"]?.Value ?? "";
+                    redisElement.ConnectTimeout = int.TryParse(redisNode.Attributes?["ConnectTimeout"]?.Value, out var ct) ? ct : 5000;
+                    redisElement.SyncTimeout = int.TryParse(redisNode.Attributes?["SyncTimeout"]?.Value, out var st) ? st : 5000;
+                    config["Redis"] = redisElement;
+                }
+
+                return config;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        #region 公共 API（供外部项目调用）
+        /// <summary>
+        /// 获取当前活跃环境名称
+        /// </summary>
+        public static string GetActiveEnvironment()
+        {
+            var baseConfig = TryLoadConfig("db.config");
+            return ResolveActiveEnvironment(baseConfig);
+        }
+
+        /// <summary>
+        /// 获取 Redis 配置（完整对象，供内部使用）
+        /// </summary>
+        public static RedisConfig GetRedisConfigPublic()
+        {
+            return GetRedisConfig();
+        }
+
+        /// <summary>
+        /// 获取数据库连接列表（密码脱敏）
+        /// </summary>
+        public static List<Dictionary<string, string>> GetConnectionSummaries()
+        {
+            var result = new List<Dictionary<string, string>>();
+            var cacheKey = "FastData.db.config";
+            var cacheType = "web";
+            
+            // Trigger config loading if cache is empty
+            if (!Base.DbCache.Exists(cacheType, cacheKey))
+            {
+                GetConfig();
+            }
+            
+            if (!Base.DbCache.Exists(cacheType, cacheKey))
+                return result;
+
+            var list = Base.DbCache.Get<List<ConfigModel>>(cacheType, cacheKey);
+            foreach (var c in list)
+            {
+                result.Add(new Dictionary<string, string>
+                {
+                    { "key", c.Key ?? "" },
+                    { "dbType", c.DbType ?? "" },
+                    { "provider", c.ProviderName ?? "" },
+                    { "connStr", MaskConnStr(c.ConnStr) },
+                    { "isOutSql", c.IsOutSql.ToString() },
+                    { "isOutError", c.IsOutError.ToString() }
+                });
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// 获取 Redis 配置摘要（密码脱敏）
+        /// </summary>
+        public static Dictionary<string, string> GetRedisSummary()
+        {
+            var redis = GetRedisConfig();
+            if (redis == null)
+                return new Dictionary<string, string> { { "configured", "false" } };
+
+            return new Dictionary<string, string>
+            {
+                { "configured", "true" },
+                { "server", redis.Server ?? "" },
+                { "db", redis.Db.ToString() },
+                { "password", string.IsNullOrEmpty(redis.Password) ? "" : "***" },
+                { "connectTimeout", redis.ConnectTimeout.ToString() },
+                { "syncTimeout", redis.SyncTimeout.ToString() }
+            };
+        }
+
+        private static string MaskConnStr(string connStr)
+        {
+            if (string.IsNullOrEmpty(connStr)) return "";
+            return System.Text.RegularExpressions.Regex.Replace(
+                connStr, @"(?i)(pwd|password)=[^;]*", "$1=***");
+        }
+        #endregion
     }
 }

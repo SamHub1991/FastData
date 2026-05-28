@@ -33,12 +33,17 @@
     <EmbeddedResource Include="db.config">
       <LogicalName>FastData.Demo.db.config</LogicalName>
     </EmbeddedResource>
-    <EmbeddedResource Include="db.Development.config">
-      <LogicalName>FastData.Demo.db.Development.config</LogicalName>
+    <EmbeddedResource Include="db.dev.config">
+      <LogicalName>FastData.Demo.db.dev.config</LogicalName>
     </EmbeddedResource>
-    <EmbeddedResource Include="db.Production.config">
-      <LogicalName>FastData.Demo.db.Production.config</LogicalName>
+    <EmbeddedResource Include="db.pro.config">
+      <LogicalName>FastData.Demo.db.pro.config</LogicalName>
     </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="db.pro.config.example" />
+    <None Include="db.pro.config.example" />
   </ItemGroup>
 
 </Project>

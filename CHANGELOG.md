@@ -2,6 +2,56 @@
 
 本文档记录 FastData 的所有重要变更。格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [2.1.0] - 2026-05-28
+
+### Added
+
+- **MySQL 批量插入性能测试**
+  - 单条插入测试
+  - 批量插入测试（事务）
+  - 不同批量大小性能对比
+  - FastWrite 批量写入测试
+
+- **MySQL → PostgreSQL 同步测试**
+  - 数据同步测试
+  - 批量同步性能测试
+  - 数据一致性验证
+  - 增量同步测试
+
+- **ORM API 完整性验证**
+  - Read API 测试（Query, Where, Contains, StartsWith, EndsWith）
+  - Chainable API 测试（Where, Or, And, Select, OrderBy）
+  - Write API 测试（Add, AddList, Update, Delete）
+  - DataQuery Generic API 测试
+  - Pagination API 测试
+  - SQL Log API 测试
+  - Sharding API 测试
+  - Where Builder 测试
+
+- **连接管理功能**
+  - FastData.Shared 共享库
+  - ConnectionManagerForm 连接管理界面
+  - 支持新增、修改、删除连接
+  - 连接配置持久化（JSON）
+  - ModelGenerator 集成连接管理
+
+- **Docker 支持**
+  - docker-compose.yml 统一管理所有数据库
+  - SQL Server, MySQL, PostgreSQL, SQLite 容器化
+
+- **同步工具架构图**
+  - 整体架构图
+  - 同步流程图
+  - 状态管理图
+  - 数据流向图
+  - 组件关系图
+  - 部署架构图
+
+### Changed
+
+- 更新 CHANGELOG.md 记录最新变更
+- 合并开发进度文档
+
 ## [2.0.0] - 2026-05-27
 
 ### Added
