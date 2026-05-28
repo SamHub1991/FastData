@@ -452,8 +452,9 @@ namespace FastData
 
             stopwatch.Stop();
 
-            item.Config.IsOutSql = item.Config.IsOutSql || isOutSql;
-            DbLog.LogSql(item.Config.IsOutSql, result.sql, item.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
+            // Check per-query SQL log setting, then global setting, then per-database setting
+            var shouldLog = item.IsSqlLogEnabled || FastDb.EnableSqlLog || item.Config.IsOutSql || isOutSql;
+            DbLog.LogSql(shouldLog, result.sql, item.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
             return result.list;
         }
         #endregion
@@ -532,8 +533,9 @@ namespace FastData
 
             stopwatch.Stop();
 
-            item.Config.IsOutSql = item.Config.IsOutSql || isOutSql;
-            DbLog.LogSql(item.Config.IsOutSql, result.Sql, item.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
+            // Check per-query SQL log setting, then global setting, then per-database setting
+            var shouldLog = item.IsSqlLogEnabled || FastDb.EnableSqlLog || item.Config.IsOutSql || isOutSql;
+            DbLog.LogSql(shouldLog, result.Sql, item.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
             return result.Json;
         }
         #endregion
@@ -612,8 +614,9 @@ namespace FastData
 
             stopwatch.Stop();
 
-            item.Config.IsOutSql = item.Config.IsOutSql || isOutSql;
-            DbLog.LogSql(item.Config.IsOutSql, result.sql, item.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
+            // Check per-query SQL log setting, then global setting, then per-database setting
+            var shouldLog = item.IsSqlLogEnabled || FastDb.EnableSqlLog || item.Config.IsOutSql || isOutSql;
+            DbLog.LogSql(shouldLog, result.sql, item.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
             return result.item;
         }
@@ -693,8 +696,9 @@ namespace FastData
 
             stopwatch.Stop();
 
-            item.Config.IsOutSql = item.Config.IsOutSql || isOutSql;
-            DbLog.LogSql(item.Config.IsOutSql, result.Sql, item.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
+            // Check per-query SQL log setting, then global setting, then per-database setting
+            var shouldLog = item.IsSqlLogEnabled || FastDb.EnableSqlLog || item.Config.IsOutSql || isOutSql;
+            DbLog.LogSql(shouldLog, result.Sql, item.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
             return result.Count;
         }
@@ -746,8 +750,9 @@ namespace FastData
 
             stopwatch.Stop();
 
-            item.Config.IsOutSql = item.Config.IsOutSql || isOutSql;
-            DbLog.LogSql(item.Config.IsOutSql, result.sql, item.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
+            // Check per-query SQL log setting, then global setting, then per-database setting
+            var shouldLog = item.IsSqlLogEnabled || FastDb.EnableSqlLog || item.Config.IsOutSql || isOutSql;
+            DbLog.LogSql(shouldLog, result.sql, item.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
             return result.pageResult;
         }
@@ -831,8 +836,9 @@ namespace FastData
 
             stopwatch.Stop();
 
-            item.Config.IsOutSql = item.Config.IsOutSql || isOutSql;
-            DbLog.LogSql(item.Config.IsOutSql, result.Sql, item.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
+            // Check per-query SQL log setting, then global setting, then per-database setting
+            var shouldLog = item.IsSqlLogEnabled || FastDb.EnableSqlLog || item.Config.IsOutSql || isOutSql;
+            DbLog.LogSql(shouldLog, result.Sql, item.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
             return result.PageResult;
         }
@@ -1099,8 +1105,9 @@ namespace FastData
 
             stopwatch.Stop();
 
-            item.Config.IsOutSql = item.Config.IsOutSql || isOutSql;
-            DbLog.LogSql(item.Config.IsOutSql, result.Sql, item.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
+            // Check per-query SQL log setting, then global setting, then per-database setting
+            var shouldLog = item.IsSqlLogEnabled || FastDb.EnableSqlLog || item.Config.IsOutSql || isOutSql;
+            DbLog.LogSql(shouldLog, result.Sql, item.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
             return result.DicList;
         }
@@ -1178,8 +1185,9 @@ namespace FastData
 
             stopwatch.Stop();
 
-            item.Config.IsOutSql = item.Config.IsOutSql || isOutSql;
-            DbLog.LogSql(item.Config.IsOutSql, result.Sql, item.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
+            // Check per-query SQL log setting, then global setting, then per-database setting
+            var shouldLog = item.IsSqlLogEnabled || FastDb.EnableSqlLog || item.Config.IsOutSql || isOutSql;
+            DbLog.LogSql(shouldLog, result.Sql, item.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
             return result.Dic;
         }
@@ -1257,8 +1265,9 @@ namespace FastData
 
             stopwatch.Stop();
 
-            item.Config.IsOutSql = item.Config.IsOutSql || isOutSql;
-            DbLog.LogSql(item.Config.IsOutSql, result.Sql, item.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
+            // Check per-query SQL log setting, then global setting, then per-database setting
+            var shouldLog = item.IsSqlLogEnabled || FastDb.EnableSqlLog || item.Config.IsOutSql || isOutSql;
+            DbLog.LogSql(shouldLog, result.Sql, item.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
             return result.Table;
         }

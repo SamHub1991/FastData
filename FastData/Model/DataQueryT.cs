@@ -278,6 +278,16 @@ namespace FastData.Model
             return this;
         }
 
+        /// <summary>
+        /// 启用当前查询的SQL日志（覆盖全局设置）
+        /// </summary>
+        /// <returns>当前查询对象</returns>
+        public DataQuery<T> EnableSqlLog()
+        {
+            this.IsSqlLogEnabled = true;
+            return this;
+        }
+
         #endregion
 
         /// <summary>

@@ -19,6 +19,12 @@ namespace FastData
 #endif
 
         /// <summary>
+        /// 全局SQL日志开关（默认关闭）
+        /// 设置为 true 时，所有SQL查询都会被记录
+        /// </summary>
+        public static bool EnableSqlLog { get; set; } = false;
+
+        /// <summary>
         /// 当前数据库Key
         /// </summary>
         public static string CurrentKey

@@ -17,6 +17,7 @@ namespace FastData
     public sealed class FastWriteDb
     {
         private readonly string key;
+        private bool enableSqlLog;
 
         /// <summary>
         /// 获取数据库 Key
@@ -26,6 +27,16 @@ namespace FastData
         internal FastWriteDb(string key)
         {
             this.key = key;
+        }
+
+        /// <summary>
+        /// 启用当前写入操作的SQL日志（覆盖全局设置）
+        /// </summary>
+        /// <returns>当前对象（支持链式调用）</returns>
+        public FastWriteDb EnableSqlLog()
+        {
+            this.enableSqlLog = true;
+            return this;
         }
 
 #if !NETFRAMEWORK

@@ -79,6 +79,11 @@ namespace FastData.Model
         /// 分表配置（覆盖全局配置）
         /// </summary>
         public Sharding.ShardingConfig ShardingConfigOverride { get; set; }
+
+        /// <summary>
+        /// 是否启用当前查询的SQL日志（覆盖全局设置）
+        /// </summary>
+        internal bool IsSqlLogEnabled { get; set; }
     }
     #endregion
 

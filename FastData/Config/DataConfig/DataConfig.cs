@@ -143,23 +143,18 @@ namespace FastData.Config
                 list = DbCache.Get<List<ConfigModel>>(CacheType.Web, cacheKey);
             else if (projectName == null)
             {
-                // Try file-based approach first
-                try
-                {
-                    if (dbFile.ToLower() == "web.config")
-                        config = (DataConfig)ConfigurationManager.GetSection("DataConfig");
-                    else
-                    {
-                        var exeConfig = new ExeConfigurationFileMap();
-                        exeConfig.ExeConfigFilename = string.Format("{0}bin\\{1}", AppDomain.CurrentDomain.BaseDirectory, dbFile);
-                        config = (DataConfig)ConfigurationManager.OpenMappedExeConfiguration(exeConfig, ConfigurationUserLevel.None).GetSection("DataConfig");
-                    }
-                }
-                catch
-                {
-                    // File-based approach failed, try embedded resource
-                    config = null;
-                }
+                // Support environment-specific config files
+                var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
+                    ?? Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT")
+                    ?? "Production";
+
+                // Try environment-specific config first (e.g., db.Development.config)
+                var envDbFile = Path.GetFileNameWithoutExtension(dbFile) + "." + environment + Path.GetExtension(dbFile);
+                config = TryLoadConfig(envDbFile);
+
+                // Fall back to base config
+                if (config == null || config.Default == null)
+                    config = TryLoadConfig(dbFile);
 
                 // If file-based approach failed, try embedded resource from calling assemblies
                 if (config == null || config.Default == null)
@@ -174,7 +169,18 @@ namespace FastData.Config
                     {
                         if (assembly == null) continue;
                         var name = assembly.GetName().Name;
-                        var tempConfig = LoadFromEmbeddedResource(name, dbFile);
+                        
+                        // Try environment-specific embedded resource first
+                        var tempConfig = LoadFromEmbeddedResource(name, envDbFile);
+                        if (tempConfig != null && tempConfig.Connections != null && tempConfig.Connections.Count != 0)
+                        {
+                            config = tempConfig;
+                            projectName = name;
+                            break;
+                        }
+                        
+                        // Fall back to base embedded resource
+                        tempConfig = LoadFromEmbeddedResource(name, dbFile);
                         if (tempConfig != null && tempConfig.Connections != null && tempConfig.Connections.Count != 0)
                         {
                             config = tempConfig;
@@ -329,6 +335,9 @@ namespace FastData.Config
             var scopeKey = FastDb.CurrentKey;
             if (string.IsNullOrEmpty(key) && !string.IsNullOrEmpty(scopeKey))
                 key = scopeKey;
+
+            // Apply environment variable overrides
+            ApplyEnvironmentOverrides(list);
 
             list = SetDefaultFirst(list, defaultKey);
             DbCache.Set<List<ConfigModel>>(CacheType.Web, cacheKey, list);
@@ -500,6 +509,45 @@ namespace FastData.Config
                 return null;
 
             return item;
+        }
+
+        /// <summary>
+        /// Try to load config from file
+        /// </summary>
+        private static DataConfig TryLoadConfig(string dbFile)
+        {
+            try
+            {
+                if (dbFile.ToLower() == "web.config")
+                    return (DataConfig)ConfigurationManager.GetSection("DataConfig");
+                
+                var exeConfig = new ExeConfigurationFileMap();
+                exeConfig.ExeConfigFilename = string.Format("{0}bin\\{1}", AppDomain.CurrentDomain.BaseDirectory, dbFile);
+                return (DataConfig)ConfigurationManager.OpenMappedExeConfiguration(exeConfig, ConfigurationUserLevel.None).GetSection("DataConfig");
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Apply environment variable overrides to config list
+        /// Environment variable format: FASTDATA_CONN_{KEY} (e.g., FASTDATA_CONN_SQLSERVER)
+        /// </summary>
+        private static void ApplyEnvironmentOverrides(List<ConfigModel> list)
+        {
+            foreach (var item in list)
+            {
+                if (string.IsNullOrEmpty(item.Key)) continue;
+                
+                var envVarName = $"FASTDATA_CONN_{item.Key.ToUpper()}";
+                var envConnStr = Environment.GetEnvironmentVariable(envVarName);
+                if (!string.IsNullOrEmpty(envConnStr))
+                {
+                    item.ConnStr = envConnStr;
+                }
+            }
         }
 
         public static bool DataType(string key = null, string projectName = null, string dbFile = "db.config")

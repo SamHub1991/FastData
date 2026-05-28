@@ -18,10 +18,21 @@ namespace FastData.Queue
         private readonly string _databaseKey;
         private WriteBehindConfig _overrideConfig;
         private Dictionary<string, object> _globalMetadata;
+        private bool _enableSqlLog;
 
         internal FastWriteQueueBuilder(string databaseKey = null)
         {
             _databaseKey = databaseKey;
+        }
+
+        /// <summary>
+        /// 启用当前写入操作的SQL日志（覆盖全局设置）
+        /// </summary>
+        /// <returns>构建器（支持链式调用）</returns>
+        public FastWriteQueueBuilder EnableSqlLog()
+        {
+            _enableSqlLog = true;
+            return this;
         }
 
         /// <summary>

@@ -60,7 +60,8 @@ namespace FastData.Base
         /// <param name="dbType"></param>
         public static void LogSql(bool IsOutSql, string sql, string dbType, double time, string type = null)
         {
-            if (IsOutSql)
+            // Check global SQL log setting first, then per-database setting
+            if (FastDb.EnableSqlLog || IsOutSql)
             {
                 if (type != null)
                     BaseLog.SaveLog(string.Format("{0}[{1}毫秒]", sql, time), string.Format("{1}_{0}_Sql", dbType, type));
@@ -80,7 +81,8 @@ namespace FastData.Base
         /// <param name="dbType"></param>
         public static void LogSql(bool IsOutSql, string sql, string dbType)
         {
-            if (IsOutSql)
+            // Check global SQL log setting first, then per-database setting
+            if (FastDb.EnableSqlLog || IsOutSql)
             {
                 BaseLog.SaveLog(string.Format("{0}", sql), string.Format("{0}_CodeFirst_Sql", dbType));
             }
