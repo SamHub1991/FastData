@@ -17,6 +17,15 @@ DbProviderFactories.RegisterFactory("Npgsql", Npgsql.NpgsqlFactory.Instance);
 
 var builder = WebApplication.CreateBuilder(args);
 
+// 高并发 Kestrel 配置
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxConcurrentConnections = 100;
+    options.Limits.MaxConcurrentUpgradedConnections = 100;
+    options.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(2);
+    options.Limits.RequestHeadersTimeout = TimeSpan.FromSeconds(30);
+});
+
 // 添加服务
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -24,10 +33,16 @@ builder.Services.AddSwaggerGen();
 
 // 从 db.{env}.config 读取 Redis 设置
 var redisConfig = FastDataConfig.GetRedisConfig();
-var redisServer = redisConfig?.Server ?? "127.0.0.1:6379";
-var redisDb = redisConfig?.Db ?? 0;
 
-// 注册 Redis 服务（单例模式）
+// 注册 FullRedis 单例（所有消息队列服务共享同一个连接）
+builder.Services.AddSingleton(sp => new NewLife.Caching.FullRedis
+{
+    Server = redisConfig?.Server ?? "127.0.0.1:6379",
+    Db = redisConfig?.Db ?? 0,
+    Timeout = 15000
+});
+
+// 注册 Redis 缓存服务（单例模式，基于 RedisInfo）
 builder.Services.AddSingleton<IRedisRepository, RedisRepository>();
 builder.Services.AddSingleton<ICacheService, CacheService>();
 builder.Services.AddSingleton<IUserCacheService, UserCacheService>();
@@ -38,28 +53,9 @@ builder.Services.AddScoped<IReadRepository>(sp => sp.GetRequiredService<IFastRep
 builder.Services.AddScoped<IWriteRepository>(sp => sp.GetRequiredService<IFastRepository>());
 builder.Services.AddScoped<IMapRepository>(sp => sp.GetRequiredService<IFastRepository>());
 
-// 注册消息队列服务（单例模式）
-builder.Services.AddSingleton<MessageQueueFactory>(sp =>
-{
-    var redis = new NewLife.Caching.FullRedis
-    {
-        Server = redisServer,
-        Db = redisDb,
-        Timeout = 15000
-    };
-    return new MessageQueueFactory(redis);
-});
-builder.Services.AddSingleton<MessageQueueIntegrationService>(sp =>
-{
-    var redis = new NewLife.Caching.FullRedis
-    {
-        Server = redisServer,
-        Db = redisDb,
-        Timeout = 15000
-    };
-    return new MessageQueueIntegrationService(redis);
-});
-builder.Services.AddSingleton<MessageQueueService>();
+// 注册消息队列服务（共享 FullRedis 单例）
+builder.Services.AddSingleton(sp => new MessageQueueIntegrationService(sp.GetRequiredService<NewLife.Caching.FullRedis>()));
+builder.Services.AddSingleton(sp => new MessageQueueService(sp.GetRequiredService<NewLife.Caching.FullRedis>()));
 
 // 注册仓储服务
 builder.Services.AddScoped<IUserRepository, UserRepository>();

@@ -25,16 +25,8 @@ namespace FastData.Demo.Services
 
         public MessageQueueIntegrationService MqService => _mqService;
 
-        public MessageQueueService()
+        public MessageQueueService(FullRedis redis)
         {
-            // 初始化 Redis 连接
-            var redis = new FullRedis
-            {
-                Server = "127.0.0.1:6379",
-                Db = 7,
-                Timeout = 15000 // 消费端需要更长的超时时间
-            };
-
             _mqService = new MessageQueueIntegrationService(redis);
             _cts = new CancellationTokenSource();
 

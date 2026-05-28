@@ -53,5 +53,14 @@ namespace FastData.Config
         {
             return DataConfig.GetRedisConfigPublic();
         }
+
+        /// <summary>
+        /// 获取指定 key 的数据库连接字符串（未脱敏）
+        /// </summary>
+        public static string GetConnectionString(string key)
+        {
+            var config = DataConfig.GetConfig(key);
+            return config?.ConnStr;
+        }
     }
 }

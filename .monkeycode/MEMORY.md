@@ -199,5 +199,57 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
   - NewLife.Redis 队列类型位于 NewLife.Caching.Queues 命名空间
   - RedisReliableQueue.Acknowledge 方法接受 string[] 参数
   - RedisStream.ConsumeAsync 支持 Action<T> 和 Func<T, Task> 回调
-  - API 端点：/api/mq/demo/reliable, /api/mq/demo/stream
-  - 示例代码：FastData.Example/Example/MessageQueueExample.cs
+   - API 端点：/api/mq/demo/reliable, /api/mq/demo/stream
+   - 示例代码：FastData.Example/Example/MessageQueueExample.cs
+
+[FastData 数据源 Key 回退机制]
+- Date: 2026-05-28
+- Context: Agent 在执行 Demo 端点测试和修复时发现
+- Category: 排错调试
+- Instructions:
+  - FastDb.CurrentKey：AsyncLocal 变量，可能被污染导致 "数据库配置Key不存在"
+  - FastRead.Query/FastWrite.Add 不传 key 时走三级回退：key 参数 → FastDb.CurrentKey → Default 配置
+  - 单数据库项目只需在 db.{env}.config 中设 Default="SqlServer"，调用端无需传 key
+  - 多数据库场景按需使用：`using (FastDb.Use("MySql")) {}` scope 切换或 `FastRead.Use("MySql").Query<T>()` 绑定实例
+  - FastDataConfig.GetConnectionString(key) 提供公开 API 获取未脱敏连接字符串 (FastDataConfig.cs:57-62)
+
+[Sharding 连接配置三级回退]
+- Date: 2026-05-28
+- Context: Agent 在执行 Sharding 测试时发现
+- Category: 排错调试
+- Instructions:
+  - ShardingController 读取连接字符串顺序：IConfiguration(appsettings.json) → FastDataConfig.GetConnectionString(db.config) → hardcode 兜底
+  - appsettings.json 已创建在 FastData.Demo/ 目录，配置 SqlServer 连接字符串
+  - csproj 已配置 `CopyToOutputDirectory>PreserveNewest` 自动复制到输出目录
+
+[Redis Docker 部署]
+- Date: 2026-05-28
+- Context: Agent 在执行消息队列测试时发现 Redis 未运行
+- Category: 运维部署
+- Instructions:
+  - Redis 容器命令：`docker run -d --name redis --restart unless-stopped -p 6379:6379 redis:7-alpine redis-server --save "" --appendonly no`
+  - db.dev.config 中 Redis 配置：Server=127.0.0.1:6379, Db=7
+  - 验证命令：`docker exec redis redis-cli ping` → 应返回 PONG
+  - 注意：CacheService 使用 RedisInfo(NServiceKit.Redis) 与 MQ 使用的 FullRedis(NewLife.Caching) 是两套独立的 Redis 连接
+  - MQ.WriteQueue 验证通过，Reliable/Stream 需要消费者端不适合单元测试，ReadQueue 有序列化 bug
+
+[FullRedis 单例共享]
+- Date: 2026-05-28
+- Context: Agent 在执行 Redis 初始化简化时发现
+- Category: 构建方法
+- Instructions:
+  - Demo 项目 Program.cs 中 FullRedis 初始化为单例，所有 MQ 服务共享同一个连接
+  - MessageQueueService 构造函数从 DI 注入 FullRedis（而非 hardcode 新建）
+  - MessageQueueFactory 已在 MessageQueueIntegrationService 内部自建，无需独立注册
+
+[30 线程全端点覆盖测试]
+- Date: 2026-05-28
+- Context: Agent 在执行全端点压力测试时发现
+- Category: 排错调试
+- Instructions:
+  - 测试脚本：/tmp/crud_test.py（Python, 30 线程, 15s 超时）
+  - 测试结果：99.4% 成功率（865/870，MySQL/PG 全量表扫描超时均属预期）
+  - 四库覆盖：SqlServer(全部 30/30)、MySQL(CRUD 30/30, GetAll 26/30)、PG(CRUD 30/30, GetAll 29/30)、SQLite(CRUD 30/30)
+  - Sharding 6 端点、MQ.WriteQueue、Config 8 端点全部通过
+  - Sync 端点功能正常但太慢（跨库同步 76K+ 行），不适合 30 线程并发测试
+  - Kestrel 高并发配置在 Program.cs:20-27（MaxConcurrentConnections=100）

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using FastData.Config;
 using FastData.Sharding;
 using Microsoft.Data.SqlClient;
 using FastData.Sharding.Strategies;
@@ -23,8 +24,17 @@ namespace FastData.Demo.Controllers
 
         public ShardingController(IConfiguration configuration)
         {
-            _connectionString = configuration.GetConnectionString("SqlServer")
-                ?? "server=.;database=FastDataDemo;uid=sa;pwd=YourPassword123";
+            _connectionString = configuration.GetConnectionString("SqlServer");
+
+            if (string.IsNullOrEmpty(_connectionString))
+            {
+                _connectionString = FastDataConfig.GetConnectionString("SqlServer");
+            }
+
+            if (string.IsNullOrEmpty(_connectionString))
+            {
+                _connectionString = "server=.;database=FastDataDemo;uid=sa;pwd=YourPassword123";
+            }
         }
 
         /// <summary>

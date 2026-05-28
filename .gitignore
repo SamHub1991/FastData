@@ -264,3 +264,6 @@ dotnet-install.sh
 # Production config (contains real credentials)
 FastData.Demo/db.pro.config
 FastData.Example/db.pro.config
+
+# SQLite runtime databases
+*.db
