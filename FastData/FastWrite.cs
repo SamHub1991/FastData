@@ -163,8 +163,11 @@ namespace FastData
 
             stopwatch.Stop();
 
-            config.IsOutSql = config.IsOutSql || isOutSql;
-            DbLog.LogSql(config.IsOutSql, result.sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
+            if (config != null)
+            {
+                config.IsOutSql = config.IsOutSql || isOutSql;
+                DbLog.LogSql(config.IsOutSql, result.sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
+            }
 
             return result.writeReturn;
         }

@@ -142,7 +142,7 @@ namespace FastData.Demo.Controllers
                 // 直接调用 FastWrite.Add 诊断
                 user.CreateTime = DateTime.Now;
                 user.IsActive = true;
-                var writeResult = await Task.Run(() => FastWrite.Add(user));
+                var writeResult = await Task.Run(() => FastWrite.Add(user, key: "SqlServer"));
                 
                 return Ok(new
                 {

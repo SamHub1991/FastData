@@ -315,47 +315,37 @@ namespace FastData.Config
             }
             else
             {
-                var assembly = Assembly.Load(projectName);
-                using (var resource = assembly.GetManifestResourceStream(string.Format("{0}.{1}", projectName, dbFile)))
-                {
-                    if (resource != null)
-                    {
-                        using (var reader = new StreamReader(resource))
-                        {
-                            var content = reader.ReadToEnd();
-                            var xmlDoc = new XmlDocument();
-                            xmlDoc.LoadXml(content);
-                            var nodelList = xmlDoc.SelectNodes("configuration/DataConfig");
-                            foreach (XmlNode node in nodelList)
-                            {
-                                defaultKey = GetAttr(node, "Default");
-                                foreach (XmlNode leaf in node.ChildNodes)
-                                {
-                                    if (leaf.Name.ToLower() == "connections")
-                                    {
-                                        foreach (XmlNode db in leaf.ChildNodes)
-                                        {
-                                            var item = CreateConfigModel(db, GetAttr(db, "Provider"));
-                                            if (item != null)
-                                            {
-                                                if (string.IsNullOrEmpty(item.Key) && IsTrue(GetAttr(db, "IsDefault")))
-                                                    item.Key = defaultKey;
-                                                if (IsTrue(GetAttr(db, "IsDefault")))
-                                                    defaultKey = item.Key;
-                                                list.Add(item);
-                                            }
-                                        }
-                                        continue;
-                                    }
+                // Use file-based approach (same as projectName == null case)
+                // This handles environment resolution correctly
+                var baseConfig = TryLoadConfig(dbFile);
+                var activeEnv = ResolveActiveEnvironment(baseConfig);
 
-                                    foreach (XmlNode db in leaf.ChildNodes)
-                                    {
-                                        var item = CreateConfigModel(db, leaf.Name);
-                                        if (item != null)
-                                            list.Add(item);
-                                    }
-                                }
-                            }
+                // Try to load environment-specific config (e.g., db.dev.config)
+                if (!string.IsNullOrEmpty(activeEnv))
+                {
+                    var envDbFile = $"db.{activeEnv}.config";
+                    config = TryLoadConfig(envDbFile);
+                }
+
+                // Fall back to base db.config (if it has connections directly)
+                if (config == null || config.Connections == null || config.Connections.Count == 0)
+                    config = baseConfig;
+
+                defaultKey = config.Default;
+
+                if (config.Connections != null && config.Connections.Count != 0)
+                {
+                    foreach (var temp in config.Connections)
+                    {
+                        var element = temp as ElementConfig;
+                        var item = CreateConfigModel(element, element.Provider);
+                        if (item != null)
+                        {
+                            if (string.IsNullOrEmpty(item.Key) && element.IsDefault)
+                                item.Key = defaultKey;
+                            if (element.IsDefault)
+                                defaultKey = item.Key;
+                            list.Add(item);
                         }
                     }
                 }
@@ -549,10 +539,13 @@ namespace FastData.Config
             {
                 if (dbFile.ToLower() == "web.config")
                     return (DataConfig)ConfigurationManager.GetSection("DataConfig");
-                
-                var exeConfig = new ExeConfigurationFileMap();
-                exeConfig.ExeConfigFilename = string.Format("{0}{1}", AppDomain.CurrentDomain.BaseDirectory, dbFile);
-                return (DataConfig)ConfigurationManager.OpenMappedExeConfiguration(exeConfig, ConfigurationUserLevel.None).GetSection("DataConfig");
+
+                var configPath = string.Format("{0}{1}", AppDomain.CurrentDomain.BaseDirectory, dbFile);
+                if (!File.Exists(configPath))
+                    return null;
+
+                var content = File.ReadAllText(configPath);
+                return ParseXmlConfig(content);
             }
             catch
             {

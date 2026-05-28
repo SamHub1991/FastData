@@ -141,7 +141,16 @@ namespace FastData.Context
             try
             {
                 this.config = DataConfig.GetConfig(key, projectName);
-                conn = DbProviderFactories.GetFactory(this.config.ProviderName).CreateConnection();
+                if (this.config == null)
+                    throw new Exception($"Config is null for key={key}, project={projectName}");
+                if (string.IsNullOrEmpty(this.config.ProviderName))
+                    throw new Exception($"ProviderName is null for key={key}, config.Key={this.config.Key}");
+                
+                var factory = DbProviderFactories.GetFactory(this.config.ProviderName);
+                if (factory == null)
+                    throw new Exception($"DbProviderFactory not found for provider: {this.config.ProviderName}");
+                
+                conn = factory.CreateConnection();
                 
                 // 支持连接字符串加密
                 var connStr = this.config.ConnStr;
@@ -168,7 +177,7 @@ namespace FastData.Context
                 if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
                     DbLogTable.LogException(config, ex, "DataContext", "");
                 else
-                    DbLog.LogException(true, this.config.DbType, ex, "DataContext", "");
+                    DbLog.LogException(true, config?.DbType ?? "Unknown", ex, "DataContext", "");
             }
         }
         #endregion
@@ -1349,7 +1358,7 @@ namespace FastData.Context
                 if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
                     DbLogTable.LogException<T>(config, ex, "Add<T>", "");
                 else
-                    DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "Add<T>", result.sql);
+                    DbLog.LogException<T>(config?.IsOutError ?? false, config?.DbType ?? "Unknown", ex, "Add<T>", result.sql);
 
                 if (isTrans && result.writeReturn.IsSuccess)
                     SubmitTrans();
