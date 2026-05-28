@@ -459,10 +459,22 @@ namespace FastData.Base
                 cmd.CommandText = string.Format("select column_name from INFORMATION_SCHEMA.KEY_COLUMN_USAGE where TABLE_NAME='{0}'", tableName);
 
             if (config.DbType == DataDbType.MySql)
-                cmd.CommandText = string.Format("select column_name from INFORMATION_SCHEMA.KEY_COLUMN_USAGE a where TABLE_NAME='{0}' and constraint_name='PRIMARY'", tableName.ToUpper());
+                cmd.CommandText = string.Format("select column_name from INFORMATION_SCHEMA.KEY_COLUMN_USAGE a where TABLE_NAME='{0}' and constraint_name='PRIMARY'", tableName);
+
+            if (config.DbType == DataDbType.PostgreSql)
+            {
+                // INITCAP converts "id" to "Id" to match C# property name
+                cmd.CommandText = string.Format("SELECT INITCAP(column_name) FROM information_schema.key_column_usage WHERE table_name='{0}' AND constraint_name LIKE '%%%pkey'", tableName.ToLower());
+            }
 
             if (config.DbType == DataDbType.DB2)
                 cmd.CommandText = string.Format("select a.colname from sysibm.syskeycoluse a, syscat.tabconst b where a.tabname = b.tabname and b.tabname = '{0}' and b.type = 'P'", tableName.ToUpper());
+            
+            if (config.DbType == DataDbType.SQLite)
+            {
+                // SQLite: query sqlite_master for primary key info
+                cmd.CommandText = string.Format("SELECT name FROM pragma_table_info('{0}') WHERE pk > 0", tableName);
+            }
 
             if (string.IsNullOrEmpty(cmd.CommandText))
                 return list;
