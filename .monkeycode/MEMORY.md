@@ -31,12 +31,14 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
 ## 条目
 
 [Linux 构建命令]
-- Date: 2026-05-25
+- Date: 2026-05-28
 - Context: Agent 在执行构建验证时发现
 - Category: 构建方法
 - Instructions:
-  - Linux 环境构建需设置 FrameworkPathOverride 和 DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
-  - 构建命令: `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 FrameworkPathOverride="/root/.nuget/packages/microsoft.netframework.referenceassemblies.net45/1.0.3/build/.NETFramework/v4.5" /root/.dotnet/dotnet build FastData.sln /p:RegisterForComInterop=false`
+  - Linux 环境构建需设置 FrameworkPathOverride
+  - DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 **仅限 net45 构建**，运行时绝不能设置此变量（会导致 Microsoft.Data.SqlClient 抛出 NotSupportedException）
+  - 完整构建命令（net45 专用）: `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 FrameworkPathOverride="/root/.nuget/packages/microsoft.netframework.referenceassemblies.net45/1.0.3/build/.NETFramework/v4.5" /root/.dotnet/dotnet build FastData.sln /p:RegisterForComInterop=false`
+  - 运行时启动命令（net6.0+）不应包含 DOTNET_SYSTEM_GLOBALIZATION_INVARIANT: `/root/.dotnet/dotnet run`
   - RegisterForComInterop=false 绕过 COM 注册限制（已在 FastUntility.csproj 中永久修复）
 
 [项目包管理器]

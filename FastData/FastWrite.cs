@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System.Data.Common;
 using FastData.Base;
 using FastData.Model;
+using FastData.Repository;
 using System.Diagnostics;
 using FastData.Context;
 using System.Reflection;
@@ -120,10 +121,7 @@ namespace FastData
         /// <returns></returns>
         public static Task<WriteReturn> AddListAsy<T>(List<T> list, string key = null, bool IsTrans = false, bool isLog = true) where T : class, new()
         {
-            return Task.Run(() =>
-           {
-               return AddList<T>(list, key, IsTrans, isLog);
-           });
+            return AsyncHelper.RunAsync(() => AddList<T>(list, key, IsTrans, isLog));
         }
         #endregion
 
@@ -184,10 +182,7 @@ namespace FastData
         /// <returns></returns>
         public static Task<WriteReturn> AddAsy<T>(T model, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
-            return Task.Run(() =>
-           {
-               return Add<T>(model, db, key, isOutSql);
-           });
+            return AsyncHelper.RunAsync(() => Add<T>(model, db, key, isOutSql));
         }
         #endregion
 
@@ -243,10 +238,7 @@ namespace FastData
         /// <returns></returns>
         public static Task<WriteReturn> DeleteAsy<T>(Expression<Func<T, bool>> predicate, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
-            return Task.Run(() =>
-           {
-               return Delete<T>(predicate, db, key, isOutSql);
-           });
+            return AsyncHelper.RunAsync(() => Delete<T>(predicate, db, key, isOutSql));
         }
         #endregion
 
@@ -297,10 +289,7 @@ namespace FastData
         /// <returns></returns>
         public static Task<WriteReturn> UpdateAsy<T>(T model, DataContext db = null, string key = null, bool isTrans = false, bool isOutSql = false) where T : class, new()
         {
-            return Task.Run(() =>
-           {
-               return Delete<T>(model, db, key, isTrans, isOutSql);
-           });
+            return AsyncHelper.RunAsync(() => Delete<T>(model, db, key, isTrans, isOutSql));
         }
         #endregion
 
@@ -360,10 +349,7 @@ namespace FastData
         /// <returns></returns>
         public static Task<WriteReturn> UpdateAsy<T>(T model, Expression<Func<T, bool>> predicate, Expression<Func<T, object>> field = null, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
-            return Task.Run(() =>
-           {
-               return Update<T>(model, predicate, field, db, key, isOutSql);
-           });
+            return AsyncHelper.RunAsync(() => Update<T>(model, predicate, field, db, key, isOutSql));
         }
         #endregion
 
@@ -414,10 +400,7 @@ namespace FastData
         /// <returns></returns>
         public static Task<WriteReturn> UpdateAsy<T>(T model, Expression<Func<T, object>> field = null, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
-            return Task.Run(() =>
-           {
-               return Update<T>(model, field, db, key, isOutSql);
-           });
+            return AsyncHelper.RunAsync(() => Update<T>(model, field, db, key, isOutSql));
         }
         #endregion
 
@@ -468,10 +451,7 @@ namespace FastData
         /// <returns></returns>
         public static Task<WriteReturn> UpdateListAsy<T>(List<T> list, Expression<Func<T, object>> field = null, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
-            return Task.Run(() =>
-           {
-               return UpdateList<T>(list, field, db, key, isOutSql);
-           });
+            return AsyncHelper.RunAsync(() => UpdateList<T>(list, field, db, key, isOutSql));
         }
         #endregion
 
@@ -525,10 +505,7 @@ namespace FastData
         /// <returns></returns>
         public static Task<WriteReturn> ExecuteSqlAsy(string sql, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
-            return Task.Run(() =>
-           {
-               return ExecuteSql(sql, param, db, key, isOutSql);
-           });
+            return AsyncHelper.RunAsync(() => ExecuteSql(sql, param, db, key, isOutSql));
         }
         #endregion
 

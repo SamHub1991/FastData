@@ -16,6 +16,7 @@ namespace FastData.Database
         public static readonly Dictionary<string, string> ProviderDisplayNames = new Dictionary<string, string>
         {
             { "System.Data.SqlClient", "SQL Server" },
+            { "Microsoft.Data.SqlClient", "SQL Server" },
             { "MySql.Data.MySqlClient", "MySQL" },
             { "Oracle.ManagedDataAccess.Client", "Oracle" },
             { "System.Data.SQLite", "SQLite" },
@@ -42,9 +43,11 @@ namespace FastData.Database
         public static string[] AllProviderNames => new[]
         {
             "System.Data.SqlClient",
+            "Microsoft.Data.SqlClient",
             "MySql.Data.MySqlClient",
             "Oracle.ManagedDataAccess.Client",
-            "System.Data.SQLite"
+            "System.Data.SQLite",
+            "Npgsql"
         };
 
         /// <summary>
@@ -55,7 +58,8 @@ namespace FastData.Database
             "SQL Server",
             "MySQL",
             "Oracle",
-            "SQLite"
+            "SQLite",
+            "PostgreSQL"
         };
 
         /// <summary>

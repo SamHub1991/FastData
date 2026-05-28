@@ -8,6 +8,11 @@ namespace FastData.Property
     public class TableAttribute : Attribute
     {
         /// <summary>
+        /// 表名
+        /// </summary>
+        public string Name { get; set; }
+
+        /// <summary>
         /// 备注
         /// </summary>
         public string Comments { get; set; }

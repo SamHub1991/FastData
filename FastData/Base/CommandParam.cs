@@ -58,7 +58,7 @@ namespace FastData.Base
             var sql1 = new StringBuilder();
             var sql2 = new StringBuilder();
 
-            sql1.AppendFormat("insert into {0} (", typeof(T).Name);
+            sql1.AppendFormat("insert into {0} (", TableNameHelper.GetTableName<T>());
             sql2.Append("select ");
             PropertyCache.GetPropertyInfo<T>().ForEach(a => {
                 sql1.AppendFormat("{0},", a.Name);
@@ -82,7 +82,7 @@ namespace FastData.Base
         {
             var dyn = new Property.DynamicGet<T>();
             var dt = new DataTable();
-            cmd.CommandText = string.Format("select top 1 * from {0}", typeof(T).Name);
+            cmd.CommandText = string.Format("select top 1 * from {0}", TableNameHelper.GetTableName<T>());
             dt.Load(cmd.ExecuteReader());
             dt.Clear();
             list.ForEach(p => {
@@ -103,7 +103,7 @@ namespace FastData.Base
         public static void InitTvps<T>(DbCommand cmd)
         {
             var sql = new StringBuilder();
-            cmd.CommandText = string.Format("select a.name,(select top 1 name from sys.systypes c where a.xtype=c.xtype) as type,length,isnullable,prec,scale from syscolumns a where a.id=object_id('{0}') order by a.colid asc", typeof(T).Name);
+            cmd.CommandText = string.Format("select a.name,(select top 1 name from sys.systypes c where a.xtype=c.xtype) as type,length,isnullable,prec,scale from syscolumns a where a.id=object_id('{0}') order by a.colid asc", TableNameHelper.GetTableName<T>());
             var dr = cmd.ExecuteReader();
             var dic = BaseJson.DataReaderToDic(dr);
             dr.Close();
@@ -153,7 +153,7 @@ namespace FastData.Base
         public static string GetMySql<T>(List<T> list)
         {
             var sql = new StringBuilder();
-            sql.AppendFormat("insert into {0}(", typeof(T).Name);
+            sql.AppendFormat("insert into {0}(", TableNameHelper.GetTableName<T>());
             var dyn = new Property.DynamicGet<T>();
             PropertyCache.GetPropertyInfo<T>().ForEach(a => { sql.AppendFormat("{0},", a.Name); });
             sql.Append(")").Replace(",)", ")");

@@ -3,6 +3,8 @@ using FastData.Database;
 using FastData.Tooling.Sync;
 using FastData.SyncTool;
 using FastData.SyncTool.WinForms.IoC;
+using FastData.SyncTool.WinForms.Components;
+using FastData.SyncTool.WinForms.Services;
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
@@ -11,7 +13,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Timers;
 using System.Windows.Forms;
-using System.Web.Script.Serialization;
+using System.Text.Json;
 
 namespace FastData.SyncTool.WinForms
 {
@@ -568,7 +570,7 @@ namespace FastData.SyncTool.WinForms
 
         private void BuildShardingTab(TabPage tab)
         {
-            var logService = serviceProvider.GetService<LogService>();
+            var logService = serviceProvider.Resolve<LogService>();
             var shardingTaskService = new FastData.SyncTool.WinForms.Services.ShardingTaskService(logService);
 
             // 使用 TabControl 组织分表功能
@@ -1014,8 +1016,7 @@ namespace FastData.SyncTool.WinForms
 
             if (saveDialog.ShowDialog() == DialogResult.OK)
             {
-                var serializer = new JavaScriptSerializer();
-                var json = serializer.Serialize(config);
+                var json = JsonSerializer.Serialize(config);
                 File.WriteAllText(saveDialog.FileName, json);
                 Log(string.Format("任务配置已导出到 {0}", saveDialog.FileName));
                 MessageBox.Show("导出成功");
@@ -1034,8 +1035,7 @@ namespace FastData.SyncTool.WinForms
                 try
                 {
                     var json = File.ReadAllText(openFileDialog.FileName);
-                    var serializer = new JavaScriptSerializer();
-                    var config = serializer.Deserialize<SyncTaskConfig>(json);
+                    var config = JsonSerializer.Deserialize<SyncTaskConfig>(json);
 
                     if (config != null && !string.IsNullOrEmpty(config.TaskId))
                     {
@@ -1642,8 +1642,7 @@ namespace FastData.SyncTool.WinForms
                 if (File.Exists(configPath))
                 {
                     var content = File.ReadAllText(configPath);
-                    var serializer = new JavaScriptSerializer();
-                    return serializer.Deserialize<List<DbConnectionConfig>>(content) ?? new List<DbConnectionConfig>();
+                    return JsonSerializer.Deserialize<List<DbConnectionConfig>>(content) ?? new List<DbConnectionConfig>();
                 }
             }
             catch (Exception)
@@ -1656,9 +1655,8 @@ namespace FastData.SyncTool.WinForms
         private void SaveDbConnections(List<DbConnectionConfig> configs)
         {
             var configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "db_connections.json");
-            var serializer = new JavaScriptSerializer();
-            var content = serializer.Serialize(configs);
-            File.WriteAllText(configPath, content);
+            var json = JsonSerializer.Serialize(configs);
+            File.WriteAllText(configPath, json);
         }
 
         private void RefreshDbConnectionGrid()

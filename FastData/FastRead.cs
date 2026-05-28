@@ -7,6 +7,7 @@ using FastUntility.Page;
 using FastData.Base;
 using FastData.Config;
 using FastData.Model;
+using FastData.Repository;
 using System.Diagnostics;
 using FastData.Context;
 using System.Data;
@@ -81,7 +82,6 @@ namespace FastData
         }
 #endif
 
-        #region 查询join
         /// <summary>
         /// 查询join
         /// </summary>
@@ -105,9 +105,7 @@ namespace FastData
 
             return item;
         }
-        #endregion
 
-        #region 表查询
         /// <summary>
         /// 表查询
         /// </summary>
@@ -134,9 +132,7 @@ namespace FastData
 
             return result;
         }
-        #endregion
 
-        #region Select 投影查询（支持匿名类型）
         /// <summary>
         /// 投影查询（支持匿名类型）
         /// 用法：FastRead.Query&lt;User&gt;(u => u.IsActive).Select(p => new { p.Id, p.UserName }).ToList()
@@ -150,9 +146,7 @@ namespace FastData
         {
             return new ProjectedQuery<T, TResult>(query, selector);
         }
-        #endregion
 
-        #region 链式 Where 条件（AND）
         /// <summary>
         /// 链式追加 WHERE 条件（AND）
         /// 用法：FastRead.Query&lt;User&gt;().Where&lt;User&gt;(u => u.IsActive).And&lt;User&gt;(u => u.Age > 18).ToList()
@@ -188,9 +182,7 @@ namespace FastData
         {
             return Where<T>(query, predicate);
         }
-        #endregion
 
-        #region 链式 Or 条件
         /// <summary>
         /// 链式追加 WHERE 条件（OR）
         /// 用法：FastRead.Query&lt;User&gt;(u => u.Department == "IT").Or&lt;User&gt;(u => u.Department == "HR").ToList()
@@ -218,9 +210,7 @@ namespace FastData
 
             return query;
         }
-        #endregion
 
-        #region 链式 Like 条件
         /// <summary>
         /// 链式追加 LIKE 条件
         /// 用法：FastRead.Query&lt;User&gt;().Like&lt;User&gt;(u => u.UserName, "张%")
@@ -264,9 +254,7 @@ namespace FastData
         {
             return Like(query, field, string.Format("%{0}", value));
         }
-        #endregion
 
-        #region 链式 In 条件
         /// <summary>
         /// 链式追加 IN 条件
         /// 用法：FastRead.Query&lt;User&gt;().In&lt;User&gt;(u => u.Department, new[] { "IT", "HR" })
@@ -287,9 +275,7 @@ namespace FastData
 
             return query;
         }
-        #endregion
 
-        #region 链式 Between 条件
         /// <summary>
         /// 链式追加 BETWEEN 条件
         /// 用法：FastRead.Query&lt;User&gt;().Between&lt;User&gt;(u => u.Age, 18, 65)
@@ -309,9 +295,7 @@ namespace FastData
 
             return query;
         }
-        #endregion
 
-        #region 辅助方法
         /// <summary>
         /// 从表达式中获取成员名称
         /// </summary>
@@ -325,9 +309,7 @@ namespace FastData
 
             throw new ArgumentException("表达式必须是成员访问表达式");
         }
-        #endregion
 
-        #region 查询left join
         /// <summary>
         /// 查询left join
         /// </summary>
@@ -341,9 +323,7 @@ namespace FastData
         {
             return JoinType("left join", item, predicate, field);
         }
-        #endregion
 
-        #region 查询right join
         /// <summary>
         /// 查询right join
         /// </summary>
@@ -357,9 +337,7 @@ namespace FastData
         {
             return JoinType("right join", item, predicate, field);
         }
-        #endregion
 
-        #region 查询inner join
         /// <summary>
         /// 查询inner join
         /// </summary>
@@ -373,9 +351,7 @@ namespace FastData
         {
             return JoinType("inner join", item, predicate, field);
         }
-        #endregion
 
-        #region 查询order by
         /// <summary>
         /// 查询order by
         /// </summary>
@@ -389,9 +365,7 @@ namespace FastData
             item.OrderBy.AddRange(orderBy);
             return item;
         }
-        #endregion
 
-        #region 查询group by
         /// <summary>
         /// 查询group by
         /// </summary>
@@ -405,9 +379,7 @@ namespace FastData
             item.GroupBy.AddRange(groupBy);
             return item;
         }
-        #endregion
 
-        #region 查询take
         /// <summary>
         /// 查询take
         /// </summary>
@@ -420,10 +392,8 @@ namespace FastData
             item.Take = i;
             return item;
         }
-        #endregion
 
 
-        #region 返回list
         /// <summary>
         /// 返回list
         /// </summary>
@@ -457,9 +427,7 @@ namespace FastData
             DbLog.LogSql(shouldLog, result.sql, item.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
             return result.list;
         }
-        #endregion
 
-        #region 返回list asy
         /// <summary>
         /// 返回list asy
         /// </summary>
@@ -468,14 +436,9 @@ namespace FastData
         /// <returns></returns>
         public static Task<List<T>> ToListAsy<T>(this DataQuery item, DataContext db = null, bool isOutSql = false) where T : class, new()
         {
-            return Task.Run(() =>
-           {
-               return ToList<T>(item, db, isOutSql);
-           });
+            return AsyncHelper.RunAsync(() => ToList<T>(item, db, isOutSql));
         }
-        #endregion
 
-        #region 返回lazy<list>
         /// <summary>
         /// 返回lazy<list>
         /// </summary>
@@ -486,9 +449,7 @@ namespace FastData
         {
             return new Lazy<List<T>>(() => ToList<T>(item, db, isOutSql));
         }
-        #endregion
 
-        #region 返回lazy<list> asy
         /// <summary>
         /// 返回lazy<list> asy
         /// </summary>
@@ -497,15 +458,10 @@ namespace FastData
         /// <returns></returns>
         public static Task<Lazy<List<T>>> ToLazyListAsy<T>(this DataQuery item, DataContext db = null, bool isOutSql = false) where T : class, new()
         {
-            return Task.Run(() =>
-           {
-               return new Lazy<List<T>>(() => ToList<T>(item, db, isOutSql));
-           });
+            return AsyncHelper.RunAsync(() => new Lazy<List<T>>(() => ToList<T>(item, db, isOutSql)));
         }
-        #endregion
 
 
-        #region 返回json
         /// <summary>
         /// 返回json
         /// </summary>
@@ -538,9 +494,7 @@ namespace FastData
             DbLog.LogSql(shouldLog, result.Sql, item.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
             return result.Json;
         }
-        #endregion
 
-        #region 返回json asy
         /// <summary>
         /// 返回json asy
         /// </summary>
@@ -548,14 +502,9 @@ namespace FastData
         /// <returns></returns>
         public static Task<string> ToJsonAsy(this DataQuery item, DataContext db = null, bool isOutSql = false)
         {
-            return Task.Run(() =>
-           {
-               return ToJson(item, db, isOutSql);
-           });
+            return AsyncHelper.RunAsync(() => ToJson(item, db, isOutSql));
         }
-        #endregion
 
-        #region 返回lazy<json>
         /// <summary>
         /// 返回lazy<json>
         /// </summary>
@@ -563,11 +512,9 @@ namespace FastData
         /// <returns></returns>
         public static Lazy<string> ToLazyJson(this DataQuery item, DataContext db = null, bool isOutSql = false)
         {
-            return new Lazy<string>(() => ToJson(item, db, isOutSql));
+            return AsyncHelper.ToLazy(() => ToJson(item, db, isOutSql));
         }
-        #endregion
 
-        #region 返回lazy<json> asy
         /// <summary>
         /// 返回lazy<json> asy
         /// </summary>
@@ -575,15 +522,10 @@ namespace FastData
         /// <returns></returns>
         public static Task<Lazy<string>> ToLazyJsonAsy(this DataQuery item, DataContext db = null, bool isOutSql = false)
         {
-            return Task.Run(() =>
-           {
-               return new Lazy<string>(() => ToJson(item, db, isOutSql));
-           });
+            return AsyncHelper.RunAsync(() => AsyncHelper.ToLazy(() => ToJson(item, db, isOutSql)));
         }
-        #endregion
 
 
-        #region 返回item
         /// <summary>
         /// 返回item
         /// </summary>
@@ -620,9 +562,7 @@ namespace FastData
 
             return result.item;
         }
-        #endregion
 
-        #region 返回item asy
         /// <summary>
         /// 返回item asy
         /// </summary>
@@ -631,14 +571,9 @@ namespace FastData
         /// <returns></returns>
         public static Task<T> ToItemAsy<T>(this DataQuery item, DataContext db = null, bool isOutSql = false) where T : class, new()
         {
-            return Task.Run(() =>
-           {
-               return ToItem<T>(item, db, isOutSql);
-           });
+            return AsyncHelper.RunAsync(() => ToItem<T>(item, db, isOutSql));
         }
-        #endregion
 
-        #region 返回Lazy<item>
         /// <summary>
         /// 返回Lazy<item>
         /// </summary>
@@ -647,11 +582,9 @@ namespace FastData
         /// <returns></returns>
         public static Lazy<T> ToLazyItem<T>(this DataQuery item, DataContext db = null, bool isOutSql = false) where T : class, new()
         {
-            return new Lazy<T>(() => ToItem<T>(item, db, isOutSql));
+            return AsyncHelper.ToLazy(() => ToItem<T>(item, db, isOutSql));
         }
-        #endregion
 
-        #region 返回Lazy<item> asy
         /// <summary>
         /// 返回Lazy<item> asy
         /// </summary>
@@ -660,15 +593,10 @@ namespace FastData
         /// <returns></returns>
         public static Task<Lazy<T>> ToLazyItemAsy<T>(this DataQuery item, DataContext db = null, bool isOutSql = false) where T : class, new()
         {
-            return Task.Run(() =>
-           {
-               return new Lazy<T>(() => ToItem<T>(item, db, isOutSql));
-           });
+            return AsyncHelper.RunAsync(() => AsyncHelper.ToLazy(() => ToItem<T>(item, db, isOutSql)));
         }
-        #endregion
 
 
-        #region 返回条数
         /// <summary>
         /// 返回条数
         /// </summary>
@@ -702,9 +630,7 @@ namespace FastData
 
             return result.Count;
         }
-        #endregion
 
-        #region 返回条数 asy
         /// <summary>
         /// 返回条数 asy
         /// </summary>
@@ -712,15 +638,10 @@ namespace FastData
         /// <returns></returns>
         public static Task<int> ToCountAsy<T, T1>(this DataQuery item, DataContext db = null, bool isOutSql = false)
         {
-            return Task.Run(() =>
-           {
-               return ToCount(item, db, isOutSql);
-           });
+            return AsyncHelper.RunAsync(() => ToCount(item, db, isOutSql));
         }
-        #endregion
 
 
-        #region 返回分页
         /// <summary>
         /// 返回分页
         /// </summary>
@@ -756,9 +677,7 @@ namespace FastData
 
             return result.pageResult;
         }
-        #endregion
 
-        #region 返回分页 asy
         /// <summary>
         /// 返回分页 asy
         /// </summary>
@@ -768,14 +687,9 @@ namespace FastData
         /// <returns></returns>
         public static Task<PageResult<T>> ToPageAsy<T>(this DataQuery item, PageModel pModel, DataContext db = null, bool isOutSql = false) where T : class, new()
         {
-            return Task.Run(() =>
-           {
-               return ToPage<T>(item, pModel, db, isOutSql);
-           });
+            return AsyncHelper.RunAsync(() => ToPage<T>(item, pModel, db, isOutSql));
         }
-        #endregion
 
-        #region 返回分页lazy
         /// <summary>
         /// 返回分页lazy
         /// </summary>
@@ -787,9 +701,7 @@ namespace FastData
         {
             return new Lazy<PageResult<T>>(() => ToPage<T>(item, pModel, db, isOutSql));
         }
-        #endregion
 
-        #region 返回分页lazy asy
         /// <summary>
         /// 返回分页lazy asy
         /// </summary>
@@ -799,15 +711,10 @@ namespace FastData
         /// <returns></returns>
         public static Task<Lazy<PageResult<T>>> ToLazyPageAsy<T>(this DataQuery item, PageModel pModel, DataContext db = null, bool isOutSql = false) where T : class, new()
         {
-            return Task.Run(() =>
-           {
-               return new Lazy<PageResult<T>>(() => ToPage<T>(item, pModel, db, isOutSql));
-           });
+            return AsyncHelper.RunAsync(() => new Lazy<PageResult<T>>(() => ToPage<T>(item, pModel, db, isOutSql)));
         }
-        #endregion
 
 
-        #region 返回分页Dictionary<string, object>
         /// <summary>
         /// 返回分页Dictionary<string, object>
         /// </summary>
@@ -842,9 +749,7 @@ namespace FastData
 
             return result.PageResult;
         }
-        #endregion
 
-        #region 返回分页Dictionary<string, object> asy
         /// <summary>
         /// 返回分页Dictionary<string, object> asy
         /// </summary>
@@ -853,14 +758,9 @@ namespace FastData
         /// <returns></returns>
         public static Task<PageResult> ToPageAsy(this DataQuery item, PageModel pModel, DataContext db = null, bool isOutSql = false)
         {
-            return Task.Run(() =>
-           {
-               return ToPage(item, pModel, db, isOutSql);
-           });
+            return AsyncHelper.RunAsync(() => ToPage(item, pModel, db, isOutSql));
         }
-        #endregion
 
-        #region 返回分页Dictionary<string, object> lazy
         /// <summary>
         /// 返回分页Dictionary<string, object> lazy
         /// </summary>
@@ -870,11 +770,9 @@ namespace FastData
         /// <returns></returns>
         public static Lazy<PageResult> ToLazyPage(this DataQuery item, PageModel pModel, DataContext db = null, bool isOutSql = false)
         {
-            return new Lazy<PageResult>(() => ToPage(item, pModel, db, isOutSql));
+            return AsyncHelper.ToLazy(() => ToPage(item, pModel, db, isOutSql));
         }
-        #endregion
 
-        #region 返回分页Dictionary<string, object> lazy asy
         /// <summary>
         /// 返回分页Dictionary<string, object> lazy asy
         /// </summary>
@@ -883,14 +781,9 @@ namespace FastData
         /// <returns></returns>
         public static Task<Lazy<PageResult>> ToLazyPageAsy(this DataQuery item, PageModel pModel, DataContext db = null, bool isOutSql = false)
         {
-            return Task.Run(() =>
-           {
-                return new Lazy<PageResult>(() => ToPage(item, pModel, db, isOutSql));
-            });
+            return AsyncHelper.RunAsync(() => AsyncHelper.ToLazy(() => ToPage(item, pModel, db, isOutSql)));
          }
-        #endregion
 
-        #region 分页查询（简化API）
         /// <summary>
         /// 分页查询（简化API）
         /// 返回格式：{ Total, TotalPages, Page, PageSize, Data }
@@ -925,9 +818,7 @@ namespace FastData
                 Data = pageResult.list
             };
         }
-        #endregion
 
-        #region 分页查询（简化API）asy
         /// <summary>
         /// 分页查询（简化API）异步版本
         /// </summary>
@@ -935,9 +826,7 @@ namespace FastData
         {
             return Task.Run(() => ToPagination<T>(item, page, pageSize, db, isOutSql));
         }
-        #endregion
 
-        #region 分页查询（使用 PaginationRequest）
         /// <summary>
         /// 分页查询（使用 PaginationRequest 对象）
         /// </summary>
@@ -945,9 +834,7 @@ namespace FastData
         {
             return ToPagination<T>(item, request.Page, request.PageSize, db, isOutSql);
         }
-        #endregion
 
-        #region 分页查询（使用 PaginationRequest）asy
         /// <summary>
         /// 分页查询（使用 PaginationRequest 对象）异步版本
         /// </summary>
@@ -955,9 +842,7 @@ namespace FastData
         {
             return Task.Run(() => ToPagination<T>(item, request, db, isOutSql));
         }
-        #endregion
 
-        #region 分页查询（字典版本）
         /// <summary>
         /// 分页查询（返回字典格式）
         /// </summary>
@@ -975,9 +860,7 @@ namespace FastData
             var pageResult = ToPage(item, pModel, db, isOutSql);
             return PaginationResult.FromPageResult(pageResult, page, pageSize);
         }
-        #endregion
 
-        #region 分页查询（字典版本）asy
         /// <summary>
         /// 分页查询（返回字典格式）异步版本
         /// </summary>
@@ -985,10 +868,8 @@ namespace FastData
         {
             return Task.Run(() => ToPagination(item, page, pageSize, db, isOutSql));
         }
-        #endregion
 
 
-        #region 执行sql
         /// <summary>
         /// 执行sql
         /// </summary>
@@ -1026,9 +907,7 @@ namespace FastData
 
             return result.list;
         }
-        #endregion
 
-        #region 执行sql asy
         /// <summary>
         /// 执行sql asy
         /// </summary>
@@ -1038,14 +917,9 @@ namespace FastData
         /// <returns></returns>
         public static Task<List<T>> ExecuteSqlAsy<T>(string sql, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
-            return Task.Run(() =>
-           {
-               return ExecuteSql<T>(sql, param, db, key, isOutSql);
-           });
+            return AsyncHelper.RunAsync(() => ExecuteSql<T>(sql, param, db, key, isOutSql));
         }
-        #endregion
 
-        #region 执行sql lazy
         /// <summary>
         /// 执行sql lazy
         /// </summary>
@@ -1057,9 +931,7 @@ namespace FastData
         {
             return new Lazy<List<T>>(() => ExecuteSql<T>(sql, param, db, key, isOutSql));
         }
-        #endregion
 
-        #region 执行sql lazy asy
         /// <summary>
         /// 执行sql lazy asy
         /// </summary>
@@ -1069,15 +941,10 @@ namespace FastData
         /// <returns></returns>
         public static Task<Lazy<List<T>>> ExecuteLazySqlAsy<T>(string sql, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
-            return Task.Run(() =>
-           {
-               return new Lazy<List<T>>(() => ExecuteSql<T>(sql, param, db, key, isOutSql));
-           });
+            return AsyncHelper.RunAsync(() => new Lazy<List<T>>(() => ExecuteSql<T>(sql, param, db, key, isOutSql)));
         }
-        #endregion
 
 
-        #region 返回List<Dictionary<string, object>>
         /// <summary>
         /// 返回List<Dictionary<string, object>>
         /// </summary>
@@ -1111,9 +978,7 @@ namespace FastData
 
             return result.DicList;
         }
-        #endregion
 
-        #region 返回List<Dictionary<string, object>> asy
         /// <summary>
         /// 返回List<Dictionary<string, object>> asy
         /// </summary>
@@ -1121,14 +986,9 @@ namespace FastData
         /// <returns></returns>
         public static Task<List<Dictionary<string, object>>> ToDicsAsy(this DataQuery item, DataContext db = null, bool isOutSql = false)
         {
-            return Task.Run(() =>
-           {
-               return ToDics(item, db, isOutSql);
-           });
+            return AsyncHelper.RunAsync(() => ToDics(item, db, isOutSql));
         }
-        #endregion
 
-        #region 返回lazy<List<Dictionary<string, object>>>
         /// <summary>
         /// 返回lazy<List<Dictionary<string, object>>>
         /// </summary>
@@ -1138,9 +998,7 @@ namespace FastData
         {
             return new Lazy<List<Dictionary<string, object>>>(() => ToDics(item, db, isOutSql));
         }
-        #endregion
 
-        #region 返回lazy<List<Dictionary<string, object>>> asy
         /// <summary>
         /// 返回lazy<List<Dictionary<string, object>>> asy
         /// </summary>
@@ -1148,15 +1006,10 @@ namespace FastData
         /// <returns></returns>
         public static Task<Lazy<List<Dictionary<string, object>>>> ToLazyDicsAsy(this DataQuery item, DataContext db = null, bool isOutSql = false)
         {
-            return Task.Run(() =>
-           {
-               return new Lazy<List<Dictionary<string, object>>>(() => ToDics(item, db, isOutSql));
-           });
+            return AsyncHelper.RunAsync(() => new Lazy<List<Dictionary<string, object>>>(() => ToDics(item, db, isOutSql)));
         }
-        #endregion
 
 
-        #region Dictionary<string, object>
         /// <summary>
         /// Dictionary<string, object>
         /// </summary>
@@ -1191,9 +1044,7 @@ namespace FastData
 
             return result.Dic;
         }
-        #endregion
 
-        #region Dictionary<string, object> asy
         /// <summary>
         /// Dictionary<string, object> asy
         /// </summary>
@@ -1201,14 +1052,9 @@ namespace FastData
         /// <returns></returns>
         public static Task<Dictionary<string, object>> ToDicAsy(this DataQuery item, DataContext db = null, bool isOutSql = false)
         {
-            return Task.Run(() =>
-           {
-               return ToDic(item, db, isOutSql);
-           });
+            return AsyncHelper.RunAsync(() => ToDic(item, db, isOutSql));
         }
-        #endregion
 
-        #region Dictionary<string, object>
         /// <summary>
         /// Dictionary<string, object>>
         /// </summary>
@@ -1218,9 +1064,7 @@ namespace FastData
         {
             return new Lazy<Dictionary<string, object>>(() => ToDic(item, db, isOutSql));
         }
-        #endregion
 
-        #region Dictionary<string, object> asy
         /// <summary>
         /// Dictionary<string, object> asy
         /// </summary>
@@ -1228,15 +1072,10 @@ namespace FastData
         /// <returns></returns>
         public static Task<Lazy<Dictionary<string, object>>> ToLazyDicAsy(this DataQuery item, DataContext db = null, bool isOutSql = false)
         {
-            return Task.Run(() =>
-           {
-               return new Lazy<Dictionary<string, object>>(() => ToDic(item, db, isOutSql));
-           });
+            return AsyncHelper.RunAsync(() => new Lazy<Dictionary<string, object>>(() => ToDic(item, db, isOutSql)));
         }
-        #endregion
 
 
-        #region DataTable
         /// <summary>
         /// DataTable
         /// </summary>
@@ -1271,9 +1110,7 @@ namespace FastData
 
             return result.Table;
         }
-        #endregion
 
-        #region DataTable asy
         /// <summary>
         /// DataTable asy
         /// </summary>
@@ -1281,14 +1118,9 @@ namespace FastData
         /// <returns></returns>
         public static Task<DataTable> ToDataTableAsy(this DataQuery item, DataContext db = null, bool isOutSql = false)
         {
-            return Task.Run(() =>
-           {
-               return ToDataTable(item, db, isOutSql);
-           });
+            return AsyncHelper.RunAsync(() => ToDataTable(item, db, isOutSql));
         }
-        #endregion
 
-        #region DataTable lazy
         /// <summary>
         /// DataTable lazy
         /// </summary>
@@ -1296,11 +1128,9 @@ namespace FastData
         /// <returns></returns>
         public static Lazy<DataTable> ToLazyDataTable(this DataQuery item, DataContext db = null, bool isOutSql = false)
         {
-            return new Lazy<DataTable>(() => ToDataTable(item, db, isOutSql));
+            return AsyncHelper.ToLazy(() => ToDataTable(item, db, isOutSql));
         }
-        #endregion
 
-        #region DataTable lazy asy
         /// <summary>
         /// DataTable lazy asy
         /// </summary>
@@ -1308,15 +1138,10 @@ namespace FastData
         /// <returns></returns>
         public static Task<Lazy<DataTable>> ToLazyDataTableAsy(this DataQuery item, DataContext db = null, bool isOutSql = false)
         {
-            return Task.Run(() =>
-           {
-               return new Lazy<DataTable>(() => ToDataTable(item, db, isOutSql));
-           });
+            return AsyncHelper.RunAsync(() => AsyncHelper.ToLazy(() => ToDataTable(item, db, isOutSql)));
         }
-        #endregion
 
 
-        #region 执行sql
         /// <summary>
         /// 执行sql
         /// </summary>
@@ -1353,9 +1178,7 @@ namespace FastData
 
             return result.DicList;
         }
-        #endregion
 
-        #region 执行sql asy
         /// <summary>
         /// 执行sql asy
         /// </summary>
@@ -1365,14 +1188,9 @@ namespace FastData
         /// <returns></returns>
         public static Task<List<Dictionary<string, object>>> ExecuteSqlAsy(string sql, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
-            return Task.Run(() =>
-           {
-               return ExecuteSql(sql, param, db, key, isOutSql);
-           });
+            return AsyncHelper.RunAsync(() => ExecuteSql(sql, param, db, key, isOutSql));
         }
-        #endregion
 
-        #region 执行sql lazy
         /// <summary>
         /// 执行sql lazy
         /// </summary>
@@ -1384,9 +1202,7 @@ namespace FastData
         {
             return new Lazy<List<Dictionary<string, object>>>(() => ExecuteSql(sql, param, db, key, isOutSql));
         }
-        #endregion
 
-        #region 执行sql lazy asy
         /// <summary>
         /// 执行sql lazy asy
         /// </summary>
@@ -1396,11 +1212,7 @@ namespace FastData
         /// <returns></returns>
         public static Task<Lazy<List<Dictionary<string, object>>>> ExecuteLazySqlAsy(string sql, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
-            return Task.Run(() =>
-           {
-               return new Lazy<List<Dictionary<string, object>>>(() => ExecuteSql(sql, param, db, key, isOutSql));
-           });
+            return AsyncHelper.RunAsync(() => new Lazy<List<Dictionary<string, object>>>(() => ExecuteSql(sql, param, db, key, isOutSql)));
         }
-        #endregion
     }
 }

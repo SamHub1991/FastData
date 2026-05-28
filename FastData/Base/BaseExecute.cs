@@ -72,7 +72,7 @@ namespace FastData.Base
             if (IsProcedure)
                 cmd.CommandType = CommandType.StoredProcedure;
 
-            return cmd.ExecuteNonQuery() > -1;
+            return cmd.ExecuteNonQuery() > 0;
         }
         #endregion
                 
@@ -366,7 +366,7 @@ namespace FastData.Base
 
             where.ForEach(a => { sql.Add(a); });
 
-            cmd.CommandText = string.Format("select {1} from {0} where 1=0", typeof(T).Name, string.Join(",", sql.ToArray()));
+            cmd.CommandText = string.Format("select {1} from {0} where 1=0", TableNameHelper.GetTableName<T>(), string.Join(",", sql.ToArray()));
 
             var dr = cmd.ExecuteReader();
             dt.Load(dr);

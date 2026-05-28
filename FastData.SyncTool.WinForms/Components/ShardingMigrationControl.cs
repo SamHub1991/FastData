@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Drawing;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using FastData.Sharding;
@@ -328,6 +329,19 @@ namespace FastData.SyncTool.WinForms.Components
 
         private async void StartMigration(object sender, EventArgs e)
         {
+            try
+            {
+                await StartMigrationAsync();
+            }
+            catch (Exception ex)
+            {
+                LogMessage($"迁移失败: {ex.Message}");
+                MessageBox.Show($"迁移失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private async Task StartMigrationAsync()
+        {
             if (_sourceTableCombo.SelectedItem == null)
             {
                 MessageBox.Show("请选择源表", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -354,11 +368,6 @@ namespace FastData.SyncTool.WinForms.Components
             catch (OperationCanceledException)
             {
                 LogMessage("迁移已取消");
-            }
-            catch (Exception ex)
-            {
-                LogMessage($"迁移失败: {ex.Message}");
-                MessageBox.Show($"迁移失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             finally
             {

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using FastData.Sharding;
+using ShardingTypeEnum = FastData.Sharding.ShardingType;
 
 namespace FastData.SyncTool.WinForms.Models
 {
@@ -189,7 +190,7 @@ namespace FastData.SyncTool.WinForms.Models
             switch (ShardingType)
             {
                 case "Time":
-                    config.ShardingType = ShardingType.Time;
+                    config.ShardingType = ShardingTypeEnum.Time;
                     config.TimeConfig = new TimeShardingConfig
                     {
                         TimeField = TimeField,
@@ -199,7 +200,7 @@ namespace FastData.SyncTool.WinForms.Models
                     break;
 
                 case "Hash":
-                    config.ShardingType = ShardingType.Hash;
+                    config.ShardingType = ShardingTypeEnum.Hash;
                     config.HashConfig = new HashShardingConfig
                     {
                         HashField = HashField,
@@ -209,7 +210,7 @@ namespace FastData.SyncTool.WinForms.Models
                     break;
 
                 case "List":
-                    config.ShardingType = ShardingType.List;
+                    config.ShardingType = ShardingTypeEnum.List;
                     config.ListConfig = new ListShardingConfig
                     {
                         ListField = ListField,
@@ -218,7 +219,7 @@ namespace FastData.SyncTool.WinForms.Models
                     break;
 
                 case "Composite":
-                    config.ShardingType = ShardingType.Composite;
+                    config.ShardingType = ShardingTypeEnum.Composite;
                     config.CompositeConfig = new CompositeShardingConfig
                     {
                         CompositeFields = CompositeFields?.Split(',').Select(f => f.Trim()).ToList() ?? new List<string>(),
@@ -228,7 +229,7 @@ namespace FastData.SyncTool.WinForms.Models
                     break;
 
                 case "QueryFrequency":
-                    config.ShardingType = ShardingType.QueryFrequency;
+                    config.ShardingType = ShardingTypeEnum.QueryFrequency;
                     config.FrequencyConfig = new QueryFrequencyShardingConfig
                     {
                         Field = FrequencyField,
@@ -257,30 +258,30 @@ namespace FastData.SyncTool.WinForms.Models
 
             switch (config.ShardingType)
             {
-                case ShardingType.Time:
+                case ShardingTypeEnum.Time:
                     item.TimeField = config.TimeConfig?.TimeField;
                     item.TimeGranularity = config.TimeConfig?.Granularity.ToString();
                     item.StartTime = config.TimeConfig?.StartTime;
                     break;
 
-                case ShardingType.Hash:
+                case ShardingTypeEnum.Hash:
                     item.HashField = config.HashConfig?.HashField;
                     item.ShardCount = config.HashConfig?.ShardCount ?? 0;
                     item.HashAlgorithm = config.HashConfig?.Algorithm.ToString();
                     break;
 
-                case ShardingType.List:
+                case ShardingTypeEnum.List:
                     item.ListField = config.ListConfig?.ListField;
                     item.ValueMapping = config.ListConfig?.ValueMapping;
                     break;
 
-                case ShardingType.Composite:
+                case ShardingTypeEnum.Composite:
                     item.CompositeFields = string.Join(",", config.CompositeConfig?.CompositeFields ?? new List<string>());
                     item.UseHash = config.CompositeConfig?.UseHash ?? false;
                     item.ShardCount = config.CompositeConfig?.ShardCount ?? 0;
                     break;
 
-                case ShardingType.QueryFrequency:
+                case ShardingTypeEnum.QueryFrequency:
                     item.FrequencyField = config.FrequencyConfig?.Field;
                     item.HotThreshold = config.FrequencyConfig?.HotThreshold ?? 0;
                     item.HotSuffix = config.FrequencyConfig?.HotSuffix;

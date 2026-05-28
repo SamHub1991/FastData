@@ -8,6 +8,7 @@ using FastData.Base;
 using FastData.Config;
 using FastData.Type;
 using FastData.Model;
+using FastData.Repository;
 using System.Diagnostics;
 using System.IO;
 using FastUntility.Base;
@@ -33,7 +34,6 @@ namespace FastData
             set { _fastAop = value; }
         }
 
-        #region 初始化model成员 1
         /// <summary>
         /// 初始化model成员 1
         /// </summary>
@@ -70,9 +70,7 @@ namespace FastData
                 });
             }
         }
-        #endregion
 
-        #region 初始化code first 2
         /// <summary>
         /// 初始化code first 2
         /// </summary>
@@ -103,9 +101,7 @@ namespace FastData
                 });
             }
         }
-        #endregion
 
-        #region 初始化map 3  by Resource
         public static void InstanceMapResource(string dbKey = null, string dbFile = "db.config", string mapFile = "SqlMap.config", IFastAop aop =null)
         {
             fastAop = aop;
@@ -177,9 +173,7 @@ namespace FastData
                 });
             }
         }
-        #endregion
 
-        #region 初始化map 3
         /// <summary>
         /// 初始化map 3
         /// </summary>
@@ -248,10 +242,8 @@ namespace FastData
                 });
             }
         }
-        #endregion
 
 
-        #region maq 执行返回结果
         /// <summary>
         /// maq 执行返回结果
         /// </summary>
@@ -276,10 +268,10 @@ namespace FastData
                     {
                         using (var tempDb = new DataContext(key))
                         {
-                            for (var i = 1; i < MapXml.MapForEachCount(name, config); i++)
-                            {
-                                result = MapXml.MapForEach<T>(result, name, tempDb, config, i);
-                            }
+                                for (var i = 1; i <= MapXml.MapForEachCount(name, config); i++)
+                                {
+                                    result = MapXml.MapForEach<T>(result, name, tempDb, config, i);
+                                }
                         }
                     }
                     else
@@ -298,22 +290,15 @@ namespace FastData
                 return data;
             }
         }
-        #endregion
 
-        #region maq 执行返回结果 asy
         /// <summary>
         /// 执行sql asy
         /// </summary>
         public static Task<List<T>> QueryAsy<T>(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
-            return Task.Run(() =>
-           {
-               return Query<T>(name, param, db, key, isOutSql);
-           });
+            return AsyncHelper.RunAsync(() => Query<T>(name, param, db, key, isOutSql));
         }
-        #endregion
 
-        #region maq 执行返回结果 lazy
         /// <summary>
         /// maq 执行返回结果 lazy
         /// </summary>
@@ -321,23 +306,16 @@ namespace FastData
         {
             return new Lazy<List<T>>(() => Query<T>(name, param, db, key, isOutSql));
         }
-        #endregion
 
-        #region maq 执行返回结果 lazy asy
         /// <summary>
         /// maq 执行返回结果 lazy asy
         /// </summary>
         public static Task<Lazy<List<T>>> QueryLazyAsy<T>(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
-            return Task.Run(() =>
-           {
-               return new Lazy<List<T>>(() => Query<T>(name, param, db, key, isOutSql));
-           });
+            return AsyncHelper.RunAsync(() => new Lazy<List<T>>(() => Query<T>(name, param, db, key, isOutSql)));
         }
-        #endregion
 
 
-        #region maq 执行写操作
         /// <summary>
         /// 执行写操作
         /// </summary>
@@ -355,7 +333,9 @@ namespace FastData
 
                 AopMapBefore(name, sql, param, config, AopType.Map_Write);
 
-                return FastWrite.ExecuteSql(sql, param, db, key, isOutSql);
+                var result = FastWrite.ExecuteSql(sql, param, db, key, isOutSql);
+                AopMapAfter(name, sql, param, config, AopType.Map_Write, result.IsSuccess);
+                return result;
             }
             else
             {
@@ -365,46 +345,32 @@ namespace FastData
                 return data;
             }
         }
-        #endregion
 
-        #region maq 执行写操作 asy
         /// <summary>
         ///  maq 执行写操作 asy
         /// </summary>
         public static Task<WriteReturn> WriteAsy(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
-            return Task.Run(() =>
-           {
-               return Write(name, param, db, key, isOutSql);
-           });
+            return AsyncHelper.RunAsync(() => Write(name, param, db, key, isOutSql));
         }
-        #endregion
 
-        #region maq 执行写操作 asy lazy
         /// <summary>
         /// maq 执行写操作 asy lazy
         /// </summary>
         public static Lazy<WriteReturn> WriteLazy(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
-            return new Lazy<WriteReturn>(() => Write(name, param, db, key, isOutSql));
+            return AsyncHelper.ToLazy(() => Write(name, param, db, key, isOutSql));
         }
-        #endregion
 
-        #region maq 执行写操作 asy lazy asy
         /// <summary>
         /// maq 执行写操作 asy lazy asy
         /// </summary>
         public static Task<Lazy<WriteReturn>> WriteLazyAsy(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
-            return Task.Run(() =>
-           {
-               return new Lazy<WriteReturn>(() => Write(name, param, db, key, isOutSql));
-           });
+            return AsyncHelper.RunAsync(() => AsyncHelper.ToLazy(() => Write(name, param, db, key, isOutSql)));
         }
-        #endregion
 
 
-        #region maq 执行返回 List<Dictionary<string, object>>
         /// <summary>
         /// maq 执行返回 List<Dictionary<string, object>>
         /// </summary>
@@ -430,10 +396,10 @@ namespace FastData
                     {
                         using (var tempDb = new DataContext(key))
                         {
-                            for (var i = 1; i < MapXml.MapForEachCount(name, config); i++)
-                            {
-                                result = MapXml.MapForEach(result, name, tempDb, key, config, i);
-                            }
+                                for (var i = 1; i <= MapXml.MapForEachCount(name, config); i++)
+                                {
+                                    result = MapXml.MapForEach(result, name, tempDb, key, config, i);
+                                }
                         }
                     }
                     else
@@ -451,22 +417,15 @@ namespace FastData
                 return data;
             }
         }
-        #endregion
 
-        #region maq 执行返回 List<Dictionary<string, object>> asy
         /// <summary>
         /// 执行sql List<Dictionary<string, object>> asy
         /// </summary>
         public static Task<List<Dictionary<string, object>>> QueryAsy(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
-            return Task.Run(() =>
-           {
-               return Query(name, param, db, key, isOutSql);
-           });
+            return AsyncHelper.RunAsync(() => Query(name, param, db, key, isOutSql));
         }
-        #endregion
 
-        #region maq 执行返回 List<Dictionary<string, object>> lazy
         /// <summary>
         /// maq 执行返回 List<Dictionary<string, object>> lazy
         /// </summary>
@@ -474,23 +433,16 @@ namespace FastData
         {
             return new Lazy<List<Dictionary<string, object>>>(() => Query(name, param, db, key, isOutSql));
         }
-        #endregion
 
-        #region maq 执行返回 List<Dictionary<string, object>> lazy asy
         /// <summary>
         /// maq 执行返回 List<Dictionary<string, object>> lazy asy
         /// </summary>
         public static Task<Lazy<List<Dictionary<string, object>>>> ExecuteLazyMapAsy(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
-            return Task.Run(() =>
-           {
-               return new Lazy<List<Dictionary<string, object>>>(() => Query(name, param, db, key, isOutSql));
-           });
+            return AsyncHelper.RunAsync(() => new Lazy<List<Dictionary<string, object>>>(() => Query(name, param, db, key, isOutSql)));
         }
-        #endregion
 
 
-        #region 执行分页
         /// <summary>
         /// 执行分页 
         /// </summary>
@@ -522,9 +474,7 @@ namespace FastData
 
             return result.PageResult;
         }
-        #endregion
 
-        #region maq 执行分页
         /// <summary>
         /// maq 执行分页
         /// </summary>
@@ -549,17 +499,17 @@ namespace FastData
                     {
                         using (var tempDb = new DataContext(key))
                         {
-                            for (var i = 1; i < MapXml.MapForEachCount(name, config); i++)
-                            {
-                                result.list = MapXml.MapForEach(result.list, name, tempDb, key, config, i);
+                                for (var i = 1; i <= MapXml.MapForEachCount(name, config); i++)
+                                {
+                                    result.list = MapXml.MapForEach(result.list, name, tempDb, key, config, i);
+                                }
                             }
                         }
+                        else
+                            result.list = MapXml.MapForEach(result.list, name, db, key, config);
                     }
-                    else
-                        result.list = MapXml.MapForEach(result.list, name, db, key, config);
-                }
 
-                AopMapAfter(name, sql, param, config, AopType.Map_Page_Dic, result.list);
+                    AopMapAfter(name, sql, param, config, AopType.Map_Page_Dic, result.list);
                 return result;
             }
             else
@@ -570,46 +520,32 @@ namespace FastData
                 return data;
             }
         }
-        #endregion
 
-        #region maq 执行分页 asy
         /// <summary>
         /// 执行分页 asy
         /// </summary>
         public static Task<PageResult> QueryPageAsy(PageModel pModel, string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
-            return Task.Run(() =>
-           {
-               return QueryPage(pModel, name, param, db, key, isOutSql);
-           });
+            return AsyncHelper.RunAsync(() => QueryPage(pModel, name, param, db, key, isOutSql));
         }
-        #endregion
 
-        #region maq 执行分页 lazy
         /// <summary>
         /// maq 执行分页 lazy
         /// </summary>
         public static Lazy<PageResult> QueryPageLazy(PageModel pModel, string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
-            return new Lazy<PageResult>(() => QueryPage(pModel, name, param, db, key, isOutSql));
+            return AsyncHelper.ToLazy(() => QueryPage(pModel, name, param, db, key, isOutSql));
         }
-        #endregion
 
-        #region maq 执行分页 lazy asy
         /// <summary>
         /// maq 执行分页lazy asy
         /// </summary>
         public static Task<Lazy<PageResult>> QueryPageLazyAsy(PageModel pModel, string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
-            return Task.Run(() =>
-           {
-               return new Lazy<PageResult>(() => QueryPage(pModel, name, param, db, key, isOutSql));
-           });
+            return AsyncHelper.RunAsync(() => AsyncHelper.ToLazy(() => QueryPage(pModel, name, param, db, key, isOutSql)));
         }
-        #endregion
 
 
-        #region 执行分页
         /// <summary>
         /// 执行分页 
         /// </summary>
@@ -641,9 +577,7 @@ namespace FastData
 
             return result.pageResult;
         }
-        #endregion
 
-        #region maq 执行分页
         /// <summary>
         /// maq 执行分页
         /// </summary>
@@ -668,10 +602,10 @@ namespace FastData
                     {
                         using (var tempDb = new DataContext(key))
                         {
-                            for (var i = 1; i < MapXml.MapForEachCount(name, config); i++)
-                            {
-                                result.list = MapXml.MapForEach<T>(result.list, name, tempDb, config, i);
-                            }
+                                for (var i = 1; i <= MapXml.MapForEachCount(name, config); i++)
+                                {
+                                    result.list = MapXml.MapForEach<T>(result.list, name, tempDb, config, i);
+                                }
                         }
                     }
                     else
@@ -688,22 +622,15 @@ namespace FastData
                 return data;
             }
         }
-        #endregion
 
-        #region maq 执行分页 asy
         /// <summary>
         /// 执行分页 asy
         /// </summary>
         public static Task<PageResult<T>> QueryPageAsy<T>(PageModel pModel, string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
-            return Task.Run(() =>
-           {
-               return QueryPage<T>(pModel, name, param, db, key, isOutSql);
-           });
+            return AsyncHelper.RunAsync(() => QueryPage<T>(pModel, name, param, db, key, isOutSql));
         }
-        #endregion
 
-        #region maq 执行分页 lazy
         /// <summary>
         /// maq 执行分页 lazy
         /// </summary>
@@ -711,22 +638,15 @@ namespace FastData
         {
             return new Lazy<PageResult<T>>(() => QueryPage<T>(pModel, name, param, db, key, isOutSql));
         }
-        #endregion
 
-        #region maq 执行分页 lazy asy
         /// <summary>
         /// maq 执行分页lazy asy
         /// </summary>
         public static Task<Lazy<PageResult<T>>> QueryPageLazyAsy<T>(PageModel pModel, string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
-            return Task.Run(() =>
-           {
-               return new Lazy<PageResult<T>>(() => QueryPage<T>(pModel, name, param, db, key, isOutSql));
-           });
+            return AsyncHelper.RunAsync(() => new Lazy<PageResult<T>>(() => QueryPage<T>(pModel, name, param, db, key, isOutSql)));
         }
-        #endregion
 
-        #region 验证xml
         /// <summary>
         /// 验证xml
         /// </summary>
@@ -737,9 +657,7 @@ namespace FastData
             var info = new FileInfo(xml);
             return MapXml.GetXmlList(info.FullName, "sqlMap", config).isSuccess;
         }
-        #endregion
 
-        #region map 参数列表
         /// <summary>
         /// map 参数列表
         /// </summary>
@@ -750,9 +668,7 @@ namespace FastData
             var cacheType = config == null ? DataConfig.GetConfig().CacheType : config.CacheType;
             return DbCache.Get<List<string>>(cacheType, string.Format("{0}.param", name.ToLower()));
         }
-        #endregion
 
-        #region map db
         /// <summary>
         /// map db
         /// </summary>
@@ -762,9 +678,7 @@ namespace FastData
         {
             return DbCache.Get(DataConfig.GetConfig().CacheType, string.Format("{0}.db", name.ToLower()));
         }
-        #endregion
 
-        #region map type
         /// <summary>
         /// map db
         /// </summary>
@@ -774,9 +688,7 @@ namespace FastData
         {
             return DbCache.Get(DataConfig.GetConfig().CacheType, string.Format("{0}.type", name.ToLower()));
         }
-        #endregion
 
-        #region map view
         /// <summary>
         /// map view
         /// </summary>
@@ -786,9 +698,7 @@ namespace FastData
         {
             return DbCache.Get(DataConfig.GetConfig().CacheType, string.Format("{0}.view", name.ToLower()));
         }
-        #endregion
 
-        #region 是否存在map id
         /// <summary>
         /// 是否存在map id
         /// </summary>
@@ -798,30 +708,22 @@ namespace FastData
         {
             return DbCache.Exists(DataConfig.GetConfig().CacheType, name.ToLower());
         }
-        #endregion
 
-        #region 获取map备注
         public static string MapRemark(string name)
         {
             return DbCache.Get(DataConfig.GetConfig().CacheType, string.Format("{0}.remark", name.ToLower()));
         }
-        #endregion
 
-        #region 获取map日志
         public static bool IsMapLog(string name)
         {
             return DbCache.Get(DataConfig.GetConfig().CacheType, string.Format("{0}.log", name.ToLower())).ToStr().ToLower() == "true";
         }
-        #endregion
 
-        #region 获取map参数备注
         public static string MapParamRemark(string name, string param)
         {
             return DbCache.Get(DataConfig.GetConfig().CacheType, string.Format("{0}.{1}.remark", name.ToLower(), param.ToLower()));
         }
-        #endregion
 
-        #region  获取api接口key
         /// <summary>
         /// 获取api接口key
         /// </summary>
@@ -832,9 +734,7 @@ namespace FastData
                 return DbCache.Get<Dictionary<string, object>>(DataConfig.GetConfig().CacheType, "FastMap.Api") ?? new Dictionary<string, object>();
             }
         }
-        #endregion
 
-        #region 获取map验证必填
         /// <summary>
         /// 获取map验证必填
         /// </summary>
@@ -845,9 +745,7 @@ namespace FastData
         {
             return DbCache.Get(DataConfig.GetConfig().CacheType, string.Format("{0}.{1}.required", name.ToLower(), param.ToLower()));
         }
-        #endregion
 
-        #region 获取map验证长度
         /// <summary>
         /// 获取map验证长度
         /// </summary>
@@ -858,9 +756,7 @@ namespace FastData
         {
             return DbCache.Get(DataConfig.GetConfig().CacheType, string.Format("{0}.{1}.maxlength", name.ToLower(), param.ToLower()));
         }
-        #endregion
 
-        #region 获取map验证日期 
         /// <summary>
         /// 获取map验证日期
         /// </summary>
@@ -871,9 +767,7 @@ namespace FastData
         {
             return DbCache.Get(DataConfig.GetConfig().CacheType, string.Format("{0}.{1}.date", name.ToLower(), param.ToLower()));
         }
-        #endregion
 
-        #region 获取map验证map
         /// <summary>
         /// 获取map验证map
         /// </summary>
@@ -884,9 +778,7 @@ namespace FastData
         {
             return DbCache.Get(DataConfig.GetConfig().CacheType, string.Format("{0}.{1}.checkmap", name.ToLower(), param.ToLower()));
         }
-        #endregion
 
-        #region 获取map验证map
         /// <summary>
         /// 获取map验证map
         /// </summary>
@@ -897,9 +789,7 @@ namespace FastData
         {
             return DbCache.Get(DataConfig.GetConfig().CacheType, string.Format("{0}.{1}.existsmap", name.ToLower(), param.ToLower()));
         }
-        #endregion
 
-        #region 获取db配置文件
         /// <summary>
         /// 获取db配置文件
         /// </summary>
@@ -909,7 +799,6 @@ namespace FastData
         {
             return DataConfig.GetConfig(name);
         }
-        #endregion
 
 
 

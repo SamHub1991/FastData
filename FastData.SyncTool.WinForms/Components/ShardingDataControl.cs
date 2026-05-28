@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.SqlClient;
+using Microsoft.Data.SqlClient;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -46,7 +46,7 @@ namespace FastData.SyncTool.WinForms.Components
         // 状态
         private StatusStrip _statusStrip;
         private ToolStripStatusLabel _statusLabel;
-        private ToolStripStatusLabel _recordCountLabel;
+        private Label _recordCountLabel;
 
         public ShardingDataControl()
         {

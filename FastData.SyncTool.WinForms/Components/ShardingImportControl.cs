@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
-using System.Data.SqlClient;
+using Microsoft.Data.SqlClient;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -447,6 +447,19 @@ namespace FastData.SyncTool.WinForms.Components
 
         private async void StartImport(object sender, EventArgs e)
         {
+            try
+            {
+                await StartImportAsync();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"导入失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                _statusLabel.Text = "导入失败";
+            }
+        }
+
+        private async Task StartImportAsync()
+        {
             var filePath = _filePathBox.Text.Trim();
             if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
             {
@@ -461,7 +474,6 @@ namespace FastData.SyncTool.WinForms.Components
                 return;
             }
 
-            // 确认导入
             var result = MessageBox.Show(
                 "导入规则:\n\n" +
                 "- 数据库中不存在的记录：新增\n" +
@@ -481,17 +493,14 @@ namespace FastData.SyncTool.WinForms.Components
                 _cancelButton.Enabled = true;
                 _previewButton.Enabled = false;
 
-                // 加载全部数据
                 var dataTable = LoadFileData(filePath);
                 _statusLabel.Text = $"正在导入 {dataTable.Rows.Count} 条记录...";
                 _progressBar.Maximum = dataTable.Rows.Count;
                 _progressBar.Value = 0;
 
-                // 获取分表配置
                 var shardingType = _shardingTypeCombo.SelectedIndex;
                 var connectionString = _connectionStringBox.Text;
 
-                // 后台执行导入
                 await Task.Run(() => ExecuteImport(dataTable, primaryKey, shardingType, connectionString));
 
                 if (_isImporting)

@@ -15,14 +15,14 @@ namespace FastData.Queue
         private static readonly Dictionary<string, WriteBehindConfig> _configs = new Dictionary<string, WriteBehindConfig>(StringComparer.OrdinalIgnoreCase);
         private static readonly object _lock = new object();
 
-        /// <summary>
+/// <summary>
         /// 注册表的队列配置
         /// </summary>
         /// <typeparam name="T">实体类型</typeparam>
         /// <param name="config">队列配置</param>
         public static void Register<T>(WriteBehindConfig config) where T : class
         {
-            var tableName = typeof(T).Name;
+            var tableName = Base.TableNameHelper.GetTableName<T>();
             Register(tableName, config);
         }
 
@@ -34,10 +34,7 @@ namespace FastData.Queue
         public static void Register(string tableName, WriteBehindConfig config)
         {
             if (string.IsNullOrEmpty(tableName))
-                throw new ArgumentNullException(nameof(tableName));
-
-            if (config == null)
-                throw new ArgumentNullException(nameof(config));
+                return;
 
             lock (_lock)
             {
@@ -46,13 +43,12 @@ namespace FastData.Queue
         }
 
         /// <summary>
-        /// 获取表的队列配置
-        /// </summary>
+
         /// <typeparam name="T">实体类型</typeparam>
         /// <returns>队列配置，如果未注册则返回 null</returns>
         public static WriteBehindConfig GetConfig<T>() where T : class
         {
-            var tableName = typeof(T).Name;
+            var tableName = Base.TableNameHelper.GetTableName<T>();
             return GetConfig(tableName);
         }
 
@@ -100,7 +96,7 @@ namespace FastData.Queue
         /// <typeparam name="T">实体类型</typeparam>
         public static void Unregister<T>() where T : class
         {
-            var tableName = typeof(T).Name;
+            var tableName = Base.TableNameHelper.GetTableName<T>();
             Unregister(tableName);
         }
 

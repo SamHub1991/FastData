@@ -61,7 +61,7 @@ namespace FastData.Queue
             var operation = new ReadOperation
             {
                 OperationType = ReadOperationType.QuerySingle,
-                TableName = typeof(T).Name,
+                TableName = Base.TableNameHelper.GetTableName<T>(),
                 EntityType = typeof(T).FullName,
                 Predicate = JsonConvert.SerializeObject(predicate),
                 DatabaseKey = _databaseKey,
@@ -84,7 +84,7 @@ namespace FastData.Queue
             var operation = new ReadOperation
             {
                 OperationType = ReadOperationType.QueryList,
-                TableName = typeof(T).Name,
+                TableName = Base.TableNameHelper.GetTableName<T>(),
                 EntityType = typeof(T).FullName,
                 Predicate = predicate != null ? JsonConvert.SerializeObject(predicate) : null,
                 OrderBy = orderBy != null ? JsonConvert.SerializeObject(orderBy) : null,
@@ -107,7 +107,7 @@ namespace FastData.Queue
             var operation = new ReadOperation
             {
                 OperationType = ReadOperationType.QueryCount,
-                TableName = typeof(T).Name,
+                TableName = Base.TableNameHelper.GetTableName<T>(),
                 EntityType = typeof(T).FullName,
                 Predicate = predicate != null ? JsonConvert.SerializeObject(predicate) : null,
                 DatabaseKey = _databaseKey,
@@ -132,7 +132,7 @@ namespace FastData.Queue
             var operation = new ReadOperation
             {
                 OperationType = ReadOperationType.QueryPaging,
-                TableName = typeof(T).Name,
+                TableName = Base.TableNameHelper.GetTableName<T>(),
                 EntityType = typeof(T).FullName,
                 Predicate = predicate != null ? JsonConvert.SerializeObject(predicate) : null,
                 OrderBy = orderBy != null ? JsonConvert.SerializeObject(orderBy) : null,

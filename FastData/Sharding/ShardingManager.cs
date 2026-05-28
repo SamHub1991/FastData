@@ -56,7 +56,7 @@ namespace FastData.Sharding
             config.EntityType = typeof(T);
 
             if (string.IsNullOrEmpty(config.BaseTableName))
-                config.BaseTableName = typeof(T).Name;
+                config.BaseTableName = Base.TableNameHelper.GetTableName<T>();
 
             lock (_lock)
             {
@@ -107,7 +107,7 @@ namespace FastData.Sharding
         {
             var config = GetConfig<T>();
             if (config == null)
-                return typeof(T).Name;
+                return Base.TableNameHelper.GetTableName<T>();
 
             var strategy = GetStrategy(config.ShardingType);
             return strategy.GetTableName(config, entity);
@@ -120,7 +120,7 @@ namespace FastData.Sharding
         {
             var config = GetConfig<T>();
             if (config == null)
-                return new List<string> { typeof(T).Name };
+                return new List<string> { Base.TableNameHelper.GetTableName<T>() };
 
             var strategy = GetStrategy(config.ShardingType);
             return strategy.GetTableNames(config, queryParams);
@@ -133,7 +133,7 @@ namespace FastData.Sharding
         {
             var config = GetConfig<T>();
             if (config == null)
-                return new List<string> { typeof(T).Name };
+                return new List<string> { Base.TableNameHelper.GetTableName<T>() };
 
             var strategy = GetStrategy(config.ShardingType);
             return strategy.GetAllTableNames(config);

@@ -142,7 +142,7 @@ namespace FastData.Demo.Controllers
                 // 直接调用 FastWrite.Add 诊断
                 user.CreateTime = DateTime.Now;
                 user.IsActive = true;
-                var writeResult = await Task.Run(() => FastWrite.Add(user, key: "SqlServer"));
+                var writeResult = await Task.Run(() => FastWrite.Add(user));
                 
                 return Ok(new
                 {
@@ -153,7 +153,13 @@ namespace FastData.Demo.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { error = ex.Message, stackTrace = ex.StackTrace });
+                return StatusCode(500, new
+                {
+                    error = ex.Message,
+                    stackTrace = ex.StackTrace,
+                    innerException = ex.InnerException?.Message,
+                    innerStackTrace = ex.InnerException?.StackTrace
+                });
             }
         }
 

@@ -72,7 +72,7 @@ namespace FastData.Queue
             var operation = new WriteOperation
             {
                 OperationType = WriteOperationType.Add,
-                TableName = typeof(T).Name,
+                TableName = Base.TableNameHelper.GetTableName<T>(),
                 EntityType = typeof(T).FullName,
                 Data = JsonConvert.SerializeObject(model),
                 DatabaseKey = _databaseKey,
@@ -154,7 +154,7 @@ namespace FastData.Queue
             var operation = new WriteOperation
             {
                 OperationType = WriteOperationType.Update,
-                TableName = typeof(T).Name,
+                TableName = Base.TableNameHelper.GetTableName<T>(),
                 EntityType = typeof(T).FullName,
                 Data = JsonConvert.SerializeObject(model),
                 DatabaseKey = _databaseKey,
@@ -202,7 +202,7 @@ namespace FastData.Queue
             var operation = new WriteOperation
             {
                 OperationType = WriteOperationType.Delete,
-                TableName = typeof(T).Name,
+                TableName = Base.TableNameHelper.GetTableName<T>(),
                 EntityType = typeof(T).FullName,
                 Data = JsonConvert.SerializeObject(model),
                 DatabaseKey = _databaseKey,

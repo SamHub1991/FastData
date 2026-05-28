@@ -16,7 +16,6 @@ namespace FastData.Repository
     {
         internal DataQuery Data { get; set; } = new DataQuery();
 
-        #region 查询join
         /// <summary>
         /// 查询join
         /// </summary>
@@ -40,9 +39,7 @@ namespace FastData.Repository
 
             return this;
         }
-        #endregion
 
-        #region 查询left join
         /// <summary>
         /// 查询left join
         /// </summary>
@@ -56,9 +53,7 @@ namespace FastData.Repository
         {
             return JoinType("left join", predicate, field);
         }
-        #endregion
 
-        #region 查询right join
         /// <summary>
         /// 查询right join
         /// </summary>
@@ -72,9 +67,7 @@ namespace FastData.Repository
         {
             return JoinType("right join", predicate, field);
         }
-        #endregion
 
-        #region 查询inner join
         /// <summary>
         /// 查询inner join
         /// </summary>
@@ -88,9 +81,7 @@ namespace FastData.Repository
         {
             return JoinType("inner join", predicate, field);
         }
-        #endregion
 
-        #region 查询order by
         /// <summary>
         /// 查询order by
         /// </summary>
@@ -104,9 +95,7 @@ namespace FastData.Repository
             this.Data.OrderBy.AddRange(orderBy);
             return this;
         }
-        #endregion
 
-        #region 查询group by
         /// <summary>
         /// 查询group by
         /// </summary>
@@ -120,9 +109,7 @@ namespace FastData.Repository
             this.Data.GroupBy.AddRange(groupBy);
             return this;
         }
-        #endregion
 
-        #region 查询take
         /// <summary>
         /// 查询take
         /// </summary>
@@ -135,10 +122,8 @@ namespace FastData.Repository
             this.Data.Take = i;
             return this;
         }
-        #endregion
 
 
-        #region 返回list
         /// <summary>
         /// 返回list
         /// </summary>
@@ -171,9 +156,7 @@ namespace FastData.Repository
             DbLog.LogSql(this.Data.Config.IsOutSql, result.sql, this.Data.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
             return result.list;
         }
-        #endregion
 
-        #region 返回list asy
         /// <summary>
         /// 返回list asy
         /// </summary>
@@ -182,14 +165,9 @@ namespace FastData.Repository
         /// <returns></returns>
         public override Task<List<T>> ToListAsy<T>(DataContext db = null, bool isOutSql = false)
         {
-            return Task.Run(() =>
-           {
-               return ToList<T>(db, isOutSql);
-           });
+            return AsyncHelper.RunAsync(() => ToList<T>(db, isOutSql));
         }
-        #endregion
 
-        #region 返回lazy<list>
         /// <summary>
         /// 返回lazy<list>
         /// </summary>
@@ -200,9 +178,7 @@ namespace FastData.Repository
         {
             return new Lazy<List<T>>(() => ToList<T>(db, isOutSql));
         }
-        #endregion
 
-        #region 返回lazy<list> asy
         /// <summary>
         /// 返回lazy<list> asy
         /// </summary>
@@ -211,15 +187,10 @@ namespace FastData.Repository
         /// <returns></returns>
         public override Task<Lazy<List<T>>> ToLazyListAsy<T>(DataContext db = null, bool isOutSql = false)
         {
-            return Task.Run(() =>
-           {
-               return new Lazy<List<T>>(() => ToList<T>(db, isOutSql));
-           });
+            return AsyncHelper.RunAsync(() => new Lazy<List<T>>(() => ToList<T>(db, isOutSql)));
         }
-        #endregion
 
 
-        #region 返回json
         /// <summary>
         /// 返回json
         /// </summary>
@@ -251,9 +222,7 @@ namespace FastData.Repository
             DbLog.LogSql(this.Data.Config.IsOutSql, result.Sql, this.Data.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
             return result.Json;
         }
-        #endregion
 
-        #region 返回json asy
         /// <summary>
         /// 返回json asy
         /// </summary>
@@ -261,14 +230,9 @@ namespace FastData.Repository
         /// <returns></returns>
         public override Task<string> ToJsonAsy(DataContext db = null, bool isOutSql = false)
         {
-            return Task.Run(() =>
-           {
-               return ToJson(db, isOutSql);
-           });
+            return AsyncHelper.RunAsync(() => ToJson(db, isOutSql));
         }
-        #endregion
 
-        #region 返回lazy<json>
         /// <summary>
         /// 返回lazy<json>
         /// </summary>
@@ -276,11 +240,9 @@ namespace FastData.Repository
         /// <returns></returns>
         public override Lazy<string> ToLazyJson(DataContext db = null, bool isOutSql = false)
         {
-            return new Lazy<string>(() => ToJson(db, isOutSql));
+            return AsyncHelper.ToLazy(() => ToJson(db, isOutSql));
         }
-        #endregion
 
-        #region 返回lazy<json> asy
         /// <summary>
         /// 返回lazy<json> asy
         /// </summary>
@@ -288,15 +250,10 @@ namespace FastData.Repository
         /// <returns></returns>
         public override Task<Lazy<string>> ToLazyJsonAsy(DataContext db = null, bool isOutSql = false)
         {
-            return Task.Run(() =>
-           {
-               return new Lazy<string>(() => ToJson(db, isOutSql));
-           });
+            return AsyncHelper.RunAsync(() => AsyncHelper.ToLazy(() => ToJson(db, isOutSql)));
         }
-        #endregion
 
 
-        #region 返回item
         /// <summary>
         /// 返回item
         /// </summary>
@@ -331,9 +288,7 @@ namespace FastData.Repository
             DbLog.LogSql(this.Data.Config.IsOutSql, result.sql, this.Data.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
             return result.item;
         }
-        #endregion
 
-        #region 返回item asy
         /// <summary>
         /// 返回item asy
         /// </summary>
@@ -342,14 +297,9 @@ namespace FastData.Repository
         /// <returns></returns>
         public override Task<T> ToItemAsy<T>(DataContext db = null, bool isOutSql = false)
         {
-            return Task.Run(() =>
-           {
-               return ToItem<T>(db, isOutSql);
-           });
+            return AsyncHelper.RunAsync(() => ToItem<T>(db, isOutSql));
         }
-        #endregion
 
-        #region 返回Lazy<item>
         /// <summary>
         /// 返回Lazy<item>
         /// </summary>
@@ -358,11 +308,9 @@ namespace FastData.Repository
         /// <returns></returns>
         public override Lazy<T> ToLazyItem<T>(DataContext db = null, bool isOutSql = false)
         {
-            return new Lazy<T>(() => ToItem<T>(db, isOutSql));
+            return AsyncHelper.ToLazy(() => ToItem<T>(db, isOutSql));
         }
-        #endregion
 
-        #region 返回Lazy<item> asy
         /// <summary>
         /// 返回Lazy<item> asy
         /// </summary>
@@ -371,15 +319,10 @@ namespace FastData.Repository
         /// <returns></returns>
         public override Task<Lazy<T>> ToLazyItemAsy<T>(DataContext db = null, bool isOutSql = false)
         {
-            return Task.Run(() =>
-           {
-               return new Lazy<T>(() => ToItem<T>(db, isOutSql));
-           });
+            return AsyncHelper.RunAsync(() => AsyncHelper.ToLazy(() => ToItem<T>(db, isOutSql)));
         }
-        #endregion
 
 
-        #region 返回条数
         /// <summary>
         /// 返回条数
         /// </summary>
@@ -412,9 +355,7 @@ namespace FastData.Repository
 
             return result.Count;
         }
-        #endregion
 
-        #region 返回条数 asy
         /// <summary>
         /// 返回条数 asy
         /// </summary>
@@ -422,15 +363,10 @@ namespace FastData.Repository
         /// <returns></returns>
         public override Task<int> ToCountAsy<T, T1>(DataContext db = null, bool isOutSql = false)
         {
-            return Task.Run(() =>
-           {
-               return ToCount(db, isOutSql);
-           });
+            return AsyncHelper.RunAsync(() => ToCount(db, isOutSql));
         }
-        #endregion
 
 
-        #region 返回分页
         /// <summary>
         /// 返回分页
         /// </summary>
@@ -464,9 +400,7 @@ namespace FastData.Repository
             DbLog.LogSql(this.Data.Config.IsOutSql, result.sql, this.Data.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
             return result.pageResult;
         }
-        #endregion
 
-        #region 返回分页 asy
         /// <summary>
         /// 返回分页 asy
         /// </summary>
@@ -476,14 +410,9 @@ namespace FastData.Repository
         /// <returns></returns>
         public override Task<PageResult<T>> ToPageAsy<T>(PageModel pModel, DataContext db = null, bool isOutSql = false)
         {
-            return Task.Run(() =>
-           {
-               return ToPage<T>(pModel, db, isOutSql);
-           });
+            return AsyncHelper.RunAsync(() => ToPage<T>(pModel, db, isOutSql));
         }
-        #endregion
 
-        #region 返回分页lazy
         /// <summary>
         /// 返回分页lazy
         /// </summary>
@@ -495,9 +424,7 @@ namespace FastData.Repository
         {
             return new Lazy<PageResult<T>>(() => ToPage<T>(pModel, db, isOutSql));
         }
-        #endregion
 
-        #region 返回分页lazy asy
         /// <summary>
         /// 返回分页lazy asy
         /// </summary>
@@ -507,15 +434,10 @@ namespace FastData.Repository
         /// <returns></returns>
         public override Task<Lazy<PageResult<T>>> ToLazyPageAsy<T>(PageModel pModel, DataContext db = null, bool isOutSql = false)
         {
-            return Task.Run(() =>
-           {
-               return new Lazy<PageResult<T>>(() => ToPage<T>(pModel, db, isOutSql));
-           });
+            return AsyncHelper.RunAsync(() => new Lazy<PageResult<T>>(() => ToPage<T>(pModel, db, isOutSql)));
         }
-        #endregion
 
 
-        #region 返回分页Dictionary<string, object>
         /// <summary>
         /// 返回分页Dictionary<string, object>
         /// </summary>
@@ -548,9 +470,7 @@ namespace FastData.Repository
             DbLog.LogSql(this.Data.Config.IsOutSql, result.Sql, this.Data.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
             return result.PageResult;
         }
-        #endregion
 
-        #region 返回分页Dictionary<string, object> asy
         /// <summary>
         /// 返回分页Dictionary<string, object> asy
         /// </summary>
@@ -559,14 +479,9 @@ namespace FastData.Repository
         /// <returns></returns>
         public override Task<PageResult> ToPageAsy(PageModel pModel, DataContext db = null, bool isOutSql = false)
         {
-            return Task.Run(() =>
-           {
-               return ToPage(pModel, db, isOutSql);
-           });
+            return AsyncHelper.RunAsync(() => ToPage(pModel, db, isOutSql));
         }
-        #endregion
 
-        #region 返回分页Dictionary<string, object> lazy
         /// <summary>
         /// 返回分页Dictionary<string, object> lazy
         /// </summary>
@@ -576,11 +491,9 @@ namespace FastData.Repository
         /// <returns></returns>
         public override Lazy<PageResult> ToLazyPage(PageModel pModel, DataContext db = null, bool isOutSql = false)
         {
-            return new Lazy<PageResult>(() => ToPage(pModel, db, isOutSql));
+            return AsyncHelper.ToLazy(() => ToPage(pModel, db, isOutSql));
         }
-        #endregion
 
-        #region 返回分页Dictionary<string, object> lazy asy
         /// <summary>
         /// 返回分页Dictionary<string, object> lazy asy
         /// </summary>
@@ -589,15 +502,10 @@ namespace FastData.Repository
         /// <returns></returns>
         public override Task<Lazy<PageResult>> ToLazyPageAsy(PageModel pModel, DataContext db = null, bool isOutSql = false)
         {
-            return Task.Run(() =>
-           {
-               return new Lazy<PageResult>(() => ToPage(pModel, db, isOutSql));
-           });
+            return AsyncHelper.RunAsync(() => AsyncHelper.ToLazy(() => ToPage(pModel, db, isOutSql)));
         }
-        #endregion
 
 
-        #region DataTable
         /// <summary>
         /// DataTable
         /// </summary>
@@ -630,9 +538,7 @@ namespace FastData.Repository
             DbLog.LogSql(this.Data.Config.IsOutSql, result.Sql, this.Data.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
             return result.Table;
         }
-        #endregion
 
-        #region DataTable asy
         /// <summary>
         /// DataTable asy
         /// </summary>
@@ -640,14 +546,9 @@ namespace FastData.Repository
         /// <returns></returns>
         public override Task<DataTable> ToDataTableAsy(DataContext db = null, bool isOutSql = false)
         {
-            return Task.Run(() =>
-           {
-               return ToDataTable(db, isOutSql);
-           });
+            return AsyncHelper.RunAsync(() => ToDataTable(db, isOutSql));
         }
-        #endregion
 
-        #region DataTable lazy
         /// <summary>
         /// DataTable lazy
         /// </summary>
@@ -655,11 +556,9 @@ namespace FastData.Repository
         /// <returns></returns>
         public override Lazy<DataTable> ToLazyDataTable(DataContext db = null, bool isOutSql = false)
         {
-            return new Lazy<DataTable>(() => ToDataTable(db, isOutSql));
+            return AsyncHelper.ToLazy(() => ToDataTable(db, isOutSql));
         }
-        #endregion
 
-        #region DataTable lazy asy
         /// <summary>
         /// DataTable lazy asy
         /// </summary>
@@ -667,15 +566,10 @@ namespace FastData.Repository
         /// <returns></returns>
         public override Task<Lazy<DataTable>> ToLazyDataTableAsy(DataContext db = null, bool isOutSql = false)
         {
-            return Task.Run(() =>
-           {
-               return new Lazy<DataTable>(() => ToDataTable(db, isOutSql));
-           });
+            return AsyncHelper.RunAsync(() => AsyncHelper.ToLazy(() => ToDataTable(db, isOutSql)));
         }
-        #endregion
 
 
-        #region 返回List<Dictionary<string, object>>
         /// <summary>
         /// 返回List<Dictionary<string, object>>
         /// </summary>
@@ -707,9 +601,7 @@ namespace FastData.Repository
             DbLog.LogSql(this.Data.Config.IsOutSql, result.Sql, this.Data.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
             return result.DicList;
         }
-        #endregion
 
-        #region 返回List<Dictionary<string, object>> asy
         /// <summary>
         /// 返回List<Dictionary<string, object>> asy
         /// </summary>
@@ -717,14 +609,9 @@ namespace FastData.Repository
         /// <returns></returns>
         public override Task<List<Dictionary<string, object>>> ToDicsAsy(DataContext db = null, bool isOutSql = false)
         {
-            return Task.Run(() =>
-           {
-               return ToDics(db, isOutSql);
-           });
+            return AsyncHelper.RunAsync(() => ToDics(db, isOutSql));
         }
-        #endregion
 
-        #region 返回lazy<List<Dictionary<string, object>>>
         /// <summary>
         /// 返回lazy<List<Dictionary<string, object>>>
         /// </summary>
@@ -734,9 +621,7 @@ namespace FastData.Repository
         {
             return new Lazy<List<Dictionary<string, object>>>(() => ToDics(db, isOutSql));
         }
-        #endregion
 
-        #region 返回lazy<List<Dictionary<string, object>>> asy
         /// <summary>
         /// 返回lazy<List<Dictionary<string, object>>> asy
         /// </summary>
@@ -744,15 +629,10 @@ namespace FastData.Repository
         /// <returns></returns>
         public override Task<Lazy<List<Dictionary<string, object>>>> ToLazyDicsAsy(DataContext db = null, bool isOutSql = false)
         {
-            return Task.Run(() =>
-           {
-               return new Lazy<List<Dictionary<string, object>>>(() => ToDics(db, isOutSql));
-           });
+            return AsyncHelper.RunAsync(() => new Lazy<List<Dictionary<string, object>>>(() => ToDics(db, isOutSql)));
         }
-        #endregion
 
 
-        #region Dictionary<string, object>
         /// <summary>
         /// Dictionary<string, object>
         /// </summary>
@@ -785,9 +665,7 @@ namespace FastData.Repository
             DbLog.LogSql(this.Data.Config.IsOutSql, result.Sql, this.Data.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
             return result.Dic;
         }
-        #endregion
 
-        #region Dictionary<string, object> asy
         /// <summary>
         /// Dictionary<string, object> asy
         /// </summary>
@@ -795,14 +673,9 @@ namespace FastData.Repository
         /// <returns></returns>
         public override Task<Dictionary<string, object>> ToDicAsy(DataContext db = null, bool isOutSql = false)
         {
-            return Task.Run(() =>
-           {
-               return ToDic(db, isOutSql);
-           });
+            return AsyncHelper.RunAsync(() => ToDic(db, isOutSql));
         }
-        #endregion
 
-        #region Dictionary<string, object>
         /// <summary>
         /// Dictionary<string, object>>
         /// </summary>
@@ -812,9 +685,7 @@ namespace FastData.Repository
         {
             return new Lazy<Dictionary<string, object>>(() => ToDic(db, isOutSql));
         }
-        #endregion
 
-        #region Dictionary<string, object> asy
         /// <summary>
         /// Dictionary<string, object> asy
         /// </summary>
@@ -822,11 +693,7 @@ namespace FastData.Repository
         /// <returns></returns>
         public override Task<Lazy<Dictionary<string, object>>> ToLazyDicAsy(DataContext db = null, bool isOutSql = false)
         {
-            return Task.Run(() =>
-            {
-                return new Lazy<Dictionary<string, object>>(() => ToDic(db, isOutSql));
-            });
+            return AsyncHelper.RunAsync(() => new Lazy<Dictionary<string, object>>(() => ToDic(db, isOutSql)));
         }
-        #endregion
     }
 }

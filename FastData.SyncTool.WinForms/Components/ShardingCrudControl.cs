@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.SqlClient;
+using Microsoft.Data.SqlClient;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
@@ -73,7 +73,7 @@ namespace FastData.SyncTool.WinForms.Components
         // 数据操作区域
         private GroupBox _dataGroup;
         private DataGridView _dataGrid;
-        privateTabControl _operationTabs;
+        private TabControl _operationTabs;
 
         // 查询 Tab
         private TabPage _queryTab;

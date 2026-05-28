@@ -32,11 +32,11 @@ namespace FastData.Base
             var result = new OptionModel();
             var dynGet = new Property.DynamicGet<T>();
             result.IsCache = config.IsPropertyCache;
-            var where = PrimaryKey(config, cmd, typeof(T).Name);
+            var where = PrimaryKey(config, cmd, TableNameHelper.GetTableName<T>());
 
             try
             {
-                result.Sql = string.Format("update {0} set", typeof(T).Name);
+                result.Sql = string.Format("update {0} set", TableNameHelper.GetTableName<T>());
                 if (field == null)
                 {
                     #region 属性
@@ -117,7 +117,13 @@ namespace FastData.Base
 
             try
             {
-                sbName.AppendFormat("insert into {0} (", typeof(T).Name);
+                if (config == null)
+                    throw new ArgumentNullException(nameof(config));
+                if (string.IsNullOrEmpty(config.Flag))
+                    throw new InvalidOperationException("config.Flag is null or empty - database configuration not loaded");
+                if (string.IsNullOrEmpty(config.ProviderName))
+                    throw new InvalidOperationException("config.ProviderName is null or empty - database configuration not loaded");
+                sbName.AppendFormat("insert into {0} (", TableNameHelper.GetTableName<T>());
                 sbValue.Append(" values (");
                 var props = PropertyCache.GetPropertyInfo<T>(config?.IsPropertyCache ?? true);
                 props.ForEach(p =>
@@ -150,12 +156,13 @@ namespace FastData.Base
             }
             catch (Exception ex)
             {
-                if (config.SqlErrorType.ToLower() == SqlErrorType.Db)
+                if (config != null && config.SqlErrorType?.ToLower() == SqlErrorType.Db)
                     DbLogTable.LogException(config, ex, "InsertToSql<T>", result.Sql);
                 else
-                    DbLog.LogException(config.IsOutError, config.DbType, ex, "InsertToSql<T>", result.Sql);
+                    DbLog.LogException(config?.IsOutError ?? false, config?.DbType ?? "Unknown", ex, "InsertToSql<T>", result.Sql);
 
                 result.IsSuccess = false;
+                result.Sql = ex.Message;
                 return result;
             }
         }
@@ -175,7 +182,8 @@ namespace FastData.Base
             var result = new OptionModel();
             var dynGet = new DynamicGet<T>();
             result.IsCache = config.IsPropertyCache;
-            var where = PrimaryKey(config, cmd, typeof(T).Name);
+            var tableName = TableNameHelper.GetTableName<T>();
+            var where = PrimaryKey(config, cmd, tableName);
 
             if (where.Count == 0)
             {
@@ -186,7 +194,7 @@ namespace FastData.Base
 
             try
             {
-                result.Sql = string.Format("update {0} set", typeof(T).Name);
+                result.Sql = string.Format("update {0} set", tableName);
                 var pInfo = PropertyCache.GetPropertyInfo<T>(config.IsPropertyCache);
 
                 if (field == null)
@@ -278,7 +286,7 @@ namespace FastData.Base
             var dynGet = new DynamicGet<T>();
             var result = new OptionModel();
             result.IsCache = config.IsPropertyCache;
-            var where = PrimaryKey(config, cmd, typeof(T).Name);
+            var where = PrimaryKey(config, cmd, TableNameHelper.GetTableName<T>());
 
             if (where.Count == 0)
             {
@@ -291,7 +299,7 @@ namespace FastData.Base
             {
                 result.table = BaseExecute.ToDataTable<T>(cmd, config, where, field);
 
-                result.Sql = string.Format("update {0} set", typeof(T).Name);
+                result.Sql = string.Format("update {0} set", TableNameHelper.GetTableName<T>());
                 var pInfo = PropertyCache.GetPropertyInfo<T>(config.IsPropertyCache);
 
                 if (field == null)
@@ -384,7 +392,7 @@ namespace FastData.Base
             var result = new OptionModel();
             var dynGet = new DynamicGet<T>();
             result.IsCache = config.IsPropertyCache;
-            var where = PrimaryKey(config, cmd, typeof(T).Name);
+            var where = PrimaryKey(config, cmd, TableNameHelper.GetTableName<T>());
 
             if (where.Count == 0)
             {
@@ -395,7 +403,7 @@ namespace FastData.Base
 
             try
             {
-                result.Sql = string.Format("delete {0} ", typeof(T).Name);
+                result.Sql = string.Format("delete {0} ", TableNameHelper.GetTableName<T>());
 
                 var count = 1;
                 foreach (var item in where)
