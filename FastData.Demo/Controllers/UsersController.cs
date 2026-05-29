@@ -473,7 +473,7 @@ namespace FastData.Demo.Controllers
                 }
 
                 var insertStopwatch = System.Diagnostics.Stopwatch.StartNew();
-                var result = await FastWrite.Use("default").BulkInsertAsync(users);
+                var result = await FastWrite.Use("SqlServer").BulkInsertAsync(users);
                 insertStopwatch.Stop();
 
                 stopwatch.Stop();
@@ -510,7 +510,7 @@ namespace FastData.Demo.Controllers
             try
             {
                 var queryStopwatch = System.Diagnostics.Stopwatch.StartNew();
-                var users = FastRead.Use("default").Query<AppUser>(q => q.Id > 0).ToList<AppUser>();
+                var users = FastRead.Use("SqlServer").Query<AppUser>(q => q.Id > 0).Take(count).ToList<AppUser>();
                 queryStopwatch.Stop();
 
                 stopwatch.Stop();
@@ -559,7 +559,7 @@ namespace FastData.Demo.Controllers
                         {
                             try
                             {
-                                var user = FastRead.Use("default").Query<AppUser>(q => q.Id == localId + 1).ToItem<AppUser>();
+                                var user = FastRead.Use("SqlServer").Query<AppUser>(q => q.Id == localId + 1).ToItem<AppUser>();
                                 if (user != null) successCount++;
                             }
                             catch
