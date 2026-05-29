@@ -89,7 +89,7 @@ namespace FastData.Demo.Repositories
         public async Task<List<AppUser>> GetPagedAsync(int pageIndex, int pageSize)
         {
             var result = await Task.Run(() => 
-                FastRead.Query<AppUser>(u => true)
+                FastRead.Query<AppUser>(u => u.Id > 0)
                     .OrderBy(u => u.Id)
                     .ToPage<AppUser>(new PageModel { PageId = pageIndex, PageSize = pageSize }));
             return result.list;
@@ -117,7 +117,7 @@ namespace FastData.Demo.Repositories
         public async Task<List<AppOrder>> GetAllAsync()
         {
             return await Task.Run(() => 
-                FastRead.Query<AppOrder>(o => true)
+                FastRead.Query<AppOrder>(o => o.Id > 0)
                     .OrderByDescending(o => o.Id)
                     .ToList());
         }

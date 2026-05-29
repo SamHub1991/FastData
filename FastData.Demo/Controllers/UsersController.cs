@@ -240,7 +240,7 @@ namespace FastData.Demo.Controllers
                 if (isActive.HasValue)
                     where.And(u => u.IsActive == isActive.Value);
 
-                var users = FastRead.Query<AppUser>(u => true)
+                var users = FastRead.Query<AppUser>(u => u.Id > 0)
                     .Where(where)
                     .OrderBy(u => u.Id)
                     .ToList();
