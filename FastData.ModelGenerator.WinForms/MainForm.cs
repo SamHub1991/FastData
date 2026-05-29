@@ -5,6 +5,7 @@ using FastData.Tooling.Database;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using System.Windows.Forms;
 
 namespace FastData.ModelGenerator.WinForms
@@ -59,6 +60,32 @@ namespace FastData.ModelGenerator.WinForms
         private readonly TextBox codeSearchBox = new TextBox();
         private readonly TextBox codePreviewBox = new TextBox();
 
+        // Tab 5: JSON 转 Model
+        private readonly TextBox jsonInputBox = new TextBox();
+        private readonly TextBox jsonClassNameBox = new TextBox();
+        private readonly TextBox jsonNamespaceBox = new TextBox();
+        private readonly TextBox jsonOutputBox = new TextBox();
+        private readonly Button jsonConvertBtn = new Button();
+        private readonly Button jsonLoadFileBtn = new Button();
+        private readonly CheckBox jsonNullableBox = new CheckBox { Text = "可空类型", Checked = false, AutoSize = true };
+
+        // Tab 6: API 代码生成
+        private readonly TextBox apiBaseUrlBox = new TextBox();
+        private readonly TextBox apiEndpointBox = new TextBox();
+        private readonly ComboBox apiMethodBox = new ComboBox();
+        private readonly ComboBox apiAuthTypeBox = new ComboBox();
+        private readonly TextBox apiTokenBox = new TextBox();
+        private readonly TextBox apiContentTypeBox = new TextBox();
+        private readonly TextBox apiRequestBodyBox = new TextBox();
+        private readonly TextBox apiJsonResponseBox = new TextBox();
+        private readonly TextBox apiClassNameBox = new TextBox();
+        private readonly TextBox apiNamespaceBox = new TextBox();
+        private readonly TextBox apiOutputBox = new TextBox();
+        private readonly Button apiGenerateBtn = new Button();
+        private readonly CheckBox apiGenRequestBox = new CheckBox { Text = "生成请求", Checked = true, AutoSize = true };
+        private readonly CheckBox apiGenResponseBox = new CheckBox { Text = "生成响应 Model", Checked = true, AutoSize = true };
+        private readonly CheckBox apiGenServiceBox = new CheckBox { Text = "生成 Service", Checked = true, AutoSize = true };
+
         // 代码生成 - 功能选项
         private readonly CheckBox optModel = new CheckBox { Text = "Model", Checked = true, AutoSize = true };
         private readonly CheckBox optXmlMap = new CheckBox { Text = "XML Map", Checked = true, AutoSize = true };
@@ -94,6 +121,8 @@ namespace FastData.ModelGenerator.WinForms
             BuildTabModel();
             BuildTabXmlMap();
             BuildTabCodeGeneration();
+            BuildTabJsonToModel();
+            BuildTabApiGenerator();
 
             tabs.SelectedIndexChanged += (s, e) => RefreshAllTableLists();
             Controls.Add(tabs);
@@ -739,6 +768,279 @@ namespace FastData.ModelGenerator.WinForms
                 upper = false;
             }
             return sb.Length == 0 || char.IsDigit(sb[0]) ? "Model" : sb.ToString();
+        }
+
+        // =============== Tab 5: JSON 转 Model ===============
+        private void BuildTabJsonToModel()
+        {
+            var page = new TabPage("JSON 转 Model");
+            var panel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 6, Padding = new Padding(10) };
+
+            var headerLabel = new Label { Text = "粘贴 JSON，自动生成 C# Model 类", Dock = DockStyle.Fill, Font = new System.Drawing.Font("Microsoft YaHei", 10, System.Drawing.FontStyle.Bold) };
+            panel.Controls.Add(headerLabel, 0, 0);
+            panel.SetColumnSpan(headerLabel, 2);
+
+            // 配置区域
+            var configPanel = new FlowLayoutPanel { Dock = DockStyle.Fill, WrapContents = true };
+            configPanel.Controls.Add(new Label { Text = "类名:", TextAlign = System.Drawing.ContentAlignment.MiddleRight, AutoSize = true });
+            jsonClassNameBox.Text = "RootObject";
+            jsonClassNameBox.Width = 150;
+            configPanel.Controls.Add(jsonClassNameBox);
+            configPanel.Controls.Add(new Label { Text = "命名空间:", TextAlign = System.Drawing.ContentAlignment.MiddleRight, AutoSize = true });
+            jsonNamespaceBox.Text = "FastData.Generated.Models";
+            jsonNamespaceBox.Width = 200;
+            configPanel.Controls.Add(jsonNamespaceBox);
+            configPanel.Controls.Add(jsonNullableBox);
+            panel.Controls.Add(configPanel, 0, 1);
+            panel.SetColumnSpan(configPanel, 2);
+
+            // JSON 输入
+            panel.Controls.Add(new Label { Text = "JSON 输入:", Dock = DockStyle.Fill }, 0, 2);
+            var btnPanel = new FlowLayoutPanel { Dock = DockStyle.Fill };
+            jsonLoadFileBtn.Text = "加载 JSON 文件";
+            jsonLoadFileBtn.Click += JsonLoadFileBtn_Click;
+            btnPanel.Controls.Add(jsonLoadFileBtn);
+            panel.Controls.Add(btnPanel, 1, 2);
+
+            jsonInputBox.Dock = DockStyle.Fill;
+            jsonInputBox.Multiline = true;
+            jsonInputBox.ScrollBars = ScrollBars.Both;
+            jsonInputBox.Font = new System.Drawing.Font("Consolas", 10);
+            panel.Controls.Add(jsonInputBox, 0, 3);
+            panel.SetRowSpan(jsonInputBox, 2);
+
+            // 输出
+            panel.Controls.Add(new Label { Text = "C# Model 输出:", Dock = DockStyle.Fill }, 1, 3);
+            var actionPanel = new FlowLayoutPanel { Dock = DockStyle.Fill };
+            jsonConvertBtn.Text = "转换";
+            jsonConvertBtn.Font = new System.Drawing.Font("Microsoft YaHei", 10, System.Drawing.FontStyle.Bold);
+            jsonConvertBtn.Click += JsonConvertBtn_Click;
+            actionPanel.Controls.Add(jsonConvertBtn);
+            panel.Controls.Add(actionPanel, 1, 4);
+
+            jsonOutputBox.Dock = DockStyle.Fill;
+            jsonOutputBox.Multiline = true;
+            jsonOutputBox.ScrollBars = ScrollBars.Both;
+            jsonOutputBox.Font = new System.Drawing.Font("Consolas", 10);
+            jsonOutputBox.ReadOnly = true;
+            panel.Controls.Add(jsonOutputBox, 1, 5);
+
+            panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
+            panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 35));
+            panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
+            panel.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
+            panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
+            panel.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
+
+            page.Controls.Add(panel);
+            tabs.TabPages.Add(page);
+        }
+
+        private void JsonLoadFileBtn_Click(object sender, EventArgs e)
+        {
+            using var dlg = new OpenFileDialog { Filter = "JSON 文件|*.json|所有文件|*.*" };
+            if (dlg.ShowDialog() == DialogResult.OK)
+                jsonInputBox.Text = File.ReadAllText(dlg.FileName);
+        }
+
+        private void JsonConvertBtn_Click(object sender, EventArgs e)
+        {
+            Cursor = Cursors.WaitCursor;
+            try
+            {
+                var converter = new JsonToModelConverter();
+                jsonOutputBox.Text = converter.Convert(jsonInputBox.Text, jsonClassNameBox.Text, jsonNamespaceBox.Text);
+            }
+            catch (Exception ex)
+            {
+                jsonOutputBox.Text = "转换失败：" + ex.Message;
+            }
+            finally
+            {
+                Cursor = Cursors.Default;
+            }
+        }
+
+        // =============== Tab 6: API 代码生成 ===============
+        private void BuildTabApiGenerator()
+        {
+            var page = new TabPage("API 代码生成");
+            var panel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 7, Padding = new Padding(10) };
+
+            var headerLabel = new Label { Text = "输入 API 信息，生成 HttpClient 调用代码和 Model", Dock = DockStyle.Fill, Font = new System.Drawing.Font("Microsoft YaHei", 10, System.Drawing.FontStyle.Bold) };
+            panel.Controls.Add(headerLabel, 0, 0);
+            panel.SetColumnSpan(headerLabel, 2);
+
+            // 配置区域
+            var configPanel = new FlowLayoutPanel { Dock = DockStyle.Fill, WrapContents = true };
+            configPanel.Controls.Add(new Label { Text = "命名空间:", AutoSize = true });
+            apiNamespaceBox.Text = "FastData.Generated.ApiClients";
+            apiNamespaceBox.Width = 200;
+            configPanel.Controls.Add(apiNamespaceBox);
+            configPanel.Controls.Add(new Label { Text = "类名:", AutoSize = true });
+            apiClassNameBox.Text = "ApiClient";
+            apiClassNameBox.Width = 120;
+            configPanel.Controls.Add(apiClassNameBox);
+            configPanel.Controls.Add(apiGenRequestBox);
+            configPanel.Controls.Add(apiGenResponseBox);
+            configPanel.Controls.Add(apiGenServiceBox);
+            panel.Controls.Add(configPanel, 0, 1);
+            panel.SetColumnSpan(configPanel, 2);
+
+            // API 基本信息
+            var apiPanel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 4, RowCount = 2 };
+            apiPanel.Controls.Add(new Label { Text = "Base URL:", Dock = DockStyle.Fill }, 0, 0);
+            apiBaseUrlBox.Dock = DockStyle.Fill;
+            apiBaseUrlBox.Text = "https://api.example.com";
+            apiPanel.Controls.Add(apiBaseUrlBox, 1, 0);
+
+            apiPanel.Controls.Add(new Label { Text = "Endpoint:", Dock = DockStyle.Fill }, 2, 0);
+            apiEndpointBox.Dock = DockStyle.Fill;
+            apiEndpointBox.Text = "/api/v1/users";
+            apiPanel.Controls.Add(apiEndpointBox, 3, 0);
+
+            apiPanel.Controls.Add(new Label { Text = "Method:", Dock = DockStyle.Fill }, 0, 1);
+            apiMethodBox.DropDownStyle = ComboBoxStyle.DropDownList;
+            apiMethodBox.Items.AddRange(new[] { "GET", "POST", "PUT", "DELETE", "PATCH" });
+            apiMethodBox.SelectedIndex = 0;
+            apiMethodBox.Dock = DockStyle.Fill;
+            apiPanel.Controls.Add(apiMethodBox, 1, 1);
+
+            apiPanel.Controls.Add(new Label { Text = "Content-Type:", Dock = DockStyle.Fill }, 2, 1);
+            apiContentTypeBox.Dock = DockStyle.Fill;
+            apiContentTypeBox.Text = "application/json";
+            apiPanel.Controls.Add(apiContentTypeBox, 3, 1);
+            panel.Controls.Add(apiPanel, 0, 2);
+            panel.SetColumnSpan(apiPanel, 2);
+
+            // 认证
+            var authPanel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 3, RowCount = 1 };
+            authPanel.Controls.Add(new Label { Text = "认证:", Dock = DockStyle.Fill }, 0, 0);
+            apiAuthTypeBox.DropDownStyle = ComboBoxStyle.DropDownList;
+            apiAuthTypeBox.Items.AddRange(new[] { "None", "Bearer", "JWT", "API Key (Header)", "Token (Header)", "Basic Auth" });
+            apiAuthTypeBox.SelectedIndex = 0;
+            apiAuthTypeBox.Dock = DockStyle.Fill;
+            apiAuthTypeBox.SelectedIndexChanged += (s, e) => apiTokenBox.Enabled = apiAuthTypeBox.SelectedIndex > 0;
+            authPanel.Controls.Add(apiAuthTypeBox, 1, 0);
+            apiTokenBox.Dock = DockStyle.Fill;
+            apiTokenBox.Enabled = false;
+            apiTokenBox.Text = "输入 Token 或 username:password";
+            authPanel.Controls.Add(apiTokenBox, 2, 0);
+            panel.Controls.Add(authPanel, 0, 3);
+            panel.SetColumnSpan(authPanel, 2);
+
+            // 请求体
+            panel.Controls.Add(new Label { Text = "请求体 (POST/PUT):", Dock = DockStyle.Fill }, 0, 4);
+            apiRequestBodyBox.Dock = DockStyle.Fill;
+            apiRequestBodyBox.Multiline = true;
+            apiRequestBodyBox.ScrollBars = ScrollBars.Both;
+            apiRequestBodyBox.Font = new System.Drawing.Font("Consolas", 9);
+            apiRequestBodyBox.Height = 60;
+            panel.Controls.Add(apiRequestBodyBox, 1, 4);
+
+            // 响应 JSON
+            panel.Controls.Add(new Label { Text = "响应 JSON (用于生成 Model):", Dock = DockStyle.Fill }, 0, 5);
+            apiJsonResponseBox.Dock = DockStyle.Fill;
+            apiJsonResponseBox.Multiline = true;
+            apiJsonResponseBox.ScrollBars = ScrollBars.Both;
+            apiJsonResponseBox.Font = new System.Drawing.Font("Consolas", 9);
+            apiJsonResponseBox.Height = 60;
+            panel.Controls.Add(apiJsonResponseBox, 1, 5);
+
+            // 输出
+            panel.Controls.Add(new Label { Text = "生成的代码:", Dock = DockStyle.Fill }, 0, 6);
+            var genPanel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 2 };
+            apiGenerateBtn.Text = "生成";
+            apiGenerateBtn.Font = new System.Drawing.Font("Microsoft YaHei", 10, System.Drawing.FontStyle.Bold);
+            apiGenerateBtn.Click += ApiGenerateBtn_Click;
+            genPanel.Controls.Add(apiGenerateBtn, 0, 0);
+            apiOutputBox.Dock = DockStyle.Fill;
+            apiOutputBox.Multiline = true;
+            apiOutputBox.ScrollBars = ScrollBars.Both;
+            apiOutputBox.Font = new System.Drawing.Font("Consolas", 9);
+            apiOutputBox.ReadOnly = true;
+            genPanel.SetColumnSpan(apiOutputBox, 2);
+            genPanel.SetRowSpan(apiOutputBox, 2);
+            genPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 35));
+            genPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            panel.Controls.Add(genPanel, 1, 6);
+
+            panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
+            panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
+            panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 60));
+            panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 35));
+            panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 60));
+            panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 60));
+            panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+            page.Controls.Add(panel);
+            tabs.TabPages.Add(page);
+        }
+
+        private void ApiGenerateBtn_Click(object sender, EventArgs e)
+        {
+            Cursor = Cursors.WaitCursor;
+            try
+            {
+                var generator = new ApiClientGenerator
+                {
+                    Config = new ApiClientConfig
+                    {
+                        AuthType = apiAuthTypeBox.SelectedIndex switch
+                        {
+                            1 => "Bearer",
+                            2 => "JWT",
+                            3 => "ApiKeyHeader",
+                            4 => "CustomHeaderToken",
+                            5 => "BasicAuth",
+                            _ => "None"
+                        },
+                        AuthToken = apiAuthTypeBox.SelectedIndex > 0 ? apiTokenBox.Text : "",
+                        Namespace = apiNamespaceBox.Text,
+                        GenerateRequest = apiGenRequestBox.Checked,
+                        GenerateResponse = apiGenResponseBox.Checked,
+                        GenerateService = apiGenServiceBox.Checked
+                    }
+                };
+
+                var result = generator.Generate(
+                    baseUrl: apiBaseUrlBox.Text,
+                    endpoint: apiEndpointBox.Text,
+                    method: apiMethodBox.Text,
+                    contentType: apiContentTypeBox.Text,
+                    requestBody: apiRequestBodyBox.Text,
+                    jsonResponse: apiJsonResponseBox.Text,
+                    className: apiClassNameBox.Text);
+
+                var output = new StringBuilder();
+                if (!string.IsNullOrEmpty(result.RequestCode))
+                {
+                    output.AppendLine("// ============== API 客户端 ==============");
+                    output.AppendLine(result.RequestCode);
+                    output.AppendLine();
+                }
+                if (!string.IsNullOrEmpty(result.ResponseCode))
+                {
+                    output.AppendLine("// ============== 响应 Model ==============");
+                    output.AppendLine(result.ResponseCode);
+                    output.AppendLine();
+                }
+                if (!string.IsNullOrEmpty(result.ServiceCode))
+                {
+                    output.AppendLine("// ============== Service ==============");
+                    output.AppendLine(result.ServiceCode);
+                }
+
+                apiOutputBox.Text = output.ToString();
+            }
+            catch (Exception ex)
+            {
+                apiOutputBox.Text = "生成失败：" + ex.Message;
+            }
+            finally
+            {
+                Cursor = Cursors.Default;
+            }
         }
     }
 }
