@@ -41,6 +41,11 @@
   - FastData.Tooling 支持 net452/net6.0/net8.0/net10.0
   - 保持与 .NET Framework 4.5.2 兼容
 
+- **项目重构**
+  - 合并 FastData.Shared 到 FastData.ModelGenerator.WinForms
+  - ConnectionConfigManager 和 ConnectionManagerForm 移至 Components/ 目录
+  - 删除 FastData.Shared 项目，简化项目结构
+
 ### Technical Details
 
 - **JsonToModelConverter**
