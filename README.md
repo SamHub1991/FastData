@@ -798,27 +798,37 @@ dotnet test FastData.Tests/FastData.Tests.csproj --framework net10.0
 
 ## Model Generator 工具
 
-### XML Map SQL 生成器
+### 功能概览
 
-Model Generator 内置 XML Map SQL 生成功能，可从数据库表结构自动生成 FastData XML Map SQL。
+ModelGenerator 是一款功能强大的代码生成工具，包含 6 个功能页面：
 
-**支持的 SQL 类型**：
-- Select All - 全量查询
-- Select By PK - 按主键查询
-- Select with Dynamic Conditions - 动态条件查询
-- Insert - 插入
-- Update - 更新
-- Delete - 删除
+| Tab | 功能 | 说明 |
+|-----|------|------|
+| **Tab 1** | 连接管理 | 保存和管理数据库连接配置 |
+| **Tab 2** | Model 生成 | 从数据库表生成 C# POCO Model 类 |
+| **Tab 3** | XML Map 生成 | 生成 FastData XML Map SQL 配置文件 |
+| **Tab 4** | 代码生成 | 全功能分层代码生成器（Repository/Service/Controller） |
+| **Tab 5** | JSON 转 Model | 将 JSON 数据自动转换为 C# Model 类 |
+| **Tab 6** | API 代码生成 | 使用 RestSharp 生成 API 客户端调用代码 |
 
-**使用方式**：
-1. 在 Model Generator 中选择数据库表
-2. 点击「预览XML」查看生成的 XML Map SQL
-3. 点击「生成XML Map」保存为文件
+### 使用手册
 
-```csharp
-// 生成的 XML Map SQL 示例
-var sql = XmlMapSqlGenerator.GenerateSelectAllSql("Users", provider);
-// 输出: <FastDataSQL Name="Users_SelectAll" SQL="SELECT * FROM Users" />
+详细使用指南请查看 [使用手册](FastData.ModelGenerator.WinForms/USER_GUIDE.md)，包括：
+
+- 快速开始教程
+- 每个功能的详细操作步骤
+- 代码示例和最佳实践
+- 常见问题解答
+
+### 快速启动
+
+```bash
+# Windows
+cd FastData.ModelGenerator.WinForms
+dotnet run --framework net6.0-windows
+
+# 或双击 EXE 文件
+FastData.ModelGenerator.WinForms\bin\Debug\net6.0-windows\FastData.ModelGenerator.WinForms.exe
 ```
 
 ## 9. 分表（数据分片）

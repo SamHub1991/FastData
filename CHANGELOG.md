@@ -2,6 +2,59 @@
 
 本文档记录 FastData 的所有重要变更。格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [2.2.0] - 2026-05-29
+
+### Added
+
+- **ModelGenerator 新增功能**
+  - Tab 5: JSON 转 Model 转换器
+    - 支持粘贴 JSON 文本或加载 JSON 文件
+    - 自动类型推断（string/long/double/bool/List）
+    - 支持嵌套对象和数组
+    - 生成带 JsonPropertyName 特性的 C# Model 类
+  - Tab 6: API 代码生成器
+    - 使用 RestSharp 生成 API 客户端代码
+    - 支持多种认证方式（Bearer/JWT/API Key/Token/Basic Auth）
+    - 自动生成响应 Model（从 JSON 响应）
+    - 生成 Service 层接口
+  
+- **代码生成器完善**
+  - JsonToModelConverter 类 - JSON 解析和 Model 生成
+  - ApiClientGenerator 类 - RestSharp API 客户端代码生成
+  - 支持自定义类名、命名空间
+  - 实时预览功能
+
+- **文档更新**
+  - FastData.ModelGenerator.WinForms/USER_GUIDE.md - 详细使用手册
+  - 更新 README.md - Model Generator 使用说明
+
+### Changed
+
+- **API 代码生成器改用 RestSharp**
+  - 替换 HttpClient 为 RestSharp
+  - 支持更简洁的 API 调用语法
+  - 内置多种认证方式支持
+  - RestSharp 108.0.0 (.NET 6+/8/10)
+  - RestSharp 106.11.7 (.NET Framework 4.5.2)
+
+- **目标框架调整**
+  - FastData.Tooling 支持 net452/net6.0/net8.0/net10.0
+  - 保持与 .NET Framework 4.5.2 兼容
+
+### Technical Details
+
+- **JsonToModelConverter**
+  - 自动解析 JSON 对象、数组、基本类型
+  - PascalCase 命名转换
+  - 特殊字符转义处理
+  - 支持 System.Text.Json.JsonPropertyName 特性
+
+- **ApiClientGenerator**
+  - 生成 RestClient 封装类
+  - 支持异步方法（async/await）
+  - JWT Bearer 认证集成
+  - 自动生成响应 Model
+
 ## [2.1.0] - 2026-05-28
 
 ### Added
