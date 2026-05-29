@@ -1,123 +1,60 @@
 # FastData
 
-[![CI](https://github.com/SamHub1991/FastData/actions/workflows/ci.yml/badge.svg)](https://github.com/SamHub1991/FastData/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/SamHub1991/FastData/blob/master/LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![NuGet](https://img.shields.io/badge/NuGet-Fast.Data-blue.svg)](https://www.nuget.org/packages/Fast.Data/)
 
-FastData 是一个轻量级 ORM 框架，支持 .NET Framework 4.5 / .NET 6.0 / .NET 8.0 / .NET 10.0 多目标框架，提供 Lambda 查询、XML Map SQL、Code First、Db First、AOP、缓存、Redis 分布式缓存和多数据库连接配置。
+FastData 是一个轻量级多目标框架 ORM，支持 .NET Framework 4.5 / .NET 6.0 / .NET 8.0 / .NET 10.0，提供 Lambda 查询、XML Map SQL、Code First、Db First、AOP、缓存、Redis、消息队列和数据同步。
 
-## 框架支持
+---
 
-| 框架 | 状态 | 说明 |
-|------|------|------|
-| .NET Framework 4.5 | ✅ | 使用 NServiceKit.Redis、System.Runtime.Caching |
-| .NET 6.0 | ✅ | 使用 NewLife.Redis、Microsoft.Extensions.Caching.Memory |
-| .NET 8.0 | ✅ | 使用 NewLife.Redis、Microsoft.Extensions.Caching.Memory |
-| .NET 10.0 | ✅ | 使用 NewLife.Redis、Microsoft.Extensions.Caching.Memory |
+## 项目结构
+
+| 项目 | 说明 | 目标框架 |
+|------|------|----------|
+| [FastData](FastData/) | 核心 ORM 组件 | net45/net6.0/net8.0/net10.0 |
+| [FastUntility](FastUntility/) | 通用工具库（日志/加密/HTTP/Excel） | net45/net6.0/net8.0/net10.0 |
+| [FastRedis](FastRedis/) | Redis 缓存与消息队列 | net45/net6.0/net8.0/net10.0 |
+| [FastData.Tooling](FastData.Tooling/) | 工具库（元数据/代码生成/同步） | net452/net6.0/net8.0/net10.0 |
+| [FastData.ModelGenerator.WinForms](FastData.ModelGenerator.WinForms/) | 代码生成工具 | net6.0-windows+ |
+| [FastData.SyncTool.WinForms](FastData.SyncTool.WinForms/) | 数据同步工具 | net6.0-windows+ |
+| [FastData.Tests](FastData.Tests/) | 单元测试 | net462/net6.0/net8.0/net10.0 |
+| [FastData.Demo](FastData.Demo/) | Web API 示例 | net10.0 |
+| [FastData.Example](FastData.Example/) | 控制台示例 | net45/net6.0/net8.0/net10.0 |
+
+---
 
 ## 快速安装
 
 ```bash
-# NuGet Package Manager
 Install-Package Fast.Data
+```
 
-# .NET CLI
+```bash
 dotnet add package Fast.Data
-
-# PackageReference
-<PackageReference Include="Fast.Data" Version="2.0.0" />
 ```
 
-## 项目结构
+---
 
-FastData 包含以下子项目：
+## 功能特性
 
-| 项目 | 说明 | 目标框架 | 文档 |
-|------|------|----------|------|
-| **[FastData](FastData/)** | 核心 ORM 组件 | net45/net6.0/net8.0/net10.0 | [README](FastData/README.md) |
-| **[FastUntility](FastUntility/)** | 通用工具库 | net45/net6.0/net8.0/net10.0 | [README](FastUntility/README.md) |
-| **[FastRedis](FastRedis/)** | Redis 缓存与消息队列 | net45/net6.0/net8.0/net10.0 | [README](FastRedis/README.md) |
-| **[FastData.Tooling](FastData.Tooling/)** | 工具库（元数据读取、代码生成） | net45/net6.0/net8.0/net10.0 | [README](FastData.Tooling/README.md) |
-| **[FastData.SyncTool.WinForms](FastData.SyncTool.WinForms/)** | 数据同步工具（WinForms） | net45 | [README](FastData.SyncTool.WinForms/README.md) |
-| **[FastData.ModelGenerator.WinForms](FastData.ModelGenerator.WinForms/)** | 代码生成工具（WinForms） | net6.0-windows/net8.0-windows/net10.0-windows | [README](FastData.ModelGenerator.WinForms/README.md) |
-| **[FastData.Tests](FastData.Tests/)** | 单元测试 | net462/net6.0/net8.0/net10.0 | [README](FastData.Tests/README.md) |
-| **[FastData.Demo](FastData.Demo/)** | Web API 示例 | net10.0 | [README](FastData.Demo/README.md) |
-| **[FastData.Example](FastData.Example/)** | 控制台示例 | net45/net6.0/net8.0/net10.0 | [README](FastData.Example/README.md) |
+| 特性 | 说明 |
+|------|------|
+| **多数据库** | SQL Server / MySQL / PostgreSQL / Oracle / SQLite / DB2 |
+| **多目标框架** | net45 / net6.0 / net8.0 / net10.0 |
+| **Lambda 查询** | Where/Or/And/Like/Contains/In/Between/OrderBy/GroupBy/Select |
+| **XML Map SQL** | 动态 SQL 标签、条件分支 |
+| **分页查询** | ToPagination 简化分页 API |
+| **Repository** | 分层接口：IReadRepository / IWriteRepository / IMapRepository |
+| **Redis 缓存** | 分布式缓存、消息队列（ReliableQueue/Stream） |
+| **AOP 拦截** | SQL 日志、性能监控 |
+| **分表** | 时间/哈希/列表/组合键/查询频率分表策略 |
+| **数据同步** | 跨数据库同步、中间库模式、增量同步、失败重试 |
 
-### 目录结构
+---
 
-```
-FastData/
-├── FastData/                          # 核心 ORM 组件（多目标框架）
-│   ├── FastRead.cs                    # 查询入口（Lambda/XML SQL）
-│   ├── FastWrite.cs                   # 写入入口（INSERT/UPDATE/DELETE）
-│   ├── FastDb.cs                      # 数据库上下文切换
-│   ├── FastMap.cs                     # XML Map SQL 解析
-│   ├── Sharding/                      # 分表功能
-│   │   ├── ShardingManager.cs        # 分表管理器
-│   │   └── Strategies/               # 分表策略（Time/Hash/List/Composite/QueryFrequency）
-│   ├── Queue/                         # 消息队列（FastWrite/FastRead Queue）
-│   └── Repository/                    # Repository 模式实现
-│       ├── IReadRepository.cs         # 读取接口
-│       ├── IWriteRepository.cs        # 写入接口
-│       ├── IMapRepository.cs          # Map 配置接口
-│       └── IFastRepository.cs         # 组合接口
-│
-├── FastUntility/                      # 通用工具库
-│   └── Base/                          # 日志、Excel、HTTP、加密等工具类
-│
-├── FastRedis/                         # Redis 缓存组件
-│   ├── RedisInfo.NewLife.cs           # NewLife.Redis 实现（.NET 6+）
-│   ├── RedisInfo.cs                   # NServiceKit.Redis 实现（.NET 4.5）
-│   ├── Repository/                    # Redis 仓储实现
-│   ├── Messaging/                     # 消息队列实现
-│   │   ├── IMessageProducer.cs        # 生产者接口
-│   │   ├── IMessageConsumer.cs        # 消费者接口
-│   │   ├── ReliableQueueService.cs    # 可信队列实现
-│   │   ├── StreamService.cs           # Stream 队列实现
-│   │   └── MessageQueueFactory.cs     # 队列工厂
-│   └── Services/                      # 集成服务
-│
-├── FastData.Tooling/                  # 工具库
-│   ├── Database/                      # 数据库元数据读取
-│   ├── CodeGeneration/                # C#/XML 代码生成
-│   └── Sync/                          # 数据同步服务
-│
-├── FastData.SyncTool.WinForms/        # 数据同步工具（WinForms）
-│   ├── Components/                    # UI 组件
-│   │   ├── ShardingSyncControl.cs    # 分表同步
-│   │   ├── ShardingTaskControl.cs    # 任务管理
-│   │   ├── ShardingImportControl.cs  # 数据导入
-│   │   └── ShardingDataControl.cs    # 数据操作
-│   └── Models/                        # 数据模型
-│
-├── FastData.ModelGenerator.WinForms/  # 代码生成工具（WinForms）
-│
-├── FastData.Tests/                    # 单元测试（xUnit）
-│   ├── ShardingTests.cs               # 分表测试
-│   ├── ChainableWhereTests.cs         # 链式条件测试
-│   ├── PaginationTests.cs             # 分页测试
-│   └── WhereBuilderTests.cs           # 条件构建器测试
-│
-├── FastData.Demo/                     # Web API 示例
-│   ├── Controllers/                   # API 控制器
-│   │   ├── UsersController.cs         # 用户 CRUD
-│   │   ├── OrdersController.cs        # 订单 CRUD
-│   │   ├── ShardingController.cs      # 分表 API
-│   │   └── MessageQueueController.cs  # 消息队列 API
-│   └── Program.cs                     # 入口
-│
-└── FastData.Example/                  # 控制台示例
-    └── Example/
-        ├── BasicCrudExample.cs        # 基础 CRUD
-        ├── LambdaQueryExample.cs      # Lambda 查询
-        ├── ShardingExample.cs         # 分表示例
-        └── MessageQueueExample.cs     # 消息队列示例
-```
+## 5 分钟快速开始
 
-## 快速配置
-
-### 数据库配置
+### 1. 配置
 
 ```xml
 <configSections>
@@ -126,430 +63,121 @@ FastData/
 
 <DataConfig Default="DefaultDb">
   <Connections>
-    <Add Provider="SqlServer" 
-         Key="DefaultDb" 
-         ConnStr="server=.;database=demo;uid=sa;pwd=123456" 
-         IsDefault="true" 
-         DesignModel="DbFirst" 
-         CacheType="web" />
-    <Add Provider="MySql" 
-         Key="ReportDb" 
-         ConnStr="server=127.0.0.1;database=report;uid=root;pwd=123456" 
-         DesignModel="DbFirst" 
-         CacheType="web" />
+    <Add Provider="SqlServer" Key="DefaultDb" ConnStr="server=.;database=demo;uid=sa;pwd=123456" DesignModel="DbFirst" CacheType="web" />
   </Connections>
 </DataConfig>
 ```
 
-### Redis 配置（可选）
-
-```xml
-<RedisConfig 
-  AutoStart="true"
-  ReadServerList="127.0.0.1:6379"
-  WriteServerList="127.0.0.1:6379"
-  MaxReadPoolSize="60"
-  MaxWritePoolSize="60" />
-```
-
-### 连接字符串加密
-
-```xml
-<!-- 设置 IsEncrypt="true"，连接字符串使用 BaseSymmetric.Encrypto() 加密 -->
-<Add Provider="SqlServer" 
-     Key="SecureDb" 
-     ConnStr="加密后的连接字符串" 
-     IsEncrypt="true" />
-```
+### 2. 定义 Model
 
 ```csharp
-// 加密连接字符串
-var encrypted = BaseSymmetric.Encrypto("server=.;database=demo;uid=sa;pwd=123456");
+[Table("Users")]
+public class User
+{
+    [Column("Id"), Primary]
+    public long Id { get; set; }
+    [Column("Name")]
+    public string Name { get; set; }
+    [Column("IsActive")]
+    public bool IsActive { get; set; }
+}
 ```
 
-## 使用示例
-
-### 1. 基础 CRUD 操作
+### 3. 开始使用
 
 ```csharp
 // 查询
-var users = FastRead.Query<User>(a => a.IsEnabled == true);
-var user = FastRead.Query<User>(a => a.Id == 1).FirstOrDefault();
+var users = FastRead.Query<User>(u => u.IsActive);
+var user = FastRead.Query<User>(u => u.Id == 1).FirstOrDefault();
+
+// 分页
+var page = FastRead.Query<User>(u => u.IsActive)
+    .OrderBy<User>(u => u.Id)
+    .ToPagination<User>(page: 1, pageSize: 10);
 
 // 新增
-var newUser = new User { UserName = "张三", Email = "zhangsan@test.com" };
-FastWrite.Add(newUser);
+FastWrite.Add(new User { Name = "张三", IsActive = true });
 
 // 更新
-user.UserName = "李四";
+user.Name = "李四";
 FastWrite.Update(user);
 
 // 删除
-FastWrite.Delete<User>(a => a.Id == 1);
+FastWrite.Delete<User>(u => u.Id == 1);
 ```
 
-### 2. Lambda 查询
+---
+
+## 常用 API
+
+### Lambda 查询
 
 ```csharp
-// 条件查询
-var activeUsers = FastRead.Query<User>(a => a.IsActive && a.Age > 18);
+// 基础查询
+var users = FastRead.Query<User>(u => u.Age > 18);
 
-// 多条件查询
-var users = FastRead.Query<User>(a => a.Department == "IT" && a.Salary > 10000);
-
-// 排序
-var sortedUsers = FastRead.Query<User>(a => true).OrderByDescending<User>(a => a.CreateTime);
-
-// 分页（简化API）
-var pageResult = FastRead.Query<User>(u => u.IsActive)
-    .OrderBy<User>(u => u.Id)
-    .ToPagination<User>(page: 1, pageSize: 10);
-// pageResult.Total, pageResult.TotalPages, pageResult.Data
-
-// 聚合
-var count = FastRead.Query<User>(a => a.IsActive).Count();
-
-// 匿名类型投影（Select）
-// 只查询需要的字段，减少数据传输
-var users = FastRead.Query<User>(u => u.IsActive)
-    .Select(u => new { u.Id, u.UserName, u.Email })
-    .ToList();
-// users 类型为 List<{ int Id, string UserName, string Email }>
-
-// 匿名类型投影 + 分页
-// 带过滤条件的分页投影查询
-var result = FastRead.Query<User>(u => u.IsActive && u.Age > 18)
-    .OrderBy<User>(u => u.Id)
-    .Select(u => new { u.Id, u.UserName, u.Department })
-    .ToPagination(page: 1, pageSize: 10);
-// result.Total = 过滤后的总记录数
-// result.TotalPages = 总页数
-// result.Data = 当前页的投影数据
-
-// 匿名类型投影 + 条件过滤
-var deptUsers = FastRead.Query<User>(u => u.Department == "IT")
-    .OrderBy<User>(u => u.UserName)
-    .Select(u => new { u.Id, u.UserName, u.Email })
-    .ToList();
-
-// 链式 Where/Or 条件（动态查询场景）
-// 先定义基础查询，再根据条件追加过滤
-var users = FastRead.Query<User>(u => u.IsActive)
-    .Where(u => u.Age > 18)           // 不需要 <User>
-    .Or(u => u.Role == "Admin")       // 不需要 <User>
-    .OrderBy(u => u.Id)
-    .ToList();
-// 生成 SQL: WHERE IsActive = 1 AND Age > 18 OR Role = 'Admin'
-
-// 链式 And 条件（And 是 Where 的别名）
-var users = FastRead.Query<User>(u => u.IsActive)
-    .And(u => u.Age > 18)             // 不需要 <User>
-    .And(u => u.Department == "IT")   // 不需要 <User>
-    .ToList();
-
-// 链式 Like 条件
-var users = FastRead.Query<User>()
-    .Like(u => u.UserName, "张%")       // LIKE '张%'
-    .Contains(u => u.Email, "test")     // LIKE '%test%'
-    .StartsWith(u => u.Address, "北京") // LIKE '北京%'
-    .EndsWith(u => u.Phone, "8888")     // LIKE '%8888'
-    .ToList();
-
-// 链式 In 条件
-var users = FastRead.Query<User>()
-    .In(u => u.Department, new[] { "IT", "HR", "Finance" })
-    .ToList();
-
-// 链式 Between 条件
-var users = FastRead.Query<User>()
-    .Between(u => u.Age, 18, 65)
-    .ToList();
-
-// 组合使用多种链式条件（只需写一次 <User>）
-var users = FastRead.Query<User>(u => u.IsActive)
-    .And(u => u.Age > 18)
+// 链式条件
+var result = FastRead.Query<User>(u => u.IsActive)
+    .Where(u => u.Age > 18)
     .Or(u => u.Role == "Admin")
     .Like(u => u.UserName, "张%")
     .In(u => u.Department, new[] { "IT", "HR" })
     .OrderBy(u => u.Id)
-    .Select(u => new { u.Id, u.UserName, u.Department })
-    .ToList();
-
-// 使用 Where<T> 条件构建器（分开写条件，更清晰）
-var where = new Where<User>();
-where.Add(u => u.IsActive);
-where.And(u => u.Age > 18);
-where.Or(u => u.Role == "Admin");
-where.Like(u => u.UserName, "张%");
-where.In(u => u.Department, new[] { "IT", "HR" });
-where.Between(u => u.Age, 18, 65);
-
-var users = FastRead.Query<User>(u => true)
-    .Where(where)
-    .OrderBy(u => u.Id)
-    .ToList();
-
-// 动态条件构建（根据参数决定是否添加条件）
-var where = new Where<User>();
-where.Add(u => u.IsActive);
-
-if (!string.IsNullOrEmpty(keyword))
-    where.Like(u => u.UserName, keyword + "%");
-
-if (minAge > 0)
-    where.And(u => u.Age >= minAge);
-
-if (departments != null && departments.Length > 0)
-    where.In(u => u.Department, departments.Cast<object>());
-
-var users = FastRead.Query<User>(u => true)
-    .Where(where)
+    .Select(u => new { u.Id, u.UserName })
     .ToList();
 ```
 
-### 3. 多数据库切换
+### 多数据库切换
 
 ```csharp
-// 指定库查询
-var reports = FastRead.Use("ReportDb").Query<Report>(a => a.Year == 2026);
+// 指定库
+var reports = FastRead.Use("ReportDb").Query<Report>(r => r.Year == 2026);
 
-// 作用域切换（推荐）
+// 作用域切换
 using (FastDb.Use("ArchiveDb"))
 {
-    var logs = FastRead.Query<Log>(a => a.CreatedTime >= beginTime);
+    var logs = FastRead.Query<Log>(l => l.CreatedTime >= start);
     FastWrite.Add(new ArchiveLog());
 }
 
-// Repository 工厂模式
+// Repository 工厂
 services.AddTransient<IFastRepositoryFactory, FastRepositoryFactory>();
-
-var defaultRepository = factory.Default();
-var reportRepository = factory.Use("ReportDb");
+var defaultRepo = factory.Default();
+var reportRepo = factory.Use("ReportDb");
 ```
 
-### 4. Repository 模式（分层接口）
+### Redis 缓存
 
 ```csharp
-// 依赖注入
-services.AddTransient<IReadRepository, RedisRepository>();
-services.AddTransient<IWriteRepository, RedisRepository>();
-services.AddTransient<IMapRepository, RedisRepository>();
-
-// 使用示例
-public class UserService
-{
-    private readonly IReadRepository _readRepo;
-    private readonly IWriteRepository _writeRepo;
-    
-    public UserService(IReadRepository readRepo, IWriteRepository writeRepo)
-    {
-        _readRepo = readRepo;
-        _writeRepo = writeRepo;
-    }
-    
-    public async Task<List<User>> GetActiveUsersAsync()
-    {
-        return await _readRepo.QueryAsy<User>("GetActiveUsers", null);
-    }
-    
-    public async Task<WriteReturn> AddUserAsync(User user)
-    {
-        return await _writeRepo.AddAsy(user);
-    }
-}
-```
-
-### 5. Redis 缓存使用
-
-```csharp
-// 基础操作
-RedisInfo.Set("user:1", user, 3600);  // 设置，1 小时过期
-var cachedUser = RedisInfo.Get<User>("user:1");
+RedisInfo.Set("user:1", user, 3600);
+var cached = RedisInfo.Get<User>("user:1");
 RedisInfo.Remove("user:1");
 
-// 泛型操作
-RedisInfo.Set("config:app", config, 24);  // 24 小时过期
-var config = RedisInfo.Get<AppConfig>("config:app");
-
-// 批量操作
-var dic = new Dictionary<string, User>
-{
-    ["user:1"] = new User { Id = 1, Name = "张三" },
-    ["user:2"] = new User { Id = 2, Name = "李四" }
-};
-RedisInfo.SetDic(dic);
-var users = RedisInfo.GetDic<User>(new[] { "user:1", "user:2" });
-
-// 缓存不存在时添加（推荐用于缓存穿透防护）
-var user = RedisInfo.GetOrAdd("user:1", () => 
-{
-    // 从数据库加载
-    return _dbContext.Users.Find(1);
-}, hours: 24);
-
-// 计数器操作
-RedisInfo.Increment("page:views:home", 1);
-var views = RedisInfo.Get<int>("page:views:home");
-RedisInfo.Decrement("stock:product:1001", 1);
-
-// 过期时间管理
-RedisInfo.SetExpire("session:abc123", TimeSpan.FromMinutes(30));
-var remaining = RedisInfo.GetExpire("session:abc123");
-
-// 集合操作
-var list = RedisInfo.GetList<string>("queue:tasks");
-list.Add("task1");
-var first = list[0];
-
-var hash = RedisInfo.GetDictionary<User>("users:active");
-hash["user:1"] = new User { Id = 1, Name = "张三" };
-
-var set = RedisInfo.GetSet<string>("tags:programming");
-set.Add("csharp");
-set.Add("dotnet");
+// 缓存穿透防护
+var user = RedisInfo.GetOrAdd("user:1", () => db.FindUser(1), hours: 24);
 ```
 
-### 6. Repository 模式使用 Redis
+### 消息队列
 
 ```csharp
-// 依赖注入
-services.AddSingleton<IRedisRepository, RedisRepository>();
-
-// 使用示例
-public class CacheService
-{
-    private readonly IRedisRepository _redis;
-    
-    public CacheService(IRedisRepository redis)
-    {
-        _redis = redis;
-    }
-    
-    public async Task<User> GetUserAsync(int userId)
-    {
-        var key = $"user:{userId}";
-        
-        // 尝试从缓存获取
-        var user = await _redis.GetAsy<User>(key);
-        if (user != null)
-            return user;
-        
-        // 从数据库加载
-        user = await _dbContext.Users.FindAsync(userId);
-        if (user != null)
-        {
-            // 写入缓存
-            await _redis.SetAsy(key, user, hours: 24);
-        }
-        
-        return user;
-    }
-    
-    public async Task RemoveUserAsync(int userId)
-    {
-        await _redis.RemoveAsy($"user:{userId}");
-    }
-}
-```
-
-### 7. 消息队列（RTU 削峰/多方推送）
-
-基于 NewLife.Redis 实现两种消息队列模式，适用于 RTU 数据上传场景：
-
-| 队列类型 | 适用场景 | 实现方式 | 特点 |
-|---------|---------|---------|------|
-| **ReliableQueue** | 数据库存储（削峰） | RedisReliableQueue | 单消费、消费确认、消息不丢失 |
-| **Stream** | 多方推送（解耦） | RedisStream | 多消费组、广播通知、独立消费 |
-
-#### 配置驱动使用
-
-```csharp
-// 配置可信队列（适合数据库存储）
-var config = new TableSyncConfig
-{
-    TableName = "sensor_data",
-    EnableMessageQueue = true,
-    MessageQueueType = MessageQueueType.ReliableQueue,
-    MessageQueueTopic = "rtu:sensor",
-    ConsumerConcurrency = 8
-};
-
-// 配置 Stream 多消费组（适合多方推送）
-var streamConfig = new TableSyncConfig
-{
-    TableName = "realtime_data",
-    EnableMessageQueue = true,
-    MessageQueueType = MessageQueueType.Stream,
-    MessageQueueTopic = "rtu:realtime",
-    ConsumerGroup = "default",
-    ConsumerConcurrency = 4
-};
-```
-
-#### 代码使用示例
-
-```csharp
-// 创建工厂
 var factory = new MessageQueueFactory(redis);
 
-// 可信队列生产者
+// ReliableQueue（单消费，削峰）
 var producer = factory.CreateReliableProducer("fastdata");
-producer.Publish("rtu:sensor", sensorData);
+producer.Publish("topic:sensor", data);
 
-// 可信队列消费者
-var consumer = factory.CreateReliableConsumer("fastdata");
-await consumer.ConsumeLoopAsync<SensorData>("rtu:sensor", async (data) =>
-{
-    // 写入数据库
-    await SaveToDatabase(data);
-}, cancellationToken, concurrency: 8);
-
-// Stream 多消费组
+// Stream（多消费组，解耦）
 var streamProducer = factory.CreateStreamProducer("fastdata");
-streamProducer.Publish("rtu:realtime", sensorData);
-
-// 多个消费组独立消费
-var dbConsumer = factory.CreateStreamConsumer("db-writer", "fastdata");
-var alertConsumer = factory.CreateStreamConsumer("alert-system", "fastdata");
+streamProducer.Publish("topic:realtime", data);
 ```
 
-#### 集成服务使用
-
-```csharp
-var mqService = new MessageQueueIntegrationService(redis);
-
-// 发布数据
-mqService.PublishData("rtu:sensor", sensorData, MessageQueueType.ReliableQueue);
-
-// 启动消费者
-await mqService.StartConsumerAsync<SensorData>("rtu:sensor", async (data) =>
-{
-    await SaveToDatabase(data);
-}, cancellationToken, MessageQueueType.ReliableQueue, concurrency: 8);
-
-// 多消费组
-await mqService.StartMultiGroupConsumerAsync("rtu:realtime",
-    new[] { "db-writer", "alert-system", "analytics" },
-    new Func<SensorData, Task>[]
-    {
-        async (data) => await SaveToDatabase(data),
-        async (data) => { if (data.Temperature > 30) SendAlert(data); },
-        async (data) => await AnalyzeData(data)
-    }, cancellationToken);
-```
-
-### 8. XML Map SQL
+### XML Map SQL
 
 ```xml
-<!-- Maps/User.xml -->
 <Map Name="GetActiveUsers" DbType="SqlServer">
   <Sql>
-    SELECT * FROM Users 
-    WHERE IsActive = @IsActive
-    <If Test="@MinAge != null">
-      AND Age >= @MinAge
-    </If>
-    ORDER BY CreateTime DESC
+    SELECT * FROM Users WHERE IsActive = @IsActive
+    <If Test="@MinAge != null">AND Age >= @MinAge</If>
   </Sql>
   <Param>
     <Add Name="@IsActive" Type="Boolean" />
@@ -559,480 +187,18 @@ await mqService.StartMultiGroupConsumerAsync("rtu:realtime",
 ```
 
 ```csharp
-// 调用 XML Map SQL
-var users = FastRead.Query<User>("GetActiveUsers", new[] 
+var users = FastRead.Query<User>("GetActiveUsers", new[]
 {
     new SqlParameter("@IsActive", true),
     new SqlParameter("@MinAge", 18)
 });
 ```
 
-### 9. 匿名类型支持
-
-#### FastWrite 队列支持匿名类型
+### 分表
 
 ```csharp
-// 使用匿名类型推送到队列（需要指定表名）
-FastWrite.QueueBuilder()
-    .Add("SensorData", new { 
-        SensorId = "temp-001", 
-        Value = 25.5, 
-        Timestamp = DateTime.Now 
-    })
-    .Execute();
-
-// 批量添加匿名类型
-var sensors = new[] {
-    new { SensorId = "temp-001", Value = 25.5 },
-    new { SensorId = "temp-002", Value = 26.0 },
-    new { SensorId = "temp-003", Value = 24.8 }
-};
-
-FastWrite.QueueBuilder()
-    .AddRange("SensorData", sensors)
-    .Execute();
-
-// 更新匿名类型
-FastWrite.QueueBuilder()
-    .Update("SensorData", new { SensorId = "temp-001", Value = 30.0 })
-    .Execute();
-
-// 删除匿名类型
-FastWrite.QueueBuilder()
-    .Delete("SensorData", new { SensorId = "temp-001" })
-    .Execute();
-
-// 带元数据的匿名类型
-FastWrite.QueueBuilder()
-    .AddMetadata("source", "iot-device")
-    .AddMetadata("batch", "20260527")
-    .Add("SensorData", new { SensorId = "temp-001", Value = 25.5 })
-    .Execute();
-```
-
-#### FastRead 查询支持匿名类型投影
-
-```csharp
-// 只查询需要的字段
-var users = FastRead.Query<User>(u => u.IsActive)
-    .Select(u => new { u.Id, u.UserName, u.Email })
-    .ToList();
-
-// 投影 + 分页
-var result = FastRead.Query<User>(u => u.IsActive && u.Age > 18)
-    .OrderBy<User>(u => u.Id)
-    .Select(u => new { u.Id, u.UserName, u.Department })
-    .ToPagination(page: 1, pageSize: 10);
-// result.Total = 过滤后的总记录数
-// result.TotalPages = 总页数
-// result.Data = 当前页的投影数据
-```
-
-### 10. 分页查询 API
-
-```csharp
-// 基本分页查询（简化API）
-// 传入 page 和 pageSize，返回 total、totalPages、data
-var result = FastRead.Query<User>(u => u.IsActive)
-    .OrderBy<User>(u => u.Id)
-    .ToPagination<User>(page: 1, pageSize: 10);
-
-// 返回结果：
-// {
-//   "total": 100,
-//   "totalPages": 10,
-//   "page": 1,
-//   "pageSize": 10,
-//   "hasPrevious": false,
-//   "hasNext": true,
-//   "data": [...]
-// }
-
-// 使用 PaginationRequest 对象（适合 Web API）
-[HttpPost]
-public ActionResult<PaginationResult<User>> Search([FromBody] PaginationRequest request)
-{
-    var result = FastRead.Query<User>(u => u.IsActive)
-        .OrderBy<User>(u => u.CreateTime)
-        .ToPagination<User>(request);
-    return Ok(result);
-}
-
-// 异步版本
-var result = await FastRead.Query<User>(u => u.Id > 0)
-    .OrderBy<User>(u => u.Id)
-    .ToPaginationAsync<User>(page: 1, pageSize: 20);
-
-// 带条件的分页查询
-var result = FastRead.Query<User>(u => u.Department == "IT")
-    .OrderBy<User>(u => u.Id)
-    .ToPagination<User>(page: 1, pageSize: 10);
-
-// 返回字典格式（适合动态字段）
-var result = FastRead.Query<User>(u => u.Id > 0)
-    .OrderBy<User>(u => u.Id)
-    .ToPagination(page: 1, pageSize: 10);
-// 返回 PaginationResult（非泛型），Data 为 List<Dictionary<string, object>>
-```
-
-**PaginationResult 返回字段说明：**
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| Total | int | 总记录数 |
-| TotalPages | int | 总页数（自动计算） |
-| Page | int | 当前页码 |
-| PageSize | int | 每页条数 |
-| HasPrevious | bool | 是否有上一页 |
-| HasNext | bool | 是否有下一页 |
-| Data | List&lt;T&gt; | 数据列表 |
-
-### 10. AOP 拦截器
-
-```csharp
-public class SqlLogAop : IFastAop
-{
-    public void Before(BeforeContext context)
-    {
-        Console.WriteLine($"执行 SQL: {context.Sql}");
-        Console.WriteLine($"参数: {string.Join(", ", context.Param.Select(p => $"{p.ParameterName}={p.Value}"))}");
-    }
-    
-    public void After(AfterContext context)
-    {
-        Console.WriteLine($"执行耗时: {context.Elapsed}ms");
-        Console.WriteLine($"影响行数: {context.RowCount}");
-    }
-    
-    public void Exception(ExceptionContext context)
-    {
-        Console.WriteLine($"SQL 异常: {context.Exception.Message}");
-    }
-}
-
-// 注册 AOP
-FastMap.fastAop = new SqlLogAop();
-```
-
-### 9. 数据同步
-
-```csharp
-// 配置同步任务
-var syncConfig = new TableSyncConfig
-{
-    TableName = "Users",
-    TargetTableName = "Users_Archive",
-    PrimaryKeys = new List<string> { "Id" },
-    TimeColumnName = "UpdateTime",
-    SyncMode = SyncMode.Upsert,
-    RangeDays = 7,
-    IsEnabled = true
-};
-
-// 执行同步
-var syncService = new SyncService();
-var result = await syncService.SyncTableAsync(syncConfig);
-
-Console.WriteLine($"同步完成: 读取 {result.ReadCount} 行, 写入 {result.WriteCount} 行, 失败 {result.FailedCount} 行");
-```
-
-## 构建验证
-
-### 多目标框架构建
-
-```bash
-# 构建所有项目
-dotnet build FastUntility/FastUntility.csproj
-dotnet build FastRedis/FastRedis.csproj
-dotnet build FastData.Tooling/FastData.Tooling.csproj
-dotnet build FastData/FastData.csproj
-dotnet build FastData.Tests/FastData.Tests.csproj
-
-# 运行测试
-dotnet test FastData.Tests/FastData.Tests.csproj --framework net10.0
-```
-
-### 构建结果
-
-| 项目 | net45 | net6.0 | net8.0 | net10.0 |
-|------|-------|--------|--------|---------|
-| FastUntility | ✅ | ✅ | ✅ | ✅ |
-| FastData.Tooling | ✅ | ✅ | ✅ | ✅ |
-| FastData | ✅ | ✅ | ✅ | ✅ |
-| FastRedis | ✅ | ✅ | ✅ | ✅ |
-| FastData.Tests | ✅ | - | - | ✅ 73/73 |
-
-### 条件编译说明
-
-```csharp
-// .NET Framework 4.5 专用代码
-#if NETFRAMEWORK
-    using System.Runtime.Remoting.Messaging;
-    // 使用 CallContext
-#endif
-
-// .NET 6.0+ 专用代码
-#if NET6_0_OR_GREATER
-    using System.Threading;
-    // 使用 AsyncLocal
-#endif
-
-// 非 .NET Framework 代码
-#if !NETFRAMEWORK
-    using NewLife.Caching;
-    // 使用 NewLife.Redis
-#endif
-```
-
-## 依赖库版本
-
-| 依赖库 | net45 | net6.0+ | 说明 |
-|--------|-------|---------|------|
-| Newtonsoft.Json | 13.0.3 | 13.0.3 | JSON 序列化 |
-| NPOI | 2.5.6 | 2.7.0 | Excel 操作 |
-| NServiceKit.Redis | 1.0.17 | - | Redis 客户端（net45） |
-| NewLife.Redis | - | 6.0.2024.1006 | Redis 客户端（net6.0+） |
-| System.CodeDom | - | 8.0.0 | 动态编译 |
-| Microsoft.Extensions.Caching.Memory | - | 8.0.0 | 内存缓存 |
-| System.Configuration.ConfigurationManager | - | 8.0.0 | 配置管理 |
-
-## Model Generator 工具
-
-### 功能概览
-
-ModelGenerator 是一款功能强大的代码生成工具，包含 6 个功能页面：
-
-| Tab | 功能 | 说明 |
-|-----|------|------|
-| **Tab 1** | 连接管理 | 保存和管理数据库连接配置 |
-| **Tab 2** | Model 生成 | 从数据库表生成 C# POCO Model 类 |
-| **Tab 3** | XML Map 生成 | 生成 FastData XML Map SQL 配置文件 |
-| **Tab 4** | 代码生成 | 全功能分层代码生成器（Repository/Service/Controller） |
-| **Tab 5** | JSON 转 Model | 将 JSON 数据自动转换为 C# Model 类 |
-| **Tab 6** | API 代码生成 | 使用 RestSharp 生成 API 客户端调用代码 |
-
-### 使用手册
-
-详细使用指南请查看 [使用手册](FastData.ModelGenerator.WinForms/USER_GUIDE.md)，包括：
-
-- 快速开始教程
-- 每个功能的详细操作步骤
-- 代码示例和最佳实践
-- 常见问题解答
-
-### 快速启动
-
-```bash
-# Windows
-cd FastData.ModelGenerator.WinForms
-dotnet run --framework net6.0-windows
-
-# 或双击 EXE 文件
-FastData.ModelGenerator.WinForms\bin\Debug\net6.0-windows\FastData.ModelGenerator.WinForms.exe
-```
-
-## 9. 分表（数据分片）
-
-FastData 支持多种分表策略，适用于大数据量场景。
-
-### 分表策略
-
-| 策略 | 说明 | 适用场景 |
-|------|------|---------|
-| **时间分表** | 按时间字段分表（日/周/月/季/年） | 日志、订单、交易记录 |
-| **哈希分表** | 按字段哈希值分表 | 用户表、订单表 |
-| **列表分表** | 按枚举值分表 | 状态、类型、地区 |
-| **组合键分表** | 多字段组合分表 | 区域+类型、年份+月份 |
-
-### 配置示例
-
-```csharp
-using FastData.Sharding;
-
-// 时间分表配置
-var config = new ShardingConfig
-{
-    BaseTableName = "UserLog",
-    ShardingType = ShardingType.Time,
-    TimeConfig = new TimeShardingConfig
-    {
-        TimeField = "CreateTime",
-        Granularity = TimeGranularity.Month,
-        StartTime = new DateTime(2026, 1, 1),
-        AutoCreateTable = true
-    }
-};
-
-// 注册配置
-ShardingManager.Configure<UserLog>(config);
-```
-
-### 哈希分表配置
-
-```csharp
-var hashConfig = new ShardingConfig
-{
-    BaseTableName = "Order",
-    ShardingType = ShardingType.Hash,
-    HashConfig = new HashShardingConfig
-    {
-        HashField = "OrderNo",
-        ShardCount = 16,
-        Algorithm = HashAlgorithm.Consistent
-    }
-};
-ShardingManager.Configure<Order>(hashConfig);
-```
-
-### 列表分表配置
-
-```csharp
-var listConfig = new ShardingConfig
-{
-    BaseTableName = "Order",
-    ShardingType = ShardingType.List,
-    ListConfig = new ListShardingConfig
-    {
-        ListField = "Region",
-        ValueMapping = new Dictionary<string, string>
-        {
-            { "Beijing", "order_beijing" },
-            { "Shanghai", "order_shanghai" },
-            { "Guangzhou", "order_guangzhou" }
-        }
-    }
-};
-ShardingManager.Configure<Order>(listConfig);
-```
-
-### 组合键分表配置
-
-```csharp
-var compositeConfig = new ShardingConfig
-{
-    BaseTableName = "Order",
-    ShardingType = ShardingType.Composite,
-    CompositeConfig = new CompositeShardingConfig
-    {
-        CompositeFields = new List<string> { "Region", "CustomerType" },
-        UseHash = true,
-        ShardCount = 64
-    }
-};
-ShardingManager.Configure<Order>(compositeConfig);
-```
-
-### 查询频率分表配置
-
-```csharp
-var frequencyConfig = new ShardingConfig
-{
-    BaseTableName = "UserLog",
-    ShardingType = ShardingType.QueryFrequency,
-    FrequencyConfig = new QueryFrequencyShardingConfig
-    {
-        Field = "UserId",
-        HotThreshold = 100,           // 查询次数超过 100 视为热数据
-        HotSuffix = "_hot",           // 热数据表后缀
-        ColdSuffix = "_cold",         // 冷数据表后缀
-        ColdShardingType = ColdShardingType.ByHash,  // 冷数据按哈希分表
-        ColdShardCount = 4            // 冷数据分 4 个表
-    }
-};
-ShardingManager.Configure<UserLog>(frequencyConfig);
-
-// 记录查询频率
-QueryFrequencyShardingStrategy.RecordQuery("UserId", "user123");
-
-// 获取热数据列表
-var hotValues = QueryFrequencyShardingStrategy.GetHotDataValues("UserId", threshold: 100);
-```
-
-### 分表查询
-
-```csharp
-// 分表查询
-var queryParams = new Dictionary<string, object>
-{
-    { "CreateTime_Start", new DateTime(2026, 1, 1) },
-    { "CreateTime_End", new DateTime(2026, 12, 31) }
-};
-
-var logs = ShardingReadHelper.Query<UserLog>(
-    log => log.Level == "Error",
-    queryParams
-);
-
-// 分页查询
-var pagedResult = ShardingReadHelper.QueryPage<UserLog>(
-    log => log.Level == "Error",
-    queryParams,
-    pageIndex: 1,
-    pageSize: 20
-);
-```
-
-### 分表写入
-
-```csharp
-// 单条写入
-var log = new UserLog
-{
-    Message = "Test",
-    Level = "Info",
-    CreateTime = DateTime.Now
-};
-ShardingWriteHelper.Add(log);
-
-// 批量写入
-var logs = new List<UserLog> { log1, log2, log3 };
-ShardingWriteHelper.AddList(logs);
-
-// 更新
-ShardingWriteHelper.Update(
-    log,
-    l => l.Id == 1,
-    l => new { l.Message, l.Level }
-);
-
-// 删除
-ShardingWriteHelper.Delete<UserLog>(
-    l => l.CreateTime < DateTime.Now.AddYears(-1),
-    queryParams
-);
-```
-
-### 链式分表查询 API
-
-通过 `DataQuery<T>` 链式 API 支持分表查询，无需手动管理分表参数：
-
-```csharp
-// 启用分表查询（默认不开启）
-var logs = FastRead.Query<UserLog>(l => l.Level == "Error")
-    .UseSharding()  // 启用分表
-    .WithTimeRange("CreateTime", new DateTime(2026, 1, 1), new DateTime(2026, 12, 31))
-    .ToList();
-
-// 哈希分表查询
-var orders = FastRead.Query<Order>(o => o.Status == "Pending")
-    .UseSharding()
-    .WithHashField("OrderNo", "ORD20260527001")
-    .ToList();
-
-// 列表分表查询
-var pendingOrders = FastRead.Query<Order>(o => o.Status == "Pending")
-    .UseSharding()
-    .WithListField("Status", "Pending")
-    .ToList();
-
-// 分页查询（支持分表）
-var pagedLogs = FastRead.Query<UserLog>(l => l.Level == "Error")
-    .UseSharding()
-    .WithTimeRange("CreateTime", new DateTime(2026, 1, 1), new DateTime(2026, 12, 31))
-    .ToPagination(1, 20);
-
-// 使用自定义分表配置
-var customConfig = new ShardingConfig
+// 时间分表
+ShardingManager.Configure<UserLog>(new ShardingConfig
 {
     BaseTableName = "UserLog",
     ShardingType = ShardingType.Time,
@@ -1041,73 +207,121 @@ var customConfig = new ShardingConfig
         TimeField = "CreateTime",
         Granularity = TimeGranularity.Month
     }
-};
+});
 
+// 链式分表查询
 var logs = FastRead.Query<UserLog>(l => l.Level == "Error")
     .UseSharding()
-    .WithShardingConfig(customConfig)
     .WithTimeRange("CreateTime", new DateTime(2026, 1, 1), new DateTime(2026, 12, 31))
     .ToList();
 ```
 
-### 自定义分表策略
+---
 
-```csharp
-// 实现 IShardingStrategy 接口
-public class GeoShardingStrategy : IShardingStrategy
-{
-    public string Name => "Geo";
-    public ShardingType Type => ShardingType.Geo;
+## 依赖库
 
-    public string GetTableName(ShardingConfig config, object entity)
-    {
-        // 自定义逻辑
-        return $"{config.BaseTableName}_geo";
-    }
+| 依赖库 | net45 | net6.0+ | 说明 |
+|--------|-------|---------|------|
+| Newtonsoft.Json | 13.0.3 | 13.0.3 | JSON 序列化 |
+| NPOI | 2.5.6 | 2.7.0 | Excel 操作 |
+| NServiceKit.Redis | 1.0.17 | - | net45 Redis 客户端 |
+| NewLife.Redis | - | 6.0.2024.1006 | net6.0+ Redis 客户端 |
+| RestSharp | 106.11.7 | 108.0.0 | HTTP 客户端（Tooling） |
+| System.Text.Json | - | 8.0.0 | JSON 序列化（net6.0+） |
 
-    public List<string> GetTableNames(ShardingConfig config, Dictionary<string, object> queryParams)
-    {
-        return new List<string> { $"{config.BaseTableName}_geo" };
-    }
+---
 
-    public List<string> GetAllTableNames(ShardingConfig config)
-    {
-        return new List<string> { $"{config.BaseTableName}_geo" };
-    }
+## 构建指南
 
-    public bool CreateTable(ShardingConfig config, string tableName)
-    {
-        return true;
-    }
-}
+### 使用构建脚本
 
-// 注册自定义策略
-ShardingManager.RegisterStrategy(new GeoShardingStrategy());
+```bash
+# 构建所有框架
+./build.sh
+
+# 构建特定框架
+./build.sh net10.0
+
+# 清理
+./build.sh clean
 ```
 
-## 示例项目
+### 手动构建
 
-FastData.Example 包含完整的场景化教程示例：
+```bash
+# net10.0
+dotnet build FastData.sln --framework net10.0
 
-| 文件 | 示例内容 |
-|------|----------|
-| BasicCrudExample.cs | 基本 CRUD 操作 |
-| LambdaQueryExample.cs | Lambda 查询（Where/OrderBy/GroupBy） |
-| RawSqlExample.cs | 原始 SQL 查询 |
-| MapSqlExample.cs | XML Map SQL 使用 |
-| TransactionExample.cs | 事务使用 |
-| MultiDbExample.cs | 多数据库使用 |
-| DataSyncExample.cs | 数据同步 |
-| MessageQueueExample.cs | 消息队列 |
+# net45（Linux 环境）
+DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 \
+FrameworkPathOverride="/root/.nuget/packages/microsoft.netframework.referenceassemblies.net45/1.0.3/build/.NETFramework/v4.5" \
+dotnet build FastData.sln /p:RegisterForComInterop=false
+```
 
-## 文档导航
+### 注意事项
+
+- `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1` 仅限 net45 构建，运行时绝不能设置
+- Linux 环境构建 net45 需设置 `FrameworkPathOverride`
+
+---
+
+## 兼容性
+
+| 框架 | 平台 | 编译 | 测试 |
+|------|------|------|------|
+| net45 / net462 | Windows/Linux | ✅ | ✅ 73/73 |
+| net6.0 / net6.0-windows | Windows/Linux | ✅ | - |
+| net8.0 | Windows/Linux | ✅ | - |
+| net10.0 | Windows/Linux | ✅ | ✅ |
+
+### 支持的数据库
+
+| 数据库 | 最低版本 |
+|--------|---------|
+| SQL Server | 2008 R2+ |
+| MySQL | 5.7+ |
+| PostgreSQL | 9.6+ |
+| Oracle | 11g+ |
+| SQLite | 3.x |
+
+---
+
+## 工具
+
+### ModelGenerator（代码生成工具）
+
+6 个功能 Tab：
+
+| Tab | 功能 |
+|-----|------|
+| 连接管理 | 保存和管理数据库连接 |
+| Model 生成 | 从数据库表生成 C# Model |
+| XML Map 生成 | 生成 XML SQL 配置文件 |
+| 代码生成 | Repository/Service/Controller 分层代码 |
+| JSON 转 Model | JSON 自动转换为 C# 类 |
+| API 代码生成 | RestSharp 客户端代码生成 |
+
+[查看详细使用手册](FastData.ModelGenerator.WinForms/README.md)
+
+### SyncTool（数据同步工具）
+
+- 跨数据库同步（SQL Server / MySQL / PostgreSQL / SQLite）
+- 中间库模式：源库 → 中间库 → 目标库
+- 增量同步、批量处理、失败重试
+- 分表同步支持
+
+[查看详细使用手册](FastData.SyncTool.WinForms/README.md)
+
+---
+
+## 相关文档
 
 | 文档 | 说明 |
 |------|------|
 | [CHANGELOG.md](CHANGELOG.md) | 版本变更记录 |
-| [DEVELOPMENT_PROGRESS.md](DEVELOPMENT_PROGRESS.md) | 开发进度与技术细节 |
-| [FastData.Demo/README.md](FastData.Demo/README.md) | Demo 项目说明 |
-| [FastData.SyncTool.WinForms/REFACTOR_README.md](FastData.SyncTool.WinForms/REFACTOR_README.md) | 同步工具重构说明 |
+| [.monkeycode/specs/](.monkeycode/specs/) | 需求/设计/任务规格 |
+
+---
 
 ## 许可证
 
