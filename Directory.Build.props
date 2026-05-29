@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <!-- FastData 跨平台构建配置 - 重要说明请参阅 build.sh -->
+  
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <TreatWarningsAsWarnings>true</TreatWarningsAsWarnings>
+  </PropertyGroup>
+  
+  <!-- net45: FrameworkPathOverride for reference assemblies -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net45'">
+    <FrameworkPathOverride Condition="'$(FrameworkPathOverride)' == ''">$(NuGetPackageRoot)microsoft.netframework.referenceassemblies.net45/1.0.3/build/.NETFramework/v4.5</FrameworkPathOverride>
+    <RegisterForComInterop>false</RegisterForComInterop>
+  </PropertyGroup>
+  
+  <!-- net6.0+: Clear FrameworkPathOverride -->
+  <PropertyGroup Condition="'$(TargetFramework)' != 'net45' And '$(TargetFramework)' != ''">
+    <FrameworkPathOverride></FrameworkPathOverride>
+  </PropertyGroup>
+  
+  <!-- Build logging -->
+  <Target Name="LogBuildConfiguration" BeforeTargets="BeforeBuild">
+    <Message Importance="high" Text="[FastData] $(TargetFramework) | $(Configuration) | RegisterForComInterop=$(RegisterForComInterop)" />
+  </Target>
+</Project>
