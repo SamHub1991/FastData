@@ -12,7 +12,6 @@
   <ItemGroup>
     <ProjectReference Include="..\FastData\FastData.csproj" />
     <ProjectReference Include="..\FastData.Tooling\FastData.Tooling.csproj" />
-    <ProjectReference Include="..\FastData.Shared\FastData.Shared.csproj" />
   </ItemGroup>
 
 </Project>

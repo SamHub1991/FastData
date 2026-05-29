@@ -9,7 +9,7 @@ using System.Web.Script.Serialization;
 using System.Text.Json;
 #endif
 
-namespace FastData.Shared
+namespace FastData.ModelGenerator.WinForms
 {
     public class DbConnectionConfig
     {

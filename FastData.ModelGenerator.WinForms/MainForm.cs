@@ -1,5 +1,4 @@
 using FastData.Database;
-using FastData.Shared;
 using FastData.Tooling.CodeGeneration;
 using FastData.Tooling.Database;
 using System;
