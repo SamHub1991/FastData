@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net45;net6.0;net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks>net452;net6.0;net8.0;net10.0</TargetFrameworks>
     <AssemblyName>FastData.Tooling</AssemblyName>
     <RootNamespace>FastData.Tooling</RootNamespace>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -10,8 +10,9 @@
     <NoWarn>CS1591</NoWarn>
   </PropertyGroup>
 
-  <!-- .NET Framework 4.5 专用引用 -->
-  <ItemGroup Condition="'$(TargetFramework)' == 'net45'">
+  <!-- .NET Framework 4.5.2 专用引用 -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net452'">
+    <PackageReference Include="RestSharp" Version="106.11.7" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
@@ -20,7 +21,8 @@
   </ItemGroup>
 
   <!-- .NET 6/8/10 专用包引用 -->
-  <ItemGroup Condition="'$(TargetFramework)' != 'net45'">
+  <ItemGroup Condition="'$(TargetFramework)' != 'net452'">
+    <PackageReference Include="RestSharp" Version="108.0.0" />
     <PackageReference Include="System.Text.Json" Version="8.0.0" />
   </ItemGroup>
 

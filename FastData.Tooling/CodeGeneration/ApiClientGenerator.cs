@@ -5,7 +5,7 @@ using System.Text;
 namespace FastData.Tooling.CodeGeneration
 {
     /// <summary>
-    /// API 调用代码生成器 - 支持 GET/POST、认证、自动生成 Model
+    /// API 调用代码生成器 - 使用 RestSharp，支持 GET/POST、认证、自动生成 Model
     /// </summary>
     public class ApiClientGenerator
     {
@@ -19,7 +19,7 @@ namespace FastData.Tooling.CodeGeneration
             var result = new ApiClientResult();
 
             if (Config.GenerateRequest)
-                result.RequestCode = GenerateRequest(url: baseUrl, endpoint: endpoint, method: method, contentType: contentType, requestBody: requestBody, className: className, jsonResponse: jsonResponse);
+                result.RequestCode = GenerateRequest(baseUrl, endpoint, method, contentType, requestBody, className, jsonResponse);
 
             if (Config.GenerateResponse && !string.IsNullOrWhiteSpace(jsonResponse))
                 result.ResponseCode = new JsonToModelConverter().Convert(jsonResponse, className + "Response", Config.Namespace);
@@ -36,10 +36,9 @@ namespace FastData.Tooling.CodeGeneration
             var b = new StringBuilder();
 
             b.AppendLine("using System;");
-            b.AppendLine("using System.Net.Http;");
-            b.AppendLine("using System.Text;");
-            b.AppendLine("using System.Text.Json;");
             b.AppendLine("using System.Threading.Tasks;");
+            b.AppendLine("using RestSharp;");
+            b.AppendLine("using RestSharp.Authenticators;");
             b.AppendLine();
 
             b.AppendLine("namespace FastData.Generated.ApiClients");
@@ -49,96 +48,102 @@ namespace FastData.Tooling.CodeGeneration
             b.AppendLine("    /// </summary>");
             b.AppendLine("    public class " + pascalName + "Client");
             b.AppendLine("    {");
-            b.AppendLine("        private readonly HttpClient _httpClient;");
-            
+            b.AppendLine("        private readonly RestClient _restClient;");
+            b.AppendLine("        private readonly string _endpoint = \"" + endpoint + "\";");
+
             if (!string.IsNullOrEmpty(Config.AuthToken) || Config.AuthType != "None")
             {
                 b.AppendLine("        private readonly string _authToken;");
             }
 
             b.AppendLine();
-            b.AppendLine("        public " + pascalName + "Client(HttpClient httpClient");
+            b.AppendLine("        public " + pascalName + "Client(");
+            b.AppendLine("            string baseUrl = \"" + url + "\"");
             if (!string.IsNullOrEmpty(Config.AuthToken) || Config.AuthType != "None")
             {
                 b.AppendLine("            , string authToken = null");
             }
             b.AppendLine("            )");
             b.AppendLine("        {");
-            b.AppendLine("            _httpClient = httpClient;");
-            b.AppendLine("            _httpClient.BaseAddress = new Uri(\"" + url + "\");");
+            b.AppendLine("            var options = new RestClientOptions(baseUrl);");
+            
+            if (Config.AuthType == "Bearer" || Config.AuthType == "JWT")
+            {
+                b.AppendLine("            options.Authenticator = new JwtAuthenticator(authToken ?? " + FormatAuthValue() + ");");
+            }
+            else if (Config.AuthType == "ApiKeyHeader")
+            {
+                b.AppendLine("            options.MaxTimeout = 30000;");
+            }
+
+            b.AppendLine("            _restClient = new RestClient(options);");
             
             if (!string.IsNullOrEmpty(Config.AuthToken) || Config.AuthType != "None")
             {
                 b.AppendLine("            _authToken = authToken ?? " + FormatAuthValue() + ";");
             }
 
-            // Auth setup
-            b.AppendLine();
-            b.AppendLine("            // 设置认证头");
-            b.AppendLine("            SetupAuthHeaders();");
-            
+            if (Config.AuthType == "ApiKeyHeader" || Config.AuthType == "CustomHeaderToken" || Config.AuthType == "BasicAuth")
+            {
+                b.AppendLine("            SetupAuthHeaders();");
+            }
+
             b.AppendLine("        }");
             b.AppendLine();
 
-            b.AppendLine("        private void SetupAuthHeaders()");
-            b.AppendLine("        {");
-            b.AppendLine(GetAuthSetupCode());
-            b.AppendLine("        }");
-            b.AppendLine();
+            if (Config.AuthType == "ApiKeyHeader" || Config.AuthType == "CustomHeaderToken" || Config.AuthType == "BasicAuth")
+            {
+                b.AppendLine("        private void SetupAuthHeaders()");
+                b.AppendLine("        {");
+                b.AppendLine(GetAuthSetupCode());
+                b.AppendLine("        }");
+                b.AppendLine();
+            }
 
-            // Main method for the API call
-            b.AppendLine("        /// <summary>");
-            b.AppendLine("        /// " + endpoint + " - " + method);
-            b.AppendLine("        /// </summary>");
-            
             string returnType = "string";
             if (!string.IsNullOrWhiteSpace(jsonResponse))
                 returnType = pascalName + "Response";
-            
+
+            b.AppendLine("        /// <summary>");
+            b.AppendLine("        /// " + endpoint + " - " + method);
+            b.AppendLine("        /// </summary>");
             b.AppendLine($"        public async Task<{returnType}> {method.ToLower()}Async(");
             
-            if (method == "POST" && !string.IsNullOrEmpty(requestBody))
+            if (method == "POST" || method == "PUT")
+            {
                 b.AppendLine("            object request");
+            }
             else
+            {
                 b.AppendLine("            // 参数");
+            }
             
             b.AppendLine("        )");
             b.AppendLine("        {");
-            b.AppendLine("            var requestUri = \"" + endpoint + "\";");
+            b.AppendLine("            var request = new RestRequest(_endpoint, Method." + method + ");");
             b.AppendLine();
             
-            b.AppendLine("            HttpResponseMessage response;");
-            if (method == "POST")
+            if (method == "POST" || method == "PUT")
             {
-                b.AppendLine("            using var content = new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, \"" + contentType + "\");");
-                b.AppendLine("            response = await _httpClient.PostAsync(requestUri, content);");
-            }
-            else if (method == "GET")
-            {
-                b.AppendLine("            response = await _httpClient.GetAsync(requestUri);");
-            }
-            else if (method == "PUT")
-            {
-                b.AppendLine("            using var content = new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, \"" + contentType + "\");");
-                b.AppendLine("            response = await _httpClient.PutAsync(requestUri, content);");
-            }
-            else if (method == "DELETE")
-            {
-                b.AppendLine("            response = await _httpClient.DeleteAsync(requestUri);");
+                b.AppendLine("            request.AddJsonBody(request);");
             }
 
             b.AppendLine();
-            b.AppendLine("            response.EnsureSuccessStatusCode();");
+            b.AppendLine("            var response = await _restClient.ExecuteAsync(request);");
+            b.AppendLine();
+            b.AppendLine("            if (!response.IsSuccessful)");
+            b.AppendLine("            {");
+            b.AppendLine("                throw new Exception($\"API 调用失败：{response.ErrorMessage}\");");
+            b.AppendLine("            }");
             b.AppendLine();
             
             if (!string.IsNullOrWhiteSpace(jsonResponse))
             {
-                b.AppendLine("            var jsonString = await response.Content.ReadAsStringAsync();");
-                b.AppendLine("            return JsonSerializer.Deserialize<" + returnType + ">(jsonString);");
+                b.AppendLine("            return System.Text.Json.JsonSerializer.Deserialize<" + returnType + ">(response.Content);");
             }
             else
             {
-                b.AppendLine("            return await response.Content.ReadAsStringAsync();");
+                b.AppendLine("            return response.Content;");
             }
 
             b.AppendLine("        }");
@@ -150,20 +155,14 @@ namespace FastData.Tooling.CodeGeneration
 
         private string GetAuthSetupCode()
         {
-            if (Config.AuthType == "Bearer")
-                return "            if (!string.IsNullOrEmpty(_authToken))\n            {\n                _httpClient.DefaultRequestHeaders.Authorization = \n                    new System.Net.Http.Headers.AuthenticationHeaderValue(\"Bearer\", _authToken);\n            }\n            else if (!string.IsNullOrEmpty(" + FormatAuthValue() + ".ToString()))\n            {\n                _httpClient.DefaultRequestHeaders.Authorization = \n                    new System.Net.Http.Headers.AuthenticationHeaderValue(\"Bearer\", \"Bearer\");\n            }";
-            
-            if (Config.AuthType == "JWT")
-                return "            if (!string.IsNullOrEmpty(_authToken))\n            {\n                _httpClient.DefaultRequestHeaders.Authorization = \n                    new System.Net.Http.Headers.AuthenticationHeaderValue(\"Bearer\", _authToken);\n            }";
-            
             if (Config.AuthType == "ApiKeyHeader")
-                return "            if (!string.IsNullOrEmpty(_authToken))\n                _httpClient.DefaultRequestHeaders.Add(\"X-API-Key\", _authToken);";
+                return "            _restClient.AddDefaultHeader(\"X-API-Key\", _authToken);";
             
             if (Config.AuthType == "CustomHeaderToken")
-                return "            if (!string.IsNullOrEmpty(_authToken))\n                _httpClient.DefaultRequestHeaders.Add(\"Authorization\", \"Token \" + _authToken);\n            else if (!string.IsNullOrEmpty(" + FormatAuthValue() + ".ToString()))\n                _httpClient.DefaultRequestHeaders.Add(\"Authorization\", \"Token " + FormatAuthValueValue() + "\");";
+                return "            _restClient.AddDefaultHeader(\"Authorization\", \"Token \" + _authToken);";
             
             if (Config.AuthType == "BasicAuth")
-                return "            if (!string.IsNullOrEmpty(_authToken))\n            {\n                var credentials = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(_authToken));\n                _httpClient.DefaultRequestHeaders.Authorization = \n                    new System.Net.Http.Headers.AuthenticationHeaderValue(\"Basic\", credentials);\n            }";
+                return "            var credentials = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(_authToken));\n            _restClient.AddDefaultHeader(\"Authorization\", \"Basic \" + credentials);";
             
             return "            // 无需认证";
         }
@@ -181,25 +180,12 @@ namespace FastData.Tooling.CodeGeneration
             };
         }
 
-        private string FormatAuthValueValue()
-        {
-            return Config.AuthType switch
-            {
-                "Bearer" => "your-bearer-token",
-                "JWT" => "your-jwt-token",
-                "ApiKeyHeader" => "your-api-key",
-                "CustomHeaderToken" => "your-token",
-                "BasicAuth" => "username:password",
-                _ => "token"
-            };
-        }
-
         private string GenerateService(string baseUrl, string endpoint, string className)
         {
             var b = new StringBuilder();
             b.AppendLine("using System;");
-            b.AppendLine("using System.Net.Http;");
             b.AppendLine("using System.Threading.Tasks;");
+            b.AppendLine("using RestSharp;");
             b.AppendLine();
             b.AppendLine("namespace FastData.Generated.Services");
             b.AppendLine("{");
@@ -210,18 +196,17 @@ namespace FastData.Tooling.CodeGeneration
             b.AppendLine();
             b.AppendLine("    public class " + ToPascal(className) + "ApiService : I" + ToPascal(className) + "ApiService");
             b.AppendLine("    {");
-            b.AppendLine("        private readonly HttpClient _httpClient;");
-            b.AppendLine("        private readonly string _baseUrl = \"" + baseUrl + "\";");
+            b.AppendLine("        private readonly RestClient _restClient;");
             b.AppendLine("        private readonly string _endpoint = \"" + endpoint + "\";");
             b.AppendLine();
-            b.AppendLine("        public " + ToPascal(className) + "ApiService(HttpClient httpClient)");
+            b.AppendLine("        public " + ToPascal(className) + "ApiService(string baseUrl = \"" + baseUrl + "\")");
             b.AppendLine("        {");
-            b.AppendLine("            _httpClient = httpClient;");
+            b.AppendLine("            _restClient = new RestClient(baseUrl);");
             b.AppendLine("        }");
             b.AppendLine();
             b.AppendLine("        public async Task<dynamic> CallApiAsync(object parameters = null)");
             b.AppendLine("        {");
-            b.AppendLine("            Console.WriteLine($\"Calling API: {_baseUrl}/{_endpoint}\");");
+            b.AppendLine("            Console.WriteLine($\"Calling API: {_endpoint}\");");
             b.AppendLine("            // TODO: Implement actual API call");
             b.AppendLine("            return await Task.FromResult<dynamic>(null);");
             b.AppendLine("        }");
@@ -247,7 +232,7 @@ namespace FastData.Tooling.CodeGeneration
 
     public class ApiClientConfig
     {
-        public string AuthType { get; set; } = "None"; // None, Bearer, JWT, ApiKeyHeader, CustomHeaderToken, BasicAuth
+        public string AuthType { get; set; } = "None";
         public string AuthToken { get; set; } = "";
         public string Namespace { get; set; } = "FastData.Generated";
         public bool GenerateRequest { get; set; } = true;

@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net45;net6.0;net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks>net452;net6.0;net8.0;net10.0</TargetFrameworks>
     <AssemblyName>FastUntility</AssemblyName>
     <RootNamespace>FastUntility</RootNamespace>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -12,7 +12,7 @@
   </PropertyGroup>
 
   <!-- .NET Framework 4.5 专用引用 -->
-  <ItemGroup Condition="'$(TargetFramework)' == 'net45'">
+  <ItemGroup Condition="'$(TargetFramework)' == 'net452'">
     <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Configuration.Install" />
@@ -35,7 +35,7 @@
     <Reference Include="System.Xml.Linq" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Xml" />
-    <!-- net45 专用 NuGet 包 -->
+    <!-- net452 专用 NuGet 包 -->
     <PackageReference Include="NPOI" Version="2.5.6" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Microsoft.AspNet.WebApi.Client" Version="5.2.9" />
@@ -45,7 +45,7 @@
   </ItemGroup>
 
   <!-- .NET 6/8/10 专用包引用 -->
-  <ItemGroup Condition="'$(TargetFramework)' != 'net45'">
+  <ItemGroup Condition="'$(TargetFramework)' != 'net452'">
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.0" />
     <PackageReference Include="System.Text.Json" Version="8.0.0" />
     <PackageReference Include="NPOI" Version="2.7.0" />
@@ -58,7 +58,7 @@
   </ItemGroup>
 
   <!-- 排除不适用于 .NET 6+ 的文件（WCF/MSMQ/Windows Service/WinForms） -->
-  <ItemGroup Condition="'$(TargetFramework)' != 'net45'">
+  <ItemGroup Condition="'$(TargetFramework)' != 'net452'">
     <Compile Remove="Cache\BaseSession.cs" />
     <Compile Remove="Cache\BaseCookie.cs" />
     <Compile Remove="Host\WcfHost.cs" />

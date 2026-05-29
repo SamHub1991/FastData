@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net45;net6.0;net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks>net452;net6.0;net8.0;net10.0</TargetFrameworks>
     <AssemblyName>FastData</AssemblyName>
     <RootNamespace>FastData</RootNamespace>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -16,7 +16,7 @@
   </ItemGroup>
 
   <!-- .NET Framework 4.5 专用引用 -->
-  <ItemGroup Condition="'$(TargetFramework)' == 'net45'">
+  <ItemGroup Condition="'$(TargetFramework)' == 'net452'">
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.Configuration" />
@@ -31,7 +31,7 @@
   </ItemGroup>
 
   <!-- .NET 6/8/10 专用包引用 -->
-  <ItemGroup Condition="'$(TargetFramework)' != 'net45'">
+  <ItemGroup Condition="'$(TargetFramework)' != 'net452'">
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.0" />
     <PackageReference Include="System.CodeDom" Version="8.0.0" />
@@ -43,8 +43,8 @@
     <ProjectReference Include="..\FastUntility\FastUntility.csproj" />
   </ItemGroup>
 
-  <!-- 排除 net45 的 Queue 目录 -->
-  <ItemGroup Condition="'$(TargetFramework)' == 'net45'">
+  <!-- 排除 net452 的 Queue 目录 -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net452'">
     <Compile Remove="Queue\**" />
   </ItemGroup>
 
