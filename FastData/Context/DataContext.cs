@@ -134,7 +134,7 @@ namespace FastData.Context
 
         #region 初始化
         /// <summary>
-        /// 初始化
+        /// 初始化（延迟打开连接）
         /// </summary>
         public DataContext(string key = null, string projectName = null)
         {
@@ -167,7 +167,7 @@ namespace FastData.Context
                 }
                 
                 conn.ConnectionString = connStr;
-                conn.Open();
+                // 延迟打开连接，提高资源利用率
                 cmd = conn.CreateCommand();
             }
             catch (Exception ex)

@@ -129,5 +129,15 @@ namespace FastData
         {
             return FastWrite.ExecuteSqlAsy(sql, param, db, key, isOutSql);
         }
+
+        public WriteReturn BulkInsert<T>(List<T> list, DataContext db = null) where T : class, new()
+        {
+            return FastWrite.BulkInsert(list, db, key);
+        }
+
+        public Task<WriteReturn> BulkInsertAsync<T>(List<T> list, DataContext db = null) where T : class, new()
+        {
+            return FastWrite.BulkInsertAsync(list, db, key);
+        }
     }
 }

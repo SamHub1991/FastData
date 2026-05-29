@@ -448,6 +448,160 @@ namespace FastData.Demo.Controllers
     {
         private readonly ICacheService _cacheService;
 
+        /// <summary>
+        /// 性能基准测试 - 批量插入
+        /// </summary>
+        /// <param name="count">插入数量</param>
+        [HttpPost("benchmark/batch-insert")]
+        public async Task<ActionResult> BenchmarkBatchInsert([FromQuery] int count = 1000)
+        {
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            try
+            {
+                var users = new List<AppUser>();
+                for (int i = 0; i < count; i++)
+                {
+                    users.Add(new AppUser
+                    {
+                        UserName = $"bench_{i}_{Guid.NewGuid().ToString().Substring(0, 8)}",
+                        Email = $"bench{i}@test.com",
+                        Age = 20 + (i % 30),
+                        Department = $"Dept{i % 10}",
+                        IsActive = true,
+                        CreateTime = DateTime.Now
+                    });
+                }
+
+                var insertStopwatch = System.Diagnostics.Stopwatch.StartNew();
+                var result = await FastWrite.Use("default").BulkInsertAsync(users);
+                insertStopwatch.Stop();
+
+                stopwatch.Stop();
+
+                return Ok(new
+                {
+                    Success = true,
+                    Count = count,
+                    TotalTimeMs = stopwatch.ElapsedMilliseconds,
+                    InsertTimeMs = insertStopwatch.ElapsedMilliseconds,
+                    OpsPerSecond = count * 1000.0 / insertStopwatch.ElapsedMilliseconds
+                });
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                return StatusCode(500, new
+                {
+                    Success = false,
+                    Error = ex.Message,
+                    TotalTimeMs = stopwatch.ElapsedMilliseconds
+                });
+            }
+        }
+
+        /// <summary>
+        /// 性能基准测试 - 批量查询
+        /// </summary>
+        /// <param name="count">查询数量</param>
+        [HttpGet("benchmark/batch-query")]
+        public async Task<ActionResult> BenchmarkBatchQuery([FromQuery] int count = 1000)
+        {
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            try
+            {
+                var queryStopwatch = System.Diagnostics.Stopwatch.StartNew();
+                var users = FastRead.Use("default").Query<AppUser>(q => q.Id > 0).ToList<AppUser>();
+                queryStopwatch.Stop();
+
+                stopwatch.Stop();
+
+                return Ok(new
+                {
+                    Success = true,
+                    Count = users.Count,
+                    TotalTimeMs = stopwatch.ElapsedMilliseconds,
+                    QueryTimeMs = queryStopwatch.ElapsedMilliseconds,
+                    OpsPerSecond = users.Count * 1000.0 / queryStopwatch.ElapsedMilliseconds
+                });
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                return StatusCode(500, new
+                {
+                    Success = false,
+                    Error = ex.Message,
+                    TotalTimeMs = stopwatch.ElapsedMilliseconds
+                });
+            }
+        }
+
+        /// <summary>
+        /// 性能基准测试 - 并发查询
+        /// </summary>
+        /// <param name="concurrency">并发数</param>
+        /// <param name="iterations">迭代次数</param>
+        [HttpGet("benchmark/concurrent-query")]
+        public async Task<ActionResult> BenchmarkConcurrentQuery([FromQuery] int concurrency = 10, [FromQuery] int iterations = 100)
+        {
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            try
+            {
+                var tasks = new List<Task<int>>();
+                for (int i = 0; i < concurrency; i++)
+                {
+                    int localId = i;
+                    tasks.Add(Task.Run(async () =>
+                    {
+                        var localStopwatch = System.Diagnostics.Stopwatch.StartNew();
+                        int successCount = 0;
+                        for (int j = 0; j < iterations; j++)
+                        {
+                            try
+                            {
+                                var user = FastRead.Use("default").Query<AppUser>(q => q.Id == localId + 1).ToItem<AppUser>();
+                                if (user != null) successCount++;
+                            }
+                            catch
+                            {
+                                // 忽略错误
+                            }
+                        }
+                        localStopwatch.Stop();
+                        return successCount;
+                    }));
+                }
+
+                var results = await Task.WhenAll(tasks);
+                stopwatch.Stop();
+
+                var totalSuccess = results.Sum();
+                var totalOps = concurrency * iterations;
+
+                return Ok(new
+                {
+                    Success = true,
+                    TotalOperations = totalOps,
+                    SuccessfulOperations = totalSuccess,
+                    Concurrency = concurrency,
+                    Iterations = iterations,
+                    TotalTimeMs = stopwatch.ElapsedMilliseconds,
+                    OpsPerSecond = totalOps * 1000.0 / stopwatch.ElapsedMilliseconds,
+                    SuccessRate = totalSuccess * 100.0 / totalOps
+                });
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                return StatusCode(500, new
+                {
+                    Success = false,
+                    Error = ex.Message,
+                    TotalTimeMs = stopwatch.ElapsedMilliseconds
+                });
+            }
+        }
+
         public HealthController(ICacheService cacheService)
         {
             _cacheService = cacheService;

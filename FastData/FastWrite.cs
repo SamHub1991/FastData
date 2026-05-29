@@ -509,5 +509,69 @@ namespace FastData
         }
         #endregion
 
+        #region 批量插入
+        /// <summary>
+        /// 批量插入（高性能）
+        /// </summary>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="list">实体列表</param>
+        /// <param name="db">数据上下文（可选）</param>
+        /// <param name="key">数据库Key（可选）</param>
+        /// <returns>插入结果</returns>
+        public static WriteReturn BulkInsert<T>(List<T> list, DataContext db = null, string key = null) where T : class, new()
+        {
+            if (list == null || list.Count == 0)
+                return new WriteReturn { IsSuccess = true };
+
+            key = key ?? FastDb.CurrentKey;
+            var projectName = Assembly.GetCallingAssembly().GetName().Name;
+            ConfigModel config = null;
+            var result = new DataReturn();
+            var stopwatch = new Stopwatch();
+
+            stopwatch.Start();
+
+            try
+            {
+                if (db == null)
+                {
+                    using (var tempDb = new DataContext(key, projectName))
+                    {
+                        config = tempDb.config;
+                        result = tempDb.BulkInsert(list, config.IsOutSql);
+                    }
+                }
+                else
+                {
+                    config = db.config;
+                    result = db.BulkInsert(list, config.IsOutSql);
+                }
+            }
+            catch (Exception ex)
+            {
+                result.writeReturn.IsSuccess = false;
+                result.writeReturn.Message = ex.Message;
+            }
+
+            stopwatch.Stop();
+            DbLog.LogSql(config?.IsOutSql ?? false, result.Sql, config?.DbType, stopwatch.Elapsed.TotalMilliseconds);
+
+            return result.writeReturn;
+        }
+
+        /// <summary>
+        /// 批量插入异步（高性能）
+        /// </summary>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="list">实体列表</param>
+        /// <param name="db">数据上下文（可选）</param>
+        /// <param name="key">数据库Key（可选）</param>
+        /// <returns>插入结果</returns>
+        public static Task<WriteReturn> BulkInsertAsync<T>(List<T> list, DataContext db = null, string key = null) where T : class, new()
+        {
+            return AsyncHelper.RunAsync(() => BulkInsert(list, db, key));
+        }
+        #endregion
+
     }
 }

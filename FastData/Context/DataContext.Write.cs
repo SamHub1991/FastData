@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Data.Common;
+using System.Diagnostics;
 using FastUntility.Page;
 using FastUntility.Base;
 using FastData.Base;
@@ -673,7 +674,91 @@ namespace FastData.Context
                 result.writeReturn.Message = ex.Message;
             }
 
-             return result;
+              return result;
+        }
+        #endregion
+
+        #region 批量插入
+        /// <summary>
+        /// 批量插入（使用事务优化性能）
+        /// </summary>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="list">实体列表</param>
+        /// <param name="isLog">是否记录SQL</param>
+        /// <returns>插入结果</returns>
+        public DataReturn BulkInsert<T>(List<T> list, bool isLog = false) where T : class, new()
+        {
+            var result = new DataReturn();
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
+
+            try
+            {
+                BeginTrans();
+                var tableName = typeof(T).Name;
+                var properties = typeof(T).GetProperties().Where(p => p.CanRead && p.CanWrite).ToList();
+                var columns = properties.Select(p => p.Name).ToList();
+                var columnNames = string.Join(", ", columns);
+                
+                int successCount = 0;
+                var sqlBuilder = new StringBuilder();
+                
+                foreach (var item in list)
+                {
+                    var values = new List<string>();
+                    foreach (var prop in properties)
+                    {
+                        var value = prop.GetValue(item);
+                        if (value == null)
+                            values.Add("NULL");
+                        else if (value is string || value is DateTime)
+                            values.Add($"'{value.ToString().Replace("'", "''")}'");
+                        else if (value is bool)
+                            values.Add((bool)value ? "1" : "0");
+                        else
+                            values.Add(value.ToString());
+                    }
+                    
+                    var valueStr = string.Join(", ", values);
+                    sqlBuilder.AppendLine($"INSERT INTO {tableName} ({columnNames}) VALUES ({valueStr});");
+                }
+                
+                var sql = sqlBuilder.ToString();
+                result.Sql = sql;
+                
+                if (isLog)
+                    DbLog.LogSql(isLog, sql, config.DbType, 0);
+
+                AopBefore(new List<string> { tableName }, sql, new List<DbParameter>(), config, false, AopType.AddList);
+
+                // 执行批量插入
+                Dispose(cmd);
+                cmd.CommandText = sql;
+                cmd.ExecuteNonQuery();
+
+                successCount = list.Count;
+                result.writeReturn.IsSuccess = true;
+                
+                SubmitTrans();
+
+                AopAfter(new List<string> { tableName }, sql, new List<DbParameter>(), config, false, AopType.AddList, successCount);
+            }
+            catch (Exception ex)
+            {
+                RollbackTrans();
+                AopException(ex, "BulkInsert", config, AopType.AddList);
+                
+                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                    DbLogTable.LogException(config, ex, "BulkInsert", result.Sql);
+                else
+                    DbLog.LogException(config.IsOutError, config.DbType, ex, "BulkInsert", result.Sql);
+                
+                result.writeReturn.IsSuccess = false;
+                result.writeReturn.Message = ex.Message;
+            }
+
+            stopwatch.Stop();
+            return result;
         }
         #endregion
     }
