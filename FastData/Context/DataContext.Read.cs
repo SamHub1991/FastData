@@ -33,44 +33,11 @@ namespace FastData.Context
 
             try
             {
-                //是否前几条或单条
+                // SQL Server TOP 特殊处理
                 if (item.Config.DbType == DataDbType.SqlServer && item.Take != 0)
                     sql.AppendFormat("select top {2} {0} from {1}", string.Join(",", item.Field), item.Table[0], item.Take);
-                else
-                    sql.AppendFormat("select {0} from {1}", string.Join(",", item.Field), item.Table[0]);
-
-                for (var i = 1; i < item.Predicate.Count; i++)
-                {
-                    sql.AppendFormat(" {0} on {1}", item.Table[i], item.Predicate[i].Where);
-
-                    if (item.Predicate[i].Param.Count != 0)
-                        param.AddRange(item.Predicate[i].Param);
-                }
-
-                // 使用 WhereBuilder 构建完整的 WHERE 子句（支持链式条件）
-                var whereClause = WhereBuilder.BuildWhereClause(item, ref param);
-                if (!string.IsNullOrEmpty(whereClause))
-                {
-                    sql.AppendFormat(" where {0}", whereClause);
-                }
-
-                //是否前几条或单条
-                if (item.Config.DbType == DataDbType.Oracle && item.Take != 0)
-                    sql.AppendFormat(" and rownum <={0}", item.Take);
-                else if (item.Config.DbType == DataDbType.DB2 && item.Take != 0)
-                    sql.AppendFormat(" and fetch first {0} rows only", item.Take);
-                else if (item.Config.DbType == DataDbType.MySql && item.Take != 0)
-                    sql.AppendFormat(" limit {0}", item.Take);
-                else if (item.Config.DbType == DataDbType.PostgreSql && item.Take != 0)
-                    sql.AppendFormat(" limit {0}", item.Take);
-                else if (item.Config.DbType == DataDbType.SQLite && item.Take != 0)
-                    sql.AppendFormat(" limit {0}", item.Take);
-
-                if (item.GroupBy.Count > 0)
-                    sql.AppendFormat(" group by {0}", string.Join(",", item.GroupBy));
-
-                if (item.OrderBy.Count > 0)
-                    sql.AppendFormat(" order by {0}", string.Join(",", item.OrderBy));
+                
+                BuildBaseSelectQuery(item, param, sql);
 
                 result.sql = ParameterToSql.ObjectParamToSql(param, sql.ToString(), item.Config);
 
@@ -377,47 +344,14 @@ namespace FastData.Context
 
             try
             {
-                //是否前几条或单条
+                // SQL Server TOP 特殊处理
                 if (item.Config.DbType == DataDbType.SqlServer && item.Take != 0)
                     sql.AppendFormat("select top {2} {0} from {1}", string.Join(",", item.Field), item.Table[0], item.Take);
-                else
-                    sql.AppendFormat("select {0} from {1}", string.Join(",", item.Field), item.Table[0]);
-
-                for (var i = 1; i < item.Predicate.Count; i++)
-                {
-                    sql.AppendFormat(" {0} on {1}", item.Table[i], item.Predicate[i].Where);
-
-                    if (item.Predicate[i].Param.Count != 0)
-                        param.AddRange(item.Predicate[i].Param);
-                }
-
-                // 使用 WhereBuilder 构建完整的 WHERE 子句（支持链式条件）
-                var whereClause = WhereBuilder.BuildWhereClause(item, ref param);
-                if (!string.IsNullOrEmpty(whereClause))
-                {
-                    sql.AppendFormat(" where {0}", whereClause);
-                }
-
-                //是否前几条或单条
-                if (item.Config.DbType == DataDbType.Oracle && item.Take != 0)
-                    sql.AppendFormat(" and rownum <={0}", item.Take);
-                else if (item.Config.DbType == DataDbType.DB2 && item.Take != 0)
-                    sql.AppendFormat(" and fetch first {0} rows only", item.Take);
-                else if (item.Config.DbType == DataDbType.MySql && item.Take != 0)
-                    sql.AppendFormat(" limit {0}", item.Take);
-                else if (item.Config.DbType == DataDbType.PostgreSql && item.Take != 0)
-                    sql.AppendFormat(" limit {0}", item.Take);
-                else if (item.Config.DbType == DataDbType.SQLite && item.Take != 0)
-                    sql.AppendFormat(" limit {0}", item.Take);
+                
+                BuildBaseSelectQuery(item, param, sql);
 
                 if (item.Predicate[0].Param.Count != 0)
                     param.AddRange(item.Predicate[0].Param);
-
-                if (item.GroupBy.Count > 0)
-                    sql.AppendFormat(" group by {0}", string.Join(",", item.GroupBy));
-
-                if (item.OrderBy.Count > 0)
-                    sql.AppendFormat(" order by {0}", string.Join(",", item.OrderBy));
 
                 result.Sql = ParameterToSql.ObjectParamToSql(param, sql.ToString(), item.Config);
 
@@ -641,44 +575,11 @@ namespace FastData.Context
 
             try
             {
-                //是否前几条或单条
+                // SQL Server TOP 特殊处理
                 if (item.Config.DbType == DataDbType.SqlServer && item.Take != 0)
                     sql.AppendFormat("select top {2} {0} from {1}", string.Join(",", item.Field), item.Table[0], item.Take);
-                else
-                    sql.AppendFormat("select {0} from {1}", string.Join(",", item.Field), item.Table[0]);
-
-                for (var i = 1; i < item.Predicate.Count; i++)
-                {
-                    sql.AppendFormat(" {0} on {1}", item.Table[i], item.Predicate[i].Where);
-
-                    if (item.Predicate[i].Param.Count != 0)
-                        param.AddRange(item.Predicate[i].Param);
-                }
-
-                // 使用 WhereBuilder 构建完整的 WHERE 子句（支持链式条件）
-                var whereClause = WhereBuilder.BuildWhereClause(item, ref param);
-                if (!string.IsNullOrEmpty(whereClause))
-                {
-                    sql.AppendFormat(" where {0}", whereClause);
-                }
-
-                //是否前几条或单条
-                if (item.Config.DbType == DataDbType.Oracle && item.Take != 0)
-                    sql.AppendFormat(" and rownum <={0}", item.Take);
-                else if (item.Config.DbType == DataDbType.DB2 && item.Take != 0)
-                    sql.AppendFormat(" and fetch first {0} rows only", item.Take);
-                else if (item.Config.DbType == DataDbType.MySql && item.Take != 0)
-                    sql.AppendFormat(" limit {0}", item.Take);
-                else if (item.Config.DbType == DataDbType.PostgreSql && item.Take != 0)
-                    sql.AppendFormat(" limit {0}", item.Take);
-                else if (item.Config.DbType == DataDbType.SQLite && item.Take != 0)
-                    sql.AppendFormat(" limit {0}", item.Take);
-
-                if (item.GroupBy.Count > 0)
-                    sql.AppendFormat(" group by {0}", string.Join(",", item.GroupBy));
-
-                if (item.OrderBy.Count > 0)
-                    sql.AppendFormat(" order by {0}", string.Join(",", item.OrderBy));
+                
+                BuildBaseSelectQuery(item, param, sql);
 
                 result.Sql = ParameterToSql.ObjectParamToSql(param, sql.ToString(), item.Config);
 
@@ -737,44 +638,11 @@ namespace FastData.Context
 
             try
             {
-                //是否前几条或单条
+                // SQL Server TOP 特殊处理
                 if (item.Config.DbType == DataDbType.SqlServer && item.Take != 0)
                     sql.AppendFormat("select top {2} {0} from {1}", string.Join(",", item.Field), item.Table[0], item.Take);
-                else
-                    sql.AppendFormat("select {0} from {1}", string.Join(",", item.Field), item.Table[0]);
-
-                for (var i = 1; i < item.Predicate.Count; i++)
-                {
-                    sql.AppendFormat(" {0} on {1}", item.Table[i], item.Predicate[i].Where);
-
-                    if (item.Predicate[i].Param.Count != 0)
-                        param.AddRange(item.Predicate[i].Param);
-                }
-
-                // 使用 WhereBuilder 构建完整的 WHERE 子句（支持链式条件）
-                var whereClause = WhereBuilder.BuildWhereClause(item, ref param);
-                if (!string.IsNullOrEmpty(whereClause))
-                {
-                    sql.AppendFormat(" where {0}", whereClause);
-                }
-
-                //是否前几条或单条
-                if (item.Config.DbType == DataDbType.Oracle && item.Take != 0)
-                    sql.AppendFormat(" and rownum <={0}", item.Take);
-                else if (item.Config.DbType == DataDbType.DB2 && item.Take != 0)
-                    sql.AppendFormat(" and fetch first {0} rows only", item.Take);
-                else if (item.Config.DbType == DataDbType.MySql && item.Take != 0)
-                    sql.AppendFormat(" limit {0}", item.Take);
-                else if (item.Config.DbType == DataDbType.PostgreSql && item.Take != 0)
-                    sql.AppendFormat(" limit {0}", item.Take);
-                else if (item.Config.DbType == DataDbType.SQLite && item.Take != 0)
-                    sql.AppendFormat(" limit {0}", item.Take);
-
-                if (item.GroupBy.Count > 0)
-                    sql.AppendFormat(" group by {0}", string.Join(",", item.GroupBy));
-
-                if (item.OrderBy.Count > 0)
-                    sql.AppendFormat(" order by {0}", string.Join(",", item.OrderBy));
+                
+                BuildBaseSelectQuery(item, param, sql);
 
                 result.Sql = ParameterToSql.ObjectParamToSql(param, sql.ToString(), item.Config);
 
@@ -809,6 +677,70 @@ namespace FastData.Context
                 return result;
             }
         }
+        #endregion
+
+        #region 私有辅助方法
+
+        /// <summary>
+        /// 构建基础 SELECT + JOIN + WHERE + GROUP BY + ORDER BY 查询
+        /// </summary>
+        private void BuildBaseSelectQuery(DataQuery item, List<DbParameter> param, StringBuilder sql)
+        {
+            // SELECT 子句
+            sql.AppendFormat("select {0} from {1}", string.Join(",", item.Field), item.Table[0]);
+
+            // JOIN 子句
+            for (var i = 1; i < item.Predicate.Count; i++)
+            {
+                sql.AppendFormat(" {0} on {1}", item.Table[i], item.Predicate[i].Where);
+                if (item.Predicate[i].Param.Count != 0)
+                    param.AddRange(item.Predicate[i].Param);
+            }
+
+            // WHERE 子句
+            var whereClause = WhereBuilder.BuildWhereClause(item, ref param);
+            if (!string.IsNullOrEmpty(whereClause))
+                sql.AppendFormat(" where {0}", whereClause);
+
+            // TAKE 子句（数据库特定语法）
+            AppendTakeClause(item, sql);
+
+            // GROUP BY 子句
+            if (item.GroupBy.Count > 0)
+                sql.AppendFormat(" group by {0}", string.Join(",", item.GroupBy));
+
+            // ORDER BY 子句
+            if (item.OrderBy.Count > 0)
+                sql.AppendFormat(" order by {0}", string.Join(",", item.OrderBy));
+        }
+
+        /// <summary>
+        /// 追加 TAKE/LIMIT 子句（数据库特定语法）
+        /// </summary>
+        private void AppendTakeClause(DataQuery item, StringBuilder sql)
+        {
+            if (item.Take == 0)
+                return;
+
+            switch (item.Config.DbType)
+            {
+                case DataDbType.SqlServer:
+                    // SQL Server 的 TOP 已在主查询中处理
+                    break;
+                case DataDbType.Oracle:
+                    sql.AppendFormat(" and rownum <={0}", item.Take);
+                    break;
+                case DataDbType.DB2:
+                    sql.AppendFormat(" and fetch first {0} rows only", item.Take);
+                    break;
+                case DataDbType.MySql:
+                case DataDbType.PostgreSql:
+                case DataDbType.SQLite:
+                    sql.AppendFormat(" limit {0}", item.Take);
+                    break;
+            }
+        }
+
         #endregion
     }
 }

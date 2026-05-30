@@ -141,6 +141,30 @@ namespace FastData.ConnectionPool
         private readonly Timer _smartAdjustmentTimer;
         private readonly object _lock = new object();
         private bool _disposed;
+        private bool _sqlLog;
+        private Action<string> _logCallback;
+
+        /// <summary>
+        /// 启用连接池日志输出
+        /// </summary>
+        public void EnableSqlLog(Action<string> logCallback = null)
+        {
+            _sqlLog = true;
+            if (logCallback != null)
+                _logCallback = logCallback;
+        }
+
+        /// <summary>
+        /// 日志输出（受_sqlLog控制，支持自定义回调）
+        /// </summary>
+        private void Log(string message)
+        {
+            if (!_sqlLog)
+                return;
+
+            _logCallback?.Invoke($"连接池 {_name}: {message}")
+                ?? Console.WriteLine($"连接池 {_name}: {message}");
+        }
 
         // 指标
         private long _totalRequests;
@@ -339,7 +363,7 @@ namespace FastData.ConnectionPool
             catch (Exception ex)
             {
                 // 记录日志
-                Console.WriteLine($"连接池 {_name} 创建连接失败: {ex.Message}");
+                Log($"连接池 {_name} 创建连接失败: {ex.Message}");
             }
             return null;
         }
@@ -356,7 +380,7 @@ namespace FastData.ConnectionPool
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"连接池 {_name} 销毁连接失败: {ex.Message}");
+                Log($"连接池 {_name} 销毁连接失败: {ex.Message}");
             }
         }
 
@@ -440,7 +464,7 @@ namespace FastData.ConnectionPool
                     if (DateTime.UtcNow - connection.LastUsedAt > TimeSpan.FromSeconds(_config.LeakDetectionThreshold))
                     {
                         Interlocked.Increment(ref _leakedConnections);
-                        Console.WriteLine($"连接池 {_name} 检测到可能的连接泄漏: {connection.Id}, 最后使用时间: {connection.LastUsedAt}");
+                        Log($"连接池 {_name} 检测到可能的连接泄漏: {connection.Id}, 最后使用时间: {connection.LastUsedAt}");
                     }
                 }
 
@@ -456,7 +480,7 @@ namespace FastData.ConnectionPool
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"连接池 {_name} 健康检查失败: {ex.Message}");
+                Log($"连接池 {_name} 健康检查失败: {ex.Message}");
             }
         }
 
@@ -482,7 +506,7 @@ namespace FastData.ConnectionPool
                         else
                             break;
                     }
-                    Console.WriteLine($"连接池 {_name} 扩容: 新增 {expandCount} 个连接");
+                    Log($"连接池 {_name} 扩容: 新增 {expandCount} 个连接");
                 }
                 // 负载过低时缩容
                 else if (loadPercentage < _config.ShrinkThreshold && metrics.TotalConnections > _config.MinPoolSize)
@@ -495,12 +519,12 @@ namespace FastData.ConnectionPool
                             DestroyConnection(conn);
                         }
                     }
-                    Console.WriteLine($"连接池 {_name} 缩容: 移除 {shrinkCount} 个连接");
+                    Log($"连接池 {_name} 缩容: 移除 {shrinkCount} 个连接");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"连接池 {_name} 智能调整失败: {ex.Message}");
+                Log($"连接池 {_name} 智能调整失败: {ex.Message}");
             }
         }
 

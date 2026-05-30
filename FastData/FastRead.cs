@@ -422,35 +422,14 @@ namespace FastData
         /// <summary>
         /// 返回list
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="item"></param>
-        /// <returns></returns>
         public static List<T> ToList<T>(this DataQuery item, DataContext db = null, bool isOutSql = false) where T : class, new()
         {
-            var stopwatch = new Stopwatch();
-            var result = new DataReturn<T>();
-
-            if (item.Predicate.Exists(a => a.IsSuccess == false))
-                return result.list;
-
-            stopwatch.Start();
-
-            if (db == null)
-            {
-                using (var tempDb = new DataContext(item.Key))
-                {
-                    result = tempDb.GetList<T>(item);
-                }
-            }
-            else
-                result = db.GetList<T>(item);
-
-            stopwatch.Stop();
-
-            // Check per-query SQL log setting, then global setting, then per-database setting
-            var shouldLog = item.IsSqlLogEnabled || FastDb.EnableSqlLog || item.Config.IsOutSql || isOutSql;
-            DbLog.LogSql(shouldLog, result.sql, item.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
-            return result.list;
+            return ExecuteQueryTemplate<List<T>, DataReturn<T>>(
+                item, db, isOutSql,
+                (ctx, q) => ctx.GetList<T>(q),
+                r => item.Predicate.Exists(a => a.IsSuccess == false),
+                r => r.list,
+                r => r.sql);
         }
 
         /// <summary>
@@ -490,34 +469,14 @@ namespace FastData
         /// <summary>
         /// 返回json
         /// </summary>
-        /// <param name="item"></param>
-        /// <returns></returns>
         public static string ToJson(this DataQuery item, DataContext db = null, bool isOutSql = false)
         {
-            var result = new DataReturn();
-            var stopwatch = new Stopwatch();
-
-            if (item.Predicate.Exists(a => a.IsSuccess == false))
-                return result.Json;
-
-            stopwatch.Start();
-
-            if (db == null)
-            {
-                using (var tempDb = new DataContext(item.Key))
-                {
-                    result = tempDb.GetJson(item);
-                }
-            }
-            else
-                result = db.GetJson(item);
-
-            stopwatch.Stop();
-
-            // Check per-query SQL log setting, then global setting, then per-database setting
-            var shouldLog = item.IsSqlLogEnabled || FastDb.EnableSqlLog || item.Config.IsOutSql || isOutSql;
-            DbLog.LogSql(shouldLog, result.Sql, item.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
-            return result.Json;
+            return ExecuteQueryTemplate<string, DataReturn>(
+                item, db, isOutSql,
+                (ctx, q) => ctx.GetJson(q),
+                r => item.Predicate.Exists(a => a.IsSuccess == false),
+                r => r.Json,
+                r => r.Sql);
         }
 
         /// <summary>
@@ -554,38 +513,15 @@ namespace FastData
         /// <summary>
         /// 返回item
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="item"></param>
-        /// <returns></returns>
         public static T ToItem<T>(this DataQuery item, DataContext db = null, bool isOutSql = false) where T : class, new()
         {
-            var result = new DataReturn<T>();
-            var stopwatch = new Stopwatch();
-
-            if (item.Predicate.Exists(a => a.IsSuccess == false))
-                return result.item;
-
-            stopwatch.Start();
-
-            item.Take = 1;
-
-            if (db == null)
-            {
-                using (var tempDb = new DataContext(item.Key))
-                {
-                    result = tempDb.GetList<T>(item);
-                }
-            }
-            else
-                result = db.GetList<T>(item);
-
-            stopwatch.Stop();
-
-            // Check per-query SQL log setting, then global setting, then per-database setting
-            var shouldLog = item.IsSqlLogEnabled || FastDb.EnableSqlLog || item.Config.IsOutSql || isOutSql;
-            DbLog.LogSql(shouldLog, result.sql, item.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
-
-            return result.item;
+            return ExecuteQueryTemplate<T, DataReturn<T>>(
+                item, db, isOutSql,
+                (ctx, q) => ctx.GetList<T>(q),
+                r => item.Predicate.Exists(a => a.IsSuccess == false),
+                r => r.item,
+                r => r.sql,
+                () => item.Take = 1);
         }
 
         /// <summary>
@@ -625,35 +561,14 @@ namespace FastData
         /// <summary>
         /// 返回条数
         /// </summary>
-        /// <param name="item"></param>
-        /// <returns></returns>
         public static int ToCount(this DataQuery item, DataContext db = null, bool isOutSql = false)
         {
-            var result = new DataReturn();
-            var stopwatch = new Stopwatch();
-
-            if (item.Predicate.Exists(a => a.IsSuccess == false))
-                return result.Count;
-
-            stopwatch.Start();
-
-            if (db == null)
-            {
-                using (var tempDb = new DataContext(item.Key))
-                {
-                    result = tempDb.GetCount(item);
-                }
-            }
-            else
-                result = db.GetCount(item);
-
-            stopwatch.Stop();
-
-            // Check per-query SQL log setting, then global setting, then per-database setting
-            var shouldLog = item.IsSqlLogEnabled || FastDb.EnableSqlLog || item.Config.IsOutSql || isOutSql;
-            DbLog.LogSql(shouldLog, result.Sql, item.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
-
-            return result.Count;
+            return ExecuteQueryTemplate<int, DataReturn>(
+                item, db, isOutSql,
+                (ctx, q) => ctx.GetCount(q),
+                r => item.Predicate.Exists(a => a.IsSuccess == false),
+                r => r.Count,
+                r => r.Sql);
         }
 
         /// <summary>
@@ -676,8 +591,8 @@ namespace FastData
         /// <returns></returns>
         public static PageResult<T> ToPage<T>(this DataQuery item, PageModel pModel, DataContext db = null, bool isOutSql = false) where T : class, new()
         {
-            var result = new DataReturn<T>();
             var stopwatch = new Stopwatch();
+            var result = new DataReturn<T>();
 
             if (item.Predicate.Exists(a => a.IsSuccess == false))
                 return result.pageResult;
@@ -696,7 +611,6 @@ namespace FastData
 
             stopwatch.Stop();
 
-            // Check per-query SQL log setting, then global setting, then per-database setting
             var shouldLog = item.IsSqlLogEnabled || FastDb.EnableSqlLog || item.Config.IsOutSql || isOutSql;
             DbLog.LogSql(shouldLog, result.sql, item.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
@@ -1239,5 +1153,50 @@ namespace FastData
         {
             return AsyncHelper.RunAsync(() => new Lazy<List<Dictionary<string, object>>>(() => ExecuteSql(sql, param, db, key, isOutSql)));
         }
+
+        #region 私有模板方法
+
+        /// <summary>
+        /// 查询执行模板 - 提取公共逻辑
+        /// </summary>
+        private static TResult ExecuteQueryTemplate<TResult, TReturn>(
+            DataQuery item,
+            DataContext db,
+            bool isOutSql,
+            Func<DataContext, DataQuery, TReturn> execute,
+            Func<TReturn, bool> predicateFailed,
+            Func<TReturn, TResult> defaultResult,
+            Func<TReturn, string> getSql,
+            Action preExecute = null)
+        {
+            var stopwatch = new Stopwatch();
+            var result = default(TReturn);
+
+            if (predicateFailed(result))
+                return defaultResult(result);
+
+            preExecute?.Invoke();
+
+            stopwatch.Start();
+
+            if (db == null)
+            {
+                using (var tempDb = new DataContext(item.Key))
+                {
+                    result = execute(tempDb, item);
+                }
+            }
+            else
+                result = execute(db, item);
+
+            stopwatch.Stop();
+
+            var shouldLog = item.IsSqlLogEnabled || FastDb.EnableSqlLog || item.Config.IsOutSql || isOutSql;
+            DbLog.LogSql(shouldLog, getSql(result), item.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
+
+            return defaultResult(result);
+        }
+
+        #endregion
     }
 }
