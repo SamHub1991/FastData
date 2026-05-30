@@ -1,11 +1,12 @@
 ﻿using System.Collections.Generic;
 using System.Data.Common;
+using FastData.DbTypes;
 
 namespace FastData.Aop
 {
     public class MapAfterContext
     {
-        public string dbType { get; set; }
+        public DataDbType dbType { get; set; }
 
         public string sql { get; set; }
 

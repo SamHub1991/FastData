@@ -8,7 +8,7 @@ using FastUntility.Page;
 using FastUntility.Base;
 using FastData.Base;
 using FastData.Model;
-using FastData.Type;
+using FastData.DbTypes;
 using FastData.Config;
 using System.Linq.Expressions;
 using System.Data;
@@ -44,7 +44,7 @@ namespace FastData.Context
                 sql.AppendFormat("delete from {0} {1}", TableNameHelper.GetTableName<T>()
                     , string.IsNullOrEmpty(visitModel.Where) ? "" : string.Format("where {0}", visitModel.Where.Replace(string.Format("{0}.", predicate.Parameters[0].Name), "")));
 
-                result.sql = ParameterToSql.ObjectParamToSql(visitModel.Param, sql.ToString(), config);
+                result.Sql = ParameterToSql.ObjectParamToSql(visitModel.Param, sql.ToString(), config);
 
                 Dispose(cmd);
 
@@ -58,17 +58,17 @@ namespace FastData.Context
                 {
                     if (conn.State == ConnectionState.Closed)
                         conn.Open();
-                    result.writeReturn.IsSuccess = BaseExecute.ToBool(cmd, sql.ToString());
+                    result.WriteReturn.IsSuccess = BaseExecute.ToBool(cmd, sql.ToString());
                 }
                 else
-                    result.writeReturn.IsSuccess = false;
+                    result.WriteReturn.IsSuccess = false;
 
-                if (isTrans && result.writeReturn.IsSuccess)
+                if (isTrans && result.WriteReturn.IsSuccess)
                     SubmitTrans();
-                else if (isTrans && result.writeReturn.IsSuccess == false)
+                else if (isTrans && result.WriteReturn.IsSuccess == false)
                     RollbackTrans();
 
-                AopAfter(tableName, sql.ToString(), visitModel.Param, config, false, AopType.Delete_Lambda, result.writeReturn.IsSuccess);
+                AopAfter(tableName, sql.ToString(), visitModel.Param, config, false, AopType.Delete_Lambda, result.WriteReturn.IsSuccess);
             }
             catch (Exception ex)
             {
@@ -77,13 +77,13 @@ namespace FastData.Context
                 if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
                     DbLogTable.LogException<T>(config, ex, "Delete<T>", "");
                 else
-                    DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "Delete<T>", result.sql);
+                    DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "Delete<T>", result.Sql);
 
                 if (isTrans)
                     RollbackTrans();
 
-                result.writeReturn.IsSuccess = false;
-                result.writeReturn.Message = ex.Message;
+                result.WriteReturn.IsSuccess = false;
+                result.WriteReturn.Message = ex.Message;
             }
 
             return result;
@@ -109,7 +109,7 @@ namespace FastData.Context
 
                 optionModel = BaseModel.DeleteToSql<T>(cmd, model, config);
 
-                result.sql = ParameterToSql.ObjectParamToSql(optionModel.Param, optionModel.Sql, config);
+                result.Sql = ParameterToSql.ObjectParamToSql(optionModel.Param, optionModel.Sql, config);
 
                 Dispose(cmd);
 
@@ -123,20 +123,20 @@ namespace FastData.Context
                 {
                     if (conn.State == ConnectionState.Closed)
                         conn.Open();
-                    result.writeReturn.IsSuccess = BaseExecute.ToBool(cmd, optionModel.Sql);
+                    result.WriteReturn.IsSuccess = BaseExecute.ToBool(cmd, optionModel.Sql);
                 }
                 else
                 {
-                    result.writeReturn.IsSuccess = false;
-                    result.writeReturn.Message = optionModel.Message;
+                    result.WriteReturn.IsSuccess = false;
+                    result.WriteReturn.Message = optionModel.Message;
                 }
 
-                if (isTrans && result.writeReturn.IsSuccess)
+                if (isTrans && result.WriteReturn.IsSuccess)
                     SubmitTrans();
-                else if (isTrans && result.writeReturn.IsSuccess == false)
+                else if (isTrans && result.WriteReturn.IsSuccess == false)
                     RollbackTrans();
 
-                AopAfter(tableName, optionModel.Sql, optionModel.Param, config, false, AopType.Delete_PrimaryKey, result.writeReturn.IsSuccess);
+                AopAfter(tableName, optionModel.Sql, optionModel.Param, config, false, AopType.Delete_PrimaryKey, result.WriteReturn.IsSuccess);
             }
             catch (Exception ex)
             {
@@ -148,10 +148,10 @@ namespace FastData.Context
                 if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
                     DbLogTable.LogException<T>(config, ex, "Delete<T>", "");
                 else
-                    DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "Delete<T>", result.sql);
+                    DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "Delete<T>", result.Sql);
 
-                result.writeReturn.IsSuccess = false;
-                result.writeReturn.Message = ex.Message;
+                result.WriteReturn.IsSuccess = false;
+                result.WriteReturn.Message = ex.Message;
             }
 
             return result;
@@ -195,7 +195,7 @@ namespace FastData.Context
                     if (visitModel.Param.Count != 0)
                         cmd.Parameters.AddRange(visitModel.Param.ToArray());
 
-                    result.sql = ParameterToSql.ObjectParamToSql(Parameter.ParamMerge(update.Param, visitModel.Param), sql, config);
+                    result.Sql = ParameterToSql.ObjectParamToSql(Parameter.ParamMerge(update.Param, visitModel.Param), sql, config);
 
                     tableName.Add(TableNameHelper.GetTableName<T>());
                     AopBefore(tableName, sql, Parameter.ParamMerge(update.Param, visitModel.Param), config, false,AopType.Update_Lambda);
@@ -204,23 +204,23 @@ namespace FastData.Context
                     {
                         if (conn.State == ConnectionState.Closed)
                             conn.Open();
-                        result.writeReturn.IsSuccess = BaseExecute.ToBool(cmd, sql);
+                        result.WriteReturn.IsSuccess = BaseExecute.ToBool(cmd, sql);
                     }
                     else
-                        result.writeReturn.IsSuccess = false;
+                        result.WriteReturn.IsSuccess = false;
                 }
                 else
                 {
-                    result.writeReturn.Message = update.Message;
-                    result.writeReturn.IsSuccess = false;
+                    result.WriteReturn.Message = update.Message;
+                    result.WriteReturn.IsSuccess = false;
                 }
 
-                if (isTrans && result.writeReturn.IsSuccess)
+                if (isTrans && result.WriteReturn.IsSuccess)
                     SubmitTrans();
-                else if (isTrans && result.writeReturn.IsSuccess == false)
+                else if (isTrans && result.WriteReturn.IsSuccess == false)
                     RollbackTrans();
 
-                AopAfter(tableName, sql, Parameter.ParamMerge(update.Param, visitModel.Param), config, false, AopType.Update_Lambda, result.writeReturn.IsSuccess);
+                AopAfter(tableName, sql, Parameter.ParamMerge(update.Param, visitModel.Param), config, false, AopType.Update_Lambda, result.WriteReturn.IsSuccess);
             }
             catch (Exception ex)
             {
@@ -229,9 +229,9 @@ namespace FastData.Context
                 if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
                     DbLogTable.LogException<T>(config, ex, "Update<T>", "");
                 else
-                    DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "Update<T>", result.sql);
-                result.writeReturn.IsSuccess = false;
-                result.writeReturn.Message = ex.Message;
+                    DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "Update<T>", result.Sql);
+                result.WriteReturn.IsSuccess = false;
+                result.WriteReturn.Message = ex.Message;
 
                 if (isTrans)
                     RollbackTrans();
@@ -268,27 +268,27 @@ namespace FastData.Context
                     if (update.Param.Count != 0)
                         cmd.Parameters.AddRange(update.Param.ToArray());
 
-                    result.sql = ParameterToSql.ObjectParamToSql(update.Param, update.Sql, config);
+                    result.Sql = ParameterToSql.ObjectParamToSql(update.Param, update.Sql, config);
 
                     tableName.Add(TableNameHelper.GetTableName<T>());
                     AopBefore(tableName, update.Sql, update.Param, config, false,AopType.Update_PrimaryKey);
 
                     if (conn.State == ConnectionState.Closed)
                         conn.Open();
-                    result.writeReturn.IsSuccess = BaseExecute.ToBool(cmd, update.Sql);
+                    result.WriteReturn.IsSuccess = BaseExecute.ToBool(cmd, update.Sql);
                 }
                 else
                 {
-                    result.writeReturn.Message = update.Message;
-                    result.writeReturn.IsSuccess = false;
+                    result.WriteReturn.Message = update.Message;
+                    result.WriteReturn.IsSuccess = false;
                 }
 
-                if (isTrans && result.writeReturn.IsSuccess)
+                if (isTrans && result.WriteReturn.IsSuccess)
                     SubmitTrans();
-                else if (isTrans && result.writeReturn.IsSuccess == false)
+                else if (isTrans && result.WriteReturn.IsSuccess == false)
                     RollbackTrans();
 
-                AopAfter(tableName, update.Sql, update.Param, config, false, AopType.Update_PrimaryKey, result.writeReturn.IsSuccess);
+                AopAfter(tableName, update.Sql, update.Param, config, false, AopType.Update_PrimaryKey, result.WriteReturn.IsSuccess);
             }
             catch (Exception ex)
             {
@@ -300,9 +300,9 @@ namespace FastData.Context
                 if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
                     DbLogTable.LogException<T>(config, ex, "UpdateModel<T>", "");
                 else
-                    DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "UpdateModel<T>", result.sql);
-                result.writeReturn.IsSuccess = false;
-                result.writeReturn.Message = ex.Message;
+                    DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "UpdateModel<T>", result.Sql);
+                result.WriteReturn.IsSuccess = false;
+                result.WriteReturn.Message = ex.Message;
             }
 
             return result;
@@ -328,8 +328,8 @@ namespace FastData.Context
             {
                 if (list.Count == 0)
                 {
-                    result.writeReturn.IsSuccess = false;
-                    result.writeReturn.Message = "更新数据不能为空";
+                    result.WriteReturn.IsSuccess = false;
+                    result.WriteReturn.Message = "更新数据不能为空";
                     return result;
                 }
 
@@ -349,24 +349,24 @@ namespace FastData.Context
                         if (update.Param.Count != 0)
                             adapter.InsertCommand.Parameters.AddRange(update.Param.ToArray());
 
-                        result.sql = ParameterToSql.ObjectParamToSql(update.Param, update.Sql, config);
+                        result.Sql = ParameterToSql.ObjectParamToSql(update.Param, update.Sql, config);
                         
                         tableName.Add(TableNameHelper.GetTableName<T>());
                         AopBefore(tableName, update.Sql, update.Param, config, false,AopType.UpdateList);
 
-                        result.writeReturn.IsSuccess = adapter.Update(update.table) > 0;
-                        if (result.writeReturn.IsSuccess)
+                        result.WriteReturn.IsSuccess = adapter.Update(update.table) > 0;
+                        if (result.WriteReturn.IsSuccess)
                             SubmitTrans();
                         else
                             RollbackTrans();
 
-                        AopAfter(tableName, update.Sql, update.Param, config, false, AopType.UpdateList, result.writeReturn.IsSuccess);
+                        AopAfter(tableName, update.Sql, update.Param, config, false, AopType.UpdateList, result.WriteReturn.IsSuccess);
                     }
                 }
                 else
                 {
-                    result.writeReturn.Message = update.Message;
-                    result.writeReturn.IsSuccess = false;
+                    result.WriteReturn.Message = update.Message;
+                    result.WriteReturn.IsSuccess = false;
                 }
             }
             catch (Exception ex)
@@ -376,9 +376,9 @@ namespace FastData.Context
                 if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
                     DbLogTable.LogException<T>(config, ex, "UpdateList<T>", "");
                 else
-                    DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "UpdateList<T>", result.sql);
-                result.writeReturn.IsSuccess = false;
-                result.writeReturn.Message = ex.Message;
+                    DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "UpdateList<T>", result.Sql);
+                result.WriteReturn.IsSuccess = false;
+                result.WriteReturn.Message = ex.Message;
             }
 
             return result;
@@ -411,7 +411,7 @@ namespace FastData.Context
 
                 if (insert.IsSuccess)
                 {
-                    result.sql = ParameterToSql.ObjectParamToSql(insert.Param, insert.Sql, config);
+                    result.Sql = ParameterToSql.ObjectParamToSql(insert.Param, insert.Sql, config);
 
                     Dispose(cmd);
 
@@ -423,12 +423,12 @@ namespace FastData.Context
 
                     if (conn.State == ConnectionState.Closed)
                         conn.Open();
-                    result.writeReturn.IsSuccess = BaseExecute.ToBool(cmd, insert.Sql);
+                    result.WriteReturn.IsSuccess = BaseExecute.ToBool(cmd, insert.Sql);
 
                     if (isTrans)
                         SubmitTrans();
 
-                    AopAfter(tableName, insert.Sql, insert.Param, config, false, AopType.Add, result.writeReturn.IsSuccess);
+                    AopAfter(tableName, insert.Sql, insert.Param, config, false, AopType.Add, result.WriteReturn.IsSuccess);
 
                     return result;
                 }
@@ -442,15 +442,15 @@ namespace FastData.Context
                 if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
                     DbLogTable.LogException<T>(config, ex, "Add<T>", "");
                 else
-                    DbLog.LogException<T>(config?.IsOutError ?? false, config?.DbType ?? "Unknown", ex, "Add<T>", result.sql);
+                    DbLog.LogException<T>(config?.IsOutError ?? false, config?.DbType ?? DataDbType.SqlServer, ex, "Add<T>", result.Sql);
 
-                if (isTrans && result.writeReturn.IsSuccess)
+                if (isTrans && result.WriteReturn.IsSuccess)
                     SubmitTrans();
-                else if (isTrans && result.writeReturn.IsSuccess == false)
+                else if (isTrans && result.WriteReturn.IsSuccess == false)
                     RollbackTrans();
 
-                result.writeReturn.Message = $"{ex.GetType().Name}: {ex.Message}";
-                result.writeReturn.IsSuccess = false;
+                result.WriteReturn.Message = $"{ex.GetType().Name}: {ex.Message}";
+                result.WriteReturn.IsSuccess = false;
                 return result;
             }
         }
@@ -538,7 +538,7 @@ namespace FastData.Context
                     tableName.Add(TableNameHelper.GetTableName<T>());
                     AopBefore(tableName, cmd.CommandText, null, config, false, AopType.AddList);
 
-                    result.writeReturn.IsSuccess = cmd.ExecuteNonQuery() > 0;
+                    result.WriteReturn.IsSuccess = cmd.ExecuteNonQuery() > 0;
 
                     if (!isLog)
                     {
@@ -593,7 +593,7 @@ namespace FastData.Context
                     tableName.Add(TableNameHelper.GetTableName<T>());
                     AopBefore(tableName, cmd.CommandText, null, config, false, AopType.AddList);
 
-                    result.writeReturn.IsSuccess = cmd.ExecuteNonQuery() > 0;
+                    result.WriteReturn.IsSuccess = cmd.ExecuteNonQuery() > 0;
                     #endregion
                 }
 
@@ -636,7 +636,7 @@ namespace FastData.Context
 
                     if (conn.State == ConnectionState.Closed)
                         conn.Open();
-                    result.writeReturn.IsSuccess = cmd.ExecuteNonQuery() > 0;
+                    result.WriteReturn.IsSuccess = cmd.ExecuteNonQuery() > 0;
                     #endregion
                 }
 
@@ -695,10 +695,10 @@ namespace FastData.Context
                     if (!IsTrans)
                         SubmitTrans();
                     
-                    result.writeReturn.IsSuccess = true;
-                    result.sql = $"{insertSql} (x{list.Count})";
+                    result.WriteReturn.IsSuccess = true;
+                    result.Sql = $"{insertSql} (x{list.Count})";
                     
-                    AopAfter(new List<string> { pgTableName }, result.sql, null, config, false, AopType.AddList, result.writeReturn.IsSuccess);
+                    AopAfter(new List<string> { pgTableName }, result.Sql, null, config, false, AopType.AddList, result.WriteReturn.IsSuccess);
                     #endregion
                 }
 
@@ -738,19 +738,19 @@ namespace FastData.Context
                     if (!IsTrans)
                         SubmitTrans();
                     
-                    result.writeReturn.IsSuccess = true;
-                    result.sql = $"{insertSql} (x{list.Count})";
+                    result.WriteReturn.IsSuccess = true;
+                    result.Sql = $"{insertSql} (x{list.Count})";
                     
-                    AopAfter(new List<string> { sqliteTableName }, result.sql, null, config, false, AopType.AddList, result.writeReturn.IsSuccess);
+                    AopAfter(new List<string> { sqliteTableName }, result.Sql, null, config, false, AopType.AddList, result.WriteReturn.IsSuccess);
                     #endregion
                 }
 
-                if (result.writeReturn.IsSuccess && IsTrans)
+                if (result.WriteReturn.IsSuccess && IsTrans)
                     SubmitTrans();
-                else if (result.writeReturn.IsSuccess == false && IsTrans)
+                else if (result.WriteReturn.IsSuccess == false && IsTrans)
                     RollbackTrans();
 
-                AopAfter(tableName, cmd.CommandText, null, config, false, AopType.AddList, result.writeReturn.IsSuccess);
+                AopAfter(tableName, cmd.CommandText, null, config, false, AopType.AddList, result.WriteReturn.IsSuccess);
             }
             catch (Exception ex)
             {
@@ -762,10 +762,10 @@ namespace FastData.Context
                 if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
                     DbLogTable.LogException<T>(config, ex, "AddList<T>", "");
                 else
-                    DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "AddList<T>", result.sql);
+                    DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "AddList<T>", result.Sql);
 
-                result.writeReturn.IsSuccess = false;
-                result.writeReturn.Message = ex.Message;
+                result.WriteReturn.IsSuccess = false;
+                result.WriteReturn.Message = ex.Message;
             }
 
             return result;
@@ -802,15 +802,15 @@ namespace FastData.Context
 
                 if (conn.State == ConnectionState.Closed)
                     conn.Open();
-                result.writeReturn.IsSuccess = BaseExecute.ToBool(cmd, sql, IsProcedure);
+                result.WriteReturn.IsSuccess = BaseExecute.ToBool(cmd, sql, IsProcedure);
 
-                if (isTrans && result.writeReturn.IsSuccess)
+                if (isTrans && result.WriteReturn.IsSuccess)
                     SubmitTrans();
-                else if (isTrans && result.writeReturn.IsSuccess == false)
+                else if (isTrans && result.WriteReturn.IsSuccess == false)
                     RollbackTrans();
 
                 if (isAop)
-                    AopAfter(null, sql, param?.ToList(), config, false, AopType.Execute_Sql_Bool, result.writeReturn.IsSuccess);
+                    AopAfter(null, sql, param?.ToList(), config, false, AopType.Execute_Sql_Bool, result.WriteReturn.IsSuccess);
             }
             catch (Exception ex)
             {
@@ -823,8 +823,8 @@ namespace FastData.Context
                     DbLogTable.LogException(config, ex, "ExecuteSql", result.Sql);
                 else
                     DbLog.LogException(config.IsOutError, config.DbType, ex, "ExecuteSql", result.Sql);
-                result.writeReturn.IsSuccess = false;
-                result.writeReturn.Message = ex.Message;
+                result.WriteReturn.IsSuccess = false;
+                result.WriteReturn.Message = ex.Message;
             }
 
               return result;
@@ -878,7 +878,7 @@ namespace FastData.Context
                     DbLog.LogSql(true, result.Sql, config.DbType, 0);
 
                 AopBefore(new List<string> { tableName }, insertSql, new List<DbParameter>(), config, false, AopType.AddList);
-                result.writeReturn.IsSuccess = true;
+                result.WriteReturn.IsSuccess = true;
                 SubmitTrans();
                 AopAfter(new List<string> { tableName }, insertSql, new List<DbParameter>(), config, false, AopType.AddList, list.Count);
             }
@@ -892,8 +892,8 @@ namespace FastData.Context
                 else
                     DbLog.LogException(config.IsOutError, config.DbType, ex, "BulkInsert", result.Sql);
 
-                result.writeReturn.IsSuccess = false;
-                result.writeReturn.Message = ex.Message;
+                result.WriteReturn.IsSuccess = false;
+                result.WriteReturn.Message = ex.Message;
             }
 
             stopwatch.Stop();

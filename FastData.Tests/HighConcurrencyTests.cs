@@ -135,7 +135,7 @@ namespace FastData.Tests
 
                                 using var db = new DataContext(dbName);
                                 var result = db.Add(entity);
-                                if (result.writeReturn.IsSuccess)
+                                if (result.WriteReturn.IsSuccess)
                                     Interlocked.Increment(ref _successCount);
                                 else
                                     Interlocked.Increment(ref _errorCount);
@@ -209,7 +209,7 @@ namespace FastData.Tests
                                     using (var db = new DataContext(dbName))
                                     {
                                         var insertResult = db.Add(entity);
-                                        if (insertResult.writeReturn.IsSuccess)
+                                        if (insertResult.WriteReturn.IsSuccess)
                                             Interlocked.Increment(ref _successCount);
                                         else
                                             Interlocked.Increment(ref _errorCount);

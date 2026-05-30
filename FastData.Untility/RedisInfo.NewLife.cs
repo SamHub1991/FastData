@@ -59,7 +59,7 @@ namespace FastRedis
         /// <summary>
         /// 是否存在 asy
         /// </summary>
-        public static Task<bool> ExistsAsy(string key, int db = 0)
+        public static Task<bool> ExistsAsync(string key, int db = 0)
         {
             return Task.FromResult(Exists(key, db));
         }
@@ -86,7 +86,7 @@ namespace FastRedis
         /// <summary>
         /// 设置值 item asy
         /// </summary>
-        public static Task<bool> SetAsy<T>(string key, T model, int hours = 24 * 30 * 12, int db = 0)
+        public static Task<bool> SetAsync<T>(string key, T model, int hours = 24 * 30 * 12, int db = 0)
         {
             return Task.FromResult(Set(key, model, hours, db));
         }
@@ -113,7 +113,7 @@ namespace FastRedis
         /// <summary>
         /// 设置值 item asy (string)
         /// </summary>
-        public static Task<bool> SetAsy(string key, string model, int hours = 24 * 30 * 12, int db = 0)
+        public static Task<bool> SetAsync(string key, string model, int hours = 24 * 30 * 12, int db = 0)
         {
             return Task.FromResult(Set(key, model, hours, db));
         }
@@ -158,7 +158,7 @@ namespace FastRedis
         /// <summary>
         /// 获取值 item asy
         /// </summary>
-        public static Task<string> GetAsy(string key, int db = 0)
+        public static Task<string> GetAsync(string key, int db = 0)
         {
             return Task.FromResult(Get(key, db));
         }
@@ -206,7 +206,7 @@ namespace FastRedis
         /// <summary>
         /// 删除值 item asy
         /// </summary>
-        public static Task<bool> RemoveAsy(string key, int db = 0)
+        public static Task<bool> RemoveAsync(string key, int db = 0)
         {
             return Task.FromResult(Remove(key, db));
         }

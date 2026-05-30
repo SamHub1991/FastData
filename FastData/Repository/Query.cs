@@ -136,7 +136,7 @@ namespace FastData.Repository
             var result = new DataReturn<T>();
 
             if (this.Data.Predicate.Exists(a => a.IsSuccess == false))
-                return result.list;
+                return result.List;
 
             stopwatch.Start();
 
@@ -153,8 +153,8 @@ namespace FastData.Repository
             stopwatch.Stop();
 
             this.Data.Config.IsOutSql = this.Data.Config.IsOutSql || isOutSql;
-            DbLog.LogSql(this.Data.Config.IsOutSql, result.sql, this.Data.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
-            return result.list;
+            DbLog.LogSql(this.Data.Config.IsOutSql, result.Sql, this.Data.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
+            return result.List;
         }
 
         /// <summary>
@@ -163,7 +163,7 @@ namespace FastData.Repository
         /// <typeparam name="T"></typeparam>
         /// <param name="item"></param>
         /// <returns></returns>
-        public override Task<List<T>> ToListAsy<T>(DataContext db = null, bool isOutSql = false)
+        public override Task<List<T>> ToListAsync<T>(DataContext db = null, bool isOutSql = false)
         {
             return AsyncHelper.RunAsync(() => ToList<T>(db, isOutSql));
         }
@@ -185,7 +185,7 @@ namespace FastData.Repository
         /// <typeparam name="T"></typeparam>
         /// <param name="item"></param>
         /// <returns></returns>
-        public override Task<Lazy<List<T>>> ToLazyListAsy<T>(DataContext db = null, bool isOutSql = false)
+        public override Task<Lazy<List<T>>> ToLazyListAsync<T>(DataContext db = null, bool isOutSql = false)
         {
             return AsyncHelper.RunAsync(() => new Lazy<List<T>>(() => ToList<T>(db, isOutSql)));
         }
@@ -266,7 +266,7 @@ namespace FastData.Repository
             var stopwatch = new Stopwatch();
 
             if (this.Data.Predicate.Exists(a => a.IsSuccess == false))
-                return result.item;
+                return result.Item;
 
             stopwatch.Start();
 
@@ -285,8 +285,8 @@ namespace FastData.Repository
             stopwatch.Stop();
 
             this.Data.Config.IsOutSql = this.Data.Config.IsOutSql || isOutSql;
-            DbLog.LogSql(this.Data.Config.IsOutSql, result.sql, this.Data.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
-            return result.item;
+            DbLog.LogSql(this.Data.Config.IsOutSql, result.Sql, this.Data.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
+            return result.Item;
         }
 
         /// <summary>
@@ -295,7 +295,7 @@ namespace FastData.Repository
         /// <typeparam name="T"></typeparam>
         /// <param name="item"></param>
         /// <returns></returns>
-        public override Task<T> ToItemAsy<T>(DataContext db = null, bool isOutSql = false)
+        public override Task<T> ToItemAsync<T>(DataContext db = null, bool isOutSql = false)
         {
             return AsyncHelper.RunAsync(() => ToItem<T>(db, isOutSql));
         }
@@ -317,7 +317,7 @@ namespace FastData.Repository
         /// <typeparam name="T"></typeparam>
         /// <param name="item"></param>
         /// <returns></returns>
-        public override Task<Lazy<T>> ToLazyItemAsy<T>(DataContext db = null, bool isOutSql = false)
+        public override Task<Lazy<T>> ToLazyItemAsync<T>(DataContext db = null, bool isOutSql = false)
         {
             return AsyncHelper.RunAsync(() => AsyncHelper.ToLazy(() => ToItem<T>(db, isOutSql)));
         }
@@ -361,7 +361,7 @@ namespace FastData.Repository
         /// </summary>
         /// <param name="item"></param>
         /// <returns></returns>
-        public override Task<int> ToCountAsy<T, T1>(DataContext db = null, bool isOutSql = false)
+        public override Task<int> ToCountAsync<T, T1>(DataContext db = null, bool isOutSql = false)
         {
             return AsyncHelper.RunAsync(() => ToCount(db, isOutSql));
         }
@@ -380,7 +380,7 @@ namespace FastData.Repository
             var stopwatch = new Stopwatch();
 
             if (this.Data.Predicate.Exists(a => a.IsSuccess == false))
-                return result.pageResult;
+                return result.PageResult;
 
             stopwatch.Start();
 
@@ -397,8 +397,8 @@ namespace FastData.Repository
             stopwatch.Stop();
 
             this.Data.Config.IsOutSql = this.Data.Config.IsOutSql || isOutSql;
-            DbLog.LogSql(this.Data.Config.IsOutSql, result.sql, this.Data.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
-            return result.pageResult;
+            DbLog.LogSql(this.Data.Config.IsOutSql, result.Sql, this.Data.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
+            return result.PageResult;
         }
 
         /// <summary>

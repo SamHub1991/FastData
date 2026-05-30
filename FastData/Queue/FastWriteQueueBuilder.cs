@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using FastData.DbTypes;
 
 namespace FastData.Queue
 {
@@ -266,7 +267,7 @@ namespace FastData.Queue
 
             if (_enableSqlLog)
             {
-                FastData.Core.Base.DbLog.LogSql(true, $"WriteBehindExecutor: {_operations.Count} ops, Success={result.Success}", "", 0);
+                FastData.Base.DbLog.LogSql(true, $"WriteBehindExecutor: {_operations.Count} ops, Success={result.Success}", DataDbType.SqlServer, 0);
             }
 
             return result;

@@ -7,7 +7,7 @@ using FastUntility.Page;
 using FastUntility.Base;
 using FastData.Base;
 using FastData.Model;
-using FastData.Type;
+using FastData.DbTypes;
 using FastData.Config;
 using System.Linq.Expressions;
 using System.Data;
@@ -178,7 +178,10 @@ namespace FastData.Context
                     }
                 }
 
-                // 使用连接池
+                // 使用连接池：优先使用传入参数，否则从配置文件读取
+                if (poolConfig == null)
+                    poolConfig = DataConfig.GetConnectionPoolConfigPublic();
+
                 if (poolConfig != null)
                 {
                     _usePool = true;
@@ -192,7 +195,8 @@ namespace FastData.Context
                         },
                         poolConfig);
 
-                    _pooledConnection = pool.GetConnectionAsync().GetAwaiter().GetResult();
+                    // 使用同步方法避免死锁
+                    _pooledConnection = pool.GetConnection();
                     conn = _pooledConnection.Connection;
                     cmd = conn.CreateCommand();
                 }
@@ -211,7 +215,7 @@ namespace FastData.Context
                 if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
                     DbLogTable.LogException(config, ex, "DataContext", "");
                 else
-                    DbLog.LogException(true, config?.DbType ?? "Unknown", ex, "DataContext", "");
+                    DbLog.LogException(true, config?.DbType ?? DataDbType.SqlServer, ex, "DataContext", "");
             }
         }
         #endregion

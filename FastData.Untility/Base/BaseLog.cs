@@ -59,7 +59,7 @@ namespace FastUntility.Base
         /// <param name="headName">文件头名</param>
         /// <param name="IsWrap">是否换行</param>
         /// <param name="logCount">日志重写数量</param>
-        public static void SaveLogAsy(string logContent, string fileName)
+        public static void SaveLogAsync(string logContent, string fileName)
         {
             Task.Run(() =>
             {

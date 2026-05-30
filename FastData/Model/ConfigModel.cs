@@ -1,4 +1,5 @@
 ﻿using System;
+using FastData.DbTypes;
 
 namespace FastData.Model
 {
@@ -16,7 +17,7 @@ namespace FastData.Model
         /// <summary>
         /// 数据库类型
         /// </summary>
-        public string DbType { get; set; }
+        public DataDbType DbType { get; set; }
 
         /// <summary>
         /// 连接串

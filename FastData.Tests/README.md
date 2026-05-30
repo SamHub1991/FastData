@@ -1,90 +1,102 @@
 # FastData.Tests
 
-FastData.Tests is the unit test project for the FastData ORM ecosystem. It covers core features including sharding strategies, query building, pagination, configuration, and synchronization components.
+FastData.Tests 是 FastData ORM 生态系统的单元测试项目。
 
-## Test Framework
+## 测试框架
 
-- **Framework**: xUnit 2.6.2
-- **Test SDK**: Microsoft.NET.Test.Sdk 17.8.0
-- **Target Frameworks**: `net462`, `net6.0`, `net8.0`, `net10.0`
+| 组件 | 版本 |
+|------|------|
+| xUnit | 2.6.2 |
+| Microsoft.NET.Test.Sdk | 17.8.0 |
+| 目标框架 | net462, net6.0, net8.0, net10.0 |
 
-## Test Structure
+## 测试结构
 
-### Root Level Tests
+### 根级测试
 
-| File | Tests |
-|------|-------|
-| `ChainableWhereTests.cs` | `DataQuery.ChainedConditions` - AND/OR chaining, complex SQL expressions, clear/count |
-| `WhereBuilderTests.cs` | `WhereBuilder.BuildWhereClause()` - initial + chained condition combination |
-| `PaginationTests.cs` | `PaginationResult<T>` - total pages, HasPrevious/HasNext, FromPageResult conversion |
-| `ShardingTests.cs` | All sharding strategies (Time/Hash/List/Composite/QueryFrequency), ShardingManager lifecycle |
-| `ShardingCrudTests.cs` | Sharding CRUD - configure, enable/disable, GetTableName, chainable API |
+| 文件 | 测试内容 |
+|------|----------|
+| `ChainableWhereTests.cs` | DataQuery 链式条件、AND/OR、清除/计数 |
+| `WhereBuilderTests.cs` | WhereBuilder 条件构建、初始+链式组合 |
+| `PaginationTests.cs` | 分页结果、总页数、HasPrevious/HasNext |
+| `ShardingTests.cs` | 分表策略（时间/哈希/列表/组合/查询频率） |
+| `ShardingCrudTests.cs` | 分表 CRUD、配置/启用/禁用、GetTableName |
 
-### Subdirectory Tests
+### 子目录测试
 
-| Directory | File | Tests |
-|-----------|------|-------|
-| `Abstractions/` | `DateTimeProviderTests.cs` | DateTime provider abstraction |
-| `Adapter/` | `DatabaseAdapterFactoryTests.cs` | Database adapter factory |
-| `Config/` | `DataConfigTests.cs` | Configuration loading |
-| `Config/` | `DataSyncOptionsTests.cs` | Sync options |
-| `Config/` | `SyncConfigManagerTests.cs` | Sync config manager |
-| `Sync/` | `DataRowSerializerTests.cs` | DataRow serialization |
-| `Sync/` | `PrimaryKeyConfigServiceTests.cs` | Primary key configuration |
-| `Sync/` | `TimeRangeCalculatorTests.cs` | Time range calculation |
+| 目录 | 文件 | 测试内容 |
+|------|------|----------|
+| `Abstractions/` | `DateTimeProviderTests.cs` | DateTime 提供者抽象 |
+| `Adapter/` | `DatabaseAdapterFactoryTests.cs` | 数据库适配器工厂 |
+| `Config/` | `DataConfigTests.cs` | 配置加载 |
+| `Config/` | `DataSyncOptionsTests.cs` | 同步选项 |
+| `Config/` | `SyncConfigManagerTests.cs` | 同步配置管理 |
+| `Sync/` | `DataRowSerializerTests.cs` | DataRow 序列化 |
+| `Sync/` | `PrimaryKeyConfigServiceTests.cs` | 主键配置服务 |
+| `Sync/` | `TimeRangeCalculatorTests.cs` | 时间范围计算 |
 
-## Running Tests
+## 运行测试
 
 ```bash
-# Run all tests
+# 运行所有测试
 dotnet test FastData.Tests
 
-# Run specific test class
+# 运行特定测试类
 dotnet test FastData.Tests --filter "ShardingTests"
 
-# Run with verbose output
+# 运行详细输出
 dotnet test FastData.Tests --verbosity normal
 
-# Run for specific framework
+# 运行特定框架
 dotnet test FastData.Tests --framework net10.0
 ```
 
-## Current Test Results
+## 当前测试结果
 
 ```
-Passed!  - Failed: 0, Passed: 162, Skipped: 0, Total: 162
+Passed!  - Failed: 0, Passed: 224, Skipped: 1, Total: 225
 ```
 
-## Test Coverage
+## 测试覆盖
 
-### Sharding Tests
-- Time sharding with daily/weekly/monthly granularity
-- Hash sharding with modulo/consistent/CRC32 algorithms
-- List sharding with value mapping
-- Composite sharding (time + hash combination)
-- Query frequency sharding with hot data detection
-- Cold data migration to separate tables
-- ShardingManager lifecycle (configure/enable/disable/reset)
+### 分表测试
+- 时间分表：日/周/月粒度
+- 哈希分表：取模/一致性/CRC32 算法
+- 列表分表：值映射
+- 组合分表：时间+哈希组合
+- 查询频率分表：热数据检测
+- 冷数据迁移到独立表
+- ShardingManager 生命周期（配置/启用/禁用/重置）
 
-### Query Tests
-- AND/OR condition chaining
-- Complex SQL expression building
-- Where<T> predicate composition
-- Dynamic condition combination
+### 查询测试
+- AND/OR 条件链式调用
+- 复杂 SQL 表达式构建
+- Where<T> 谓词组合
+- 动态条件组合
 
-### Pagination Tests
-- Page calculation accuracy
-- HasPrevious/HasNext flags
-- Select projection with pagination
-- Dictionary result pagination
+### 分页测试
+- 页码计算准确性
+- HasPrevious/HasNext 标志
+- 带投影的分页查询
+- 字典结果分页
 
-## Dependencies
+### 配置测试
+- 数据库配置加载
+- 同步选项配置
+- 配置管理器生命周期
+
+### 序列化测试
+- DataRow 序列化/反序列化
+- 主键配置服务
+- 时间范围计算
+
+## 依赖
 
 - xUnit 2.6.2
 - Microsoft.NET.Test.Sdk 17.8.0
 - FastData
 - FastUntility
 
-## License
+## 许可证
 
 MIT License - see [LICENSE](../LICENSE) for details.

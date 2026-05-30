@@ -5,6 +5,7 @@ namespace FastData.Property
     /// <summary>
     /// 字段属性
     /// </summary>
+    [AttributeUsage(AttributeTargets.Property)]
     public class ColumnAttribute : Attribute
     {
         /// <summary>
@@ -46,5 +47,23 @@ namespace FastData.Property
         /// 备注
         /// </summary>
         public string Comments { get; set; }
+
+        /// <summary>
+        /// 列属性构造函数
+        /// </summary>
+        public ColumnAttribute()
+        {
+        }
+
+        /// <summary>
+        /// 列属性构造函数
+        /// </summary>
+        /// <param name="isNull">是否允许为空</param>
+        /// <param name="comments">字段注释</param>
+        public ColumnAttribute(bool isNull = true, string comments = null)
+        {
+            IsNull = isNull;
+            Comments = comments;
+        }
     }
 }

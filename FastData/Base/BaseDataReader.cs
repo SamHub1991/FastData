@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Data.Common;
 using FastData.Property;
-using FastData.Type;
+using FastData.DbTypes;
 using FastData.Model;
 using FastData.CacheModel;
 using System.Linq;

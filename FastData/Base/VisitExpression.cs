@@ -5,7 +5,7 @@ using System.Linq.Expressions;
 using System.Threading.Tasks;
 using System.Data.Common;
 using FastUntility.Base;
-using FastData.Type;
+using FastData.DbTypes;
 using FastData.Model;
 using System.Data;
 using System.Linq;
@@ -358,7 +358,7 @@ namespace FastData.Base
                     }
                     catch (Exception ex)
                     {
-                        DbLog.LogException(true, "", ex, "RouteExpressionHandler", "");
+                        DbLog.LogException(true, DataDbType.SqlServer, ex, "RouteExpressionHandler", "");
                         return "";
                     }
                 }

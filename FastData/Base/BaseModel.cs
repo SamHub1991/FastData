@@ -7,7 +7,7 @@ using System.Data.Common;
 using System.Reflection;
 using FastData.Property;
 using FastData.Model;
-using FastData.Type;
+using FastData.DbTypes;
 using System.Linq;
 
 namespace FastData.Base
@@ -159,7 +159,7 @@ namespace FastData.Base
                 if (config != null && config.SqlErrorType?.ToLower() == SqlErrorType.Db)
                     DbLogTable.LogException(config, ex, "InsertToSql<T>", result.Sql);
                 else
-                    DbLog.LogException(config?.IsOutError ?? false, config?.DbType ?? "Unknown", ex, "InsertToSql<T>", result.Sql);
+                    DbLog.LogException(config?.IsOutError ?? false, config?.DbType ?? DataDbType.SqlServer, ex, "InsertToSql<T>", result.Sql);
 
                 result.IsSuccess = false;
                 result.Sql = ex.Message;

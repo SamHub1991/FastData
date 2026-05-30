@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Linq.Expressions;
 using FastData.Property;
-using FastData.Type;
+using FastData.DbTypes;
 using FastData.Model;
 using System.Linq;
 

@@ -1,138 +1,141 @@
 # FastData.Demo
 
-FastData.Demo is an ASP.NET Core Web API application demonstrating the full FastData technology stack -- Repository pattern, Redis caching, data synchronization, message queues, pagination, and table sharding.
+FastData.Demo 是 ASP.NET Core Web API 示例程序，演示 FastData 技术栈的完整使用：Repository 模式、Redis 缓存、数据同步、消息队列、分页和分表。
 
-## Target Framework
+## 目标框架
 
 `net10.0` (.NET 10)
 
-## Features
+## 功能特性
 
-- **Repository Pattern**: IFastRepository with read/write separation
-- **Redis Caching**: Distributed cache with TTL support
-- **Data Sync**: Background data synchronization
-- **Message Queues**: ReliableQueue and Stream with FastWrite/FastRead chainable API
-- **Pagination**: `PaginationResult<T>` with `ToPagination()` method
-- **Table Sharding**: Time/Hash/List/Composite/QueryFrequency strategies
-- **Swagger UI**: Interactive API documentation
+- **FastDataClient**: 统一门面，整合所有功能
+- **Repository 模式**: IFastRepository 读写分离
+- **Redis 缓存**: 分布式缓存，支持 TTL
+- **数据同步**: 后台数据同步
+- **消息队列**: ReliableQueue 和 Stream，使用链式 API
+- **分页查询**: `PaginationResult<T>` 和 `ToPage()` 方法
+- **分表**: 时间/哈希/列表/组合/查询频率策略
+- **Swagger UI**: 交互式 API 文档
 
-## API Endpoints
+## API 端点
 
 ### Users
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/users` | Get all users |
-| `GET` | `/api/users/{id}` | Get user by ID (cached) |
-| `GET` | `/api/users/active` | Get active users (cached) |
-| `GET` | `/api/users/department/{dept}` | Get users by department |
-| `GET` | `/api/users/paged` | Paginated user list |
-| `GET` | `/api/users/search` | Search with dynamic Where<T> |
-| `POST` | `/api/users` | Create user |
-| `PUT` | `/api/users/{id}` | Update user |
-| `DELETE` | `/api/users/{id}` | Delete user |
+| 方法 | 端点 | 说明 |
+|------|------|------|
+| `GET` | `/api/users` | 获取所有用户 |
+| `GET` | `/api/users/{id}` | 根据 ID 获取用户（缓存） |
+| `GET` | `/api/users/active` | 获取活跃用户（缓存） |
+| `GET` | `/api/users/department/{dept}` | 根据部门获取用户 |
+| `GET` | `/api/users/paged` | 分页用户列表 |
+| `GET` | `/api/users/search` | 动态 Where<T> 搜索 |
+| `POST` | `/api/users` | 创建用户 |
+| `PUT` | `/api/users/{id}` | 更新用户 |
+| `DELETE` | `/api/users/{id}` | 删除用户 |
 
 ### Orders
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/orders` | Get all orders |
-| `GET` | `/api/orders/{id}` | Get order by ID (cached) |
-| `GET` | `/api/orders/user/{userId}` | Get orders by user |
-| `POST` | `/api/orders` | Create order |
-| `PUT` | `/api/orders/{id}/status` | Update order status |
+| 方法 | 端点 | 说明 |
+|------|------|------|
+| `GET` | `/api/orders` | 获取所有订单 |
+| `GET` | `/api/orders/{id}` | 根据 ID 获取订单（缓存） |
+| `GET` | `/api/orders/user/{userId}` | 根据用户获取订单 |
+| `POST` | `/api/orders` | 创建订单 |
+| `PUT` | `/api/orders/{id}/status` | 更新订单状态 |
 
 ### Sync
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/sync/all` | Sync all tables |
-| `POST` | `/api/sync/users` | Sync users table |
-| `POST` | `/api/sync/orders` | Sync orders table |
+| 方法 | 端点 | 说明 |
+|------|------|------|
+| `POST` | `/api/sync/all` | 同步所有表 |
+| `POST` | `/api/sync/users` | 同步用户表 |
+| `POST` | `/api/sync/orders` | 同步订单表 |
 
 ### Pagination
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/pagination/users` | Paginated users |
-| `POST` | `/api/pagination/users/search` | Paginated search |
-| `GET` | `/api/pagination/users/department/{dept}` | Department pagination |
-| `GET` | `/api/pagination/users/async` | Async pagination |
-| `GET` | `/api/pagination/users/dictionary` | Dictionary pagination |
+| 方法 | 端点 | 说明 |
+|------|------|------|
+| `GET` | `/api/pagination/users` | 分页用户 |
+| `POST` | `/api/pagination/users/search` | 分页搜索 |
+| `GET` | `/api/pagination/users/department/{dept}` | 部门分页 |
+| `GET` | `/api/pagination/users/async` | 异步分页 |
+| `GET` | `/api/pagination/users/dictionary` | 字典分页 |
 
 ### Sharding
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/sharding/init` | Initialize sharding tables |
-| `POST` | `/api/sharding/insert-data` | Insert test data |
-| `POST` | `/api/sharding/time/configure` | Configure time sharding |
-| `GET` | `/api/sharding/time/query` | Query time-sharded data |
-| `POST` | `/api/sharding/hash/configure` | Configure hash sharding |
-| `GET` | `/api/sharding/hash/query` | Query hash-sharded data |
-| `POST` | `/api/sharding/list/configure` | Configure list sharding |
-| `GET` | `/api/sharding/list/query` | Query list-sharded data |
-| `POST` | `/api/sharding/frequency/configure` | Configure frequency sharding |
-| `POST` | `/api/sharding/frequency/record` | Record query frequency |
-| `POST` | `/api/sharding/frequency/simulate` | Simulate queries |
-| `GET` | `/api/sharding/frequency/hot` | Get hot data values |
-| `POST` | `/api/sharding/sync` | Sync sharding data |
-| `GET` | `/api/sharding/stats` | Get sharding statistics |
+| 方法 | 端点 | 说明 |
+|------|------|------|
+| `POST` | `/api/sharding/init` | 初始化分表 |
+| `POST` | `/api/sharding/insert-data` | 插入测试数据 |
+| `POST` | `/api/sharding/time/configure` | 配置时间分表 |
+| `GET` | `/api/sharding/time/query` | 查询时间分表数据 |
+| `POST` | `/api/sharding/hash/configure` | 配置哈希分表 |
+| `GET` | `/api/sharding/hash/query` | 查询哈希分表数据 |
+| `POST` | `/api/sharding/list/configure` | 配置列表分表 |
+| `GET` | `/api/sharding/list/query` | 查询列表分表数据 |
+| `POST` | `/api/sharding/frequency/configure` | 配置查询频率分表 |
+| `POST` | `/api/sharding/frequency/record` | 记录查询频率 |
+| `POST` | `/api/sharding/frequency/simulate` | 模拟查询 |
+| `GET` | `/api/sharding/frequency/hot` | 获取热数据值 |
+| `POST` | `/api/sharding/sync` | 同步分表数据 |
+| `GET` | `/api/sharding/stats` | 获取分表统计 |
 
 ### Message Queue
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/mq/demo/reliable` | ReliableQueue demo |
-| `POST` | `/api/mq/demo/stream` | Stream demo |
-| `POST` | `/api/mq/demo/write-queue` | FastWrite queue demo |
-| `POST` | `/api/mq/demo/read-queue` | FastRead queue demo |
-| `GET` | `/api/mq/status/{topic}` | Get queue status |
+| 方法 | 端点 | 说明 |
+|------|------|------|
+| `POST` | `/api/mq/demo/reliable` | ReliableQueue 示例 |
+| `POST` | `/api/mq/demo/stream` | Stream 示例 |
+| `POST` | `/api/mq/demo/write-queue` | 写入队列示例 |
+| `POST` | `/api/mq/demo/read-queue` | 读取队列示例 |
+| `GET` | `/api/mq/status/{topic}` | 获取队列状态 |
 
 ### Health
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/health` | Health check |
-| `GET` | `/` | Service info |
+| 方法 | 端点 | 说明 |
+|------|------|------|
+| `GET` | `/api/health` | 健康检查 |
+| `GET` | `/` | 服务信息 |
 
-## Configuration
+## 配置
 
 ### appsettings.json
 ```json
 {
-  "ConnectionStrings": {
-    "SqlServer": "Server=localhost;Database=FastDataDemo;Trusted_Connection=true;",
-    "MySql": "Server=localhost;Database=FastDataDemo;Uid=root;Pwd=;",
-    "Sqlite": "Data Source=FastDataDemo.db"
+  "DataConfig": {
+    "Default": "DefaultDb",
+    "Connections": [
+      {
+        "Provider": "SqlServer",
+        "Key": "DefaultDb",
+        "ConnStr": "Server=.;Database=FastDataDemo;Trusted_Connection=true;"
+      }
+    ]
   },
   "Redis": {
     "Server": "localhost:6379",
     "Db": "0"
-  },
-  "Sharding": {
-    "DefaultConnectionString": "Server=localhost;Database=FastDataDemo;Trusted_Connection=true;"
   }
 }
 ```
 
-## Running
+## 运行
 
 ```bash
-# Run the demo
+# 运行示例
 dotnet run --project FastData.Demo --urls "http://0.0.0.0:5000"
 
-# Access Swagger UI
+# 访问 Swagger UI
 # http://localhost:5000/swagger
 ```
 
-## Building
+## 构建
 
 ```bash
 dotnet build FastData.Demo
 ```
 
-## Dependencies
+## 依赖
 
 - FastData
 - FastRedis
@@ -141,6 +144,6 @@ dotnet build FastData.Demo
 - Swashbuckle.AspNetCore 6.5.0
 - Microsoft.Data.SqlClient 5.2.0
 
-## License
+## 许可证
 
 MIT License - see [LICENSE](../LICENSE) for details.

@@ -11,8 +11,40 @@ using FastUntility.Page;
 namespace FastData
 {
     /// <summary>
-    /// 分表读取操作助手
-    /// 提供分表查询功能
+    /// FastData 分片读取操作助手（静态方法）
+    /// 
+    /// 职责：
+    /// 1. 分片表查询（根据分片策略自动路由到对应的表）
+    /// 2. 分片分页查询
+    /// 3. 合并多个分片表的查询结果
+    /// 
+    /// 使用示例：
+    /// <code>
+    /// // 分片查询（自动路由到对应的分片表）
+    /// var results = ShardingReadHelper.Query&lt;Order&gt;(
+    ///     predicate: o =&gt; o.CreateTime &gt; DateTime.Now.AddMonths(-3),
+    ///     queryParams: new Dictionary&lt;string, object&gt; { { "CreateTime", DateTime.Now.AddMonths(-3) } },
+    ///     key: "db1"
+    /// );
+    /// 
+    /// // 分片分页查询
+    /// var page = ShardingReadHelper.QueryPage&lt;Order&gt;(
+    ///     pModel: new PageModel { PageIndex = 1, PageSize = 10 },
+    ///     predicate: o =&gt; o.CreateTime &gt; DateTime.Now.AddMonths(-3),
+    ///     queryParams: new Dictionary&lt;string, object&gt; { { "CreateTime", DateTime.Now.AddMonths(-3) } },
+    ///     key: "db1"
+    /// );
+    /// 
+    /// // 推荐使用 FastDataClient 代替
+    /// var client = new FastDataClient("db1");
+    /// var results = client.ShardQuery&lt;Order&gt;(o =&gt; o.CreateTime &gt; DateTime.Now.AddMonths(-3));
+    /// </code>
+    /// 
+    /// 相关类：
+    /// - ShardingWriteHelper: 分片写入操作
+    /// - FastDataClient: 统一门面（推荐，整合所有功能）
+    /// - ShardingManager: 分片管理器
+    /// - IShardingStrategy: 分片策略接口
     /// </summary>
     public static class ShardingReadHelper
     {
@@ -45,7 +77,7 @@ namespace FastData
                     var query = new DataQuery();
                     query = query.Where<T>(predicate);
                     var results = db.GetList<T>(query);
-                    allResults.AddRange(results.list);
+                    allResults.AddRange(results.List);
                 }
             }
 
@@ -85,7 +117,7 @@ namespace FastData
                     var query = new DataQuery();
                     query = query.Where<T>(predicate);
                     var results = db.GetList<T>(query);
-                    allResults.AddRange(results.list);
+                    allResults.AddRange(results.List);
                 }
             }
 
@@ -108,8 +140,45 @@ namespace FastData
     }
 
     /// <summary>
-    /// 分表写入操作助手
-    /// 提供分表写入功能
+    /// FastData 分片写入操作助手（静态方法）
+    /// 
+    /// 职责：
+    /// 1. 分片表数据添加（根据分片策略自动路由到对应的表）
+    /// 2. 分片表批量添加
+    /// 3. 分片表数据删除
+    /// 4. 分片表数据更新
+    /// 
+    /// 使用示例：
+    /// <code>
+    /// // 分片添加
+    /// var result = ShardingWriteHelper.Add&lt;Order&gt;(order, key: "db1");
+    /// 
+    /// // 分片批量添加
+    /// var result = ShardingWriteHelper.AddList&lt;Order&gt;(orders, key: "db1");
+    /// 
+    /// // 分片删除
+    /// var result = ShardingWriteHelper.Delete&lt;Order&gt;(
+    ///     predicate: o =&gt; o.CreateTime &lt; DateTime.Now.AddYears(-1),
+    ///     key: "db1"
+    /// );
+    /// 
+    /// // 分片更新
+    /// var result = ShardingWriteHelper.Update&lt;Order&gt;(
+    ///     entity: new Order { Status = "Completed" },
+    ///     predicate: o =&gt; o.Id == orderId,
+    ///     key: "db1"
+    /// );
+    /// 
+    /// // 推荐使用 FastDataClient 代替
+    /// var client = new FastDataClient("db1");
+    /// var result = client.ShardAdd(order);
+    /// </code>
+    /// 
+    /// 相关类：
+    /// - ShardingReadHelper: 分片读取操作
+    /// - FastDataClient: 统一门面（推荐，整合所有功能）
+    /// - ShardingManager: 分片管理器
+    /// - IShardingStrategy: 分片策略接口
     /// </summary>
     public static class ShardingWriteHelper
     {
@@ -130,7 +199,7 @@ namespace FastData
             key = key ?? FastDb.CurrentKey;
             using (var db = new DataContext(key))
             {
-                return db.Add<T>(entity, false).writeReturn;
+                return db.Add<T>(entity, false).WriteReturn;
             }
         }
 
@@ -151,7 +220,7 @@ namespace FastData
             key = key ?? FastDb.CurrentKey;
             using (var db = new DataContext(key))
             {
-                return db.AddList<T>(entities, false, true).writeReturn;
+                return db.AddList<T>(entities, false, true).WriteReturn;
             }
         }
 
@@ -181,7 +250,7 @@ namespace FastData
                 key = key ?? FastDb.CurrentKey;
                 using (var db = new DataContext(key))
                 {
-                    lastResult = db.Delete<T>(predicate).writeReturn;
+                    lastResult = db.Delete<T>(predicate).WriteReturn;
                 }
             }
 
@@ -207,7 +276,7 @@ namespace FastData
             key = key ?? FastDb.CurrentKey;
             using (var db = new DataContext(key))
             {
-                return db.Update<T>(entity, predicate, field).writeReturn;
+                return db.Update<T>(entity, predicate, field).WriteReturn;
             }
         }
     }

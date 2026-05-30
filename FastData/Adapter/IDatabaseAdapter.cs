@@ -1,8 +1,10 @@
+using FastData.DbTypes;
+
 namespace FastData.Adapter
 {
     public interface IDatabaseAdapter
     {
-        string DbType { get; }
+        DataDbType DbType { get; }
 
         string ProviderName { get; }
 

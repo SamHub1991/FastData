@@ -1,10 +1,11 @@
 ﻿using System;
+using FastData.DbTypes;
 
 namespace FastData.Aop
 {
     public class ExceptionContext
     {
-        public string dbType { get; set; }
+        public DataDbType dbType { get; set; }
 
         public AopType type { get; set; }
 

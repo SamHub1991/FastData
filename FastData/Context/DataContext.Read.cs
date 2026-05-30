@@ -7,7 +7,7 @@ using FastUntility.Page;
 using FastUntility.Base;
 using FastData.Base;
 using FastData.Model;
-using FastData.Type;
+using FastData.DbTypes;
 using FastData.Config;
 using System.Linq.Expressions;
 using System.Data;
@@ -39,7 +39,7 @@ namespace FastData.Context
                 
                 BuildBaseSelectQuery(item, param, sql);
 
-                result.sql = ParameterToSql.ObjectParamToSql(param, sql.ToString(), item.Config);
+                result.Sql = ParameterToSql.ObjectParamToSql(param, sql.ToString(), item.Config);
 
                 Dispose(cmd);
 
@@ -54,13 +54,13 @@ namespace FastData.Context
 
                 if (item.Take == 1)
                 {
-                    result.item = BaseDataReader.ToList<T>(dr, item.Config, item.AsName).FirstOrDefault<T>() ?? new T();
-                    data = result.item;
+                    result.Item = BaseDataReader.ToList<T>(dr, item.Config, item.AsName).FirstOrDefault<T>() ?? new T();
+                    data = result.Item;
                 }
                 else
                 {
-                    result.list = BaseDataReader.ToList<T>(dr, item.Config, item.AsName);
-                    data = result.list;
+                    result.List = BaseDataReader.ToList<T>(dr, item.Config, item.AsName);
+                    data = result.List;
                 }
 
                 dr.Close();
@@ -77,7 +77,7 @@ namespace FastData.Context
                 if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
                     DbLogTable.LogException<T>(config, ex, "GetList<T>", "");
                 else
-                    DbLog.LogException<T>(item.Config.IsOutError, item.Config.DbType, ex, "GetList<T>", result.sql);
+                    DbLog.LogException<T>(item.Config.IsOutError, item.Config.DbType, ex, "GetList<T>", result.Sql);
                 return result;
             }
         }
@@ -117,18 +117,18 @@ namespace FastData.Context
 
                     Dispose(cmd);
                     var dr = BaseExecute.ToPageDataReader(item, cmd, pModel, ref sql);
-                    result.pageResult.list = BaseDataReader.ToList<T>(dr, item.Config, item.AsName);
-                    result.sql = sql;
+                    result.PageResult.list = BaseDataReader.ToList<T>(dr, item.Config, item.AsName);
+                    result.Sql = sql;
 
-                    AopAfter(item.Table, sql.ToString(), param, config, true, AopType.Query_Page_Lambda_Model, result.pageResult.list);
+                    AopAfter(item.Table, sql.ToString(), param, config, true, AopType.Query_Page_Lambda_Model, result.PageResult.list);
 
                     dr.Close();
                     dr.Dispose();
                 }
                 else
-                    result.pageResult.list = new List<T>();
+                    result.PageResult.list = new List<T>();
 
-                result.pageResult.pModel = pModel;
+                result.PageResult.pModel = pModel;
             }
             catch (Exception ex)
             {
@@ -137,7 +137,7 @@ namespace FastData.Context
                 if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
                     DbLogTable.LogException<T>(config, ex, "GetPage<T>", "");
                 else
-                    DbLog.LogException<T>(item.Config.IsOutError, item.Config.DbType, ex, "GetPage<T>", result.sql);
+                    DbLog.LogException<T>(item.Config.IsOutError, item.Config.DbType, ex, "GetPage<T>", result.Sql);
             }
 
             return result;
@@ -305,26 +305,26 @@ namespace FastData.Context
                     Dispose(cmd);
                     var dr = BaseExecute.ToPageDataReaderSql(param, cmd, pModel, sql, config, ref pageSql);
 
-                    result.pageResult.list = BaseDataReader.ToList<T>(dr, config, null);
-                    result.sql = string.Format("count:{0},page:{1}", countSql, pageSql);
+                    result.PageResult.list = BaseDataReader.ToList<T>(dr, config, null);
+                    result.Sql = string.Format("count:{0},page:{1}", countSql, pageSql);
 
                     dr.Close();
                     dr.Dispose();
 
                     if (isAop)
-                        AopAfter(null, sql.ToString(), param?.ToList(), config, true, AopType.Query_Page_Lambda_Model, result.pageResult.list);
+                        AopAfter(null, sql.ToString(), param?.ToList(), config, true, AopType.Query_Page_Lambda_Model, result.PageResult.list);
                 }
 
-                result.pageResult.pModel = pModel;
+                result.PageResult.pModel = pModel;
             }
             catch (Exception ex)
             {
                 AopException(ex, "to Page tableName:" + typeof(T).Name,config, AopType.Query_Page_Lambda_Model);
 
                 if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
-                    DbLogTable.LogException(config, ex, "GetPageSql", result.sql);
+                    DbLogTable.LogException(config, ex, "GetPageSql", result.Sql);
                 else
-                    DbLog.LogException(config.IsOutError, config.DbType, ex, "GetPageSql", result.sql);
+                    DbLog.LogException(config.IsOutError, config.DbType, ex, "GetPageSql", result.Sql);
             }
 
             return result;
@@ -470,9 +470,9 @@ namespace FastData.Context
             try
             {
                 if (param != null)
-                    result.sql = ParameterToSql.ObjectParamToSql(param.ToList(), sql, config);
+                    result.Sql = ParameterToSql.ObjectParamToSql(param.ToList(), sql, config);
                 else
-                    result.sql = sql;
+                    result.Sql = sql;
 
                 Dispose(cmd);
 
@@ -485,12 +485,12 @@ namespace FastData.Context
                     conn.Open();
                 var dr = BaseExecute.ToDataReader(cmd, sql);
 
-                result.list = BaseDataReader.ToList<T>(dr, config);
+                result.List = BaseDataReader.ToList<T>(dr, config);
 
                 dr.Close();
                 dr.Dispose();
 
-                AopAfter(null, sql.ToString(), param?.ToList(), config, true, AopType.Execute_Sql_Model, result.list);
+                AopAfter(null, sql.ToString(), param?.ToList(), config, true, AopType.Execute_Sql_Model, result.List);
             }
             catch (Exception ex)
             {
@@ -499,7 +499,7 @@ namespace FastData.Context
                 if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
                     DbLogTable.LogException<T>(config, ex, "ExecuteSql<T>", "");
                 else
-                    DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "ExecuteSql<T>", result.sql);
+                    DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "ExecuteSql<T>", result.Sql);
             }
 
             return result;
@@ -536,20 +536,20 @@ namespace FastData.Context
                 var dr = BaseExecute.ToDataReader(cmd, sql);
 
                 result.DicList = BaseJson.DataReaderToDic(dr, config.DbType == DataDbType.Oracle);
-                result.writeReturn.IsSuccess = true;
+                result.WriteReturn.IsSuccess = true;
 
                 dr.Close();
                 dr.Dispose();
 
                 if (isAop)
-                    AopAfter(null, sql.ToString(), param?.ToList(), config, true, AopType.Execute_Sql_Dic, result.writeReturn.IsSuccess);
+                    AopAfter(null, sql.ToString(), param?.ToList(), config, true, AopType.Execute_Sql_Dic, result.WriteReturn.IsSuccess);
             }
             catch (Exception ex)
             {
                 AopException(ex, "Execute Sql",config, AopType.Execute_Sql_Dic);
 
-                result.writeReturn.IsSuccess = false;
-                result.writeReturn.Message = ex.Message;
+                result.WriteReturn.IsSuccess = false;
+                result.WriteReturn.Message = ex.Message;
 
                 if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
                     DbLogTable.LogException(config, ex, "ExecuteSqlList", result.Sql);
@@ -722,22 +722,23 @@ namespace FastData.Context
             if (item.Take == 0)
                 return;
 
-            switch (item.Config.DbType)
+            if (item.Config.DbType == DataDbType.SqlServer)
             {
-                case DataDbType.SqlServer:
-                    // SQL Server 的 TOP 已在主查询中处理
-                    break;
-                case DataDbType.Oracle:
-                    sql.AppendFormat(" and rownum <={0}", item.Take);
-                    break;
-                case DataDbType.DB2:
-                    sql.AppendFormat(" and fetch first {0} rows only", item.Take);
-                    break;
-                case DataDbType.MySql:
-                case DataDbType.PostgreSql:
-                case DataDbType.SQLite:
-                    sql.AppendFormat(" limit {0}", item.Take);
-                    break;
+                // SQL Server 的 TOP 已在主查询中处理
+            }
+            else if (item.Config.DbType == DataDbType.Oracle)
+            {
+                sql.AppendFormat(" and rownum <={0}", item.Take);
+            }
+            else if (item.Config.DbType == DataDbType.DB2)
+            {
+                sql.AppendFormat(" and fetch first {0} rows only", item.Take);
+            }
+            else if (item.Config.DbType == DataDbType.MySql || 
+                     item.Config.DbType == DataDbType.PostgreSql || 
+                     item.Config.DbType == DataDbType.SQLite)
+            {
+                sql.AppendFormat(" limit {0}", item.Take);
             }
         }
 

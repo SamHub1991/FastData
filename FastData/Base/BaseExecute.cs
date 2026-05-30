@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using System.Data;
 using System.Data.Common;
 using FastUntility.Page;
-using FastData.Type;
+using FastData.DbTypes;
 using FastData.Model;
 using System.Linq.Expressions;
 using FastData.Property;

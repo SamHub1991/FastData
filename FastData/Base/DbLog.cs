@@ -1,5 +1,6 @@
 ﻿using System;
 using FastUntility.Base;
+using FastData.DbTypes;
 
 namespace FastData.Base
 {
@@ -13,7 +14,7 @@ namespace FastData.Base
         /// <param name="IsAsyc"></param>
         /// <param name="dbType"></param>
         /// <param name="expContent"></param>
-        public static void LogException<T>(bool IsOutError, string dbType, Exception ex, string CurrentMethod, string sql)
+        public static void LogException<T>(bool IsOutError, DataDbType dbType, Exception ex, string CurrentMethod, string sql)
         {
             if (IsOutError)
             {
@@ -36,7 +37,7 @@ namespace FastData.Base
         /// <param name="IsAsyc"></param>
         /// <param name="dbType"></param>
         /// <param name="expContent"></param>
-        public static void LogException(bool IsOutError, string dbType, Exception ex, string CurrentMethod, string sql)
+        public static void LogException(bool IsOutError, DataDbType dbType, Exception ex, string CurrentMethod, string sql)
         {
             if (IsOutError)
             {
@@ -58,7 +59,7 @@ namespace FastData.Base
         /// <param name="IsAsyc"></param>
         /// <param name="sql"></param>
         /// <param name="dbType"></param>
-        public static void LogSql(bool IsOutSql, string sql, string dbType, double time, string type = null)
+        public static void LogSql(bool IsOutSql, string sql, DataDbType dbType, double time, string type = null)
         {
             // Check global SQL log setting first, then per-database setting
             if (FastDb.EnableSqlLog || IsOutSql)
@@ -79,7 +80,7 @@ namespace FastData.Base
         /// <param name="IsAsyc"></param>
         /// <param name="sql"></param>
         /// <param name="dbType"></param>
-        public static void LogSql(bool IsOutSql, string sql, string dbType)
+        public static void LogSql(bool IsOutSql, string sql, DataDbType dbType)
         {
             // Check global SQL log setting first, then per-database setting
             if (FastDb.EnableSqlLog || IsOutSql)

@@ -19,7 +19,60 @@ using FastData.Queue;
 namespace FastData
 {
     /// <summary>
-    /// orm查询
+    /// FastData 读取操作（静态方法）
+    /// 
+    /// 职责：
+    /// 1. LINQ 查询构建（Query / Where / And / Or / Like / In / Between）
+    /// 2. 多表联查（LeftJoin / RightJoin / InnerJoin）
+    /// 3. 查询结果转换（ToList / ToItem / ToCount / ToPage / ToJson）
+    /// 4. 原生 SQL 查询（ExecuteSql）
+    /// 5. 延迟加载查询（ToLazyList / ToLazyItem）
+    /// 
+    /// 使用示例：
+    /// <code>
+    /// // ========== LINQ 查询 ==========
+    /// 
+    /// // 简单查询
+    /// var users = FastRead.Query&lt;User&gt;(u =&gt; u.Age &gt; 18).ToList();
+    /// 
+    /// // 带条件、排序、分页
+    /// var page = FastRead.Query&lt;User&gt;(u =&gt; u.Age &gt; 18)
+    ///     .Where&lt;User&gt;(u =&gt; u.Name.Contains("张"))
+    ///     .OrderBy&lt;User&gt;(u =&gt; u.CreateTime, isDesc: true)
+    ///     .Take(100)
+    ///     .ToPage(new PageModel { PageIndex = 1, PageSize = 10 });
+    /// 
+    /// // 指定字段查询
+    /// var users = FastRead.Query&lt;User&gt;(u =&gt; u.Age &gt; 18, u =&gt; new { u.Id, u.Name }).ToList();
+    /// 
+    /// // 多表联查
+    /// var list = FastRead.Query&lt;Order&gt;(o =&gt; true)
+    ///     .InnerJoin&lt;Order, User&gt;((o, u) =&gt; o.UserId == u.Id)
+    ///     .Select&lt;Order, dynamic&gt;((o, u) =&gt; new { Order = o, UserName = u.Name })
+    ///     .ToList();
+    /// 
+    /// // ========== 原生 SQL ==========
+    /// 
+    /// var param = new[] { new SqlParameter("@Age", 18) };
+    /// var users = FastRead.ExecuteSql&lt;User&gt;("SELECT * FROM Users WHERE Age &gt; @Age", param);
+    /// var dicts = FastRead.ExecuteSql("SELECT * FROM Users WHERE Age &gt; @Age", param);
+    /// 
+    /// // ========== 绑定 Key ==========
+    /// 
+    /// // 方式1：使用 Use 方法
+    /// var db1 = FastRead.Use("db1");
+    /// var users = db1.Query&lt;User&gt;(u =&gt; true).ToList();
+    /// 
+    /// // 方式2：使用 FastDataClient（推荐）
+    /// var client = new FastDataClient("db1");
+    /// var users = client.Query&lt;User&gt;(u =&gt; true).ToList();
+    /// </code>
+    /// 
+    /// 相关类：
+    /// - FastReadDb: 绑定 Key 的读取操作（实例方法）
+    /// - FastDataClient: 统一门面（推荐，整合所有功能）
+    /// - FastWrite: 写入操作
+    /// - FastMap: XML 映射操作
     /// </summary>
     public static class FastRead
     {
@@ -428,8 +481,8 @@ namespace FastData
                 item, db, isOutSql,
                 (ctx, q) => ctx.GetList<T>(q),
                 r => item.Predicate.Exists(a => a.IsSuccess == false),
-                r => r.list,
-                r => r.sql);
+                r => r.List,
+                r => r.Sql);
         }
 
         /// <summary>
@@ -438,7 +491,7 @@ namespace FastData
         /// <typeparam name="T"></typeparam>
         /// <param name="item"></param>
         /// <returns></returns>
-        public static Task<List<T>> ToListAsy<T>(this DataQuery item, DataContext db = null, bool isOutSql = false) where T : class, new()
+        public static Task<List<T>> ToListAsync<T>(this DataQuery item, DataContext db = null, bool isOutSql = false) where T : class, new()
         {
             return AsyncHelper.RunAsync(() => ToList<T>(item, db, isOutSql));
         }
@@ -460,7 +513,7 @@ namespace FastData
         /// <typeparam name="T"></typeparam>
         /// <param name="item"></param>
         /// <returns></returns>
-        public static Task<Lazy<List<T>>> ToLazyListAsy<T>(this DataQuery item, DataContext db = null, bool isOutSql = false) where T : class, new()
+        public static Task<Lazy<List<T>>> ToLazyListAsync<T>(this DataQuery item, DataContext db = null, bool isOutSql = false) where T : class, new()
         {
             return AsyncHelper.RunAsync(() => new Lazy<List<T>>(() => ToList<T>(item, db, isOutSql)));
         }
@@ -519,8 +572,8 @@ namespace FastData
                 item, db, isOutSql,
                 (ctx, q) => ctx.GetList<T>(q),
                 r => item.Predicate.Exists(a => a.IsSuccess == false),
-                r => r.item,
-                r => r.sql,
+                r => r.Item,
+                r => r.Sql,
                 () => item.Take = 1);
         }
 
@@ -530,7 +583,7 @@ namespace FastData
         /// <typeparam name="T"></typeparam>
         /// <param name="item"></param>
         /// <returns></returns>
-        public static Task<T> ToItemAsy<T>(this DataQuery item, DataContext db = null, bool isOutSql = false) where T : class, new()
+        public static Task<T> ToItemAsync<T>(this DataQuery item, DataContext db = null, bool isOutSql = false) where T : class, new()
         {
             return AsyncHelper.RunAsync(() => ToItem<T>(item, db, isOutSql));
         }
@@ -552,7 +605,7 @@ namespace FastData
         /// <typeparam name="T"></typeparam>
         /// <param name="item"></param>
         /// <returns></returns>
-        public static Task<Lazy<T>> ToLazyItemAsy<T>(this DataQuery item, DataContext db = null, bool isOutSql = false) where T : class, new()
+        public static Task<Lazy<T>> ToLazyItemAsync<T>(this DataQuery item, DataContext db = null, bool isOutSql = false) where T : class, new()
         {
             return AsyncHelper.RunAsync(() => AsyncHelper.ToLazy(() => ToItem<T>(item, db, isOutSql)));
         }
@@ -576,7 +629,7 @@ namespace FastData
         /// </summary>
         /// <param name="item"></param>
         /// <returns></returns>
-        public static Task<int> ToCountAsy<T, T1>(this DataQuery item, DataContext db = null, bool isOutSql = false)
+        public static Task<int> ToCountAsync<T, T1>(this DataQuery item, DataContext db = null, bool isOutSql = false)
         {
             return AsyncHelper.RunAsync(() => ToCount(item, db, isOutSql));
         }
@@ -595,7 +648,7 @@ namespace FastData
             var result = new DataReturn<T>();
 
             if (item.Predicate.Exists(a => a.IsSuccess == false))
-                return result.pageResult;
+                return result.PageResult;
 
             stopwatch.Start();
 
@@ -612,9 +665,9 @@ namespace FastData
             stopwatch.Stop();
 
             var shouldLog = item.IsSqlLogEnabled || FastDb.EnableSqlLog || item.Config.IsOutSql || isOutSql;
-            DbLog.LogSql(shouldLog, result.sql, item.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
+            DbLog.LogSql(shouldLog, result.Sql, item.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
-            return result.pageResult;
+            return result.PageResult;
         }
 
         /// <summary>
@@ -842,9 +895,9 @@ namespace FastData
             stopwatch.Stop();
 
             config.IsOutSql = config.IsOutSql || isOutSql;
-            DbLog.LogSql(config.IsOutSql, result.sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
+            DbLog.LogSql(config.IsOutSql, result.Sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
-            return result.list;
+            return result.List;
         }
 
         /// <summary>

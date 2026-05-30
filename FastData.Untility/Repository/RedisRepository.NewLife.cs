@@ -42,7 +42,7 @@ namespace FastRedis.Repository
             }
         }
 
-        public Task<bool> ExistsAsy(string key, int db = 0)
+        public Task<bool> ExistsAsync(string key, int db = 0)
         {
             return Task.FromResult(Exists(key, db));
         }
@@ -63,7 +63,7 @@ namespace FastRedis.Repository
             }
         }
 
-        public Task<bool> SetAsy<T>(string key, T model, int hours = 24 * 30 * 12, int db = 0)
+        public Task<bool> SetAsync<T>(string key, T model, int hours = 24 * 30 * 12, int db = 0)
         {
             return Task.FromResult(Set(key, model, hours, db));
         }
@@ -84,7 +84,7 @@ namespace FastRedis.Repository
             }
         }
 
-        public Task<bool> SetAsy(string key, string model, int hours = 24 * 30 * 12, int db = 0)
+        public Task<bool> SetAsync(string key, string model, int hours = 24 * 30 * 12, int db = 0)
         {
             return Task.FromResult(Set(key, model, hours, db));
         }
@@ -105,7 +105,7 @@ namespace FastRedis.Repository
             }
         }
 
-        public Task<bool> SetAsy(string key, string model, double Minutes, int db = 0)
+        public Task<bool> SetAsync(string key, string model, double Minutes, int db = 0)
         {
             return Task.FromResult(Set(key, model, Minutes, db));
         }
@@ -125,7 +125,7 @@ namespace FastRedis.Repository
             }
         }
 
-        public Task<string> GetAsy(string key, int db = 0)
+        public Task<string> GetAsync(string key, int db = 0)
         {
             return Task.FromResult(Get(key, db));
         }
@@ -148,7 +148,7 @@ namespace FastRedis.Repository
             }
         }
 
-        public Task<T> GetAsy<T>(string key, int db = 0) where T : class, new()
+        public Task<T> GetAsync<T>(string key, int db = 0) where T : class, new()
         {
             return Task.FromResult(Get<T>(key, db));
         }
@@ -169,7 +169,7 @@ namespace FastRedis.Repository
             }
         }
 
-        public Task<bool> RemoveAsy(string key, int db = 0)
+        public Task<bool> RemoveAsync(string key, int db = 0)
         {
             return Task.FromResult(Remove(key, db));
         }
@@ -188,7 +188,7 @@ namespace FastRedis.Repository
             }
         }
 
-        public Task<bool> SetDicAsy<T>(Dictionary<string, T> dic, int db = 0)
+        public Task<bool> SetDicAsync<T>(Dictionary<string, T> dic, int db = 0)
         {
             return Task.FromResult(SetDic(dic, db));
         }
@@ -206,7 +206,7 @@ namespace FastRedis.Repository
             }
         }
 
-        public Task<IDictionary<string, T>> GetDicAsy<T>(string[] keys, int db = 0) where T : class, new()
+        public Task<IDictionary<string, T>> GetDicAsync<T>(string[] keys, int db = 0) where T : class, new()
         {
             return Task.FromResult(GetDic<T>(keys, db));
         }
@@ -225,7 +225,7 @@ namespace FastRedis.Repository
             }
         }
 
-        public Task<bool> RemoveDicAsy(string[] keys, int db = 0)
+        public Task<bool> RemoveDicAsync(string[] keys, int db = 0)
         {
             return Task.FromResult(RemoveDic(keys, db));
         }
@@ -236,7 +236,7 @@ namespace FastRedis.Repository
             // NewLife.Redis pub/sub not supported in this version
         }
 
-        public void PublishAsy(string channel, string message, int db = 0)
+        public void PublishAsync(string channel, string message, int db = 0)
         {
             Publish(channel, message, db);
         }
@@ -246,7 +246,7 @@ namespace FastRedis.Repository
             // NewLife.Redis pub/sub not supported in this version
         }
 
-        public void ReceiveAsy(string channel, Action<string, string> message, Action<string> subscribe = null, Action<string> unSubscribe = null, int db = 0)
+        public void ReceiveAsync(string channel, Action<string, string> message, Action<string> subscribe = null, Action<string> unSubscribe = null, int db = 0)
         {
             Receive(channel, message, subscribe, unSubscribe, db);
         }
@@ -267,7 +267,7 @@ namespace FastRedis.Repository
             }
         }
 
-        public void SendAsy(string queueName, string message, int db = 0)
+        public void SendAsync(string queueName, string message, int db = 0)
         {
             Send(queueName, message, db);
         }
@@ -294,7 +294,7 @@ namespace FastRedis.Repository
             }
         }
 
-        public Task<string> ReceiveAsy(string queueName, int db = 0)
+        public Task<string> ReceiveAsync(string queueName, int db = 0)
         {
             return Task.FromResult(Receive(queueName, db));
         }

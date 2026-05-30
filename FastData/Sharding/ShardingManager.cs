@@ -12,8 +12,41 @@ using FastData.Sharding.Strategies;
 namespace FastData.Sharding
 {
     /// <summary>
-    /// 分表管理器
-    /// 负责分表策略的注册、配置和执行
+    /// FastData 分片管理器
+    /// 
+    /// 职责：
+    /// 1. 分片策略注册与管理
+    /// 2. 分片配置注册与查询
+    /// 3. 分片表名生成
+    /// 4. 分片类型枚举定义
+    /// 
+    /// 使用示例：
+    /// <code>
+    /// // 注册分片配置
+    /// ShardingManager.Register&lt;Order&gt;(new ShardingConfig
+    /// {
+    ///     ShardingType = ShardingType.Time,
+    ///     TableNameFormat = "Orders_{0:yyyyMM}",
+    ///     TimeField = "CreateTime",
+    ///     TimeRange = TimeRange.Month
+    /// });
+    /// 
+    /// // 检查是否启用分片
+    /// bool isEnabled = ShardingManager.IsShardingEnabled&lt;Order&gt;();
+    /// 
+    /// // 获取分片表名
+    /// var tableNames = ShardingManager.GetTableNames&lt;Order&gt;(queryParams);
+    /// </code>
+    /// 
+    /// 相关类：
+    /// - IShardingStrategy: 分片策略接口
+    /// - ShardingConfig: 分片配置
+    /// - TimeShardingStrategy: 时间分片策略
+    /// - HashShardingStrategy: 哈希分片策略
+    /// - ListShardingStrategy: 列表分片策略
+    /// - CompositeShardingStrategy: 组合分片策略
+    /// - ShardingReadHelper: 分片读取操作
+    /// - ShardingWriteHelper: 分片写入操作
     /// </summary>
     public class ShardingManager
     {

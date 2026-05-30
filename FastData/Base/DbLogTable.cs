@@ -1,7 +1,7 @@
 ﻿using FastData.Model;
 using System;
 using FastData.Context;
-using FastData.Type;
+using FastData.DbTypes;
 
 namespace FastData.Base
 {

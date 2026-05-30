@@ -32,15 +32,15 @@ namespace FastData.Repository
 
         public abstract T ToItem<T>(DataContext db = null, bool isOutSql = false) where T : class, new();
 
-        public abstract Task<T> ToItemAsy<T>(DataContext db = null, bool isOutSql = false) where T : class, new();
+        public abstract Task<T> ToItemAsync<T>(DataContext db = null, bool isOutSql = false) where T : class, new();
 
         public abstract Lazy<T> ToLazyItem<T>(DataContext db = null, bool isOutSql = false) where T : class, new();
 
-        public abstract Task<Lazy<T>> ToLazyItemAsy<T>(DataContext db = null, bool isOutSql = false) where T : class, new();
+        public abstract Task<Lazy<T>> ToLazyItemAsync<T>(DataContext db = null, bool isOutSql = false) where T : class, new();
 
         public abstract int ToCount(DataContext db = null, bool isOutSql = false);
 
-        public abstract Task<int> ToCountAsy<T, T1>(DataContext db = null, bool isOutSql = false);
+        public abstract Task<int> ToCountAsync<T, T1>(DataContext db = null, bool isOutSql = false);
 
         public abstract PageResult<T> ToPage<T>(PageModel pModel, DataContext db = null, bool isOutSql = false) where T : class, new();
 
@@ -84,10 +84,10 @@ namespace FastData.Repository
 
         public abstract List<T> ToList<T>(DataContext db = null, bool isOutSql = false) where T : class, new();
 
-        public abstract Task<List<T>> ToListAsy<T>(DataContext db = null, bool isOutSql = false) where T : class, new();
+        public abstract Task<List<T>> ToListAsync<T>(DataContext db = null, bool isOutSql = false) where T : class, new();
 
         public abstract Lazy<List<T>> ToLazyList<T>(DataContext db = null, bool isOutSql = false) where T : class, new();
 
-        public abstract Task<Lazy<List<T>>> ToLazyListAsy<T>(DataContext db = null, bool isOutSql = false) where T : class, new();
+        public abstract Task<Lazy<List<T>>> ToLazyListAsync<T>(DataContext db = null, bool isOutSql = false) where T : class, new();
     }
 }

@@ -324,9 +324,9 @@ namespace FastData.Tests.Integration
 
                 return new TestResult
                 {
-                    Success = result.writeReturn.IsSuccess,
+                    Success = result.WriteReturn.IsSuccess,
                     ElapsedMs = stopwatch.ElapsedMilliseconds,
-                    Details = result.writeReturn.IsSuccess ? "插入成功" : $"插入失败: {result.writeReturn.Message}"
+                    Details = result.WriteReturn.IsSuccess ? "插入成功" : $"插入失败: {result.WriteReturn.Message}"
                 };
             }
             catch (Exception ex)
@@ -349,7 +349,7 @@ namespace FastData.Tests.Integration
                 {
                     Success = true,
                     ElapsedMs = stopwatch.ElapsedMilliseconds,
-                    Details = $"查询成功，返回 {result.list.Count} 条记录"
+                    Details = $"查询成功，返回 {result.List.Count} 条记录"
                 };
             }
             catch (Exception ex)
@@ -368,13 +368,13 @@ namespace FastData.Tests.Integration
                 using var db = new DataContext(dbName);
                 var queryResult = db.GetList<PerfUser>(FastRead.Use(dbName).Query<PerfUser>(u => u.IsActive));
 
-                if (queryResult.list.Count == 0)
+                if (queryResult.List.Count == 0)
                 {
                     stopwatch.Stop();
                     return new TestResult { Success = false, ElapsedMs = stopwatch.ElapsedMilliseconds, Details = "没有可更新的记录" };
                 }
 
-                var user = queryResult.list[0];
+                var user = queryResult.List[0];
                 user.UserName = $"Updated_{DateTime.Now.Ticks}";
                 user.Email = $"updated_{DateTime.Now.Ticks}@example.com";
 
@@ -384,9 +384,9 @@ namespace FastData.Tests.Integration
 
                 return new TestResult
                 {
-                    Success = result.writeReturn.IsSuccess,
+                    Success = result.WriteReturn.IsSuccess,
                     ElapsedMs = stopwatch.ElapsedMilliseconds,
-                    Details = result.writeReturn.IsSuccess ? "更新成功" : $"更新失败: {result.writeReturn.Message}"
+                    Details = result.WriteReturn.IsSuccess ? "更新成功" : $"更新失败: {result.WriteReturn.Message}"
                 };
             }
             catch (Exception ex)
@@ -414,30 +414,30 @@ namespace FastData.Tests.Integration
                 using var db = new DataContext(dbName);
                 var insertResult = db.Add(entity);
 
-                if (!insertResult.writeReturn.IsSuccess)
+                if (!insertResult.WriteReturn.IsSuccess)
                 {
                     stopwatch.Stop();
-                    return new TestResult { Success = false, ElapsedMs = stopwatch.ElapsedMilliseconds, Details = $"插入失败: {insertResult.writeReturn.Message}" };
+                    return new TestResult { Success = false, ElapsedMs = stopwatch.ElapsedMilliseconds, Details = $"插入失败: {insertResult.WriteReturn.Message}" };
                 }
 
                 // 查询刚插入的记录
                 var queryResult = db.GetList<PerfUser>(FastRead.Use(dbName).Query<PerfUser>(u => u.UserName == entity.UserName));
 
-                if (queryResult.list.Count == 0)
+                if (queryResult.List.Count == 0)
                 {
                     stopwatch.Stop();
                     return new TestResult { Success = false, ElapsedMs = stopwatch.ElapsedMilliseconds, Details = "未找到要删除的记录" };
                 }
 
                 // 删除记录
-                var deleteResult = db.Delete<PerfUser>(u => u.Id == queryResult.list[0].Id);
+                var deleteResult = db.Delete<PerfUser>(u => u.Id == queryResult.List[0].Id);
                 stopwatch.Stop();
 
                 return new TestResult
                 {
-                    Success = deleteResult.writeReturn.IsSuccess,
+                    Success = deleteResult.WriteReturn.IsSuccess,
                     ElapsedMs = stopwatch.ElapsedMilliseconds,
-                    Details = deleteResult.writeReturn.IsSuccess ? "删除成功" : $"删除失败: {deleteResult.writeReturn.Message}"
+                    Details = deleteResult.WriteReturn.IsSuccess ? "删除成功" : $"删除失败: {deleteResult.WriteReturn.Message}"
                 };
             }
             catch (Exception ex)
@@ -465,7 +465,7 @@ namespace FastData.Tests.Integration
                 {
                     Success = true,
                     ElapsedMs = stopwatch.ElapsedMilliseconds,
-                    Details = $"链式查询成功，返回 {result.list.Count} 条记录"
+                    Details = $"链式查询成功，返回 {result.List.Count} 条记录"
                 };
             }
             catch (Exception ex)
@@ -527,9 +527,9 @@ namespace FastData.Tests.Integration
 
                 return new TestResult
                 {
-                    Success = result.writeReturn.IsSuccess,
+                    Success = result.WriteReturn.IsSuccess,
                     ElapsedMs = stopwatch.ElapsedMilliseconds,
-                    Details = result.writeReturn.IsSuccess ? $"批量插入 {entities.Count} 条成功" : $"批量插入失败: {result.writeReturn.Message}"
+                    Details = result.WriteReturn.IsSuccess ? $"批量插入 {entities.Count} 条成功" : $"批量插入失败: {result.WriteReturn.Message}"
                 };
             }
             catch (Exception ex)
@@ -568,7 +568,7 @@ namespace FastData.Tests.Integration
                 {
                     Success = true,
                     ElapsedMs = stopwatch.ElapsedMilliseconds,
-                    Details = $"Lambda查询成功: Where={whereResult.list.Count}, Or={orResult.list.Count}, Like={likeResult.list.Count}, In={inResult.list.Count}, Between={betweenResult.list.Count}"
+                    Details = $"Lambda查询成功: Where={whereResult.List.Count}, Or={orResult.List.Count}, Like={likeResult.List.Count}, In={inResult.List.Count}, Between={betweenResult.List.Count}"
                 };
             }
             catch (Exception ex)
@@ -600,7 +600,7 @@ namespace FastData.Tests.Integration
                 {
                     Success = true,
                     ElapsedMs = stopwatch.ElapsedMilliseconds,
-                    Details = $"排序分组成功: OrderBy={orderByResult.list.Count}, OrderByDesc={orderByDescResult.list.Count}, GroupBy={groupByResult.list.Count}"
+                    Details = $"排序分组成功: OrderBy={orderByResult.List.Count}, OrderByDesc={orderByDescResult.List.Count}, GroupBy={groupByResult.List.Count}"
                 };
             }
             catch (Exception ex)
@@ -626,7 +626,7 @@ namespace FastData.Tests.Integration
                 {
                     Success = true,
                     ElapsedMs = stopwatch.ElapsedMilliseconds,
-                    Details = $"表名映射测试成功: MultiDbUser 查询 {result.list.Count} 条"
+                    Details = $"表名映射测试成功: MultiDbUser 查询 {result.List.Count} 条"
                 };
             }
             catch (Exception ex)

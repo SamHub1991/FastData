@@ -129,12 +129,12 @@ namespace FastData.Tests.Integration
                 using var db = new DataContext(dbName);
                 var result = db.Add(entity);
                 
-                if (result.writeReturn.IsSuccess)
+                if (result.WriteReturn.IsSuccess)
                     success = 1;
                 else
                 {
                     failed = 1;
-                    lastError = result.writeReturn.Message;
+                    lastError = result.WriteReturn.Message;
                 }
             }
             catch (Exception ex)
@@ -181,7 +181,7 @@ namespace FastData.Tests.Integration
             using (var tempDb = new DataContext(dbName))
             {
                 var result = tempDb.GetList<PerfUser>(FastRead.Use(dbName).Query<PerfUser>(u => u.IsActive));
-                list = result.list;
+                list = result.List;
             }
             stopwatch.Stop();
 
@@ -217,9 +217,9 @@ namespace FastData.Tests.Integration
 
                 return new TestResult
                 {
-                    Success = deleteResult.writeReturn.IsSuccess,
+                    Success = deleteResult.WriteReturn.IsSuccess,
                     ElapsedMs = stopwatch.ElapsedMilliseconds,
-                    Details = deleteResult.writeReturn.IsSuccess ? "成功" : deleteResult.writeReturn.Message
+                    Details = deleteResult.WriteReturn.IsSuccess ? "成功" : deleteResult.WriteReturn.Message
                 };
             }
         }
@@ -326,7 +326,7 @@ namespace FastData.Tests.Integration
 
                                 using var db = new DataContext(dbName);
                                 var result = db.Add(entity);
-                                if (result.writeReturn.IsSuccess)
+                                if (result.WriteReturn.IsSuccess)
                                     Interlocked.Increment(ref _successCount);
                                 else
                                     Interlocked.Increment(ref _errorCount);

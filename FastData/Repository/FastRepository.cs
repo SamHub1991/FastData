@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 using System.Linq;
 using FastData.CacheModel;
 using FastData.Check;
-using FastData.Type;
+using FastData.DbTypes;
 using System.Reflection;
 using System.IO;
 using System.Linq.Expressions;
@@ -450,15 +450,15 @@ namespace FastData.Repository
 
             stopwatch.Stop();
 
-            DbLog.LogSql(config.IsOutSql, result.sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
+            DbLog.LogSql(config.IsOutSql, result.Sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
-            return result.writeReturn;
+            return result.WriteReturn;
         }
 
         /// <summary>
         /// 批量增加 asy
         /// </summary>
-        public Task<WriteReturn> AddListAsy<T>(List<T> list, string key = null, bool IsTrans = false, bool isLog = true) where T : class, new()
+        public Task<WriteReturn> AddListAsync<T>(List<T> list, string key = null, bool IsTrans = false, bool isLog = true) where T : class, new()
         {
             return AsyncHelper.RunSyncAsAsync(() => AddList<T>(list, key, IsTrans, isLog));
         }
@@ -495,14 +495,14 @@ namespace FastData.Repository
 
             stopwatch.Stop();
             config.IsOutSql = config.IsOutSql || isOutSql;
-            DbLog.LogSql(config.IsOutSql, result.sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
-            return result.writeReturn;
+            DbLog.LogSql(config.IsOutSql, result.Sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
+            return result.WriteReturn;
         }
 
         /// <summary>
         /// 增加 asy
         /// </summary>
-        public Task<WriteReturn> AddAsy<T>(T model, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
+        public Task<WriteReturn> AddAsync<T>(T model, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
             return AsyncHelper.RunSyncAsAsync(() => Add<T>(model, db, key, isOutSql));
         }
@@ -538,8 +538,8 @@ namespace FastData.Repository
 
             stopwatch.Stop();
             config.IsOutSql = config.IsOutSql || isOutSql;
-            DbLog.LogSql(config.IsOutSql, result.sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
-            return result.writeReturn;
+            DbLog.LogSql(config.IsOutSql, result.Sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
+            return result.WriteReturn;
         }
 
         /// <summary>
@@ -549,7 +549,7 @@ namespace FastData.Repository
         /// <param name="predicate">表达式</param>
         /// <param name="IsTrans">是否事务</param>
         /// <returns></returns>
-        public Task<WriteReturn> DeleteAsy<T>(Expression<Func<T, bool>> predicate, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
+        public Task<WriteReturn> DeleteAsync<T>(Expression<Func<T, bool>> predicate, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
             return AsyncHelper.RunSyncAsAsync(() => Delete<T>(predicate, db, key, isOutSql));
         }
@@ -583,15 +583,15 @@ namespace FastData.Repository
 
             stopwatch.Stop();
             config.IsOutSql = config.IsOutSql || isOutSql;
-            DbLog.LogSql(config.IsOutSql, result.sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
+            DbLog.LogSql(config.IsOutSql, result.Sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
-            return result.writeReturn;
+            return result.WriteReturn;
         }
 
         /// <summary>
         /// 删除asy
         /// </summary>
-        public Task<WriteReturn> UpdateAsy<T>(T model, DataContext db = null, string key = null, bool isTrans = false, bool isOutSql = false) where T : class, new()
+        public Task<WriteReturn> UpdateAsync<T>(T model, DataContext db = null, string key = null, bool isTrans = false, bool isOutSql = false) where T : class, new()
         {
             return AsyncHelper.RunSyncAsAsync(() => Delete<T>(model, db, key, isOutSql));
         }
@@ -629,15 +629,15 @@ namespace FastData.Repository
 
             stopwatch.Stop();
             config.IsOutSql = config.IsOutSql || isOutSql;
-            DbLog.LogSql(config.IsOutSql, result.sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
+            DbLog.LogSql(config.IsOutSql, result.Sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
-            return result.writeReturn;
+            return result.WriteReturn;
         }
 
         /// <summary>
         /// 修改(Lambda表达式)asy
         /// </summary>
-        public Task<WriteReturn> UpdateAsy<T>(T model, Expression<Func<T, bool>> predicate, Expression<Func<T, object>> field = null, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
+        public Task<WriteReturn> UpdateAsync<T>(T model, Expression<Func<T, bool>> predicate, Expression<Func<T, object>> field = null, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
             return AsyncHelper.RunSyncAsAsync(() => Update<T>(model, predicate, field, db, key, isOutSql));
         }
@@ -671,15 +671,15 @@ namespace FastData.Repository
 
             stopwatch.Stop();
             config.IsOutSql = config.IsOutSql || isOutSql;
-            DbLog.LogSql(config.IsOutSql, result.sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
+            DbLog.LogSql(config.IsOutSql, result.Sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
-            return result.writeReturn;
+            return result.WriteReturn;
         }
 
         /// <summary>
         /// 修改asy
         /// </summary>
-        public Task<WriteReturn> UpdateAsy<T>(T model, Expression<Func<T, object>> field = null, DataContext db = null, string key = null, bool isTrans = false, bool isOutSql = false) where T : class, new()
+        public Task<WriteReturn> UpdateAsync<T>(T model, Expression<Func<T, object>> field = null, DataContext db = null, string key = null, bool isTrans = false, bool isOutSql = false) where T : class, new()
         {
             return AsyncHelper.RunSyncAsAsync(() => Update<T>(model, field, db, key, isTrans, isOutSql));
         }
@@ -714,15 +714,15 @@ namespace FastData.Repository
             stopwatch.Stop();
 
             config.IsOutSql = config.IsOutSql || isOutSql;
-            DbLog.LogSql(config.IsOutSql, result.sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
+            DbLog.LogSql(config.IsOutSql, result.Sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
-            return result.writeReturn;
+            return result.WriteReturn;
         }
 
         /// <summary>
         /// 修改list asy
         /// </summary>
-        public Task<WriteReturn> UpdateListAsy<T>(List<T> list, Expression<Func<T, object>> field = null, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
+        public Task<WriteReturn> UpdateListAsync<T>(List<T> list, Expression<Func<T, object>> field = null, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
             return AsyncHelper.RunSyncAsAsync(() => UpdateList<T>(list, field, db, key, isOutSql));
         }
@@ -761,7 +761,7 @@ namespace FastData.Repository
 
             DbLog.LogSql(config.IsOutSql, result.Sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
-            return result.writeReturn;
+            return result.WriteReturn;
         }
 
         /// <summary>

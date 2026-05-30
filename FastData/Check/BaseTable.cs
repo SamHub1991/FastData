@@ -7,7 +7,7 @@ using FastData.Base;
 using FastData.CacheModel;
 using FastData.Property;
 using System.Data.Common;
-using FastData.Type;
+using FastData.DbTypes;
 using FastUntility.Base;
 using System.Reflection;
 using FastData.Context;

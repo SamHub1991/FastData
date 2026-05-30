@@ -12,7 +12,42 @@ using System.Threading.Tasks;
 namespace FastData
 {
     /// <summary>
-    /// 绑定数据库Key的写入入口
+    /// FastData 绑定数据库 Key 的写入操作（实例方法）
+    /// 
+    /// 职责：
+    /// 1. 绑定特定数据库 Key，避免重复传递 key 参数
+    /// 2. 提供数据添加、更新、删除等写入操作
+    /// 3. 支持 SQL 日志开关（覆盖全局设置）
+    /// 4. 所有方法内部委托给 FastWrite 静态方法
+    /// 
+    /// 使用示例：
+    /// <code>
+    /// // 创建绑定 Key 的写入实例
+    /// var db1 = FastWrite.Use("db1");
+    /// 
+    /// // 启用 SQL 日志（链式调用）
+    /// db1.EnableSqlLog().Add(user);
+    /// 
+    /// // 添加数据
+    /// var result = db1.Add(user);
+    /// var result = db1.AddList(userList);
+    /// 
+    /// // 更新数据
+    /// var result = db1.Update(user);
+    /// var result = db1.Update(user, u =&gt; new { u.Name });
+    /// 
+    /// // 删除数据
+    /// var result = db1.Delete&lt;User&gt;(u =&gt; u.Age &lt; 18);
+    /// 
+    /// // 推荐使用 FastDataClient 代替
+    /// var client = new FastDataClient("db1");
+    /// client.EnableSqlLog().Add(user);
+    /// </code>
+    /// 
+    /// 相关类：
+    /// - FastWrite: 写入操作（静态方法，需显式传递 key）
+    /// - FastDataClient: 统一门面（推荐，整合所有功能）
+    /// - FastReadDb: 绑定 Key 的读取操作
     /// </summary>
     public sealed class FastWriteDb
     {

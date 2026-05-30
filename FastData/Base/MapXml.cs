@@ -11,7 +11,7 @@ using System.IO;
 using System.Reflection;
 using FastData.Property;
 using System.Threading.Tasks;
-using FastData.Type;
+using FastData.DbTypes;
 using FastData.Check;
 using FastData.Config;
 using FastData.Aop;
@@ -561,10 +561,10 @@ namespace FastData.Base
                         model.LastTime = info.LastWriteTime;
                         model.EnFileContent = enContent;
                         model.DeFileContent = deContent;
-                        return db.Add(model).writeReturn.IsSuccess;
+                        return db.Add(model).WriteReturn.IsSuccess;
                     }
                     else
-                        return db.Update<DataModel.MySql.Data_MapFile>(model, a => a.MapId == model.MapId, a => new { a.LastTime, a.EnFileContent, a.DeFileContent }).writeReturn.IsSuccess;
+                        return db.Update<DataModel.MySql.Data_MapFile>(model, a => a.MapId == model.MapId, a => new { a.LastTime, a.EnFileContent, a.DeFileContent }).WriteReturn.IsSuccess;
                 }
 
                 if (config.DbType == DataDbType.Oracle)
@@ -580,10 +580,10 @@ namespace FastData.Base
                         model.LastTime = info.LastWriteTime;
                         model.EnFileContent = enContent;
                         model.DeFileContent = deContent;
-                        return db.Add(model).writeReturn.IsSuccess;
+                        return db.Add(model).WriteReturn.IsSuccess;
                     }
                     else
-                        return db.Update<DataModel.Oracle.Data_MapFile>(model, a => a.MapId == model.MapId, a => new { a.LastTime, a.EnFileContent, a.DeFileContent }).writeReturn.IsSuccess;
+                        return db.Update<DataModel.Oracle.Data_MapFile>(model, a => a.MapId == model.MapId, a => new { a.LastTime, a.EnFileContent, a.DeFileContent }).WriteReturn.IsSuccess;
                 }
 
                 if (config.DbType == DataDbType.SqlServer)
@@ -599,10 +599,10 @@ namespace FastData.Base
                         model.LastTime = info.LastWriteTime;
                         model.EnFileContent = enContent;
                         model.DeFileContent = deContent;
-                        return db.Add(model).writeReturn.IsSuccess;
+                        return db.Add(model).WriteReturn.IsSuccess;
                     }
                     else
-                        return db.Update<DataModel.SqlServer.Data_MapFile>(model, a => a.MapId == model.MapId, a => new { a.LastTime, a.EnFileContent, a.DeFileContent }).writeReturn.IsSuccess;
+                        return db.Update<DataModel.SqlServer.Data_MapFile>(model, a => a.MapId == model.MapId, a => new { a.LastTime, a.EnFileContent, a.DeFileContent }).WriteReturn.IsSuccess;
                 }
             }
 
@@ -949,7 +949,7 @@ namespace FastData.Base
                 if (config.SqlErrorType == SqlErrorType.Db)
                     DbLogTable.LogException(config, ex, "InstanceMap", "GetXmlList");
                 else
-                    DbLog.LogException(true, "InstanceMap", ex, "GetXmlList", "");
+                    DbLog.LogException(true, config.DbType, ex, "GetXmlList", "");
 
                 result.isSuccess = false;
                 return result;

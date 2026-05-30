@@ -1,13 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
 using System.Data.Common;
 using FastData.Base;
 using FastData.Model;
 using FastData.Repository;
+using FastData.Property;
 using System.Diagnostics;
 using FastData.Context;
+using FastData.DbTypes;
 using System.Reflection;
 #if !NETFRAMEWORK
 using FastData.Queue;
@@ -16,8 +19,83 @@ using FastData.Queue;
 namespace FastData
 {
     /// <summary>
-    /// 标签：2015.9.6，魏中针
-    /// 说明：数据库操作类
+    /// FastData 写入操作（静态方法）
+    /// 
+    /// 职责：
+    /// 1. 单条/批量数据添加（Add / AddList）
+    /// 2. 数据更新（Update / UpdateList）
+    /// 3. 数据删除（Delete）
+    /// 4. 高性能批量插入（BulkInsert，使用 SqlBulkCopy 等）
+    /// 5. 原生 SQL 写入（ExecuteSql）
+    /// 6. CodeFirst 建表（根据实体类特性自动创建表结构）
+    /// 
+    /// 使用示例：
+    /// <code>
+    /// // ========== 添加 ==========
+    /// 
+    /// // 单条添加
+    /// var user = new User { Name = "张三", Age = 25 };
+    /// var result = FastWrite.Add(user);
+    /// if (result.IsSuccess)
+    ///     Console.WriteLine($"新增成功，ID: {result.GetIdentity()}");
+    /// 
+    /// // 批量添加
+    /// var users = new List&lt;User&gt; { new User { Name = "张三" }, new User { Name = "李四" } };
+    /// var result = FastWrite.AddList(users);
+    /// 
+    /// // 高性能批量插入（适合大数据量）
+    /// var result = FastWrite.BulkInsert(users);
+    /// 
+    /// // ========== 更新 ==========
+    /// 
+    /// // 根据主键更新
+    /// var result = FastWrite.Update(user);
+    /// 
+    /// // 只更新指定字段
+    /// var result = FastWrite.Update(user, u =&gt; new { u.Name });
+    /// 
+    /// // 根据条件更新
+    /// var result = FastWrite.Update(new User { Name = "新名字" }, u =&gt; u.Age &gt; 18);
+    /// 
+    /// // 批量更新
+    /// var result = FastWrite.UpdateList(userList);
+    /// 
+    /// // ========== 删除 ==========
+    /// 
+    /// // 根据条件删除
+    /// var result = FastWrite.Delete&lt;User&gt;(u =&gt; u.Age &lt; 18);
+    /// 
+    /// // 根据主键删除
+    /// var result = FastWrite.Delete(user);
+    /// 
+    /// // ========== 原生 SQL ==========
+    /// 
+    /// var result = FastWrite.ExecuteSql("UPDATE Users SET Age = @Age WHERE Id = @Id", param);
+    /// 
+    /// // ========== CodeFirst ==========
+    /// 
+    /// // 根据实体类创建表
+    /// var result = FastWrite.CodeFirst&lt;User&gt;();
+    /// 
+    /// // 重建表（先删除再创建）
+    /// var result = FastWrite.CodeFirst&lt;User&gt;(isDropExists: true);
+    /// 
+    /// // ========== 绑定 Key ==========
+    /// 
+    /// // 方式1：使用 Use 方法
+    /// var db1 = FastWrite.Use("db1");
+    /// var result = db1.Add(user);
+    /// 
+    /// // 方式2：使用 FastDataClient（推荐）
+    /// var client = new FastDataClient("db1");
+    /// var result = client.Add(user);
+    /// </code>
+    /// 
+    /// 相关类：
+    /// - FastWriteDb: 绑定 Key 的写入操作（实例方法）
+    /// - FastDataClient: 统一门面（推荐，整合所有功能）
+    /// - FastRead: 读取操作
+    /// - FastMap: XML 映射操作
     /// </summary>
     public static class FastWrite
     {
@@ -105,9 +183,9 @@ namespace FastData
 
             stopwatch.Stop();
 
-            DbLog.LogSql(config.IsOutSql, result.sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
+            DbLog.LogSql(config.IsOutSql, result.Sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
-            return result.writeReturn;
+            return result.WriteReturn;
         }
         #endregion
 
@@ -164,10 +242,10 @@ namespace FastData
             if (config != null)
             {
                 config.IsOutSql = config.IsOutSql || isOutSql;
-                DbLog.LogSql(config.IsOutSql, result.sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
+                DbLog.LogSql(config.IsOutSql, result.Sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
             }
 
-            return result.writeReturn;
+            return result.WriteReturn;
         }
         #endregion
 
@@ -222,9 +300,9 @@ namespace FastData
             stopwatch.Stop();
 
             config.IsOutSql = config.IsOutSql || isOutSql;
-            DbLog.LogSql(config.IsOutSql, result.sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
+            DbLog.LogSql(config.IsOutSql, result.Sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
-            return result.writeReturn;
+            return result.WriteReturn;
         }
         #endregion
 
@@ -276,9 +354,9 @@ namespace FastData
             stopwatch.Stop();
 
             config.IsOutSql = config.IsOutSql || isOutSql;
-            DbLog.LogSql(config.IsOutSql, result.sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
+            DbLog.LogSql(config.IsOutSql, result.Sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
-            return result.writeReturn;
+            return result.WriteReturn;
         }
         #endregion
 
@@ -331,9 +409,9 @@ namespace FastData
             stopwatch.Stop();
 
             config.IsOutSql = config.IsOutSql || isOutSql;
-            DbLog.LogSql(config.IsOutSql, result.sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
+            DbLog.LogSql(config.IsOutSql, result.Sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
-            return result.writeReturn;
+            return result.WriteReturn;
         }
         #endregion
 
@@ -387,9 +465,9 @@ namespace FastData
             stopwatch.Stop();
 
             config.IsOutSql = config.IsOutSql || isOutSql;
-            DbLog.LogSql(config.IsOutSql, result.sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
+            DbLog.LogSql(config.IsOutSql, result.Sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
-            return result.writeReturn;
+            return result.WriteReturn;
         }
         #endregion
 
@@ -438,9 +516,9 @@ namespace FastData
             stopwatch.Stop();
 
             config.IsOutSql = config.IsOutSql || isOutSql;
-            DbLog.LogSql(config.IsOutSql, result.sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
+            DbLog.LogSql(config.IsOutSql, result.Sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
-            return result.writeReturn;
+            return result.WriteReturn;
         }
         #endregion
 
@@ -492,7 +570,7 @@ namespace FastData
             stopwatch.Stop();
             DbLog.LogSql(config.IsOutSql, result.Sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
-            return result.writeReturn;
+            return result.WriteReturn;
         }
         #endregion
 
@@ -549,14 +627,14 @@ namespace FastData
             }
             catch (Exception ex)
             {
-                result.writeReturn.IsSuccess = false;
-                result.writeReturn.Message = ex.Message;
+                result.WriteReturn.IsSuccess = false;
+                result.WriteReturn.Message = ex.Message;
             }
 
             stopwatch.Stop();
-            DbLog.LogSql(config?.IsOutSql ?? false, result.Sql, config?.DbType, stopwatch.Elapsed.TotalMilliseconds);
+            DbLog.LogSql(config?.IsOutSql ?? false, result.Sql, config?.DbType ?? DataDbType.SqlServer, stopwatch.Elapsed.TotalMilliseconds);
 
-            return result.writeReturn;
+            return result.WriteReturn;
         }
 
         /// <summary>
@@ -573,5 +651,84 @@ namespace FastData
         }
         #endregion
 
+        #region Code First
+
+        /// <summary>
+        /// Code First：根据 Model 创建数据库表
+        /// </summary>
+        public static WriteReturn CodeFirst<T>(string key = null, bool isDropExists = false) where T : class, new()
+        {
+            try
+            {
+                var tableName = typeof(T).GetCustomAttributes(typeof(Property.TableAttribute), false)
+                    .Cast<Property.TableAttribute>().FirstOrDefault()?.Name ?? typeof(T).Name;
+
+                var db = new DataContext(key);
+                var sql = BuildCreateTableSql<T>(tableName);
+
+                if (isDropExists)
+                {
+                    try { db.ExecuteSql($"DROP TABLE [{tableName}]", null, false, false); } catch { }
+                }
+
+                db.ExecuteSql(sql, null, false, true);
+                return new WriteReturn { IsSuccess = true, Message = $"Table {tableName} created" };
+            }
+            catch (Exception ex)
+            {
+                return new WriteReturn { IsSuccess = false, Message = ex.Message };
+            }
+        }
+
+        private static string BuildCreateTableSql<T>(string tableName) where T : class, new()
+        {
+            var cols = GetModelColumns<T>();
+            var defs = new List<string>();
+
+            foreach (var c in cols)
+            {
+                var def = $"[{c.Name}] {c.Type}";
+                if (c.IsPrimary && c.IsIdentity) def += " IDENTITY(1,1)";
+                if (!c.IsNull || c.IsPrimary) def += " NOT NULL";
+                defs.Add(def);
+            }
+
+            var pks = cols.Where(x => x.IsPrimary).Select(x => x.Name).ToList();
+            if (pks.Count > 0) defs.Add($"PRIMARY KEY ({string.Join(", ", pks.Select(n => $"[{n}]"))})");
+
+            return $"CREATE TABLE [{tableName}] ({string.Join(", ", defs)})";
+        }
+
+        private static List<(string Name, string Type, bool IsPrimary, bool IsIdentity, bool IsNull)> GetModelColumns<T>() where T : class, new()
+        {
+            var list = new List<(string, string, bool, bool, bool)>();
+            foreach (var p in typeof(T).GetProperties())
+            {
+                var col = p.GetCustomAttribute<Property.ColumnAttribute>();
+                var pri = p.GetCustomAttribute<Property.PrimaryAttribute>() != null;
+                var type = GetClrSqlType(p.PropertyType, col?.Length ?? 0);
+                list.Add((p.Name, type, pri, col?.IsIdentity ?? false, col?.IsNull ?? true));
+            }
+            return list;
+        }
+
+        private static string GetClrSqlType(Type t, int len)
+        {
+            if (t == typeof(string)) return len > 0 ? $"VARCHAR({len})" : "VARCHAR(MAX)";
+            if (t == typeof(int)) return "INT";
+            if (t == typeof(long)) return "BIGINT";
+            if (t == typeof(decimal) || t == typeof(double)) return "DECIMAL(18,2)";
+            if (t == typeof(bool)) return "BIT";
+            if (t == typeof(DateTime)) return "DATETIME";
+            if (t == typeof(Guid)) return "UNIQUEIDENTIFIER";
+            return "NVARCHAR(MAX)";
+        }
+
+        public static Task<WriteReturn> CodeFirstAsync<T>(string key = null, bool isDropExists = false) where T : class, new()
+        {
+            return AsyncHelper.RunAsync(() => CodeFirst<T>(key, isDropExists));
+        }
+
+        #endregion
     }
 }

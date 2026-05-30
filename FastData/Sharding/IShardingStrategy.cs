@@ -4,7 +4,48 @@ using System.Collections.Generic;
 namespace FastData.Sharding
 {
     /// <summary>
-    /// 分表策略接口
+    /// FastData 分片策略接口
+    /// 
+    /// 定义分片策略的标准接口，所有自定义分片策略必须实现此接口。
+    /// 
+    /// 内置策略：
+    /// - TimeShardingStrategy: 时间分片（按日/周/月/季/年）
+    /// - HashShardingStrategy: 哈希分片（取模/一致性/CRC32）
+    /// - ListShardingStrategy: 列表分片（按枚举值分组）
+    /// - CompositeShardingStrategy: 组合分片（多字段组合）
+    /// - QueryFrequencyShardingStrategy: 查询频率分片（热/冷数据分离）
+    /// 
+    /// 自定义策略示例：
+    /// <code>
+    /// public class MyShardingStrategy : IShardingStrategy
+    /// {
+    ///     public string Name =&gt; "MyStrategy";
+    ///     public ShardingType Type =&gt; (ShardingType)100;
+    /// 
+    ///     public string GetTableName(ShardingConfig config, object entity)
+    ///     {
+    ///         // 根据实体计算分片表名
+    ///         return $"{config.TableName}_{entity.GetHashCode() % 10}";
+    ///     }
+    /// 
+    ///     public List&lt;string&gt; GetTableNames(ShardingConfig config, Dictionary&lt;string, object&gt; queryParams)
+    ///     {
+    ///         // 根据查询参数返回可能的分片表名
+    ///         return Enumerable.Range(0, 10).Select(i =&gt; $"{config.TableName}_{i}").ToList();
+    ///     }
+    /// 
+    ///     public List&lt;string&gt; GetAllTableNames(ShardingConfig config) =&gt; GetTableNames(config, null);
+    ///     public bool CreateTable(ShardingConfig config, string tableName) =&gt; true;
+    /// }
+    /// 
+    /// // 注册自定义策略
+    /// ShardingManager.RegisterStrategy(new MyShardingStrategy());
+    /// </code>
+    /// 
+    /// 相关类：
+    /// - ShardingManager: 分片管理器
+    /// - ShardingConfig: 分片配置
+    /// - ShardingType: 分片类型枚举
     /// </summary>
     public interface IShardingStrategy
     {

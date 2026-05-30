@@ -23,6 +23,22 @@ FastData 是一个轻量级多目标框架 ORM，支持 .NET Framework 4.5 / .NE
 
 ---
 
+## 核心类说明
+
+| 类名 | 职责 | 使用场景 |
+|------|------|----------|
+| **FastDataClient** | 统一门面（推荐） | 整合所有功能，绑定数据库 Key |
+| **FastDb** | 全局配置与上下文管理 | SQL 日志开关、数据库切换 |
+| **FastRead** | 读取操作（静态方法） | LINQ 查询、原生 SQL 查询 |
+| **FastWrite** | 写入操作（静态方法） | 添加、更新、删除、CodeFirst |
+| **FastMap** | XML 映射操作 | XML SQL 查询/写入 |
+| **FastReadDb** | 绑定 Key 的读取 | 避免重复传递 key 参数 |
+| **FastWriteDb** | 绑定 Key 的写入 | 避免重复传递 key 参数 |
+| **ShardingReadHelper** | 分片读取 | 大数据量分表查询 |
+| **ShardingWriteHelper** | 分片写入 | 大数据量分表写入 |
+
+---
+
 ## 快速安装
 
 ```bash
@@ -43,7 +59,7 @@ dotnet add package Fast.Data
 | **多目标框架** | net45 / net6.0 / net8.0 / net10.0 |
 | **Lambda 查询** | Where/Or/And/Like/Contains/In/Between/OrderBy/GroupBy/Select |
 | **XML Map SQL** | 动态 SQL 标签、条件分支 |
-| **分页查询** | ToPagination 简化分页 API |
+| **分页查询** | ToPage 简化分页 API |
 | **Repository** | 分层接口：IReadRepository / IWriteRepository / IMapRepository |
 | **Redis 缓存** | 分布式缓存、消息队列（ReliableQueue/Stream） |
 | **AOP 拦截** | SQL 日志、性能监控 |
@@ -86,24 +102,66 @@ public class User
 ### 3. 开始使用
 
 ```csharp
+// 使用 FastDataClient（推荐）
+var client = new FastDataClient("DefaultDb");
+
 // 查询
-var users = FastRead.Query<User>(u => u.IsActive);
-var user = FastRead.Query<User>(u => u.Id == 1).FirstOrDefault();
+var users = client.Query<User>(u => u.IsActive).ToList();
+var user = client.Query<User>(u => u.Id == 1).ToItem();
 
 // 分页
-var page = FastRead.Query<User>(u => u.IsActive)
+var page = client.Query<User>(u => u.IsActive)
     .OrderBy<User>(u => u.Id)
-    .ToPagination<User>(page: 1, pageSize: 10);
+    .ToPage(new PageModel { PageIndex = 1, PageSize = 10 });
 
 // 新增
-FastWrite.Add(new User { Name = "张三", IsActive = true });
+client.Add(new User { Name = "张三", IsActive = true });
 
 // 更新
 user.Name = "李四";
-FastWrite.Update(user);
+client.Update(user);
 
 // 删除
-FastWrite.Delete<User>(u => u.Id == 1);
+client.Delete<User>(u => u.Id == 1);
+```
+
+---
+
+## FastDataClient 统一门面（推荐）
+
+FastDataClient 整合了所有功能，提供统一的入口：
+
+```csharp
+// 创建客户端
+var client = new FastDataClient("db1");
+client.EnableSqlLog();  // 可选：启用 SQL 日志
+
+// ========== 查询操作 ==========
+var users = client.Query<User>(u => u.Age > 18).ToList();
+var user = client.Query<User>(u => u.Id == 1).ToItem();
+var count = client.Query<User>(u => u.Age > 18).ToCount();
+var page = client.Query<User>(u => u.Age > 18).ToPage(pageModel);
+var results = client.ExecuteSql<User>(sql, param);
+var mapResults = client.MapQuery<User>("GetUsersByAge", param);
+
+// ========== 写入操作 ==========
+client.Add(user);
+client.AddList(users);
+client.Update(user);
+client.Update(user, u => new { u.Name });
+client.Delete<User>(u => u.Age < 18);
+client.BulkInsert(largeList);  // 高性能批量插入
+client.CodeFirst<User>();      // CodeFirst 建表
+
+// ========== 消息队列 ==========
+var result = client.WriteQueue()
+    .WithMetadata(dict)
+    .Add(user)
+    .Execute();
+
+var result = client.ReadQueue<User>()
+    .QueryList(u => u.IsActive)
+    .Execute();
 ```
 
 ---
@@ -114,61 +172,62 @@ FastWrite.Delete<User>(u => u.Id == 1);
 
 ```csharp
 // 基础查询
-var users = FastRead.Query<User>(u => u.Age > 18);
+var users = FastRead.Query<User>(u => u.Age > 18).ToList();
 
 // 链式条件
 var result = FastRead.Query<User>(u => u.IsActive)
-    .Where(u => u.Age > 18)
-    .Or(u => u.Role == "Admin")
-    .Like(u => u.UserName, "张%")
-    .In(u => u.Department, new[] { "IT", "HR" })
-    .OrderBy(u => u.Id)
-    .Select(u => new { u.Id, u.UserName })
+    .Where<User>(u => u.Age > 18)
+    .Or<User>(u => u.Role == "Admin")
+    .Like<User>(u => u.UserName, "张%")
+    .In<User>(u => u.Department, new[] { "IT", "HR" })
+    .OrderBy<User>(u => u.Id)
+    .Take(100)
     .ToList();
 ```
 
 ### 多数据库切换
 
 ```csharp
-// 指定库
-var reports = FastRead.Use("ReportDb").Query<Report>(r => r.Year == 2026);
+// 方式1：使用 FastDataClient
+var client = new FastDataClient("ReportDb");
+var reports = client.Query<Report>(r => r.Year == 2026).ToList();
 
-// 作用域切换
+// 方式2：作用域切换
 using (FastDb.Use("ArchiveDb"))
 {
-    var logs = FastRead.Query<Log>(l => l.CreatedTime >= start);
+    var logs = FastRead.Query<Log>(l => l.CreatedTime >= start).ToList();
     FastWrite.Add(new ArchiveLog());
 }
-
-// Repository 工厂
-services.AddTransient<IFastRepositoryFactory, FastRepositoryFactory>();
-var defaultRepo = factory.Default();
-var reportRepo = factory.Use("ReportDb");
 ```
 
 ### Redis 缓存
 
 ```csharp
+// 主动缓存（手动管理）
 RedisInfo.Set("user:1", user, 3600);
 var cached = RedisInfo.Get<User>("user:1");
 RedisInfo.Remove("user:1");
 
-// 缓存穿透防护
-var user = RedisInfo.GetOrAdd("user:1", () => db.FindUser(1), hours: 24);
+// 使用 CacheKey 工具类
+var cacheKey = CacheKey.ForEntity<User>(1);
+CacheHelper.GetOrSet(cacheKey, () => client.Query<User>(u => u.Id == 1).ToItem(), 300);
 ```
 
 ### 消息队列
 
 ```csharp
-var factory = new MessageQueueFactory(redis);
+// 写入队列（降级模式）
+FastWrite.ConfigureQueue<User>(new WriteBehindConfig
+{
+    QueueType = WriteBehindQueueType.ReliableQueue,
+    EnableFallback = true,
+    Topic = "users:write"
+});
 
-// ReliableQueue（单消费，削峰）
-var producer = factory.CreateReliableProducer("fastdata");
-producer.Publish("topic:sensor", data);
-
-// Stream（多消费组，解耦）
-var streamProducer = factory.CreateStreamProducer("fastdata");
-streamProducer.Publish("topic:realtime", data);
+var result = client.WriteQueue()
+    .WithMetadata(new Dictionary<string, object> { { "source", "app" } })
+    .Add(user)
+    .Execute();
 ```
 
 ### XML Map SQL
@@ -187,7 +246,7 @@ streamProducer.Publish("topic:realtime", data);
 ```
 
 ```csharp
-var users = FastRead.Query<User>("GetActiveUsers", new[]
+var users = client.MapQuery<User>("GetActiveUsers", new[]
 {
     new SqlParameter("@IsActive", true),
     new SqlParameter("@MinAge", 18)
@@ -197,7 +256,7 @@ var users = FastRead.Query<User>("GetActiveUsers", new[]
 ### 分表
 
 ```csharp
-// 时间分表
+// 时间分表配置
 ShardingManager.Configure<UserLog>(new ShardingConfig
 {
     BaseTableName = "UserLog",
@@ -209,11 +268,11 @@ ShardingManager.Configure<UserLog>(new ShardingConfig
     }
 });
 
-// 链式分表查询
-var logs = FastRead.Query<UserLog>(l => l.Level == "Error")
-    .UseSharding()
-    .WithTimeRange("CreateTime", new DateTime(2026, 1, 1), new DateTime(2026, 12, 31))
-    .ToList();
+// 分片查询
+var results = client.ShardQuery<Order>(
+    o => o.CreateTime > DateTime.Now.AddMonths(-3),
+    queryParams: new Dictionary<string, object> { { "CreateTime", DateTime.Now.AddMonths(-3) } }
+);
 ```
 
 ---
@@ -269,10 +328,10 @@ dotnet build FastData.sln /p:RegisterForComInterop=false
 
 | 框架 | 平台 | 编译 | 测试 |
 |------|------|------|------|
-| net45 / net462 | Windows/Linux | ✅ | ✅ 73/73 |
+| net45 / net462 | Windows/Linux | ✅ | ✅ 224/224 |
 | net6.0 / net6.0-windows | Windows/Linux | ✅ | - |
 | net8.0 | Windows/Linux | ✅ | - |
-| net10.0 | Windows/Linux | ✅ | ✅ |
+| net10.0 | Windows/Linux | ✅ | ✅ 224/224 |
 
 ### 支持的数据库
 
@@ -283,6 +342,7 @@ dotnet build FastData.sln /p:RegisterForComInterop=false
 | PostgreSQL | 9.6+ |
 | Oracle | 11g+ |
 | SQLite | 3.x |
+| DB2 | 9.7+ |
 
 ---
 

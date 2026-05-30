@@ -8,7 +8,35 @@ using System.Threading;
 namespace FastData
 {
     /// <summary>
-    /// 数据库上下文切换
+    /// FastData 全局配置与数据库上下文管理
+    /// 
+    /// 职责：
+    /// 1. 全局 SQL 日志开关控制
+    /// 2. 数据库 Key 作用域切换（支持嵌套）
+    /// 3. 当前数据库 Key 管理
+    /// 
+    /// 使用示例：
+    /// <code>
+    /// // 1. 全局启用 SQL 日志
+    /// FastDb.EnableSqlLog = true;
+    /// 
+    /// // 2. 切换数据库（使用 using 限定作用域）
+    /// using (FastDb.Use("db2"))
+    /// {
+    ///     // 此作用域内所有操作使用 db2
+    ///     var users = FastRead.Query&lt;User&gt;(u =&gt; true).ToList();
+    /// }
+    /// // 离开作用域后自动恢复原数据库
+    /// 
+    /// // 3. 获取当前数据库 Key
+    /// var currentKey = FastDb.CurrentKey;
+    /// </code>
+    /// 
+    /// 相关类：
+    /// - FastRead: 读取操作（静态方法）
+    /// - FastWrite: 写入操作（静态方法）
+    /// - FastMap: XML 映射操作（静态方法）
+    /// - FastDataClient: 统一门面（推荐，绑定 Key 的实例方法）
     /// </summary>
     public static class FastDb
     {

@@ -53,7 +53,7 @@ namespace FastRedis.Repository
         /// 是否存在 asy
         /// </summary>
         /// <returns></returns>
-        public Task<bool> ExistsAsy(string key, int db = 0)
+        public Task<bool> ExistsAsync(string key, int db = 0)
         {
             return Task.Run(() =>
            {
@@ -98,7 +98,7 @@ namespace FastRedis.Repository
         /// <param name="model">值</param>
         /// <param name="hours">存期限</param>
         /// <returns></returns>
-        public Task<bool> SetAsy<T>(string key, T model, int hours = 24 * 30 * 12, int db = 0)
+        public Task<bool> SetAsync<T>(string key, T model, int hours = 24 * 30 * 12, int db = 0)
         {
             return Task.Run(() =>
            {
@@ -144,7 +144,7 @@ namespace FastRedis.Repository
         /// <param name="model">值</param>
         /// <param name="hours">存期限</param>
         /// <returns></returns>
-        public Task<bool> SetAsy(string key, string model, int hours = 24 * 30 * 12, int db = 0)
+        public Task<bool> SetAsync(string key, string model, int hours = 24 * 30 * 12, int db = 0)
         {
             return Task.Run(() =>
            {
@@ -189,7 +189,7 @@ namespace FastRedis.Repository
         /// <param name="model">值</param>
         /// <param name="Minutes">存期限</param>
         /// <returns></returns>
-        public Task<bool> SetAsy(string key, string model, double Minutes, int db = 0)
+        public Task<bool> SetAsync(string key, string model, double Minutes, int db = 0)
         {
             return Task.Run(() =>
            {
@@ -230,7 +230,7 @@ namespace FastRedis.Repository
         /// <typeparam name="T">泛型</typeparam>
         /// <param name="key">键</param>
         /// <returns></returns>
-        public Task<string> GetAsy(string key, int db = 0)
+        public Task<string> GetAsync(string key, int db = 0)
         {
             return Task.Run(() =>
            {
@@ -271,7 +271,7 @@ namespace FastRedis.Repository
         /// <typeparam name="T">泛型</typeparam>
         /// <param name="key">键</param>
         /// <returns></returns>
-        public Task<T> GetAsy<T>(string key, int db = 0) where T : class, new()
+        public Task<T> GetAsync<T>(string key, int db = 0) where T : class, new()
         {
             return Task.Run(() =>
            {
@@ -310,7 +310,7 @@ namespace FastRedis.Repository
         /// </summary>
         /// <param name="key">键</param>
         /// <returns></returns>
-        public Task<bool> RemoveAsy(string key, int db = 0)
+        public Task<bool> RemoveAsync(string key, int db = 0)
         {
             return Task.Run(() =>
            {
@@ -342,14 +342,14 @@ namespace FastRedis.Repository
         }
         #endregion
 
-        #region 设置值 Dic Asy
+        #region 设置值 Dic Async
         /// <summary>
-        /// 设置值 Dic Asy
+        /// 设置值 Dic Async
         /// </summary>
         /// <typeparam name="T">泛型</typeparam>
         /// <param name="dic">字典</param>
         /// <returns></returns>
-        public Task<bool> SetDicAsy<T>(Dictionary<string, T> dic, int db = 0)
+        public Task<bool> SetDicAsync<T>(Dictionary<string, T> dic, int db = 0)
         {
             return Task.Run(() =>
            {
@@ -387,7 +387,7 @@ namespace FastRedis.Repository
         /// <typeparam name="T">泛型</typeparam>
         /// <param name="keys">键</param>
         /// <returns></returns>
-        public Task<IDictionary<string, T>> GetDicAsy<T>(string[] keys, int db = 0) where T : class, new()
+        public Task<IDictionary<string, T>> GetDicAsync<T>(string[] keys, int db = 0) where T : class, new()
         {
             return Task.Run(() =>
            {
@@ -425,7 +425,7 @@ namespace FastRedis.Repository
         /// </summary>
         /// <param name="keys">键</param>
         /// <returns></returns>
-        public Task<bool> RemoveDicAsy(string[] keys, int db = 0)
+        public Task<bool> RemoveDicAsync(string[] keys, int db = 0)
         {
             return Task.Run(() =>
            {
@@ -466,7 +466,7 @@ namespace FastRedis.Repository
         /// <param name="queueName">队列名称</param>
         /// <param name="message">消息</param>
         /// <param name="db"></param>
-        public void SendAsy(string queueName, string message, int db = 0)
+        public void SendAsync(string queueName, string message, int db = 0)
         {
             Task.Run(() =>
             {
@@ -504,7 +504,7 @@ namespace FastRedis.Repository
         /// <param name="queueName">队列名称</param>
         /// <param name="message">消息</param>
         /// <param name="db"></param>
-        public Task<string> ReceiveAsy(string queueName, int db = 0)
+        public Task<string> ReceiveAsync(string queueName, int db = 0)
         {
             return Task.Run(() =>
            {
@@ -545,7 +545,7 @@ namespace FastRedis.Repository
         /// <param name="channel">频道</param>
         /// <param name="message">消息</param>
         /// <param name="db"></param>
-        public void PublishAsy(string channel, string message, int db = 0)
+        public void PublishAsync(string channel, string message, int db = 0)
         {
             Task.Run(() =>
             {
@@ -592,7 +592,7 @@ namespace FastRedis.Repository
         /// <summary>
         /// 接收消息(发布者订阅者模式) asy
         /// </summary>
-        public void ReceiveAsy(string channel, Action<string, string> message, Action<string> subscribe = null, Action<string> unSubscribe = null, int db = 0)
+        public void ReceiveAsync(string channel, Action<string, string> message, Action<string> subscribe = null, Action<string> unSubscribe = null, int db = 0)
         {
             Task.Run(() =>
             {

@@ -6,7 +6,7 @@ using System.Data.Common;
 using FastUntility.Page;
 using FastData.Base;
 using FastData.Config;
-using FastData.Type;
+using FastData.DbTypes;
 using FastData.Model;
 using FastData.Repository;
 using System.Diagnostics;
@@ -22,7 +22,67 @@ using FastData.Aop;
 namespace FastData
 {
     /// <summary>
-    /// map
+    /// FastData XML 映射操作（静态方法）
+    /// 
+    /// 职责：
+    /// 1. XML 映射文件加载（InstanceMap / InstanceMapResource）
+    /// 2. 实体属性映射（InstanceProperties）
+    /// 3. 表结构映射（InstanceTable）
+    /// 4. XML 映射查询（Query / QueryAsync / QueryPage）
+    /// 5. XML 映射写入（Write / WriteAsync）
+    /// 6. AOP 切面支持（fastAop）
+    /// 
+    /// 使用示例：
+    /// <code>
+    /// // ========== 初始化（程序启动时调用） ==========
+    /// 
+    /// // 加载 XML 映射文件
+    /// FastMap.InstanceMap(dbKey: "db1", dbFile: "db.config", mapFile: "SqlMap.config");
+    /// 
+    /// // 加载实体属性映射
+    /// FastMap.InstanceProperties(nameSpace: "MyApp.Models");
+    /// 
+    /// // 加载表结构映射
+    /// FastMap.InstanceTable(nameSpace: "MyApp.Models", dbKey: "db1");
+    /// 
+    /// // ========== XML 映射查询 ==========
+    /// 
+    /// // XML 定义示例（SqlMap.config）：
+    /// // &lt;sql id="GetUsersByAge"&gt;
+    /// //   SELECT * FROM Users WHERE Age &gt; :Age
+    /// // &lt;/sql&gt;
+    /// 
+    /// var param = new[] { new OracleParameter(":Age", 18) };
+    /// var users = FastMap.Query&lt;User&gt;("GetUsersByAge", param);
+    /// 
+    /// // 分页查询
+    /// var pageModel = new PageModel { PageIndex = 1, PageSize = 10 };
+    /// var page = FastMap.QueryPage&lt;User&gt;(pageModel, "GetUsers", param);
+    /// 
+    /// // 返回字典
+    /// var dicts = FastMap.Query("GetUsersByAge", param);
+    /// 
+    /// // ========== XML 映射写入 ==========
+    /// 
+    /// // XML 定义示例：
+    /// // &lt;sql id="UpdateUserAge"&gt;
+    /// //   UPDATE Users SET Age = :Age WHERE Id = :Id
+    /// // &lt;/sql&gt;
+    /// 
+    /// var result = FastMap.Write("UpdateUserAge", param);
+    /// 
+    /// // ========== 绑定 Key ==========
+    /// 
+    /// var client = new FastDataClient("db1");
+    /// var users = client.MapQuery&lt;User&gt;("GetUsersByAge", param);
+    /// var result = client.MapWrite("UpdateUserAge", param);
+    /// </code>
+    /// 
+    /// 相关类：
+    /// - FastDataClient: 统一门面（推荐，整合所有功能）
+    /// - FastRead: LINQ 读取操作
+    /// - FastWrite: 写入操作
+    /// - IFastAop: AOP 切面接口
     /// </summary>
     public static class FastMap
     {
@@ -310,7 +370,7 @@ namespace FastData
         /// <summary>
         /// maq 执行返回结果 lazy asy
         /// </summary>
-        public static Task<Lazy<List<T>>> QueryLazyAsy<T>(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
+        public static Task<Lazy<List<T>>> QueryLazyAsync<T>(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
             return AsyncHelper.RunAsync(() => new Lazy<List<T>>(() => Query<T>(name, param, db, key, isOutSql)));
         }
@@ -573,9 +633,9 @@ namespace FastData
             stopwatch.Stop();
 
             config.IsOutSql = config.IsOutSql || isOutSql;
-            DbLog.LogSql(config.IsOutSql, result.sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
+            DbLog.LogSql(config.IsOutSql, result.Sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
-            return result.pageResult;
+            return result.PageResult;
         }
 
         /// <summary>

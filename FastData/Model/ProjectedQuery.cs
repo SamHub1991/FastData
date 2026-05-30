@@ -53,9 +53,9 @@ namespace FastData
             stopwatch.Stop();
 
             _query.Config.IsOutSql = _query.Config.IsOutSql || isOutSql;
-            DbLog.LogSql(_query.Config.IsOutSql, result.sql, _query.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
+            DbLog.LogSql(_query.Config.IsOutSql, result.Sql, _query.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
-            return result.list.Select(_selector).ToList();
+            return result.List.Select(_selector).ToList();
         }
 
         /// <summary>
@@ -101,10 +101,10 @@ namespace FastData
             stopwatch.Stop();
 
             _query.Config.IsOutSql = _query.Config.IsOutSql || isOutSql;
-            DbLog.LogSql(_query.Config.IsOutSql, result.sql, _query.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
+            DbLog.LogSql(_query.Config.IsOutSql, result.Sql, _query.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
-            var total = result.pageResult.pModel.TotalRecord;
-            var projectedData = result.pageResult.list.Select(_selector).ToList();
+            var total = result.PageResult.pModel.TotalRecord;
+            var projectedData = result.PageResult.list.Select(_selector).ToList();
 
             return new PaginationResult<TResult>
             {
@@ -166,9 +166,9 @@ namespace FastData
             stopwatch.Stop();
 
             _query.Config.IsOutSql = _query.Config.IsOutSql || isOutSql;
-            DbLog.LogSql(_query.Config.IsOutSql, result.sql, _query.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
+            DbLog.LogSql(_query.Config.IsOutSql, result.Sql, _query.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
-            var item = result.list.FirstOrDefault();
+            var item = result.List.FirstOrDefault();
             return item != null ? _selector(item) : default(TResult);
         }
 
@@ -206,9 +206,9 @@ namespace FastData
             stopwatch.Stop();
 
             _query.Config.IsOutSql = _query.Config.IsOutSql || isOutSql;
-            DbLog.LogSql(_query.Config.IsOutSql, result.sql, _query.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
+            DbLog.LogSql(_query.Config.IsOutSql, result.Sql, _query.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
-            return result.list.Count;
+            return result.List.Count;
         }
     }
 }

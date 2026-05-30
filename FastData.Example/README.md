@@ -1,115 +1,139 @@
 # FastData.Example
 
-FastData.Example is a console application providing interactive, runnable examples covering all major FastData ORM features. It serves as a learning reference and quick-start guide.
+FastData.Example 是控制台示例程序，提供 FastData ORM 所有主要功能的可运行示例。
 
-## Target Frameworks
+## 目标框架
 
-| Framework | Notes |
-|-----------|-------|
+| 框架 | 说明 |
+|------|------|
 | `net45` | .NET Framework 4.5 |
 | `net6.0` / `net8.0` / `net10.0` | Modern .NET |
 
-## Examples
+## 示例列表
 
-| # | File | Description |
-|---|------|-------------|
-| 1 | `BasicCrudExample.cs` | Basic CRUD operations (Create, Read, Update, Delete) |
-| 2 | `LambdaQueryExample.cs` | `DataQuery<T>` chainable queries, `Where<T>` condition builder |
-| 3 | `RawSqlExample.cs` | Raw SQL query execution |
-| 4 | `MapSqlExample.cs` | XML-mapped SQL usage |
-| 5 | `TransactionExample.cs` | Database transaction handling |
-| 6 | `MultiDbExample.cs` | Multiple database connection switching |
-| 7 | `DataSyncExample.cs` | Data synchronization tool usage |
-| 8 | `MessageQueueExample.cs` | Message queue (RTU peak-shaving / multi-party push) |
-| 9 | `PaginationExample.cs` | Pagination API with `PaginationResult<T>` |
-| 10 | `ShardingExample.cs` | Basic sharding (data partitioning) |
-| 11 | `ShardingFullExample.cs` | Complete sharding example with SQL Server |
+| # | 文件 | 说明 |
+|---|------|------|
+| 1 | `BasicCrudExample.cs` | 基础 CRUD 操作（增删改查） |
+| 2 | `LambdaQueryExample.cs` | Lambda 查询链式调用 |
+| 3 | `RawSqlExample.cs` | 原生 SQL 查询 |
+| 4 | `MapSqlExample.cs` | XML 映射 SQL |
+| 5 | `TransactionExample.cs` | 数据库事务处理 |
+| 6 | `MultiDbExample.cs` | 多数据库切换 |
+| 7 | `DataSyncExample.cs` | 数据同步示例 |
+| 8 | `MessageQueueExample.cs` | 消息队列（可靠队列/Stream） |
+| 9 | `PaginationExample.cs` | 分页查询 |
+| 10 | `ShardingExample.cs` | 分表基础示例 |
+| 11 | `ShardingFullExample.cs` | 完整分表示例（SQL Server） |
+| 12 | `CodeFirstExample.cs` | CodeFirst 建表 |
+| 13 | `BulkOperationsExample.cs` | 批量插入操作 |
+| 14 | `RedisAdvancedExample.cs` | Redis 高级特性 |
+| 15 | `RedisCacheExample.cs` | Redis 缓存示例 |
+| 16 | `FastDataClientExample.cs` | FastDataClient 统一门面 |
+| 17 | `CacheBestPracticeExample.cs` | 缓存最佳实践 |
 
-## Running Examples
+## 运行示例
 
 ```bash
-# Interactive mode
+# 交互模式
 dotnet run --project FastData.Example --framework net10.0
 
-# Direct example selection
+# 直接选择示例
 echo "1" | dotnet run --project FastData.Example --framework net10.0
 ```
 
-## Example Details
+## 示例详情
 
 ### 1. Basic CRUD
-Demonstrates Create, Read, Update, Delete operations using `FastWrite` and `FastRead`.
+演示使用 `FastWrite` 和 `FastRead` 进行增删改查操作。
 
 ### 2. Lambda Query
-Shows `DataQuery<T>` chainable API with `Where<T>` condition builder:
+展示 `DataQuery<T>` 链式 API 和条件构建：
 ```csharp
-var users = FastRead.Query<User>()
-    .Where(u => u.IsActive)
-    .Where(u => u.Age > 18)
-    .OrderBy(u => u.Name)
-    .Select(u => new { u.Id, u.Name })
+var users = FastRead.Query<User>(u => u.IsActive)
+    .Where<User>(u => u.Age > 18)
+    .OrderBy<User>(u => u.Name)
+    .Take(100)
     .ToList();
 ```
 
 ### 3. Raw SQL
-Execute raw SQL queries with parameterized inputs.
+执行原生 SQL 查询，支持参数化输入。
 
 ### 4. XML Map SQL
-Use XML-mapped SQL statements (similar to MyBatis):
+使用 XML 映射 SQL 语句（类似 MyBatis）：
 ```csharp
-FastMap.Init("Maps/UserMap.xml");
-var users = FastMap.Query<List<User>>("GetActiveUsers", new { DepartmentId = 1 });
+var users = FastMap.Query<List<User>>("GetActiveUsers", new[]
+{
+    new SqlParameter("@IsActive", true)
+});
 ```
 
 ### 5. Transaction
-Database transaction handling with commit/rollback.
+数据库事务处理，支持提交和回滚。
 
 ### 6. Multi-Database
-Switch between multiple database connections using `FastDb.Use(key)`.
+使用 `FastDataClient` 或 `FastDb.Use(key)` 切换数据库连接。
 
 ### 7. Data Sync
-Demonstrate data synchronization between databases.
+演示数据库之间的数据同步。
 
 ### 8. Message Queue (.NET 6+ only)
-- **ReliableQueue**: Single consumer with acknowledgment
-- **Stream**: Multiple consumer groups
-- **FastWrite Queue**: Write-behind caching with `FastWrite.Queue<T>()`
-- **FastRead Queue**: Read from queue with `FastRead.Queue<T>()`
+- **ReliableQueue**: 单消费确认队列
+- **Stream**: 多消费组流
+- **WriteQueue**: 写入队列（降级模式）
 
 ### 9. Pagination
-Pagination API with `PaginationResult<T>`:
+分页 API：
 ```csharp
-var page = FastRead.Query<User>()
-    .Where(u => u.IsActive)
-    .ToPagination(1, 20);
-// page.Data, page.Total, page.TotalPages
+var page = FastRead.Query<User>(u => u.IsActive)
+    .OrderBy<User>(u => u.Id)
+    .ToPage(new PageModel { PageIndex = 1, PageSize = 10 });
 ```
 
 ### 10. Basic Sharding
-Demonstrate table sharding with different strategies:
-- Time-based sharding
-- Hash-based sharding
-- List-based sharding
+演示分表策略：时间分表、哈希分表、列表分表。
 
 ### 11. Full Sharding Example
-Complete sharding example with SQL Server:
-- 10000 log records with time-based sharding
-- 5000 order records with hash-based sharding
-- Query frequency sharding with hot data detection
-- Chainable API with `UseSharding()` and `WithShardingParam()`
+SQL Server 完整分表：10000 条日志记录、哈希分表、查询频率分表。
 
-## Configuration
+### 12. CodeFirst
+使用 `FastWrite.CodeFirst<T>()` 自动建表：
+```csharp
+var result = FastWrite.CodeFirst<User>("DefaultDb", isDropExists: false);
+```
+
+### 13. Bulk Operations
+高性能批量插入：
+```csharp
+var result = FastWrite.AddList(users);
+```
+
+### 14. Redis Advanced
+Redis 高级特性：分布式锁、发布订阅、Lua 脚本。
+
+### 15. Redis Cache
+Redis 缓存示例：主动缓存、自动缓存、缓存模式。
+
+### 16. FastDataClient
+FastDataClient 统一门面示例：CRUD、缓存、消息队列、高级功能。
+
+### 17. Cache Best Practice
+缓存最佳实践：key 写死问题、动态 key、自定义 model 缓存。
+
+## 配置
 
 ### appsettings.json (.NET 6+)
 ```json
 {
-  "ConnectionStrings": {
-    "SqlServer": "Server=localhost;Database=FastDataDemo;Trusted_Connection=true;",
-    "MySql": "Server=localhost;Database=FastDataDemo;Uid=root;Pwd=;",
-    "Sqlite": "Data Source=FastDataDemo.db"
-  },
-  "Sharding": {
-    "DefaultConnectionString": "Server=localhost;Database=FastDataDemo;Trusted_Connection=true;"
+  "DataConfig": {
+    "Default": "DefaultDb",
+    "Connections": [
+      {
+        "Provider": "SqlServer",
+        "Key": "DefaultDb",
+        "ConnStr": "Server=.;Database=FastDataDemo;Trusted_Connection=true;"
+      }
+    ]
   }
 }
 ```
@@ -117,32 +141,30 @@ Complete sharding example with SQL Server:
 ### db.config (.NET Framework 4.5)
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
-<db>
-  <config>
-    <add name="SqlServer" 
-         providerName="System.Data.SqlClient" 
-         connectionString="Server=.;Database=TestDb;Trusted_Connection=true;" />
-  </config>
-</db>
+<DataConfig Default="DefaultDb">
+  <Connections>
+    <Add Provider="SqlServer" Key="DefaultDb" ConnStr="Server=.;Database=TestDb;Trusted_Connection=true;" />
+  </Connections>
+</DataConfig>
 ```
 
-## Building
+## 构建
 
 ```bash
-# Build for all targets
+# 构建所有目标
 dotnet build FastData.Example
 
-# Build for specific target
+# 构建特定目标
 dotnet build FastData.Example --framework net10.0
 ```
 
-## Dependencies
+## 依赖
 
 - FastData
 - FastRedis
 - FastUntility
 - Microsoft.Extensions.Configuration.FileExtensions (net6+)
 
-## License
+## 许可证
 
 MIT License - see [LICENSE](../LICENSE) for details.

@@ -1,9 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Configuration;
-using FastData.Type;
+using FastData.DbTypes;
 using FastData.Model;
 using FastData.Base;
+using FastData.ConnectionPool;
 using FastUntility.Base;
 using System;
 using System.Reflection;
@@ -149,6 +150,46 @@ namespace FastData.Config
         }
         #endregion
 
+        #region ConnectionPool 节点
+        /// <summary>
+        /// 连接池配置（内部存储为字典，由 ParseXmlConfig 填充）
+        /// </summary>
+        private Dictionary<string, int> _connectionPoolSettings = new Dictionary<string, int>();
+
+        /// <summary>
+        /// 获取连接池配置
+        /// </summary>
+        public ConnectionPoolConfig GetConnectionPoolConfig()
+        {
+            var poolConfig = new ConnectionPoolConfig();
+            if (_connectionPoolSettings.TryGetValue("MinPoolSize", out var min)) poolConfig.MinPoolSize = min;
+            if (_connectionPoolSettings.TryGetValue("MaxPoolSize", out var max)) poolConfig.MaxPoolSize = max;
+            if (_connectionPoolSettings.TryGetValue("ConnectionTimeout", out var ct)) poolConfig.ConnectionTimeout = ct;
+            if (_connectionPoolSettings.TryGetValue("ConnectionLifetime", out var cl)) poolConfig.ConnectionLifetime = cl;
+            if (_connectionPoolSettings.TryGetValue("HealthCheckInterval", out var hci)) poolConfig.HealthCheckInterval = hci;
+            if (_connectionPoolSettings.TryGetValue("LeakDetectionThreshold", out var ldt)) poolConfig.LeakDetectionThreshold = ldt;
+            if (_connectionPoolSettings.TryGetValue("LoadThreshold", out var lt)) poolConfig.LoadThreshold = lt;
+            if (_connectionPoolSettings.TryGetValue("ShrinkThreshold", out var st)) poolConfig.ShrinkThreshold = st;
+            if (_connectionPoolSettings.TryGetValue("MaxRetries", out var mr)) poolConfig.MaxRetries = mr;
+            if (_connectionPoolSettings.TryGetValue("RetryBaseDelayMs", out var rbd)) poolConfig.RetryBaseDelayMs = rbd;
+            if (_connectionPoolSettings.TryGetValue("ValidationCommandTimeout", out var vct)) poolConfig.ValidationCommandTimeout = vct;
+            if (_connectionPoolSettings.TryGetValue("SmartAdjustmentInterval", out var sai)) poolConfig.SmartAdjustmentInterval = sai;
+            if (_connectionPoolSettings.TryGetValue("MaxExpandCount", out var mec)) poolConfig.MaxExpandCount = mec;
+            if (_connectionPoolSettings.TryGetValue("MaxShrinkCount", out var msc)) poolConfig.MaxShrinkCount = msc;
+            if (_connectionPoolSettings.TryGetValue("EnableSmartAdjustment", out var esa)) poolConfig.EnableSmartAdjustment = esa == 1;
+            
+            // 熔断器配置
+            var cbConfig = new CircuitBreakerConfig();
+            if (_connectionPoolSettings.TryGetValue("CircuitBreakerFailureThreshold", out var ft)) cbConfig.FailureThreshold = ft;
+            if (_connectionPoolSettings.TryGetValue("CircuitBreakerOpenDurationSec", out var ods)) cbConfig.CircuitOpenDurationSec = ods;
+            if (_connectionPoolSettings.TryGetValue("CircuitBreakerHalfOpenMaxRequests", out var homr)) cbConfig.HalfOpenMaxRequests = homr;
+            if (_connectionPoolSettings.TryGetValue("CircuitBreakerEnabled", out var cben)) cbConfig.Enabled = cben == 1;
+            poolConfig.CircuitBreaker = cbConfig;
+            
+            return poolConfig;
+        }
+        #endregion
+
         #region 获取配置节点
         /// <summary>
         /// 获取配置节点
@@ -231,14 +272,18 @@ namespace FastData.Config
                     foreach (var temp in config.Connections)
                     {
                         var element = temp as ElementConfig;
-                        var item = CreateConfigModel(element, element.Provider);
-                        if (item != null)
+                        var dbType = ParseProviderToDbType(element.Provider);
+                        if (dbType.HasValue)
                         {
-                            if (string.IsNullOrEmpty(item.Key) && element.IsDefault)
-                                item.Key = config.Default;
-                            if (element.IsDefault)
-                                defaultKey = item.Key;
-                            list.Add(item);
+                            var item = CreateConfigModel(element, dbType.Value);
+                            if (item != null)
+                            {
+                                if (string.IsNullOrEmpty(item.Key) && element.IsDefault)
+                                    item.Key = config.Default;
+                                if (element.IsDefault)
+                                    defaultKey = item.Key;
+                                list.Add(item);
+                            }
                         }
                     }
                 }
@@ -340,14 +385,18 @@ namespace FastData.Config
                     foreach (var temp in config.Connections)
                     {
                         var element = temp as ElementConfig;
-                        var item = CreateConfigModel(element, element.Provider);
-                        if (item != null)
+                        var dbType = ParseProviderToDbType(element.Provider);
+                        if (dbType.HasValue)
                         {
-                            if (string.IsNullOrEmpty(item.Key) && element.IsDefault)
-                                item.Key = defaultKey;
-                            if (element.IsDefault)
-                                defaultKey = item.Key;
-                            list.Add(item);
+                            var item = CreateConfigModel(element, dbType.Value);
+                            if (item != null)
+                            {
+                                if (string.IsNullOrEmpty(item.Key) && element.IsDefault)
+                                    item.Key = defaultKey;
+                                if (element.IsDefault)
+                                    defaultKey = item.Key;
+                                list.Add(item);
+                            }
                         }
                     }
                 }
@@ -404,9 +453,9 @@ namespace FastData.Config
             return list.First();
         }
 
-        private static ConfigModel CreateConfigModel(ElementConfig element, string dbType)
+        private static ConfigModel CreateConfigModel(ElementConfig element, DataDbType dbType)
         {
-            var item = CreateProviderConfig(dbType);
+            var item = CreateProviderConfig(dbType, element.Provider);
             if (item == null)
                 return null;
 
@@ -425,9 +474,9 @@ namespace FastData.Config
             return item;
         }
 
-        private static ConfigModel CreateConfigModel(XmlNode db, string dbType)
+        private static ConfigModel CreateConfigModel(XmlNode db, DataDbType dbType)
         {
-            var item = CreateProviderConfig(dbType);
+            var item = CreateProviderConfig(dbType, GetAttr(db, "ProviderName"));
             if (item == null)
                 return null;
 
@@ -469,67 +518,63 @@ namespace FastData.Config
             return value.ToStr().ToLower() == "true";
         }
 
-        private static ConfigModel CreateProviderConfig(string dbType)
+        private static ConfigModel CreateProviderConfig(DataDbType dbType, string providerName = null)
         {
-            if (string.IsNullOrEmpty(dbType))
-                return null;
-
-            var originalProviderName = dbType;
-
-            if (dbType == Provider.DB2)
-                dbType = DataDbType.DB2;
-            else if (dbType == Provider.Oracle)
-                dbType = DataDbType.Oracle;
-            else if (dbType == Provider.MySql)
-                dbType = DataDbType.MySql;
-            else if (dbType == Provider.SqlServer || dbType == "Microsoft.Data.SqlClient")
-                dbType = DataDbType.SqlServer;
-            else if (dbType == Provider.SQLite)
-                dbType = DataDbType.SQLite;
-            else if (dbType == Provider.PostgreSql)
-                dbType = DataDbType.PostgreSql;
-
             var item = new ConfigModel();
-            if (dbType.ToLower() == DataDbType.DB2.ToLower())
+            item.DbType = dbType;
+
+            switch (dbType)
             {
-                item.DbType = DataDbType.DB2;
-                item.Flag = "@";
-                item.ProviderName = Provider.DB2;
+                case DataDbType.DB2:
+                    item.Flag = "@";
+                    item.ProviderName = Provider.DB2;
+                    break;
+                case DataDbType.Oracle:
+                    item.Flag = ":";
+                    item.ProviderName = Provider.Oracle;
+                    break;
+                case DataDbType.MySql:
+                    item.Flag = "?";
+                    item.ProviderName = Provider.MySql;
+                    break;
+                case DataDbType.SqlServer:
+                    item.Flag = "@";
+                    item.ProviderName = providerName ?? Provider.SqlServer;
+                    break;
+                case DataDbType.SQLite:
+                    item.Flag = "@";
+                    item.ProviderName = Provider.SQLite;
+                    break;
+                case DataDbType.PostgreSql:
+                    item.Flag = ":";
+                    item.ProviderName = Provider.PostgreSql;
+                    break;
+                default:
+                    return null;
             }
-            else if (dbType.ToLower() == DataDbType.Oracle.ToLower())
-            {
-                item.DbType = DataDbType.Oracle;
-                item.Flag = ":";
-                item.ProviderName = Provider.Oracle;
-            }
-            else if (dbType.ToLower() == DataDbType.MySql.ToLower())
-            {
-                item.DbType = DataDbType.MySql;
-                item.Flag = "?";
-                item.ProviderName = Provider.MySql;
-            }
-            else if (dbType.ToLower() == DataDbType.SqlServer.ToLower())
-            {
-                item.DbType = DataDbType.SqlServer;
-                item.Flag = "@";
-                item.ProviderName = originalProviderName;
-            }
-            else if (dbType.ToLower() == DataDbType.SQLite.ToLower())
-            {
-                item.DbType = DataDbType.SQLite;
-                item.Flag = "@";
-                item.ProviderName = Provider.SQLite;
-            }
-            else if (dbType.ToLower() == DataDbType.PostgreSql.ToLower())
-            {
-                item.DbType = DataDbType.PostgreSql;
-                item.Flag = ":";
-                item.ProviderName = Provider.PostgreSql;
-            }
-            else
-                return null;
 
             return item;
+        }
+
+        private static DataDbType? ParseProviderToDbType(string provider)
+        {
+            if (string.IsNullOrEmpty(provider))
+                return null;
+
+            if (provider == Provider.DB2)
+                return DataDbType.DB2;
+            if (provider == Provider.Oracle)
+                return DataDbType.Oracle;
+            if (provider == Provider.MySql)
+                return DataDbType.MySql;
+            if (provider == Provider.SqlServer || provider == "Microsoft.Data.SqlClient")
+                return DataDbType.SqlServer;
+            if (provider == Provider.SQLite)
+                return DataDbType.SQLite;
+            if (provider == Provider.PostgreSql)
+                return DataDbType.PostgreSql;
+
+            return null;
         }
 
         /// <summary>
@@ -831,6 +876,42 @@ namespace FastData.Config
                     config["Redis"] = redisElement;
                 }
 
+                // Read ConnectionPool
+                var poolNode = dataConfigNode.SelectSingleNode("ConnectionPool");
+                if (poolNode != null)
+                {
+                    var poolSettings = new Dictionary<string, int>();
+                    var boolSettings = new Dictionary<string, bool>();
+
+                    foreach (System.Xml.XmlAttribute attr in poolNode.Attributes)
+                    {
+                        var name = attr.Name;
+                        if (name == "EnableSmartAdjustment")
+                            boolSettings[name] = attr.Value.ToLower() == "true";
+                        else if (int.TryParse(attr.Value, out var val))
+                            poolSettings[name] = val;
+                    }
+
+                    // 熔断器配置（CircuitBreaker.* 开头的属性）
+                    foreach (System.Xml.XmlAttribute attr in poolNode.Attributes)
+                    {
+                        var name = attr.Name;
+                        if (name.StartsWith("CircuitBreaker"))
+                        {
+                            if (name == "CircuitBreakerEnabled")
+                                boolSettings[name] = attr.Value.ToLower() == "true";
+                            else if (int.TryParse(attr.Value, out var val))
+                                poolSettings[name] = val;
+                        }
+                    }
+
+                    config._connectionPoolSettings = poolSettings;
+                    if (boolSettings.TryGetValue("EnableSmartAdjustment", out var enableSmart))
+                        poolSettings["EnableSmartAdjustment"] = enableSmart ? 1 : 0;
+                    if (boolSettings.TryGetValue("CircuitBreakerEnabled", out var cbEnabled))
+                        poolSettings["CircuitBreakerEnabled"] = cbEnabled ? 1 : 0;
+                }
+
                 return config;
             }
             catch
@@ -881,7 +962,7 @@ namespace FastData.Config
                 result.Add(new Dictionary<string, string>
                 {
                     { "key", c.Key ?? "" },
-                    { "dbType", c.DbType ?? "" },
+                    { "dbType", c.DbType.ToString() },
                     { "provider", c.ProviderName ?? "" },
                     { "connStr", MaskConnStr(c.ConnStr) },
                     { "isOutSql", c.IsOutSql.ToString() },
@@ -916,6 +997,60 @@ namespace FastData.Config
             if (string.IsNullOrEmpty(connStr)) return "";
             return System.Text.RegularExpressions.Regex.Replace(
                 connStr, @"(?i)(pwd|password)=[^;]*", "$1=***");
+        }
+
+        /// <summary>
+        /// 获取连接池配置（从配置文件读取，无配置则返回 null）
+        /// </summary>
+        public static ConnectionPoolConfig GetConnectionPoolConfigPublic(string dbFile = "db.config")
+        {
+            var baseConfig = TryLoadConfig(dbFile);
+            var activeEnv = ResolveActiveEnvironment(baseConfig);
+
+            DataConfig config = null;
+            if (!string.IsNullOrEmpty(activeEnv))
+            {
+                var envDbFile = $"db.{activeEnv}.config";
+                config = TryLoadConfig(envDbFile);
+            }
+
+            if (config == null)
+                config = baseConfig;
+
+            if (config == null || config._connectionPoolSettings.Count == 0)
+                return null;
+
+            return config.GetConnectionPoolConfig();
+        }
+
+        /// <summary>
+        /// 获取连接池配置摘要
+        /// </summary>
+        public static Dictionary<string, string> GetConnectionPoolSummary()
+        {
+            var poolConfig = GetConnectionPoolConfigPublic();
+            if (poolConfig == null)
+                return new Dictionary<string, string> { { "configured", "false" } };
+
+            return new Dictionary<string, string>
+            {
+                { "configured", "true" },
+                { "minPoolSize", poolConfig.MinPoolSize.ToString() },
+                { "maxPoolSize", poolConfig.MaxPoolSize.ToString() },
+                { "connectionTimeout", poolConfig.ConnectionTimeout.ToString() },
+                { "connectionLifetime", poolConfig.ConnectionLifetime.ToString() },
+                { "healthCheckInterval", poolConfig.HealthCheckInterval.ToString() },
+                { "leakDetectionThreshold", poolConfig.LeakDetectionThreshold.ToString() },
+                { "loadThreshold", poolConfig.LoadThreshold.ToString() },
+                { "shrinkThreshold", poolConfig.ShrinkThreshold.ToString() },
+                { "maxRetries", poolConfig.MaxRetries.ToString() },
+                { "retryBaseDelayMs", poolConfig.RetryBaseDelayMs.ToString() },
+                { "validationCommandTimeout", poolConfig.ValidationCommandTimeout.ToString() },
+                { "smartAdjustmentInterval", poolConfig.SmartAdjustmentInterval.ToString() },
+                { "maxExpandCount", poolConfig.MaxExpandCount.ToString() },
+                { "maxShrinkCount", poolConfig.MaxShrinkCount.ToString() },
+                { "enableSmartAdjustment", poolConfig.EnableSmartAdjustment.ToString() }
+            };
         }
         #endregion
     }

@@ -16,11 +16,19 @@ namespace FastData.Tooling.CodeGeneration
             builder.AppendLine("{");
             
             // 生成 Table 属性
-            var tableAttr = "[Table(Comments = \"" + Escape(table.Comment ?? table.Name) + "\"";
+            var tableName = Escape(table.Name);
+            var tableAttr = $"[Table(Name = \"{tableName}\")";
+            
+            if (!string.IsNullOrEmpty(table.Comment))
+            {
+                tableAttr += $", Comments = \"{Escape(table.Comment)}\"";
+            }
+            
             if (!string.IsNullOrEmpty(dbTableNames))
             {
-                tableAttr += ", DbTableNames = \"" + Escape(dbTableNames) + "\"";
+                tableAttr += $", DbTableNames = \"{Escape(dbTableNames)}\"";
             }
+            
             tableAttr += ")]";
             builder.AppendLine("    " + tableAttr);
             
@@ -29,7 +37,20 @@ namespace FastData.Tooling.CodeGeneration
 
             foreach (var column in columns)
             {
-                builder.AppendLine("        [Column(Comments = \"" + Escape(column.Comment ?? column.Name) + "\", DataType = \"" + Escape(column.DbType) + "\", IsNull = " + (column.IsNullable ? "true" : "false") + ", IsKey = " + (column.IsPrimaryKey ? "true" : "false") + ")]");
+                var isPrimaryKey = column.IsPrimaryKey;
+                var comments = Escape(column.Comment ?? column.Name);
+                var dataType = Escape(column.DbType ?? "string");
+                var isNull = column.IsNullable ? "true" : "false";
+                var isKey = isPrimaryKey ? "true" : "false";
+
+                // 主键使用 [Primary] 特性
+                if (isPrimaryKey)
+                {
+                    builder.AppendLine("        [Primary]");
+                }
+
+                // 列属性
+                builder.AppendLine($"        [Column(Comments = \"{comments}\", DataType = \"{dataType}\", IsNull = {isNull}, IsKey = {isKey})]");
                 builder.AppendLine("        public " + GetClrType(column) + " " + ToPascal(column.Name) + " { get; set; }");
                 builder.AppendLine();
             }

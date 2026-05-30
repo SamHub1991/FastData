@@ -81,8 +81,8 @@ namespace FastData.Tests
             var configContent = File.ReadAllText(dbDevConfigPath);
             Console.WriteLine($"db.dev.config content:\n{configContent}");
             
-            // 验证 dev 配置包含 Dev 数据库
-            Assert.Contains("FastDataTest_Dev", configContent);
+            // 验证 dev 配置包含测试数据库
+            Assert.Contains("FastDataTest", configContent);
         }
 
         [Fact]

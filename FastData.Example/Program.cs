@@ -38,7 +38,10 @@ namespace FastData.Example
                 Console.WriteLine("  14. 连接字符串加密");
                 Console.WriteLine("  15. Repository 模式");
                 Console.WriteLine("  16. 多数据库表名映射");
-                Console.WriteLine("  17. 运行所有示例");
+                Console.WriteLine("  17. Code First / Db First（Model 建表/读表结构）");
+                Console.WriteLine("  18. 批量操作（BulkInsert/BulkUpdate/软删除）");
+                Console.WriteLine("  19. Redis 缓存高级用法（穿透防护/分布式锁/预热）");
+                Console.WriteLine("  20. 运行所有示例");
                 Console.WriteLine("  0. 退出");
                 Console.WriteLine();
 
@@ -109,6 +112,15 @@ namespace FastData.Example
                         MultiDbExample.Run();
                         break;
                     case "17":
+                        CodeFirstExample.Run();
+                        break;
+                    case "18":
+                        BulkOperationsExample.Run();
+                        break;
+                    case "19":
+                        RedisAdvancedExample.Run();
+                        break;
+                    case "20":
                         BasicCrudExample.Run();
                         LambdaQueryExample.Run();
                         RawSqlExample.Run();
@@ -124,6 +136,9 @@ namespace FastData.Example
                         AopExample.Run();
                         EncryptionExample.Run();
                         RepositoryExample.Run();
+                        CodeFirstExample.Run();
+                        BulkOperationsExample.Run();
+                        RedisAdvancedExample.Run();
                         break;
                     default:
                         Console.WriteLine("无效选项，请重新输入");
