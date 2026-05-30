@@ -11,12 +11,62 @@ namespace FastData.Demo.Services
     /// </summary>
     public interface ICacheService
     {
+        /// <summary>
+        /// 获取或设置缓存
+        /// </summary>
+        /// <typeparam name="T">数据类型</typeparam>
+        /// <param name="key">缓存键</param>
+        /// <param name="factory">数据工厂方法</param>
+        /// <param name="hours">过期时间（小时）</param>
+        /// <returns>数据</returns>
         Task<T> GetOrSetAsync<T>(string key, Func<Task<T>> factory, int hours = 24) where T : class, new();
+
+        /// <summary>
+        /// 设置缓存
+        /// </summary>
+        /// <typeparam name="T">数据类型</typeparam>
+        /// <param name="key">缓存键</param>
+        /// <param name="value">数据</param>
+        /// <param name="hours">过期时间（小时）</param>
+        /// <returns>是否成功</returns>
         Task<bool> SetAsync<T>(string key, T value, int hours = 24) where T : class;
+
+        /// <summary>
+        /// 获取缓存
+        /// </summary>
+        /// <typeparam name="T">数据类型</typeparam>
+        /// <param name="key">缓存键</param>
+        /// <returns>数据</returns>
         Task<T> GetAsync<T>(string key) where T : class, new();
+
+        /// <summary>
+        /// 删除缓存
+        /// </summary>
+        /// <param name="key">缓存键</param>
+        /// <returns>是否成功</returns>
         Task<bool> RemoveAsync(string key);
+
+        /// <summary>
+        /// 检查缓存是否存在
+        /// </summary>
+        /// <param name="key">缓存键</param>
+        /// <returns>是否存在</returns>
         Task<bool> ExistsAsync(string key);
+
+        /// <summary>
+        /// 递增缓存值
+        /// </summary>
+        /// <param name="key">缓存键</param>
+        /// <param name="value">递增值</param>
+        /// <returns>递增后的值</returns>
         Task<long> IncrementAsync(string key, int value = 1);
+
+        /// <summary>
+        /// 设置缓存过期时间
+        /// </summary>
+        /// <param name="key">缓存键</param>
+        /// <param name="expire">过期时间</param>
+        /// <returns>是否成功</returns>
         Task<bool> SetExpireAsync(string key, TimeSpan expire);
     }
 
@@ -99,9 +149,33 @@ namespace FastData.Demo.Services
     /// </summary>
     public interface IUserCacheService
     {
+        /// <summary>
+        /// 获取用户缓存
+        /// </summary>
+        /// <param name="userId">用户 ID</param>
+        /// <param name="factory">数据工厂方法</param>
+        /// <returns>用户信息</returns>
         Task<AppUser> GetUserAsync(int userId, Func<Task<AppUser>> factory);
+
+        /// <summary>
+        /// 获取活跃用户缓存
+        /// </summary>
+        /// <param name="factory">数据工厂方法</param>
+        /// <returns>用户列表</returns>
         Task<List<AppUser>> GetActiveUsersAsync(Func<Task<List<AppUser>>> factory);
+
+        /// <summary>
+        /// 删除用户缓存
+        /// </summary>
+        /// <param name="userId">用户 ID</param>
+        /// <returns>任务</returns>
         Task RemoveUserAsync(int userId);
+
+        /// <summary>
+        /// 递增用户查看次数
+        /// </summary>
+        /// <param name="userId">用户 ID</param>
+        /// <returns>任务</returns>
         Task IncrementViewCountAsync(int userId);
     }
 

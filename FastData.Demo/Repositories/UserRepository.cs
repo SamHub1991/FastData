@@ -12,13 +12,59 @@ namespace FastData.Demo.Repositories
     /// </summary>
     public interface IUserRepository
     {
+        /// <summary>
+        /// 获取所有用户
+        /// </summary>
+        /// <returns>用户列表</returns>
         Task<List<AppUser>> GetAllAsync();
+
+        /// <summary>
+        /// 根据 ID 获取用户
+        /// </summary>
+        /// <param name="id">用户 ID</param>
+        /// <returns>用户信息</returns>
         Task<AppUser> GetByIdAsync(int id);
+
+        /// <summary>
+        /// 根据部门获取用户
+        /// </summary>
+        /// <param name="department">部门名称</param>
+        /// <returns>用户列表</returns>
         Task<List<AppUser>> GetByDepartmentAsync(string department);
+
+        /// <summary>
+        /// 获取活跃用户
+        /// </summary>
+        /// <returns>用户列表</returns>
         Task<List<AppUser>> GetActiveUsersAsync();
+
+        /// <summary>
+        /// 添加用户
+        /// </summary>
+        /// <param name="user">用户信息</param>
+        /// <returns>影响行数</returns>
         Task<int> AddAsync(AppUser user);
+
+        /// <summary>
+        /// 更新用户
+        /// </summary>
+        /// <param name="user">用户信息</param>
+        /// <returns>影响行数</returns>
         Task<int> UpdateAsync(AppUser user);
+
+        /// <summary>
+        /// 删除用户
+        /// </summary>
+        /// <param name="id">用户 ID</param>
+        /// <returns>影响行数</returns>
         Task<int> DeleteAsync(int id);
+
+        /// <summary>
+        /// 分页获取用户
+        /// </summary>
+        /// <param name="pageIndex">页码</param>
+        /// <param name="pageSize">每页记录数</param>
+        /// <returns>用户列表</returns>
         Task<List<AppUser>> GetPagedAsync(int pageIndex, int pageSize);
     }
 
@@ -101,11 +147,46 @@ namespace FastData.Demo.Repositories
     /// </summary>
     public interface IOrderRepository
     {
+        /// <summary>
+        /// 获取所有订单
+        /// </summary>
+        /// <returns>订单列表</returns>
         Task<List<AppOrder>> GetAllAsync();
+
+        /// <summary>
+        /// 根据 ID 获取订单
+        /// </summary>
+        /// <param name="id">订单 ID</param>
+        /// <returns>订单信息</returns>
         Task<AppOrder> GetByIdAsync(int id);
+
+        /// <summary>
+        /// 根据用户 ID 获取订单
+        /// </summary>
+        /// <param name="userId">用户 ID</param>
+        /// <returns>订单列表</returns>
         Task<List<AppOrder>> GetByUserIdAsync(int userId);
+
+        /// <summary>
+        /// 根据状态获取订单
+        /// </summary>
+        /// <param name="status">订单状态</param>
+        /// <returns>订单列表</returns>
         Task<List<AppOrder>> GetByStatusAsync(int status);
+
+        /// <summary>
+        /// 添加订单
+        /// </summary>
+        /// <param name="order">订单信息</param>
+        /// <returns>影响行数</returns>
         Task<int> AddAsync(AppOrder order);
+
+        /// <summary>
+        /// 更新订单状态
+        /// </summary>
+        /// <param name="id">订单 ID</param>
+        /// <param name="status">订单状态</param>
+        /// <returns>影响行数</returns>
         Task<int> UpdateStatusAsync(int id, int status);
     }
 
