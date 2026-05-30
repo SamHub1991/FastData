@@ -29,7 +29,9 @@ namespace FastRedis.Repository
         /// <summary>
         /// 是否存在 
         /// </summary>
-        /// <returns></returns>
+        /// <param name="key">缓存键</param>
+        /// <param name="db">数据库索引</param>
+        /// <returns>是否存在</returns>
         public bool Exists(string key, int db = 0)
         {
             try

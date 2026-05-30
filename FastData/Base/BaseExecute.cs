@@ -22,10 +22,10 @@ namespace FastData.Base
         /// <summary>
         ///  返回DataTable
         /// </summary>
-        /// <param name="cmd"></param>
-        /// <param name="dbType"></param>
-        /// <param name="sql"></param>
-        /// <returns></returns>
+        /// <param name="cmd">数据库命令对象</param>
+        /// <param name="sql">SQL语句</param>
+        /// <param name="IsProcedure">是否存储过程</param>
+        /// <returns>数据表</returns>
         public static DataTable ToDataTable(DbCommand cmd, string sql, bool IsProcedure = false)
         {
             var dt = new DataTable();
@@ -44,10 +44,10 @@ namespace FastData.Base
         /// <summary>
         ///  返回DataReader
         /// </summary>
-        /// <param name="cmd"></param>
-        /// <param name="dbType"></param>
-        /// <param name="sql"></param>
-        /// <returns></returns>
+        /// <param name="cmd">数据库命令对象</param>
+        /// <param name="sql">SQL语句</param>
+        /// <param name="IsProcedure">是否存储过程</param>
+        /// <returns>数据读取器</returns>
         public static DbDataReader ToDataReader(DbCommand cmd, string sql, bool IsProcedure = false)
         {
             if (IsProcedure)
@@ -61,10 +61,10 @@ namespace FastData.Base
         /// <summary>
         ///  返回bool
         /// </summary>
-        /// <param name="cmd"></param>
-        /// <param name="dbType"></param>
-        /// <param name="sql"></param>
-        /// <returns></returns>
+        /// <param name="cmd">数据库命令对象</param>
+        /// <param name="sql">SQL语句</param>
+        /// <param name="IsProcedure">是否存储过程</param>
+        /// <returns>布尔值</returns>
         public static bool ToBool(DbCommand cmd, string sql, bool IsProcedure = false)
         {
             cmd.CommandText = sql;
@@ -80,12 +80,11 @@ namespace FastData.Base
         /// <summary>
         /// 返回分页DataReader
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="dbType"></param>
-        /// <param name="cmd"></param>
-        /// <param name="pModel"></param>
-        /// <param name="where"></param>
-        /// <returns></returns>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="cmd">数据库命令对象</param>
+        /// <param name="pModel">分页模型</param>
+        /// <param name="sql">SQL语句</param>
+        /// <returns>数据读取器</returns>
         public static DbDataReader ToPageDataReader(DataQuery item, DbCommand cmd, PageModel pModel, ref string sql)
         {
             try
@@ -217,7 +216,10 @@ namespace FastData.Base
         /// <summary>
         /// 返回分页条数
         /// </summary>
-        /// <returns></returns>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="cmd">数据库命令对象</param>
+        /// <param name="sql">SQL语句</param>
+        /// <returns>记录总数</returns>
         public static int ToPageCount(DataQuery item, DbCommand cmd,  ref string sql)
         {
             try

@@ -24,6 +24,8 @@ namespace FastUntility.Monitor
         /// <summary>
         /// 发送私聊消息
         /// </summary>
+        /// <param name="qqNumber">QQ号</param>
+        /// <param name="message">消息内容</param>
         public void SendPrivateMessage(string qqNumber, string message)
         {
             if (!_config.IsEnabled)
@@ -48,6 +50,8 @@ namespace FastUntility.Monitor
         /// <summary>
         /// 发送群消息
         /// </summary>
+        /// <param name="groupId">群号</param>
+        /// <param name="message">消息内容</param>
         public void SendGroupMessage(string groupId, string message)
         {
             if (!_config.IsEnabled)
@@ -72,6 +76,8 @@ namespace FastUntility.Monitor
         /// <summary>
         /// 发送请求到 QQ 机器人 API
         /// </summary>
+        /// <param name="action">API动作</param>
+        /// <param name="payload">请求负载</param>
         private void SendRequest(string action, object payload)
         {
             var url = $"{_config.ApiUrl.TrimEnd('/')}/{action}";

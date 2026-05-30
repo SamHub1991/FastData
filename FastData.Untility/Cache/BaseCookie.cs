@@ -14,8 +14,11 @@ namespace FastUntility.Cache
         /// <summary>
         /// 写cookie值
         /// </summary>
+        /// <param name="context">HTTP上下文</param>
         /// <param name="strName">名称</param>
         /// <param name="strValue">值</param>
+        /// <param name="days">过期天数</param>
+        /// <returns>是否成功</returns>
         public static bool WriteAsync(HttpContextBase context,string strName, string strValue, int days = 1)
         {
             if (string.IsNullOrEmpty(strName))
@@ -35,6 +38,8 @@ namespace FastUntility.Cache
         /// </summary>
         /// <param name="strName">名称</param>
         /// <param name="strValue">值</param>
+        /// <param name="days">过期天数</param>
+        /// <returns>是否成功</returns>
         public static bool Write(string strName, string strValue, int days = 1)
         {
             if (string.IsNullOrEmpty(strName))
@@ -67,6 +72,7 @@ namespace FastUntility.Cache
         /// <summary>
         /// 读cookie值
         /// </summary>
+        /// <param name="context">HTTP上下文</param>
         /// <param name="strName">名称</param>
         /// <returns>cookie值</returns>
         public static string ReadAsync(HttpContextBase context,string strName)

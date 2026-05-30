@@ -116,6 +116,10 @@ namespace FastData.Model
         /// <summary>
         /// 添加 BETWEEN 条件
         /// </summary>
+        /// <param name="field">字段表达式</param>
+        /// <param name="start">起始值</param>
+        /// <param name="end">结束值</param>
+        /// <returns>Where构建器</returns>
         public Where<T> Between(Expression<Func<T, object>> field, object start, object end)
         {
             if (field == null)
@@ -134,6 +138,9 @@ namespace FastData.Model
         /// <summary>
         /// 内部添加条件
         /// </summary>
+        /// <param name="op">操作符</param>
+        /// <param name="predicate">条件表达式</param>
+        /// <returns>Where构建器</returns>
         private Where<T> Add(string op, Expression<Func<T, bool>> predicate)
         {
             if (predicate == null)

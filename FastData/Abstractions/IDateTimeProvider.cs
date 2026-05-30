@@ -52,6 +52,7 @@ namespace FastData.Abstractions
         /// <summary>
         /// 设置固定的 UTC 时间
         /// </summary>
+        /// <param name="dateTime">UTC 时间</param>
         public void SetUtcNow(DateTime dateTime)
         {
             _fixedUtcNow = dateTime;
@@ -60,6 +61,7 @@ namespace FastData.Abstractions
         /// <summary>
         /// 设置固定的本地时间
         /// </summary>
+        /// <param name="dateTime">本地时间</param>
         public void SetNow(DateTime dateTime)
         {
             _fixedNow = dateTime;
@@ -68,6 +70,7 @@ namespace FastData.Abstractions
         /// <summary>
         /// 设置固定的日期
         /// </summary>
+        /// <param name="dateTime">日期</param>
         public void SetToday(DateTime dateTime)
         {
             _fixedToday = dateTime.Date;

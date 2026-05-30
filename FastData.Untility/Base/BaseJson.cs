@@ -20,9 +20,9 @@ namespace FastUntility.Base
         /// 标签：2015.7.13，魏中针
         /// 说明：json键是否存在或空值
         /// </summary>
-        /// <param name="Key">json键</param>
-        /// <param name="Jo">json对象</param>
-        /// <returns></returns>
+        /// <param name="key">json键</param>
+        /// <param name="jo">json对象</param>
+        /// <returns>是否为空</returns>
         public static bool JsonIsNull(string key, JObject jo)
         {
             if (jo.Property(key) == null || jo[key].ToString() == "")
@@ -37,10 +37,10 @@ namespace FastUntility.Base
         /// 标签：2015.7.13，魏中针
         /// 说明：获取json键值
         /// </summary>
-        /// <param name="Key">json键</param>
-        /// <param name="ReturnValue">json键为空时,默认值</param>
-        /// <param name="Item">json 对象</param>
-        /// <returns></returns>
+        /// <param name="key">json键</param>
+        /// <param name="returnValue">json键为空时,默认值</param>
+        /// <param name="item">json 对象</param>
+        /// <returns>json值</returns>
         public static string JsonValue(string key, string returnValue, JObject item)
         {
             if (item.Property(key) == null || item[key].ToString() == "")
@@ -216,8 +216,9 @@ namespace FastUntility.Base
         /// <summary>
         /// datareader to json
         /// </summary>
-        /// <param name="dr"></param>
-        /// <returns></returns>
+        /// <param name="reader">数据读取器</param>
+        /// <param name="isOracle">是否Oracle数据库</param>
+        /// <returns>JSON字符串</returns>
         public static string DataReaderToJson(DbDataReader reader, bool isOracle = false)
         {
             var result = new List<Dictionary<string, object>>();

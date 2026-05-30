@@ -29,6 +29,10 @@ namespace FastData.ConnectionPool
         /// <summary>
         /// 获取或创建连接池
         /// </summary>
+        /// <param name="name">连接池名称</param>
+        /// <param name="connectionFactory">连接工厂</param>
+        /// <param name="config">连接池配置</param>
+        /// <returns>智能连接池</returns>
         public SmartConnectionPool GetOrCreatePool(string name, Func<DbConnection> connectionFactory, ConnectionPoolConfig config = null)
         {
             return _pools.GetOrAdd(name, key => new SmartConnectionPool(key, connectionFactory, config));

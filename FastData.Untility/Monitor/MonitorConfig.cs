@@ -150,7 +150,18 @@ namespace FastUntility.Monitor
     /// </summary>
     public interface IMessageSender
     {
+        /// <summary>
+        /// 发送私聊消息
+        /// </summary>
+        /// <param name="qqNumber">QQ 号</param>
+        /// <param name="message">消息内容</param>
         void SendPrivateMessage(string qqNumber, string message);
+
+        /// <summary>
+        /// 发送群消息
+        /// </summary>
+        /// <param name="groupId">群号</param>
+        /// <param name="message">消息内容</param>
         void SendGroupMessage(string groupId, string message);
     }
 
@@ -162,6 +173,8 @@ namespace FastUntility.Monitor
         /// <summary>
         /// 从 db.config 解析 IM 平台配置
         /// </summary>
+        /// <param name="configPath">配置文件路径</param>
+        /// <returns>配置元组</returns>
         public static (QQBotConfig BotConfig, ExceptionNotifyConfig NotifyConfig) ParseFromConfig(string configPath = "db.config")
         {
             var botConfig = new QQBotConfig();

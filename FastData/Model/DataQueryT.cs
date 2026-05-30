@@ -127,6 +127,10 @@ namespace FastData.Model
         /// <summary>
         /// 链式 Between 条件
         /// </summary>
+        /// <param name="field">字段表达式</param>
+        /// <param name="start">起始值</param>
+        /// <param name="end">结束值</param>
+        /// <returns>DataQuery泛型对象</returns>
         public DataQuery<T> Between(Expression<Func<T, object>> field, object start, object end)
         {
             if (field == null)
@@ -343,6 +347,9 @@ namespace FastData.Model
         /// <summary>
         /// 分页查询
         /// </summary>
+        /// <param name="page">页码</param>
+        /// <param name="pageSize">每页条数</param>
+        /// <returns>分页结果</returns>
         public PaginationResult<T> ToPagination(int page, int pageSize)
         {
             if (EnableSharding && ShardingManager.IsShardingEnabled<T>())

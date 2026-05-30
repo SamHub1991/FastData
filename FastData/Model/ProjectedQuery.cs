@@ -30,6 +30,9 @@ namespace FastData
         /// <summary>
         /// 执行查询并返回投影后的列表
         /// </summary>
+        /// <param name="db">数据上下文</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>投影结果列表</returns>
         public List<TResult> ToList(DataContext db = null, bool isOutSql = false)
         {
             var stopwatch = new Stopwatch();
@@ -61,6 +64,9 @@ namespace FastData
         /// <summary>
         /// 执行查询并返回投影后的列表（异步）
         /// </summary>
+        /// <param name="db">数据上下文</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>投影结果列表任务</returns>
         public Task<List<TResult>> ToListAsync(DataContext db = null, bool isOutSql = false)
         {
             return Task.Run(() => ToList(db, isOutSql));
@@ -69,6 +75,11 @@ namespace FastData
         /// <summary>
         /// 分页查询并返回投影后的结果
         /// </summary>
+        /// <param name="page">页码</param>
+        /// <param name="pageSize">每页条数</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>分页结果</returns>
         public PaginationResult<TResult> ToPagination(int page, int pageSize, DataContext db = null, bool isOutSql = false)
         {
             page = page < 1 ? 1 : page;

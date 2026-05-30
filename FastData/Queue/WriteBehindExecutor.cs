@@ -142,6 +142,10 @@ namespace FastData.Queue
         /// <summary>
         /// 带降级的写入（先尝试数据库，失败则写队列）
         /// </summary>
+        /// <param name="operations">写入操作列表</param>
+        /// <param name="config">写入配置</param>
+        /// <param name="databaseKey">数据库键</param>
+        /// <returns>写入结果</returns>
         private static WriteBehindResult ExecuteWithFallback(List<WriteOperation> operations, WriteBehindConfig config, string databaseKey)
         {
             var result = new WriteBehindResult { Success = true };

@@ -89,9 +89,10 @@ namespace FastData.Base
         /// <summary>
         /// 获取datatabel
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="db"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="cmd">数据库命令对象</param>
+        /// <param name="list">实体列表</param>
+        /// <returns>数据表</returns>
         public static DataTable GetTable<T>(DbCommand cmd, List<T> list)
         {
             var dyn = new Property.DynamicGet<T>();

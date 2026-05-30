@@ -60,9 +60,10 @@ namespace FastUntility.Base
         /// <summary>
         /// 返回字符串列表
         /// </summary>
+        /// <param name="context">HTTP上下文</param>
         /// <param name="FileName">文件名</param>
         /// <param name="xmlNodel">结点</param>
-        /// <returns></returns>
+        /// <returns>字符串列表</returns>
         public static List<string> GetXmlListForFileAsync(HttpContextBase context,string FileName, string xmlNodel)
         {
             try

@@ -24,9 +24,10 @@ namespace FastData.Base
         /// </summary>
         /// <typeparam name="T">泛型</typeparam>
         /// <param name="model">实体</param>
-        /// <param name="sql">sql</param>
-        /// <param name="oracleParam">参数</param>
-        /// <returns></returns>
+        /// <param name="config">配置模型</param>
+        /// <param name="field">更新字段表达式，为null时更新所有字段</param>
+        /// <param name="cmd">数据库命令对象</param>
+        /// <returns>操作结果模型</returns>
         public static OptionModel UpdateToSql<T>(T model, ConfigModel config, Expression<Func<T, object>> field = null,DbCommand cmd=null)
         {
             var result = new OptionModel();
@@ -173,10 +174,11 @@ namespace FastData.Base
         /// model 转 update sql
         /// </summary>
         /// <typeparam name="T">泛型</typeparam>
+        /// <param name="cmd">数据库命令对象</param>
         /// <param name="model">实体</param>
-        /// <param name="sql">sql</param>
-        /// <param name="oracleParam">参数</param>
-        /// <returns></returns>
+        /// <param name="config">配置模型</param>
+        /// <param name="field">更新字段表达式，为null时更新所有字段</param>
+        /// <returns>操作结果模型</returns>
         public static OptionModel UpdateToSql<T>(DbCommand cmd, T model, ConfigModel config, Expression<Func<T, object>> field = null)
         {
             var result = new OptionModel();
@@ -277,10 +279,11 @@ namespace FastData.Base
         /// model 转 update list sql
         /// </summary>
         /// <typeparam name="T">泛型</typeparam>
-        /// <param name="model">实体</param>
-        /// <param name="sql">sql</param>
-        /// <param name="oracleParam">参数</param>
-        /// <returns></returns>
+        /// <param name="cmd">数据库命令对象</param>
+        /// <param name="list">实体列表</param>
+        /// <param name="config">配置模型</param>
+        /// <param name="field">更新字段表达式，为null时更新所有字段</param>
+        /// <returns>操作结果模型</returns>
         public static OptionModel UpdateListToSql<T>(DbCommand cmd, List<T> list, ConfigModel config, Expression<Func<T, object>> field = null)
         {
             var dynGet = new DynamicGet<T>();

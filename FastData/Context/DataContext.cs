@@ -75,10 +75,13 @@ namespace FastData.Context
         /// <summary>
         /// Aop After
         /// </summary>
-        /// <param name="sql"></param>
-        /// <param name="name"></param>
-        /// <param name="param"></param>
-        /// <param name="config"></param>
+        /// <param name="tableName">表名列表</param>
+        /// <param name="sql">SQL语句</param>
+        /// <param name="param">数据库参数列表</param>
+        /// <param name="config">配置模型</param>
+        /// <param name="isRead">是否读操作</param>
+        /// <param name="type">AOP类型</param>
+        /// <param name="result">执行结果</param>
         private void AopAfter(List<string> tableName, string sql, List<DbParameter> param, ConfigModel config, bool isRead, AopType type, object result)
         {
             if (FastMap.fastAop != null)
@@ -105,8 +108,10 @@ namespace FastData.Context
         /// <summary>
         /// aop Exception
         /// </summary>
-        /// <param name="ex"></param>
-        /// <param name="name"></param>
+        /// <param name="ex">异常对象</param>
+        /// <param name="name">操作名称</param>
+        /// <param name="config">配置模型</param>
+        /// <param name="type">AOP类型</param>
         private void AopException(Exception ex, string name, ConfigModel config, AopType type)
         {
             if (FastMap.fastAop != null)
@@ -150,6 +155,9 @@ namespace FastData.Context
         /// <summary>
         /// 初始化（延迟打开连接）
         /// </summary>
+        /// <param name="key">配置键</param>
+        /// <param name="projectName">项目名称</param>
+        /// <param name="poolConfig">连接池配置</param>
         public DataContext(string key = null, string projectName = null, ConnectionPoolConfig poolConfig = null)
         {
             try

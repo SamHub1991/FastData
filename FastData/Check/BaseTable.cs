@@ -24,6 +24,10 @@ namespace FastData.Check
         /// <summary>
         /// 验证表
         /// </summary>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="tableName">表名</param>
+        /// <param name="listInfo">属性信息列表</param>
+        /// <param name="listAttribute">属性列表</param>
         public static void Check(DataQuery item, string tableName, List<PropertyInfo> listInfo, List<Attribute> listAttribute)
         {
             try

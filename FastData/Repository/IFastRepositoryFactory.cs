@@ -13,6 +13,8 @@ namespace FastData.Repository
         /// <summary>
         /// Creates a repository bound to the specified database key.
         /// </summary>
+        /// <param name="key">数据库 key</param>
+        /// <returns>仓储实例</returns>
         IFastRepository Use(string key);
     }
 }

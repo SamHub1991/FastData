@@ -148,7 +148,9 @@ namespace FastData.Context
         /// <summary>
         /// 获取分页
         /// </summary>
-        /// <returns></returns>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="pModel">分页模型</param>
+        /// <returns>数据返回对象</returns>
         public DataReturn GetPage(DataQuery item, PageModel pModel)
         {
             var param = new List<DbParameter>();
@@ -209,7 +211,11 @@ namespace FastData.Context
         /// <summary>
         /// 获取分页
         /// </summary>
-        /// <returns></returns>
+        /// <param name="pModel">分页模型</param>
+        /// <param name="sql">SQL语句</param>
+        /// <param name="param">数据库参数数组</param>
+        /// <param name="isAop">是否启用AOP</param>
+        /// <returns>数据返回对象</returns>
         public DataReturn GetPageSql(PageModel pModel, string sql, DbParameter[] param,bool isAop=true)
         {
             var result = new DataReturn();
@@ -510,7 +516,11 @@ namespace FastData.Context
         /// <summary>
         /// 执行sql
         /// </summary>
-        /// <returns></returns>
+        /// <param name="sql">SQL语句</param>
+        /// <param name="param">数据库参数数组</param>
+        /// <param name="isLog">是否记录日志</param>
+        /// <param name="isAop">是否启用AOP</param>
+        /// <returns>数据返回对象</returns>
         public DataReturn ExecuteSqlList(string sql, DbParameter[] param=null,bool isLog=false,bool isAop=true)
         {
             var result = new DataReturn();
@@ -684,6 +694,9 @@ namespace FastData.Context
         /// <summary>
         /// 构建基础 SELECT + JOIN + WHERE + GROUP BY + ORDER BY 查询
         /// </summary>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="param">数据库参数列表</param>
+        /// <param name="sql">SQL构建器</param>
         private void BuildBaseSelectQuery(DataQuery item, List<DbParameter> param, StringBuilder sql)
         {
             // SELECT 子句
@@ -717,6 +730,8 @@ namespace FastData.Context
         /// <summary>
         /// 追加 TAKE/LIMIT 子句（数据库特定语法）
         /// </summary>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="sql">SQL构建器</param>
         private void AppendTakeClause(DataQuery item, StringBuilder sql)
         {
             if (item.Take == 0)

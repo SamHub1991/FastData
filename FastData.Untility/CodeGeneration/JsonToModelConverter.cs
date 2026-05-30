@@ -17,6 +17,10 @@ namespace FastData.Tooling.CodeGeneration
         /// <summary>
         /// 将 JSON 转换为 C# Model
         /// </summary>
+        /// <param name="json">JSON字符串</param>
+        /// <param name="className">类名</param>
+        /// <param name="namespaceName">命名空间</param>
+        /// <returns>C#代码字符串</returns>
         public string Convert(string json, string className, string namespaceName = "FastData.Generated.Models")
         {
             if (string.IsNullOrWhiteSpace(json))

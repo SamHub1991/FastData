@@ -18,13 +18,13 @@ namespace FastUntility.Host
         /// 标签：2015.9.6，魏中针
         /// 说明：宿主类
         /// </summary>
-        /// <param name="Url">网址</param>
+        /// <param name="BaseUrl">基础URL</param>
         /// <param name="TypeName">类，typeof(test)</param>
         /// <param name="ITypeName">接口类，typeof(itest)</param>
         /// <param name="bind">绑定模式，BindingModel类提供</param>
-        /// <param name="TcpUrl">TCP访问地址</param>
+        /// <param name="NetUrl">网络访问地址</param>
         /// <param name="QueueName">队列名称</param>
-        /// <returns></returns>
+        /// <returns>服务宿主</returns>
         public static ServiceHost GetHost(string BaseUrl, Type TypeName, Type ITypeName, Binding bind,string NetUrl="", string QueueName = "")
         {
             try

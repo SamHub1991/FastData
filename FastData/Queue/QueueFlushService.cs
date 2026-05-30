@@ -55,6 +55,8 @@ namespace FastData.Queue
         /// <summary>
         /// 启动指定表的队列消费者
         /// </summary>
+        /// <param name="tableName">表名</param>
+        /// <param name="config">写入配置</param>
         private void StartConsumerForTable(string tableName, WriteBehindConfig config)
         {
             var topic = config.Topic ?? tableName.ToLower();

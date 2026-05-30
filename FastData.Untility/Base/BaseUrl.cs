@@ -34,6 +34,10 @@ namespace FastUntility.Base
         /// <summary>
         /// get url(select) - Async version
         /// </summary>
+        /// <param name="url">请求URL</param>
+        /// <param name="version">主版本号</param>
+        /// <param name="minor">次版本号</param>
+        /// <returns>响应内容</returns>
         public static async Task<string> GetUrlAsync(string url, int version = 1, int minor = 1)
         {
             try
@@ -58,6 +62,10 @@ namespace FastUntility.Base
         /// <summary>
         /// get url(select)
         /// </summary>
+        /// <param name="url">请求URL</param>
+        /// <param name="version">主版本号</param>
+        /// <param name="minor">次版本号</param>
+        /// <returns>响应内容</returns>
         public static string GetUrl(string url, int version = 1, int minor = 1)
         {
             return GetUrlAsync(url, version, minor).ConfigureAwait(false).GetAwaiter().GetResult();
@@ -68,6 +76,12 @@ namespace FastUntility.Base
         /// <summary>
         /// post url(insert) - Async version
         /// </summary>
+        /// <param name="url">请求URL</param>
+        /// <param name="dic">参数字典</param>
+        /// <param name="version">主版本号</param>
+        /// <param name="minor">次版本号</param>
+        /// <param name="mediaType">媒体类型</param>
+        /// <returns>响应内容</returns>
         public static async Task<string> PostUrlAsync(string url, Dictionary<string, object> dic, int version = 1, int minor = 1, string mediaType = "application/json")
         {
             var count = 0;

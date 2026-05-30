@@ -61,6 +61,12 @@ namespace FastData.Repository
         /// <summary>
         /// maq 执行返回 List<Dictionary<string, object>>
         /// </summary>
+        /// <param name="name">Map名称</param>
+        /// <param name="param">数据库参数数组</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="key">配置键</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>字典列表</returns>
         public List<Dictionary<string, object>> Query(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
             key = key == null ? MapDb(name) : key;
@@ -70,6 +76,12 @@ namespace FastData.Repository
         /// <summary>
         /// 执行sql List<Dictionary<string, object>> asy
         /// </summary>
+        /// <param name="name">Map名称</param>
+        /// <param name="param">数据库参数数组</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="key">配置键</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>字典列表任务</returns>
         public Task<List<Dictionary<string, object>>> QueryAsync(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
             return AsyncHelper.RunSyncAsAsync(() => Query(name, param, db, key, isOutSql));
@@ -78,6 +90,12 @@ namespace FastData.Repository
         /// <summary>
         /// maq 执行返回 List<Dictionary<string, object>> lazy
         /// </summary>
+        /// <param name="name">Map名称</param>
+        /// <param name="param">数据库参数数组</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="key">配置键</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>字典列表懒加载</returns>
         public Lazy<List<Dictionary<string, object>>> QueryLazy(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
             return AsyncHelper.ToLazy(() => Query(name, param, db, key, isOutSql));
@@ -86,6 +104,12 @@ namespace FastData.Repository
         /// <summary>
         /// maq 执行返回 List<Dictionary<string, object>> lazy asy
         /// </summary>
+        /// <param name="name">Map名称</param>
+        /// <param name="param">数据库参数数组</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="key">配置键</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>字典列表懒加载任务</returns>
         public Task<Lazy<List<Dictionary<string, object>>>> QueryLazyAsync(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
             return AsyncHelper.RunSyncAsLazyAsync(() => Query(name, param, db, key, isOutSql));
@@ -95,6 +119,12 @@ namespace FastData.Repository
         /// <summary>
         /// 执行写操作
         /// </summary>
+        /// <param name="name">Map名称</param>
+        /// <param name="param">数据库参数数组</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="key">配置键</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>写入返回对象</returns>
         public WriteReturn Write(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
             key = key == null ? MapDb(name) : key;

@@ -120,9 +120,12 @@ namespace FastData.Base
         /// <summary>
         /// query field 2个表
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="field"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">第一个表类型</typeparam>
+        /// <typeparam name="T1">第二个表类型</typeparam>
+        /// <param name="predicate">查询条件表达式</param>
+        /// <param name="field">返回字段表达式</param>
+        /// <param name="config">配置模型</param>
+        /// <returns>字段模型</returns>
         public static FieldModel QueryField<T, T1>(Expression<Func<T, T1, bool>> predicate, Expression<Func<T1, object>> field, ConfigModel config)
         {
             try
@@ -281,9 +284,11 @@ namespace FastData.Base
         /// <summary>
         /// 获取属性方法
         /// </summary>
-        /// <param name="item"></param>
-        /// <param name="methodName"></param>
-        /// <returns></returns>
+        /// <param name="item">表达式</param>
+        /// <param name="methodName">方法名（输出参数）</param>
+        /// <param name="IsMoreTable">是否多表查询</param>
+        /// <param name="ower">所有者（输出参数）</param>
+        /// <returns>属性名称</returns>
         private static string GetPropertyMethod(Expression item, out string methodName, bool IsMoreTable, out string ower)
         {
             var result = new List<string>();

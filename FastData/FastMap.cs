@@ -97,9 +97,9 @@ namespace FastData
         /// <summary>
         /// 初始化model成员 1
         /// </summary>
-        /// <param name="list"></param>
         /// <param name="nameSpace">命名空间</param>
-        /// <param name="dll">dll名称</param>
+        /// <param name="dbFile">配置文件名</param>
+        /// <param name="aop">AOP接口</param>
         public static void InstanceProperties(string nameSpace, string dbFile = "db.config", IFastAop aop = null)
         {
             fastAop = aop;
@@ -134,9 +134,10 @@ namespace FastData
         /// <summary>
         /// 初始化code first 2
         /// </summary>
-        /// <param name="list"></param>
         /// <param name="nameSpace">命名空间</param>
-        /// <param name="dll">dll名称</param>
+        /// <param name="dbKey">数据库键</param>
+        /// <param name="dbFile">配置文件名</param>
+        /// <param name="aop">AOP接口</param>
         public static void InstanceTable(string nameSpace, string dbKey = null, string dbFile = "db.config", IFastAop aop = null)
         {
             fastAop = aop;
@@ -237,7 +238,10 @@ namespace FastData
         /// <summary>
         /// 初始化map 3
         /// </summary>
-        /// <returns></returns>
+        /// <param name="dbKey">数据库键</param>
+        /// <param name="dbFile">配置文件名</param>
+        /// <param name="mapFile">Map配置文件名</param>
+        /// <param name="aop">AOP接口</param>
         public static void InstanceMap(string dbKey = null, string dbFile = "db.config", string mapFile = "SqlMap.config", IFastAop aop = null)
         {        
             fastAop = aop;
@@ -379,6 +383,12 @@ namespace FastData
         /// <summary>
         /// 执行写操作
         /// </summary>
+        /// <param name="name">Map名称</param>
+        /// <param name="param">数据库参数数组</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="key">配置键</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>写入返回对象</returns>
         public static WriteReturn Write(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
             key = key == null ? MapDb(name) : key;
@@ -409,6 +419,12 @@ namespace FastData
         /// <summary>
         ///  maq 执行写操作 asy
         /// </summary>
+        /// <param name="name">Map名称</param>
+        /// <param name="param">数据库参数数组</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="key">配置键</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>写入返回对象任务</returns>
         public static Task<WriteReturn> WriteAsync(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
             return AsyncHelper.RunAsync(() => Write(name, param, db, key, isOutSql));

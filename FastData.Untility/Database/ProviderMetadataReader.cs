@@ -176,6 +176,7 @@ namespace FastData.Tooling.Database
         /// <summary>
         /// 安全获取 DataRow 中的值
         /// </summary>
+        /// <param name="row">数据行</param>
         /// <param name="name">列名</param>
         /// <returns>字符串值，不存在或为 DBNull 则返回 null</returns>
         private static string GetValue(DataRow row, string name)
@@ -189,6 +190,7 @@ namespace FastData.Tooling.Database
         /// <summary>
         /// 安全获取 DataRow 中的整数值
         /// </summary>
+        /// <param name="row">数据行</param>
         /// <param name="name">列名</param>
         /// <returns>整数值，解析失败返回 0</returns>
         private static int ToInt(DataRow row, string name)

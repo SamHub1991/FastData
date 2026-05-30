@@ -93,6 +93,9 @@ namespace FastData.Database
         /// <summary>
         /// 创建数据库连接
         /// </summary>
+        /// <param name="providerName">提供程序名称</param>
+        /// <param name="connectionString">连接字符串</param>
+        /// <returns>数据库连接</returns>
         public static DbConnection CreateConnection(string providerName, string connectionString)
         {
             if (string.IsNullOrWhiteSpace(providerName))

@@ -135,7 +135,9 @@ namespace FastUntility.Base
         /// 标签：2015.7.13，魏中针
         /// 说明：string型转换为Int32类型
         /// </summary>
-        /// <returns></returns>
+        /// <param name="str">字符串</param>
+        /// <param name="defValue">默认值</param>
+        /// <returns>整数值</returns>
         public static int ToInt(this string str, int defValue)
         {
             int tmp = 0;

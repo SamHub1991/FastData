@@ -40,6 +40,10 @@ namespace FastUntility.Monitor
         /// <summary>
         /// 从配置文件初始化异常管理器
         /// </summary>
+        /// <param name="configPath">配置文件路径</param>
+        /// <param name="sender">消息发送器</param>
+        /// <param name="poolInfoProvider">连接池信息提供者</param>
+        /// <returns>异常管理器实例</returns>
         public static ExceptionManager InitializeFromConfig(string configPath = "db.config", IMessageSender sender = null, IConnectionPoolInfoProvider poolInfoProvider = null)
         {
             var (botConfig, notifyConfig) = IMPlatformConfigParser.ParseFromConfig(configPath);
@@ -54,6 +58,11 @@ namespace FastUntility.Monitor
         /// <summary>
         /// 初始化异常管理器
         /// </summary>
+        /// <param name="botConfig">QQ机器人配置</param>
+        /// <param name="notifyConfig">异常通知配置</param>
+        /// <param name="sender">消息发送器</param>
+        /// <param name="poolInfoProvider">连接池信息提供者</param>
+        /// <returns>异常管理器实例</returns>
         public static ExceptionManager Initialize(QQBotConfig botConfig, ExceptionNotifyConfig notifyConfig, IMessageSender sender = null, IConnectionPoolInfoProvider poolInfoProvider = null)
         {
             lock (_lock)
@@ -96,6 +105,10 @@ namespace FastUntility.Monitor
         /// <summary>
         /// 记录并通知异常
         /// </summary>
+        /// <param name="ex">异常对象</param>
+        /// <param name="level">异常级别</param>
+        /// <param name="source">来源</param>
+        /// <param name="additionalData">附加数据</param>
         public void LogException(Exception ex, ExceptionLevel level = ExceptionLevel.Error, string source = null, Dictionary<string, string> additionalData = null)
         {
             var exceptionInfo = new ExceptionInfo

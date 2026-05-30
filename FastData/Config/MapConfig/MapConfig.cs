@@ -31,7 +31,8 @@ namespace FastData.Config
         /// <summary>
         /// 获取配置节点
         /// </summary>
-        /// <returns></returns>
+        /// <param name="mapFile">Map配置文件名</param>
+        /// <returns>Map配置模型</returns>
         public static MapConfigModel GetConfig(string mapFile= "SqlMap.config")
         {
             try

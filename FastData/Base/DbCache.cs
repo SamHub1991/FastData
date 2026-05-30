@@ -10,6 +10,10 @@ namespace FastData.Base
         /// <summary>
         /// 设置缓存
         /// </summary>
+        /// <param name="cacheType">缓存类型</param>
+        /// <param name="key">缓存键</param>
+        /// <param name="value">缓存值</param>
+        /// <param name="Hours">缓存时间（小时）</param>
         public static void Set(string cacheType, string key, string value, int Hours=8640)
         {
             if (cacheType.ToLower() == CacheType.Web)
@@ -32,6 +36,9 @@ namespace FastData.Base
         /// <summary>
         /// 获取缓存
         /// </summary>
+        /// <param name="cacheType">缓存类型</param>
+        /// <param name="key">缓存键</param>
+        /// <returns>缓存值</returns>
         public static string Get(string cacheType,  string key)
         {
             if (cacheType.ToLower() == CacheType.Web)
@@ -58,6 +65,8 @@ namespace FastData.Base
         /// <summary>
         /// 删除缓存
         /// </summary>
+        /// <param name="cacheType">缓存类型</param>
+        /// <param name="key">缓存键</param>
         public static void Remove(string cacheType,  string key)
         {
             if (cacheType.ToLower() == CacheType.Web)

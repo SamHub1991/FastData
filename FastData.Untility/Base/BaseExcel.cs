@@ -189,7 +189,9 @@ namespace FastUntility.Base
         /// 填充内容
         /// </summary>
         /// <param name="listContent">内容列表</param>
-        /// <param name="model"></param>
+        /// <param name="model">Excel模型</param>
+        /// <param name="exclude">排除列</param>
+        /// <param name="IsSmallTile">是否小标题</param>
         public static void FillContent(List<Dictionary<string, object>> listContent, ExcelModel model, string exclude = "", bool IsSmallTile = false)
         {
             try
@@ -247,7 +249,9 @@ namespace FastUntility.Base
         /// <summary>
         /// 获取excel流
         /// </summary>
-        /// <returns></returns>
+        /// <param name="model">Excel模型</param>
+        /// <param name="title">标题字典</param>
+        /// <returns>字节数组</returns>
         public static byte[] Result(ExcelModel model, Dictionary<string, object> title)
         {
             try
@@ -316,7 +320,10 @@ namespace FastUntility.Base
         /// <summary>
         /// 样式
         /// </summary>
-        /// <returns></returns>
+        /// <param name="hssfworkbook">工作簿</param>
+        /// <param name="IsHead">是否表头</param>
+        /// <param name="IsWrapText">是否自动换行</param>
+        /// <returns>单元格样式</returns>
         private static ICellStyle GetStyle(HSSFWorkbook hssfworkbook, bool IsHead = false, bool IsWrapText = false)
         {
             var style = hssfworkbook.CreateCellStyle();

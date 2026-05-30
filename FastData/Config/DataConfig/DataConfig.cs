@@ -194,7 +194,10 @@ namespace FastData.Config
         /// <summary>
         /// 获取配置节点
         /// </summary>
-        /// <returns></returns>
+        /// <param name="key">配置键</param>
+        /// <param name="projectName">项目名称</param>
+        /// <param name="dbFile">配置文件名</param>
+        /// <returns>配置模型</returns>
         public static ConfigModel GetConfig(string key = null, string projectName = null, string dbFile = "db.config")
         {
             var cacheKey = "FastData.db.config";
@@ -668,6 +671,7 @@ namespace FastData.Config
         /// <summary>
         /// Get Redis config from current active environment config
         /// </summary>
+        /// <param name="dbFile">配置文件名</param>
         /// <returns>Redis config, or null if not configured</returns>
         public static RedisConfig GetRedisConfig(string dbFile = "db.config")
         {
@@ -744,6 +748,9 @@ namespace FastData.Config
         /// <summary>
         /// 从嵌入式资源加载配置
         /// </summary>
+        /// <param name="projectName">项目名称</param>
+        /// <param name="dbFile">配置文件名</param>
+        /// <returns>数据配置</returns>
         private static DataConfig LoadFromEmbeddedResource(string projectName, string dbFile)
         {
             try
@@ -1002,6 +1009,8 @@ namespace FastData.Config
         /// <summary>
         /// 获取连接池配置（从配置文件读取，无配置则返回 null）
         /// </summary>
+        /// <param name="dbFile">配置文件名</param>
+        /// <returns>连接池配置</returns>
         public static ConnectionPoolConfig GetConnectionPoolConfigPublic(string dbFile = "db.config")
         {
             var baseConfig = TryLoadConfig(dbFile);

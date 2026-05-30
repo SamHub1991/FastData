@@ -201,6 +201,9 @@ namespace FastData.Sharding
         /// <summary>
         /// 创建分表
         /// </summary>
+        /// <param name="config">分片配置</param>
+        /// <param name="tableName">表名</param>
+        /// <returns>是否成功</returns>
         public static bool CreateTable(ShardingConfig config, string tableName)
         {
             try
@@ -226,6 +229,9 @@ namespace FastData.Sharding
         /// <summary>
         /// 生成创建分表的 SQL
         /// </summary>
+        /// <param name="config">分片配置</param>
+        /// <param name="tableName">表名</param>
+        /// <returns>SQL语句</returns>
         public static string GenerateCreateTableSql(ShardingConfig config, string tableName)
         {
             // 这里需要根据实体类型生成建表 SQL

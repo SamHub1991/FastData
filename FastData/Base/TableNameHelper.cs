@@ -38,6 +38,9 @@ namespace FastData.Base
         /// 从多数据库表名映射中获取表名
         /// 格式: "数据库Key.表名,数据库Key.表名"
         /// </summary>
+        /// <param name="dbTableNames">数据库表名映射字符串</param>
+        /// <param name="dbKey">数据库键</param>
+        /// <returns>表名</returns>
         private static string GetTableNameFromMapping(string dbTableNames, string dbKey)
         {
             if (string.IsNullOrEmpty(dbTableNames) || string.IsNullOrEmpty(dbKey))

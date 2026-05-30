@@ -538,9 +538,12 @@ namespace FastData
         /// <summary>
         /// 执行sql
         /// </summary>
-        /// <param name="sql"></param>
-        /// <param name="param"></param>
-        /// <returns></returns>
+        /// <param name="sql">SQL语句</param>
+        /// <param name="param">数据库参数数组</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="key">配置键</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>写入返回对象</returns>
         public static WriteReturn ExecuteSql(string sql, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
             key = key ?? FastDb.CurrentKey;
@@ -578,9 +581,12 @@ namespace FastData
         /// <summary>
         /// 执行sql asy
         /// </summary>
-        /// <param name="sql"></param>
-        /// <param name="param"></param>
-        /// <returns></returns>
+        /// <param name="sql">SQL语句</param>
+        /// <param name="param">数据库参数数组</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="key">配置键</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>写入返回对象任务</returns>
         public static Task<WriteReturn> ExecuteSqlAsync(string sql, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
             return AsyncHelper.RunAsync(() => ExecuteSql(sql, param, db, key, isOutSql));

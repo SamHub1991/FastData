@@ -107,7 +107,10 @@ namespace FastData.Check
         /// <summary>
         /// 获取列类型
         /// </summary>
-        /// <returns></returns>
+        /// <param name="model">列模型</param>
+        /// <param name="type">数据类型</param>
+        /// <param name="name">列名</param>
+        /// <returns>列类型</returns>
         private static ColumnType GetColumnType(ColumnModel model, string type, string name)
         {
             var item = new ColumnType();

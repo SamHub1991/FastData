@@ -16,7 +16,8 @@ namespace FastRedis
         /// <summary>
         /// 资源文件初始化
         /// </summary>
-        /// <param name="dbFile"></param>
+        /// <param name="dbFile">配置文件名</param>
+        /// <param name="projectName">项目名称</param>
         public static void Init(string dbFile = "db.config", string projectName = null)
         {
             if (projectName == null)
@@ -28,7 +29,8 @@ namespace FastRedis
         /// <summary>
         /// 获取上下文
         /// </summary>
-        /// <returns></returns>
+        /// <param name="db">数据库索引</param>
+        /// <returns>Redis客户端管理器</returns>
         public static PooledRedisClientManager Context(int db = 0)
         {
             var config = RedisConfig.GetConfig();
@@ -48,7 +50,9 @@ namespace FastRedis
         /// <summary>
         /// 是否存在 
         /// </summary>
-        /// <returns></returns>
+        /// <param name="key">键</param>
+        /// <param name="db">数据库索引</param>
+        /// <returns>是否存在</returns>
         public static bool Exists(string key, int db = 0)
         {
             try
@@ -73,7 +77,9 @@ namespace FastRedis
         /// <summary>
         /// 是否存在 asy
         /// </summary>
-        /// <returns></returns>
+        /// <param name="key">键</param>
+        /// <param name="db">数据库索引</param>
+        /// <returns>是否存在</returns>
         public static Task<bool> ExistsAsync(string key, int db = 0)
         {
             return Task.Run(() =>

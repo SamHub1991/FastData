@@ -122,9 +122,12 @@ namespace FastData.Base
         /// <summary>
         /// Lambda where 2个表
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="item"></param>
-        /// <returns></returns>
+        /// <typeparam name="T1">第一个表类型</typeparam>
+        /// <typeparam name="T2">第二个表类型</typeparam>
+        /// <param name="item">条件表达式</param>
+        /// <param name="config">配置模型</param>
+        /// <param name="isPage">是否分页查询</param>
+        /// <returns>访问模型</returns>
         public static VisitModel LambdaWhere<T1, T2>(Expression<Func<T1, T2, bool>> item, ConfigModel config, bool isPage = false)
         {
             var result = new VisitModel();
@@ -187,9 +190,17 @@ namespace FastData.Base
         /// <summary>
         /// 解析表达式
         /// </summary>
-        /// <param name="exp"></param>
-        /// <param name="isRight"></param>
-        /// <returns></returns>
+        /// <param name="config">配置模型</param>
+        /// <param name="exp">表达式</param>
+        /// <param name="expType">表达式类型</param>
+        /// <param name="leftList">左侧列表</param>
+        /// <param name="rightList">右侧列表</param>
+        /// <param name="typeList">类型列表</param>
+        /// <param name="sb">字符串构建器</param>
+        /// <param name="strType">类型字符串</param>
+        /// <param name="i">计数器</param>
+        /// <param name="isRight">是否右侧</param>
+        /// <returns>解析结果</returns>
         private static string RouteExpressionHandler(ConfigModel config, Expression exp, ExpressionType expType, ref List<string> leftList, ref List<string> rightList, ref List<System.Type> typeList, ref StringBuilder sb, ref string strType, ref int i, bool isRight = false)
         {
             var isReturnNull = false;
@@ -396,10 +407,18 @@ namespace FastData.Base
         /// <summary>
         /// 拆分表达式树 
         /// </summary>
-        /// <param name="left"></param>
-        /// <param name="right"></param>
-        /// <param name="type"></param>
-        /// <returns></returns>
+        /// <param name="config">配置模型</param>
+        /// <param name="left">左侧表达式</param>
+        /// <param name="right">右侧表达式</param>
+        /// <param name="expType">表达式类型</param>
+        /// <param name="leftList">左侧列表</param>
+        /// <param name="rightList">右侧列表</param>
+        /// <param name="typeList">类型列表</param>
+        /// <param name="sb">字符串构建器</param>
+        /// <param name="strType">类型字符串</param>
+        /// <param name="i">计数器</param>
+        /// <param name="isRight">是否右侧</param>
+        /// <returns>解析结果</returns>
         private static string BinaryExpressionHandler(ConfigModel config, Expression left, Expression right, ExpressionType expType, ref List<string> leftList, ref List<string> rightList, ref List<System.Type> typeList, ref StringBuilder sb, ref string strType, ref int i, bool isRight = false)
         {
             string needParKey = "=,>,<,>=,<=,<>";
@@ -551,9 +570,9 @@ namespace FastData.Base
         /// <summary>
         /// 替换
         /// </summary>
-        /// <param name="param"></param>
-        /// <param name="sql"></param>
-        /// <returns></returns>
+        /// <param name="item">访问模型</param>
+        /// <param name="config">配置模型</param>
+        /// <returns>替换后的访问模型</returns>
         private static VisitModel BaseReplace(VisitModel item, ConfigModel config)
         {
             var result = new VisitModel();

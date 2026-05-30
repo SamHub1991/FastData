@@ -10,10 +10,11 @@ namespace FastData.Base
         /// <summary>
         /// 数据库出错日志
         /// </summary>
-        /// <param name="IsOutError"></param>
-        /// <param name="IsAsyc"></param>
-        /// <param name="dbType"></param>
-        /// <param name="expContent"></param>
+        /// <param name="IsOutError">是否输出错误</param>
+        /// <param name="dbType">数据库类型</param>
+        /// <param name="ex">异常对象</param>
+        /// <param name="CurrentMethod">当前方法名</param>
+        /// <param name="sql">SQL语句</param>
         public static void LogException<T>(bool IsOutError, DataDbType dbType, Exception ex, string CurrentMethod, string sql)
         {
             if (IsOutError)
@@ -33,10 +34,11 @@ namespace FastData.Base
         /// <summary>
         /// 数据库出错日志
         /// </summary>
-        /// <param name="IsOutError"></param>
-        /// <param name="IsAsyc"></param>
-        /// <param name="dbType"></param>
-        /// <param name="expContent"></param>
+        /// <param name="IsOutError">是否输出错误</param>
+        /// <param name="dbType">数据库类型</param>
+        /// <param name="ex">异常对象</param>
+        /// <param name="CurrentMethod">当前方法名</param>
+        /// <param name="sql">SQL语句</param>
         public static void LogException(bool IsOutError, DataDbType dbType, Exception ex, string CurrentMethod, string sql)
         {
             if (IsOutError)
@@ -55,10 +57,11 @@ namespace FastData.Base
         /// <summary>
         /// 数据库sql日志
         /// </summary>
-        /// <param name="IsOutSql"></param>
-        /// <param name="IsAsyc"></param>
-        /// <param name="sql"></param>
-        /// <param name="dbType"></param>
+        /// <param name="IsOutSql">是否输出SQL</param>
+        /// <param name="sql">SQL语句</param>
+        /// <param name="dbType">数据库类型</param>
+        /// <param name="time">执行时间</param>
+        /// <param name="type">日志类型</param>
         public static void LogSql(bool IsOutSql, string sql, DataDbType dbType, double time, string type = null)
         {
             // Check global SQL log setting first, then per-database setting

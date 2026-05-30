@@ -16,7 +16,8 @@ namespace FastUntility.Base
         /// 标签：2015.7.13，魏中针
         /// 说明：写日记
         /// </summary>
-        /// <param name="StrContent">日志内容</param>
+        /// <param name="logContent">日志内容</param>
+        /// <param name="fileName">文件名</param>
         public static void SaveLog(string logContent, string fileName)
         {
             var path = string.Format("{0}/App_Data/log/{1}/{2}", AppDomain.CurrentDomain.BaseDirectory, DateTime.Now.ToString("yyyy-MM"), DateTime.Now.ToString("yyyy-MM-dd"));

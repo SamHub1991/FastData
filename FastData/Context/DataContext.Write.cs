@@ -776,7 +776,13 @@ namespace FastData.Context
         /// <summary>
         /// 执行sql
         /// </summary>
-        /// <returns></returns>
+        /// <param name="sql">SQL语句</param>
+        /// <param name="param">数据库参数数组</param>
+        /// <param name="isTrans">是否事务</param>
+        /// <param name="isLog">是否记录日志</param>
+        /// <param name="IsProcedure">是否存储过程</param>
+        /// <param name="isAop">是否启用AOP</param>
+        /// <returns>数据返回对象</returns>
         public DataReturn ExecuteSql(string sql, DbParameter[] param = null, bool isTrans = false, bool isLog = false, bool IsProcedure = false,bool isAop=true)
         {
             var result = new DataReturn();

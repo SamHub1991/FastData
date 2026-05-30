@@ -20,6 +20,9 @@ namespace FastData.Sharding.Strategies
         /// <summary>
         /// 根据实体获取分表名称
         /// </summary>
+        /// <param name="config">分片配置</param>
+        /// <param name="entity">实体对象</param>
+        /// <returns>表名</returns>
         public string GetTableName(ShardingConfig config, object entity)
         {
             if (config.TimeConfig == null)
@@ -39,6 +42,9 @@ namespace FastData.Sharding.Strategies
         /// <summary>
         /// 根据查询条件获取所有可能的分表名称
         /// </summary>
+        /// <param name="config">分片配置</param>
+        /// <param name="queryParams">查询参数</param>
+        /// <returns>表名列表</returns>
         public List<string> GetTableNames(ShardingConfig config, Dictionary<string, object> queryParams)
         {
             var result = new List<string>();
@@ -107,6 +113,9 @@ namespace FastData.Sharding.Strategies
         /// <summary>
         /// 创建分表
         /// </summary>
+        /// <param name="config">分片配置</param>
+        /// <param name="tableName">表名</param>
+        /// <returns>是否成功</returns>
         public bool CreateTable(ShardingConfig config, string tableName)
         {
             // 分表创建逻辑由 ShardingManager 统一处理

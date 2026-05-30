@@ -181,6 +181,9 @@ namespace FastData
         /// <summary>
         /// 如果为 null 或空字符串则返回默认值
         /// </summary>
+        /// <param name="value">字符串值</param>
+        /// <param name="defaultValue">默认值</param>
+        /// <returns>处理后的字符串</returns>
         public static string OrEmpty(this string value, string defaultValue = "")
         {
             return string.IsNullOrEmpty(value) ? defaultValue : value;

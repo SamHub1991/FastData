@@ -29,6 +29,9 @@ namespace FastRedis.Messaging
         /// <summary>
         /// 发布消息到 Stream
         /// </summary>
+        /// <param name="topic">主题</param>
+        /// <param name="message">消息</param>
+        /// <returns>是否成功</returns>
         public bool Publish<T>(string topic, T message) where T : class
         {
             var stream = _redis.GetStream<MessageEnvelope<T>>($"{_options.TopicPrefix}:{topic}");
@@ -40,6 +43,9 @@ namespace FastRedis.Messaging
         /// <summary>
         /// 发布消息到 Stream（异步）
         /// </summary>
+        /// <param name="topic">主题</param>
+        /// <param name="message">消息</param>
+        /// <returns>是否成功任务</returns>
         public Task<bool> PublishAsync<T>(string topic, T message) where T : class
         {
             return Task.FromResult(Publish(topic, message));
@@ -48,6 +54,9 @@ namespace FastRedis.Messaging
         /// <summary>
         /// 批量发布消息到 Stream
         /// </summary>
+        /// <param name="topic">主题</param>
+        /// <param name="messages">消息列表</param>
+        /// <returns>发布数量</returns>
         public int PublishBatch<T>(string topic, IEnumerable<T> messages) where T : class
         {
             var stream = _redis.GetStream<MessageEnvelope<T>>($"{_options.TopicPrefix}:{topic}");

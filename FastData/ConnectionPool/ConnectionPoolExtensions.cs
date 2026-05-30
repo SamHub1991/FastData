@@ -12,6 +12,9 @@ namespace FastData.ConnectionPool
         /// <summary>
         /// 创建带连接池的 DataContext
         /// </summary>
+        /// <param name="dbKey">数据库键</param>
+        /// <param name="config">连接池配置</param>
+        /// <returns>数据上下文</returns>
         public static DataContext CreatePooledDataContext(string dbKey, ConnectionPoolConfig config = null)
         {
             return new DataContext(dbKey, poolConfig: config);

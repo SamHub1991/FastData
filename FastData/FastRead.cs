@@ -138,13 +138,14 @@ namespace FastData
         /// <summary>
         /// 查询join
         /// </summary>
-        /// <typeparam name="T">泛型</typeparam>
-        /// <typeparam name="T1">泛型</typeparam>
-        /// <param name="joinType">left join,right join,inner join</param>
-        /// <param name="item"></param>
-        /// <param name="predicate">条件</param>
-        /// <param name="field">字段</param>
-        /// <returns></returns>
+        /// <typeparam name="T">第一个表类型</typeparam>
+        /// <typeparam name="T1">第二个表类型</typeparam>
+        /// <param name="joinType">join类型</param>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="predicate">条件表达式</param>
+        /// <param name="field">字段表达式</param>
+        /// <param name="isDblink">是否跨库查询</param>
+        /// <returns>数据查询对象</returns>
         private static DataQuery JoinType<T, T1>(string joinType, DataQuery item, Expression<Func<T, T1, bool>> predicate, Expression<Func<T1, object>> field = null, bool isDblink = false)
         {
             var queryField = BaseField.QueryField<T, T1>(predicate, field, item.Config);
@@ -391,12 +392,13 @@ namespace FastData
         /// <summary>
         /// 查询left join
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <typeparam name="T1"></typeparam>
-        /// <param name="item"></param>
-        /// <param name="predicate"></param>
-        /// <param name="field"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">第一个表类型</typeparam>
+        /// <typeparam name="T1">第二个表类型</typeparam>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="predicate">条件表达式</param>
+        /// <param name="field">字段表达式</param>
+        /// <param name="isDblink">是否跨库查询</param>
+        /// <returns>数据查询对象</returns>
         public static DataQuery LeftJoin<T, T1>(this DataQuery item, Expression<Func<T, T1, bool>> predicate, Expression<Func<T1, object>> field = null, bool isDblink = false)
         {
             return JoinType("left join", item, predicate, field);
@@ -433,10 +435,11 @@ namespace FastData
         /// <summary>
         /// 查询order by
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="item"></param>
-        /// <param name="field"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="field">排序字段表达式</param>
+        /// <param name="isDesc">是否降序</param>
+        /// <returns>数据查询对象</returns>
         public static DataQuery OrderBy<T>(this DataQuery item, Expression<Func<T, object>> field, bool isDesc = true)
         {
             var orderBy = BaseField.OrderBy<T>(field, item.Config, isDesc);
@@ -522,6 +525,10 @@ namespace FastData
         /// <summary>
         /// 返回json
         /// </summary>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>JSON字符串</returns>
         public static string ToJson(this DataQuery item, DataContext db = null, bool isOutSql = false)
         {
             return ExecuteQueryTemplate<string, DataReturn>(
@@ -535,8 +542,10 @@ namespace FastData
         /// <summary>
         /// 返回json asy
         /// </summary>
-        /// <param name="item"></param>
-        /// <returns></returns>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>JSON字符串任务</returns>
         public static Task<string> ToJsonAsync(this DataQuery item, DataContext db = null, bool isOutSql = false)
         {
             return AsyncHelper.RunAsync(() => ToJson(item, db, isOutSql));

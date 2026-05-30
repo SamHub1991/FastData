@@ -12,6 +12,10 @@ namespace FastData.Base
         /// <summary>
         /// 数据库出错日志
         /// </summary>
+        /// <param name="config">配置模型</param>
+        /// <param name="ex">异常对象</param>
+        /// <param name="CurrentMethod">当前方法名</param>
+        /// <param name="sql">SQL语句</param>
         public static void LogException<T>(ConfigModel config, Exception ex, string CurrentMethod, string sql)
         {
             SaveToDb(config, ex, CurrentMethod, sql, typeof(T).Name);
@@ -21,6 +25,10 @@ namespace FastData.Base
         /// <summary>
         /// 数据库出错日志
         /// </summary>
+        /// <param name="config">配置模型</param>
+        /// <param name="ex">异常对象</param>
+        /// <param name="CurrentMethod">当前方法名</param>
+        /// <param name="sql">SQL语句</param>
         public static void LogException(ConfigModel config, Exception ex, string CurrentMethod, string sql)
         {
             SaveToDb(config, ex, CurrentMethod, sql, "");
@@ -29,6 +37,11 @@ namespace FastData.Base
         /// <summary>
         /// 存数据库
         /// </summary>
+        /// <param name="config">配置模型</param>
+        /// <param name="ex">异常对象</param>
+        /// <param name="CurrentMethod">当前方法名</param>
+        /// <param name="sql">SQL语句</param>
+        /// <param name="type">类型名称</param>
         private static void SaveToDb(ConfigModel config, Exception ex, string CurrentMethod, string sql,string type)
         {
             if (config.IsOutError && !_isSaving)

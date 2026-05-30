@@ -15,7 +15,12 @@ namespace FastUntility.Base
         /// <summary>
         /// 生成验证代码
         /// </summary>
-        /// <returns></returns>
+        /// <param name="Code">验证码（输出参数）</param>
+        /// <param name="CodeLength">验证码长度</param>
+        /// <param name="Width">图片宽度</param>
+        /// <param name="Height">图片高度</param>
+        /// <param name="FontSize">字体大小</param>
+        /// <returns>图片字节数组</returns>
         public static byte[] CreateValidateGraphic(out String Code, int CodeLength, int Width, int Height, int FontSize)
         {            
             var sCode = String.Empty;
@@ -105,7 +110,12 @@ namespace FastUntility.Base
         /// <summary>
         /// 生成验证代码（跨平台版本，返回纯文本字节）
         /// </summary>
-        /// <returns></returns>
+        /// <param name="Code">验证码（输出参数）</param>
+        /// <param name="CodeLength">验证码长度</param>
+        /// <param name="Width">图片宽度</param>
+        /// <param name="Height">图片高度</param>
+        /// <param name="FontSize">字体大小</param>
+        /// <returns>图片字节数组</returns>
         public static byte[] CreateValidateGraphic(out String Code, int CodeLength, int Width, int Height, int FontSize)
         {
             var sCode = String.Empty;

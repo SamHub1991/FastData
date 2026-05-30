@@ -229,6 +229,10 @@ namespace FastData
         /// <summary>
         /// 执行原生 SQL 查询，返回字典列表（异步）
         /// </summary>
+        /// <param name="sql">SQL语句</param>
+        /// <param name="param">数据库参数数组</param>
+        /// <param name="db">数据上下文</param>
+        /// <returns>字典列表任务</returns>
         public Task<List<Dictionary<string, object>>> ExecuteSqlAsync(string sql, DbParameter[] param, DataContext db = null)
         {
             return FastRead.ExecuteSqlAsync(sql, param, db, _key, _enableSqlLog);
@@ -275,6 +279,10 @@ namespace FastData
         /// <summary>
         /// 执行 XML 映射查询，返回字典列表
         /// </summary>
+        /// <param name="name">Map名称</param>
+        /// <param name="param">数据库参数数组</param>
+        /// <param name="db">数据上下文</param>
+        /// <returns>字典列表</returns>
         public List<Dictionary<string, object>> MapQuery(string name, DbParameter[] param, DataContext db = null)
         {
             return FastMap.Query(name, param, db, _key, _enableSqlLog);
@@ -283,6 +291,10 @@ namespace FastData
         /// <summary>
         /// 执行 XML 映射查询，返回字典列表（异步）
         /// </summary>
+        /// <param name="name">Map名称</param>
+        /// <param name="param">数据库参数数组</param>
+        /// <param name="db">数据上下文</param>
+        /// <returns>字典列表任务</returns>
         public Task<List<Dictionary<string, object>>> MapQueryAsync(string name, DbParameter[] param, DataContext db = null)
         {
             return FastMap.QueryAsync(name, param, db, _key, _enableSqlLog);
@@ -560,6 +572,10 @@ namespace FastData
         /// <summary>
         /// 执行原生 SQL 写入（异步）
         /// </summary>
+        /// <param name="sql">SQL语句</param>
+        /// <param name="param">数据库参数数组</param>
+        /// <param name="db">数据上下文</param>
+        /// <returns>写入返回对象任务</returns>
         public Task<WriteReturn> ExecuteSqlWriteAsync(string sql, DbParameter[] param, DataContext db = null)
         {
             return FastWrite.ExecuteSqlAsync(sql, param, db, _key, _enableSqlLog);
@@ -596,6 +612,10 @@ namespace FastData
         /// <summary>
         /// 执行 XML 映射写入（异步）
         /// </summary>
+        /// <param name="name">Map名称</param>
+        /// <param name="param">数据库参数数组</param>
+        /// <param name="db">数据上下文</param>
+        /// <returns>写入返回对象任务</returns>
         public Task<WriteReturn> MapWriteAsync(string name, DbParameter[] param, DataContext db = null)
         {
             return FastMap.WriteAsync(name, param, db, _key, _enableSqlLog);

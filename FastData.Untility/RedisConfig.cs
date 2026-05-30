@@ -21,7 +21,9 @@ namespace FastRedis.Config
         /// <summary>
         /// 配置信息
         /// </summary>
-        /// <returns></returns>
+        /// <param name="projectName">项目名称</param>
+        /// <param name="dbFile">配置文件名</param>
+        /// <returns>Redis配置</returns>
         public static RedisConfig GetConfig(string projectName = null, string dbFile = "db.config")
         {
             var section = new RedisConfig();

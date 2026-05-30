@@ -19,13 +19,13 @@ namespace FastData.Repository
         /// <summary>
         /// 查询join
         /// </summary>
-        /// <typeparam name="T">泛型</typeparam>
-        /// <typeparam name="T1">泛型</typeparam>
-        /// <param name="joinType">left join,right join,inner join</param>
-        /// <param name="item"></param>
-        /// <param name="predicate">条件</param>
-        /// <param name="field">字段</param>
-        /// <returns></returns>
+        /// <typeparam name="T">第一个表类型</typeparam>
+        /// <typeparam name="T1">第二个表类型</typeparam>
+        /// <param name="joinType">join类型</param>
+        /// <param name="predicate">条件表达式</param>
+        /// <param name="field">字段表达式</param>
+        /// <param name="isDblink">是否跨库查询</param>
+        /// <returns>查询对象</returns>
         private IQuery JoinType<T, T1>(string joinType, Expression<Func<T, T1, bool>> predicate, Expression<Func<T1, object>> field = null, bool isDblink = false)
         {
             var queryField = BaseField.QueryField<T, T1>(predicate, field, this.Data.Config);
@@ -43,12 +43,12 @@ namespace FastData.Repository
         /// <summary>
         /// 查询left join
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <typeparam name="T1"></typeparam>
-        /// <param name="item"></param>
-        /// <param name="predicate"></param>
-        /// <param name="field"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">第一个表类型</typeparam>
+        /// <typeparam name="T1">第二个表类型</typeparam>
+        /// <param name="predicate">条件表达式</param>
+        /// <param name="field">字段表达式</param>
+        /// <param name="isDblink">是否跨库查询</param>
+        /// <returns>查询对象</returns>
         public override IQuery LeftJoin<T, T1>(Expression<Func<T, T1, bool>> predicate, Expression<Func<T1, object>> field = null, bool isDblink = false)
         {
             return JoinType("left join", predicate, field);
@@ -57,12 +57,12 @@ namespace FastData.Repository
         /// <summary>
         /// 查询right join
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <typeparam name="T1"></typeparam>
-        /// <param name="item"></param>
-        /// <param name="predicate"></param>
-        /// <param name="field"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">第一个表类型</typeparam>
+        /// <typeparam name="T1">第二个表类型</typeparam>
+        /// <param name="predicate">条件表达式</param>
+        /// <param name="field">字段表达式</param>
+        /// <param name="isDblink">是否跨库查询</param>
+        /// <returns>查询对象</returns>
         public override IQuery RightJoin<T, T1>(Expression<Func<T, T1, bool>> predicate, Expression<Func<T1, object>> field = null, bool isDblink = false)
         {
             return JoinType("right join", predicate, field);
@@ -71,12 +71,12 @@ namespace FastData.Repository
         /// <summary>
         /// 查询inner join
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <typeparam name="T1"></typeparam>
-        /// <param name="item"></param>
-        /// <param name="predicate"></param>
-        /// <param name="field"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">第一个表类型</typeparam>
+        /// <typeparam name="T1">第二个表类型</typeparam>
+        /// <param name="predicate">条件表达式</param>
+        /// <param name="field">字段表达式</param>
+        /// <param name="isDblink">是否跨库查询</param>
+        /// <returns>查询对象</returns>
         public override IQuery InnerJoin<T, T1>(Expression<Func<T, T1, bool>> predicate, Expression<Func<T1, object>> field = null, bool isDblink = false)
         {
             return JoinType("inner join", predicate, field);
@@ -85,10 +85,10 @@ namespace FastData.Repository
         /// <summary>
         /// 查询order by
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="item"></param>
-        /// <param name="field"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="field">排序字段表达式</param>
+        /// <param name="isDesc">是否降序</param>
+        /// <returns>查询对象</returns>
         public override IQuery OrderBy<T>(Expression<Func<T, object>> field, bool isDesc = true)
         {
             var orderBy = BaseField.OrderBy<T>(field, this.Data.Config, isDesc);

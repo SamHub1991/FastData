@@ -37,9 +37,11 @@ namespace FastData.Base
         /// <summary>
         /// 获取map sql语句
         /// </summary>
-        /// <param name="name"></param>
-        /// <param name="param"></param>
-        /// <returns></returns>
+        /// <param name="name">Map名称</param>
+        /// <param name="param">数据库参数数组</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="key">配置键</param>
+        /// <returns>SQL语句</returns>
         public static string GetMapSql(string name, ref DbParameter[] param, DataContext db, string key)
         {
             var tempParam = new List<DbParameter>();
@@ -368,8 +370,10 @@ namespace FastData.Base
         /// <summary>
         /// 是否foreach
         /// </summary>
-        /// <param name="name"></param>
-        /// <returns></returns>
+        /// <param name="name">Map名称</param>
+        /// <param name="config">配置模型</param>
+        /// <param name="i">foreach索引</param>
+        /// <returns>是否foreach</returns>
         public static bool MapIsForEach(string name, ConfigModel config, int i = 1)
         {
             var keyName = string.Format("{0}.foreach.name.{1}", name.ToLower(), i);
@@ -386,10 +390,13 @@ namespace FastData.Base
         /// <summary>
         /// foreach数据
         /// </summary>
-        /// <param name="name"></param>
-        /// <param name="db"></param>
-        /// <param name="key"></param>
-        /// <returns></returns>
+        /// <param name="data">数据字典列表</param>
+        /// <param name="name">Map名称</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="key">配置键</param>
+        /// <param name="config">配置模型</param>
+        /// <param name="i">foreach索引</param>
+        /// <returns>处理后的数据字典列表</returns>
         public static List<Dictionary<string, object>> MapForEach(List<Dictionary<string, object>> data, string name, DataContext db, string key, ConfigModel config, int i = 1)
         {
             var result = new List<Dictionary<string, object>>();
@@ -614,6 +621,11 @@ namespace FastData.Base
         /// <summary>
         /// 读取xml map并缓存
         /// </summary>
+        /// <param name="path">XML文件路径</param>
+        /// <param name="config">配置模型</param>
+        /// <param name="fileName">文件名</param>
+        /// <param name="xml">XML内容</param>
+        /// <returns>SQL语句列表</returns>
         public static List<string> ReadXml(string path, ConfigModel config, string fileName,string xml=null)
         {
             var map = DbCache.Get<Dictionary<string, object>>(DataConfig.GetConfig().CacheType, "FastMap.Api") ?? new Dictionary<string, object>();
@@ -674,7 +686,9 @@ namespace FastData.Base
         /// </summary>
         /// <param name="path">文件名</param>
         /// <param name="xmlNode">结点</param>
-        /// <returns></returns>
+        /// <param name="config">配置模型</param>
+        /// <param name="xml">XML内容</param>
+        /// <returns>XML模型</returns>
         public static XmlModel GetXmlList(string path, string xmlNode, ConfigModel config,string xml=null)
         {
             var result = new XmlModel();

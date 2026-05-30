@@ -14,11 +14,13 @@ namespace FastUntility.Monitor
         /// <summary>
         /// 获取所有连接池信息
         /// </summary>
+        /// <returns>连接池信息字典</returns>
         Dictionary<string, ConnectionPoolInfo> GetAllPoolInfo();
 
         /// <summary>
         /// 关闭连接池
         /// </summary>
+        /// <param name="poolName">连接池名称</param>
         void ClosePool(string poolName);
     }
 
@@ -64,6 +66,9 @@ namespace FastUntility.Monitor
         /// <summary>
         /// 处理消息
         /// </summary>
+        /// <param name="senderQQ">发送者QQ号</param>
+        /// <param name="groupId">群号</param>
+        /// <param name="message">消息内容</param>
         public void ProcessMessage(string senderQQ, string groupId, string message)
         {
             if (string.IsNullOrEmpty(message))

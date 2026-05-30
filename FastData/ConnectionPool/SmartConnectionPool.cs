@@ -378,6 +378,8 @@ namespace FastData.ConnectionPool
         /// <summary>
         /// 获取连接
         /// </summary>
+        /// <param name="cancellationToken">取消令牌</param>
+        /// <returns>池化连接</returns>
         public async Task<PooledConnection> GetConnectionAsync(CancellationToken cancellationToken = default)
         {
             var stopwatch = Stopwatch.StartNew();

@@ -71,9 +71,9 @@ namespace FastUntility.Base
         /// <summary>
         /// 泛型缓存属性成员
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="key"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="IsCache">是否使用缓存</param>
+        /// <returns>属性信息列表</returns>
         public static List<PropertyInfo> PropertyInfo<T>(bool IsCache = true)
         {
             var key = string.Format("{0}.to.{1}",typeof(T).Namespace , typeof(T).Name);

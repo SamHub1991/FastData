@@ -18,8 +18,10 @@ namespace FastData.Property
         /// <summary>
         /// 泛型缓存属性成员
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <returns></returns>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="IsCache">是否使用缓存</param>
+        /// <param name="projectName">项目名称</param>
+        /// <returns>属性模型列表</returns>
         public static List<PropertyModel> GetPropertyInfo<T>(bool IsCache = true, string projectName = null)
         {
             var list = new List<PropertyModel>();
@@ -102,6 +104,9 @@ namespace FastData.Property
         /// <summary>
         /// 泛型特性成员
         /// </summary>
+        /// <param name="tableName">表名</param>
+        /// <param name="ListInfo">属性信息列表</param>
+        /// <returns>列模型列表</returns>
         public static List<ColumnModel> GetAttributesColumnInfo(string tableName, List<PropertyInfo> ListInfo)
         {
             var list = new List<ColumnModel>();

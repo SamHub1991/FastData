@@ -14,6 +14,14 @@ namespace FastData.Tooling.CodeGeneration
         /// <summary>
         /// 生成 API 客户端代码和 Model
         /// </summary>
+        /// <param name="baseUrl">基础URL</param>
+        /// <param name="endpoint">API端点</param>
+        /// <param name="method">HTTP方法</param>
+        /// <param name="contentType">内容类型</param>
+        /// <param name="requestBody">请求体</param>
+        /// <param name="jsonResponse">JSON响应</param>
+        /// <param name="className">类名</param>
+        /// <returns>API客户端结果</returns>
         public ApiClientResult Generate(string baseUrl, string endpoint, string method, string contentType, string requestBody, string jsonResponse, string className)
         {
             var result = new ApiClientResult();

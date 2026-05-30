@@ -64,6 +64,9 @@ public static class BaseSymmetric
         /// <summary>
         /// 解密方法
         /// </summary>
+        /// <param name="Source">加密字符串</param>
+        /// <param name="refValue">默认值</param>
+        /// <returns>解密字符串</returns>
         public static string Decrypto(string Source, string refValue = "")
         {
             try

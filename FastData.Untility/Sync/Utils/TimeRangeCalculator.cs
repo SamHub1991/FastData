@@ -35,6 +35,10 @@ namespace FastData.Tooling.Sync
         /// <summary>
         /// 计算时间范围描述
         /// </summary>
+        /// <param name="lastSyncTime">上次同步时间</param>
+        /// <param name="rangeDays">同步范围天数</param>
+        /// <param name="isFirstSync">是否首次同步</param>
+        /// <returns>时间范围描述</returns>
         public static string GetTimeRangeDescription(DateTime? lastSyncTime, int rangeDays, bool isFirstSync)
         {
             if (isFirstSync || !lastSyncTime.HasValue)

@@ -88,6 +88,10 @@ namespace FastUntility.Page
         /// <summary>
         /// 从 PageResult 转换
         /// </summary>
+        /// <param name="pageResult">分页结果</param>
+        /// <param name="page">页码</param>
+        /// <param name="pageSize">每页条数</param>
+        /// <returns>分页结果</returns>
         public static PaginationResult FromPageResult(PageResult pageResult, int page, int pageSize)
         {
             var total = pageResult.pModel.TotalRecord;

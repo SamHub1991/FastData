@@ -184,6 +184,8 @@ namespace FastData.Queue
         /// <summary>
         /// 合并结果
         /// </summary>
+        /// <param name="target">目标结果</param>
+        /// <param name="source">源结果</param>
         private static void MergeResult(ReadQueueResult target, ReadQueueResult source)
         {
             target.QueuedCount += source.QueuedCount;

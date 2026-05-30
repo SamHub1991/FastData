@@ -12,9 +12,10 @@ namespace FastUntility.Cache
         /// <summary>
         /// 添加Session
         /// </summary>
-        /// <param name="strSessionName">Session对象名称</param>
-        /// <param name="strValue">Session值</param>
+        /// <param name="SessionName">Session对象名称</param>
+        /// <param name="Value">Session值</param>
         /// <param name="iExpires">调动有效期（分钟）</param>
+        /// <returns>是否成功</returns>
         public static bool Add(string SessionName, object Value, int iExpires)
         {
             if (string.IsNullOrEmpty(SessionName))
@@ -30,9 +31,11 @@ namespace FastUntility.Cache
         /// <summary>
         /// 添加Session
         /// </summary>
-        /// <param name="strSessionName">Session对象名称</param>
-        /// <param name="strValue">Session值</param>
+        /// <param name="context">HTTP上下文</param>
+        /// <param name="SessionName">Session对象名称</param>
+        /// <param name="Value">Session值</param>
         /// <param name="iExpires">调动有效期（分钟）</param>
+        /// <returns>是否成功</returns>
         public static bool AddAsync(HttpContextBase context,string SessionName, object Value, int iExpires)
         {
             if (string.IsNullOrEmpty(SessionName))
@@ -48,9 +51,10 @@ namespace FastUntility.Cache
         /// <summary>
         /// 添加Session组
         /// </summary>
-        /// <param name="strSessionName">Session对象名称</param>
-        /// <param name="strValues">Session值数组</param>
+        /// <param name="SessionName">Session对象名称</param>
+        /// <param name="Values">Session值数组</param>
         /// <param name="iExpires">调动有效期（分钟）</param>
+        /// <returns>是否成功</returns>
         public static bool Adds(string SessionName, object[] Values, int iExpires)
         {
             if (string.IsNullOrEmpty(SessionName))
