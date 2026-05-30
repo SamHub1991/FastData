@@ -148,7 +148,6 @@ namespace FastData.ConnectionPool
         private long _failedRequests;
         private long _leakedConnections;
         private long _totalWaitTimeMs;
-        private long _totalUseTimeMs;
         private DateTime _startTime;
 
         /// <summary>
@@ -261,7 +260,7 @@ namespace FastData.ConnectionPool
 
                 return connection;
             }
-            catch (Exception ex)
+            catch
             {
                 Interlocked.Increment(ref _failedRequests);
                 throw;
@@ -317,7 +316,7 @@ namespace FastData.ConnectionPool
                 FailedRequests = _failedRequests,
                 LeakedConnections = _leakedConnections,
                 AverageWaitTimeMs = _successfulRequests > 0 ? (double)_totalWaitTimeMs / _successfulRequests : 0,
-                AverageUseTimeMs = _successfulRequests > 0 ? (double)_totalUseTimeMs / _successfulRequests : 0,
+                AverageUseTimeMs = 0,
                 LastHealthCheck = DateTime.UtcNow,
                 Uptime = DateTime.UtcNow - _startTime
             };

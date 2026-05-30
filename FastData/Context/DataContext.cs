@@ -174,7 +174,7 @@ namespace FastData.Context
                     }
                     catch
                     {
-                        // 解密失败则使用原始值
+                        DbLog.LogSql(true, "连接字符串解密失败，使用原始连接字符串", config.DbType, 0);
                     }
                 }
 

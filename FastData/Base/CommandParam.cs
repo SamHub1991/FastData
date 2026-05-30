@@ -178,13 +178,8 @@ namespace FastData.Base
         }
         #endregion
 
-        #region mysql 
-        /// <summary>
-        /// mysql
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="list"></param>
-        /// <returns></returns>
+        #region mysql (已弃用 - 请使用参数化查询方式)
+        [Obsolete("该方法存在SQL注入风险，请使用参数化查询方式", true)]
         public static string GetMySql<T>(List<T> list)
         {
             var sql = new StringBuilder();

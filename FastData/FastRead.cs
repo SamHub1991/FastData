@@ -222,10 +222,14 @@ namespace FastData
 
             query.EntityType = typeof(T);
             var fieldName = GetMemberName(field);
+            var param = new DbParameter[0]; // dummy for using clause
+            var paramName = $"@like_{query.ChainedConditions.Count}";
+            var dbParam = GetDbParameter(query, paramName, value);
             query.ChainedConditions.Add(new ChainedCondition
             {
                 Operator = "AND",
-                Where = string.Format("{0} like '{1}'", fieldName, value)
+                Where = $"{fieldName} like {paramName}",
+                Param = new List<DbParameter> { dbParam }
             });
 
             return query;
@@ -236,7 +240,7 @@ namespace FastData
         /// </summary>
         public static DataQuery Contains<T>(this DataQuery query, Expression<Func<T, object>> field, string value) where T : class, new()
         {
-            return Like(query, field, string.Format("%{0}%", value));
+            return Like(query, field, $"%{value}%");
         }
 
         /// <summary>
@@ -244,7 +248,7 @@ namespace FastData
         /// </summary>
         public static DataQuery StartsWith<T>(this DataQuery query, Expression<Func<T, object>> field, string value) where T : class, new()
         {
-            return Like(query, field, string.Format("{0}%", value));
+            return Like(query, field, $"{value}%");
         }
 
         /// <summary>
@@ -252,7 +256,7 @@ namespace FastData
         /// </summary>
         public static DataQuery EndsWith<T>(this DataQuery query, Expression<Func<T, object>> field, string value) where T : class, new()
         {
-            return Like(query, field, string.Format("%{0}", value));
+            return Like(query, field, $"%{value}");
         }
 
         /// <summary>
@@ -266,11 +270,21 @@ namespace FastData
 
             query.EntityType = typeof(T);
             var fieldName = GetMemberName(field);
-            var valueList = System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Select(values, v => string.Format("'{0}'", v)));
+            var paramList = new List<DbParameter>();
+            var placeholders = new List<string>();
+            var index = 0;
+            foreach (var v in values)
+            {
+                var paramName = $"@in_{query.ChainedConditions.Count}_{index}";
+                paramList.Add(GetDbParameter(query, paramName, v?.ToString() ?? ""));
+                placeholders.Add(paramName);
+                index++;
+            }
             query.ChainedConditions.Add(new ChainedCondition
             {
                 Operator = "AND",
-                Where = string.Format("{0} in ({1})", fieldName, string.Join(",", valueList))
+                Where = $"{fieldName} in ({string.Join(",", placeholders)})",
+                Param = paramList
             });
 
             return query;
@@ -287,13 +301,24 @@ namespace FastData
 
             query.EntityType = typeof(T);
             var fieldName = GetMemberName(field);
+            var startParam = GetDbParameter(query, $"@btw_{query.ChainedConditions.Count}_s", start?.ToString() ?? "");
+            var endParam = GetDbParameter(query, $"@btw_{query.ChainedConditions.Count}_e", end?.ToString() ?? "");
             query.ChainedConditions.Add(new ChainedCondition
             {
                 Operator = "AND",
-                Where = string.Format("{0} between '{1}' and '{2}'", fieldName, start, end)
+                Where = $"{fieldName} between {startParam.ParameterName} and {endParam.ParameterName}",
+                Param = new List<DbParameter> { startParam, endParam }
             });
 
             return query;
+        }
+
+        private static DbParameter GetDbParameter(DataQuery query, string name, object value)
+        {
+            var dbParam = DbProviderFactories.GetFactory(query.Config.ProviderName).CreateParameter();
+            dbParam.ParameterName = name;
+            dbParam.Value = value ?? DBNull.Value;
+            return dbParam;
         }
 
         /// <summary>

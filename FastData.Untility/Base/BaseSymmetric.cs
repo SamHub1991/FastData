@@ -6,24 +6,16 @@ using System.IO;
 namespace FastUntility.Base
 {
 
-    public static class BaseSymmetric
+public static class BaseSymmetric
     {
-        //变量
-        private static SymmetricAlgorithm mobjCryptoService = new RijndaelManaged();
         private static string key = "Guz(%&hj7x89H$yuBI012345maT5&fvHUFCy76*h%(HilJ$lhj!y6&(*jkP~!@#$";
         private static string p_strKey = "Weizz_2015";
 
-        #region 获得密钥
-        /// <summary>
-        /// 标签：2015.7.13，魏中针
-        /// 说明：获得密钥   
-        /// </summary>   
-        /// <returns>密钥</returns>   
-        private static byte[] GetLegalKey()
+        private static byte[] GetLegalKey(Aes aes)
         {
             string sTemp = key;
-            mobjCryptoService.GenerateKey();
-            byte[] bytTemp = mobjCryptoService.Key;
+            aes.GenerateKey();
+            byte[] bytTemp = aes.Key;
             int KeyLength = bytTemp.Length;
             if (sTemp.Length > KeyLength)
                 sTemp = sTemp.Substring(0, KeyLength);
@@ -31,19 +23,12 @@ namespace FastUntility.Base
                 sTemp = sTemp.PadRight(KeyLength, ' ');
             return ASCIIEncoding.ASCII.GetBytes(sTemp);
         }
-        #endregion
 
-        #region 获得初始向量IV
-        /// <summary>
-        /// 标签：2015.7.13，魏中针
-        /// 说明：获得初始向量IV   
-        /// </summary>   
-        /// <returns>初试向量IV</returns>   
-        private static byte[] GetLegalIV()
+        private static byte[] GetLegalIV(Aes aes)
         {
             string sTemp = "E4ghj*Ghg7!rNIfb&95GUY86GfghUb#er57HBh(u%g6HJ($jhWk7&!~!@#$%^&*(";
-            mobjCryptoService.GenerateIV();
-            byte[] bytTemp = mobjCryptoService.IV;
+            aes.GenerateIV();
+            byte[] bytTemp = aes.IV;
             int IVLength = bytTemp.Length;
             if (sTemp.Length > IVLength)
                 sTemp = sTemp.Substring(0, IVLength);
@@ -51,22 +36,19 @@ namespace FastUntility.Base
                 sTemp = sTemp.PadRight(IVLength, ' ');
             return ASCIIEncoding.ASCII.GetBytes(sTemp);
         }
-        #endregion
 
-        #region 加密方法
         /// <summary>
-        /// 标签：2015.7.13，魏中针
-        /// 说明：加密方法   
-        /// <param name="Source">要加密的字符串</param>
-        /// </summary>    
+        /// 加密方法
+        /// </summary>
         public static string Encrypto(string Source)
         {
             byte[] bytIn = UTF8Encoding.UTF8.GetBytes(Source);
-            using (MemoryStream ms = new MemoryStream())
+            using (var aes = Aes.Create())
             {
-                mobjCryptoService.Key = GetLegalKey();
-                mobjCryptoService.IV = GetLegalIV();
-                using (ICryptoTransform encrypto = mobjCryptoService.CreateEncryptor())
+                aes.Key = GetLegalKey(aes);
+                aes.IV = GetLegalIV(aes);
+                using (ICryptoTransform encrypto = aes.CreateEncryptor())
+                using (MemoryStream ms = new MemoryStream())
                 {
                     using (CryptoStream cs = new CryptoStream(ms, encrypto, CryptoStreamMode.Write))
                     {
@@ -78,32 +60,25 @@ namespace FastUntility.Base
                 }
             }
         }
-        #endregion
 
-        #region 解密方法
         /// <summary>
-        /// 标签：2015.7.13，魏中针
-        /// 说明：解密方法   
-        /// <param name="Source">要解密的字符串</param>
-        /// </summary>    
+        /// 解密方法
+        /// </summary>
         public static string Decrypto(string Source, string refValue = "")
         {
             try
             {
                 byte[] bytIn = Convert.FromBase64String(Source);
+                using (var aes = Aes.Create())
                 using (MemoryStream ms = new MemoryStream(bytIn, 0, bytIn.Length))
                 {
-                    mobjCryptoService.Key = GetLegalKey();
-                    mobjCryptoService.IV = GetLegalIV();
-                    using (ICryptoTransform encrypto = mobjCryptoService.CreateDecryptor())
+                    aes.Key = GetLegalKey(aes);
+                    aes.IV = GetLegalIV(aes);
+                    using (ICryptoTransform encrypto = aes.CreateDecryptor())
+                    using (CryptoStream cs = new CryptoStream(ms, encrypto, CryptoStreamMode.Read))
+                    using (StreamReader sr = new StreamReader(cs))
                     {
-                        using (CryptoStream cs = new CryptoStream(ms, encrypto, CryptoStreamMode.Read))
-                        {
-                            using (StreamReader sr = new StreamReader(cs))
-                            {
-                                return sr.ReadToEnd();
-                            }
-                        }
+                        return sr.ReadToEnd();
                     }
                 }
             }
@@ -112,18 +87,13 @@ namespace FastUntility.Base
                 return refValue;
             }
         }
-        #endregion
 
-        #region Des 加密 GB2312
-        /// <summary>
-        /// 标签：2015.7.13，魏中针
-        /// 说明：Des 加密 GB2312 
-        /// </summary>
-        /// <param name="Source">要加密（GB2312）字符串</param>
-        /// <returns></returns>
+        [Obsolete("DES 算法已不安全，请使用 AES (Encrypto/Decrypto)")]
         public static string EncodeGB2312(string Source)
         {
+#pragma warning disable SYSLIB0021
             using (DESCryptoServiceProvider provider = new DESCryptoServiceProvider())
+#pragma warning restore SYSLIB0021
             {
                 provider.Key = Encoding.ASCII.GetBytes(p_strKey.Substring(0, 8));
                 provider.IV = Encoding.ASCII.GetBytes(p_strKey.Substring(0, 8));
@@ -139,26 +109,20 @@ namespace FastUntility.Base
                         {
                             builder.AppendFormat("{0:X2}", num);
                         }
-
                         return builder.ToString();
                     }
                 }
             }
         }
-        #endregion
 
-        #region Des 解密 GB2312
-        /// <summary>
-        /// 标签：2015.7.13，魏中针
-        /// 说明：Des 解密 GB2312 
-        /// </summary>
-        /// <param name="Source">要解密（GB2312）的字符串</param>
-        /// <returns></returns>
+        [Obsolete("DES 算法已不安全，请使用 AES (Encrypto/Decrypto)")]
         public static string DecodeGB2312(string Source, string refValue = "")
         {
             try
             {
+#pragma warning disable SYSLIB0021
                 using (DESCryptoServiceProvider provider = new DESCryptoServiceProvider())
+#pragma warning restore SYSLIB0021
                 {
                     provider.Key = Encoding.ASCII.GetBytes(p_strKey.Substring(0, 8));
                     provider.IV = Encoding.ASCII.GetBytes(p_strKey.Substring(0, 8));
@@ -183,8 +147,7 @@ namespace FastUntility.Base
             {
                 return refValue;
             }
-        }
-        #endregion
+}
 
         #region MD5加密
         /// <summary>

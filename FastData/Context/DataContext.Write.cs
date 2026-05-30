@@ -842,70 +842,56 @@ namespace FastData.Context
         public DataReturn BulkInsert<T>(List<T> list, bool isLog = false) where T : class, new()
         {
             var result = new DataReturn();
-            var stopwatch = new Stopwatch();
-            stopwatch.Start();
+            var stopwatch = Stopwatch.StartNew();
 
             try
             {
                 BeginTrans();
                 var tableName = TableNameHelper.GetTableName<T>();
                 var properties = typeof(T).GetProperties().Where(p => p.CanRead && p.CanWrite).ToList();
-                var columns = properties.Select(p => p.Name).ToList();
-                var columnNames = string.Join(", ", columns);
-                
-                int successCount = 0;
-                var sqlBuilder = new StringBuilder();
-                
+                var columnNames = string.Join(", ", properties.Select(p => p.Name));
+
+                Dispose(cmd);
+
+                var paramNames = string.Join(", ", properties.Select((_, i) => $"@p{i}"));
+                var insertSql = $"INSERT INTO {tableName} ({columnNames}) VALUES ({paramNames})";
+
                 foreach (var item in list)
                 {
-                    var values = new List<string>();
-                    foreach (var prop in properties)
+                    cmd.Parameters.Clear();
+                    for (int i = 0; i < properties.Count; i++)
                     {
-                        var value = prop.GetValue(item);
-                        if (value == null)
-                            values.Add("NULL");
-                        else if (value is string || value is DateTime)
-                            values.Add($"'{value.ToString().Replace("'", "''")}'");
-                        else if (value is bool)
-                            values.Add((bool)value ? "1" : "0");
-                        else
-                            values.Add(value.ToString());
+                        var value = properties[i].GetValue(item);
+                        var param = cmd.CreateParameter();
+                        param.ParameterName = $"@p{i}";
+                        param.Value = value ?? DBNull.Value;
+                        cmd.Parameters.Add(param);
                     }
-                    
-                    var valueStr = string.Join(", ", values);
-                    sqlBuilder.AppendLine($"INSERT INTO {tableName} ({columnNames}) VALUES ({valueStr});");
+
+                    if (conn.State == ConnectionState.Closed)
+                        conn.Open();
+                    cmd.ExecuteNonQuery();
                 }
-                
-                var sql = sqlBuilder.ToString();
-                result.Sql = sql;
-                
+
+                result.Sql = $"{insertSql} (x{list.Count})";
                 if (isLog)
-                    DbLog.LogSql(isLog, sql, config.DbType, 0);
+                    DbLog.LogSql(true, result.Sql, config.DbType, 0);
 
-                AopBefore(new List<string> { tableName }, sql, new List<DbParameter>(), config, false, AopType.AddList);
-
-                // 执行批量插入
-                Dispose(cmd);
-                cmd.CommandText = sql;
-                cmd.ExecuteNonQuery();
-
-                successCount = list.Count;
+                AopBefore(new List<string> { tableName }, insertSql, new List<DbParameter>(), config, false, AopType.AddList);
                 result.writeReturn.IsSuccess = true;
-                
                 SubmitTrans();
-
-                AopAfter(new List<string> { tableName }, sql, new List<DbParameter>(), config, false, AopType.AddList, successCount);
+                AopAfter(new List<string> { tableName }, insertSql, new List<DbParameter>(), config, false, AopType.AddList, list.Count);
             }
             catch (Exception ex)
             {
                 RollbackTrans();
                 AopException(ex, "BulkInsert", config, AopType.AddList);
-                
+
                 if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
                     DbLogTable.LogException(config, ex, "BulkInsert", result.Sql);
                 else
                     DbLog.LogException(config.IsOutError, config.DbType, ex, "BulkInsert", result.Sql);
-                
+
                 result.writeReturn.IsSuccess = false;
                 result.writeReturn.Message = ex.Message;
             }

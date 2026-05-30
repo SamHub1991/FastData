@@ -146,7 +146,7 @@ namespace FastData.Model
         /// <summary>
         /// 排序（升序）
         /// </summary>
-        public DataQuery<T> OrderBy(Expression<Func<T, object>> field)
+        public new DataQuery<T> OrderBy(Expression<Func<T, object>> field)
         {
             if (field == null)
                 return this;
@@ -174,7 +174,7 @@ namespace FastData.Model
         /// <summary>
         /// 分组
         /// </summary>
-        public DataQuery<T> GroupBy(Expression<Func<T, object>> field)
+        public new DataQuery<T> GroupBy(Expression<Func<T, object>> field)
         {
             if (field == null)
                 return this;

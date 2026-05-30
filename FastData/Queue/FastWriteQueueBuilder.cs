@@ -262,7 +262,14 @@ namespace FastData.Queue
                 return new WriteBehindResult { Success = true, Message = "无操作" };
             }
 
-            return WriteBehindExecutor.Execute(_operations, _databaseKey, _overrideConfig);
+            var result = WriteBehindExecutor.Execute(_operations, _databaseKey, _overrideConfig);
+
+            if (_enableSqlLog)
+            {
+                FastData.Core.Base.DbLog.LogSql(true, $"WriteBehindExecutor: {_operations.Count} ops, Success={result.Success}", "", 0);
+            }
+
+            return result;
         }
 
         /// <summary>
