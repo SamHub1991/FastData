@@ -204,4 +204,67 @@ namespace FastData.Demo.Models
         /// </summary>
         public DateTime CreateTime { get; set; }
     }
+
+    /// <summary>
+    /// 多数据库表名映射示例
+    /// 同一个实体在不同数据库中表名不同
+    /// </summary>
+    [Table(DbTableNames = "SqlServer.Users,MySql.user_info,PostgreSQL.tb_users,SQLite.users")]
+    public class MultiDbUser
+    {
+        /// <summary>
+        /// 用户ID
+        /// </summary>
+        [Column(IsKey = true, IsIdentity = true)]
+        public int Id { get; set; }
+
+        /// <summary>
+        /// 用户名
+        /// </summary>
+        public string UserName { get; set; }
+
+        /// <summary>
+        /// 邮箱
+        /// </summary>
+        public string Email { get; set; }
+
+        /// <summary>
+        /// 创建时间
+        /// </summary>
+        public DateTime CreateTime { get; set; }
+    }
+
+    /// <summary>
+    /// 混合模式示例
+    /// 优先使用 DbTableNames 映射，回退到 Name 属性
+    /// </summary>
+    [Table(Name = "default_orders", DbTableNames = "SqlServer.Orders,MySql.order_info")]
+    public class MixedDbOrder
+    {
+        /// <summary>
+        /// 订单ID
+        /// </summary>
+        [Column(IsKey = true, IsIdentity = true)]
+        public int Id { get; set; }
+
+        /// <summary>
+        /// 用户ID
+        /// </summary>
+        public int UserId { get; set; }
+
+        /// <summary>
+        /// 订单号
+        /// </summary>
+        public string OrderNo { get; set; }
+
+        /// <summary>
+        /// 总金额
+        /// </summary>
+        public decimal TotalAmount { get; set; }
+
+        /// <summary>
+        /// 创建时间
+        /// </summary>
+        public DateTime CreateTime { get; set; }
+    }
 }

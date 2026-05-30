@@ -55,7 +55,11 @@ namespace FastData.Context
                     AopBefore(tableName, sql.ToString(), visitModel.Param, config, false,AopType.Delete_Lambda);
 
                 if (visitModel.IsSuccess)
+                {
+                    if (conn.State == ConnectionState.Closed)
+                        conn.Open();
                     result.writeReturn.IsSuccess = BaseExecute.ToBool(cmd, sql.ToString());
+                }
                 else
                     result.writeReturn.IsSuccess = false;
 
@@ -116,7 +120,11 @@ namespace FastData.Context
                 AopBefore(tableName, optionModel.Sql, optionModel.Param, config, false,AopType.Delete_PrimaryKey);
 
                 if (optionModel.IsSuccess)
+                {
+                    if (conn.State == ConnectionState.Closed)
+                        conn.Open();
                     result.writeReturn.IsSuccess = BaseExecute.ToBool(cmd, optionModel.Sql);
+                }
                 else
                 {
                     result.writeReturn.IsSuccess = false;
@@ -193,7 +201,11 @@ namespace FastData.Context
                     AopBefore(tableName, sql, Parameter.ParamMerge(update.Param, visitModel.Param), config, false,AopType.Update_Lambda);
 
                     if (visitModel.IsSuccess)
+                    {
+                        if (conn.State == ConnectionState.Closed)
+                            conn.Open();
                         result.writeReturn.IsSuccess = BaseExecute.ToBool(cmd, sql);
+                    }
                     else
                         result.writeReturn.IsSuccess = false;
                 }
@@ -261,6 +273,8 @@ namespace FastData.Context
                     tableName.Add(TableNameHelper.GetTableName<T>());
                     AopBefore(tableName, update.Sql, update.Param, config, false,AopType.Update_PrimaryKey);
 
+                    if (conn.State == ConnectionState.Closed)
+                        conn.Open();
                     result.writeReturn.IsSuccess = BaseExecute.ToBool(cmd, update.Sql);
                 }
                 else
@@ -407,6 +421,8 @@ namespace FastData.Context
                     tableName.Add(TableNameHelper.GetTableName<T>());
                     AopBefore(tableName, insert.Sql, insert.Param, config, false,AopType.Add);
 
+                    if (conn.State == ConnectionState.Closed)
+                        conn.Open();
                     result.writeReturn.IsSuccess = BaseExecute.ToBool(cmd, insert.Sql);
 
                     if (isTrans)
@@ -536,13 +552,18 @@ namespace FastData.Context
                 {
                     #region sqlserver
                     Dispose(cmd);
+                    
+                    // 打开连接以支持 InitTvps 和 GetTable 中的 ExecuteReader
+                    if (conn.State == ConnectionState.Closed)
+                        conn.Open();
+                    
                     CommandParam.InitTvps<T>(cmd);
                     foreach (var method in cmd.Parameters.GetType().GetMethods())
                     {
                         if (method.Name == "AddWithValue")
                         {
                             var param = new object[2];
-                            param[0] = string.Format("@{0}", typeof(T).Name);
+                            param[0] = string.Format("@{0}_TVP", typeof(T).Name);
                             param[1] = CommandParam.GetTable<T>(cmd, list);
                             var sqlParam = method.Invoke(cmd.Parameters, param);
 
@@ -557,7 +578,8 @@ namespace FastData.Context
                                 if (a.Name == "set_TypeName")
                                 {
                                     param = new object[1];
-                                    param[0] = typeof(T).Name;
+                                    // 使用新的 TVP 类型名称（排除 Identity 列）
+                                    param[0] = $"{typeof(T).Name}_TVP";
                                     a.Invoke(sqlParam, param);
                                 }
                             });
@@ -579,12 +601,104 @@ namespace FastData.Context
                 {
                     #region mysql
                     Dispose(cmd);
-                    cmd.CommandText = CommandParam.GetMySql<T>(list);
+                    
+                    // 获取属性信息，排除 Identity 列
+                    var mysqlProperties = PropertyCache.GetPropertyInfo<T>();
+                    var mysqlEntityType = typeof(T);
+                    var nonIdentityProperties = mysqlProperties.Where(p => 
+                    {
+                        var propInfo = mysqlEntityType.GetProperty(p.Name);
+                        if (propInfo == null) return true;
+                        var columnAttr = propInfo.GetCustomAttributes(typeof(ColumnAttribute), false)
+                            .FirstOrDefault() as ColumnAttribute;
+                        return columnAttr == null || !columnAttr.IsIdentity;
+                    }).ToList();
+                    
+                    // 构建排除 Identity 列的 SQL
+                    var mysqlTableName = TableNameHelper.GetTableName<T>();
+                    var mysqlColumns = string.Join(", ", nonIdentityProperties.Select(p => p.Name));
+                    var mysqlValues = string.Join(", ", list.Select(item => 
+                        $"({string.Join(", ", nonIdentityProperties.Select(p => {
+                            var value = dyn.GetValue(item, p.Name, true);
+                            if (value is bool boolVal)
+                                return boolVal ? "1" : "0";
+                            else if (value == null)
+                                return "NULL";
+                            else if (value is DateTime dtVal)
+                                return $"'{dtVal:yyyy-MM-dd HH:mm:ss}'";
+                            else
+                                return $"'{value}'";
+                        }))})"));
+                    cmd.CommandText = $"INSERT INTO {mysqlTableName} ({mysqlColumns}) VALUES {mysqlValues}";
 
                     tableName.Add(TableNameHelper.GetTableName<T>());
                     AopBefore(tableName, cmd.CommandText, null, config, false, AopType.AddList);
 
+                    if (conn.State == ConnectionState.Closed)
+                        conn.Open();
                     result.writeReturn.IsSuccess = cmd.ExecuteNonQuery() > 0;
+                    #endregion
+                }
+
+                if (config.DbType == DataDbType.PostgreSql)
+                {
+                    #region postgresql
+                    Dispose(cmd);
+                    
+                    var pgTableName = TableNameHelper.GetTableName<T>();
+                    var pgProperties = PropertyCache.GetPropertyInfo<T>();
+                    
+                    // 排除 Identity 列
+                    var pgEntityType = typeof(T);
+                    var pgNonIdentityProperties = pgProperties.Where(p => 
+                    {
+                        var propInfo = pgEntityType.GetProperty(p.Name);
+                        if (propInfo == null) return true;
+                        var columnAttr = propInfo.GetCustomAttributes(typeof(ColumnAttribute), false)
+                            .FirstOrDefault() as ColumnAttribute;
+                        return columnAttr == null || !columnAttr.IsIdentity;
+                    }).ToList();
+                    
+                    var pgColumns = string.Join(", ", pgNonIdentityProperties.Select(p => p.Name));
+                    var pgPlaceholders = string.Join(", ", pgNonIdentityProperties.Select((p, i) => $"{config.Flag}{p.Name}"));
+                    var insertSql = $"INSERT INTO {pgTableName} ({pgColumns}) VALUES ({pgPlaceholders})";
+                    
+                    AopBefore(new List<string> { pgTableName }, insertSql, null, config, false, AopType.AddList);
+                    
+                    // 使用事务包裹批量插入
+                    if (!IsTrans)
+                        BeginTrans();
+                    
+                    cmd.CommandText = insertSql;
+                    
+                    foreach (var item in list)
+                    {
+                        cmd.Parameters.Clear();
+                        foreach (var prop in pgNonIdentityProperties)
+                        {
+                            var param = cmd.CreateParameter();
+                            param.ParameterName = $"{config.Flag}{prop.Name}";
+                            var value = dyn.GetValue(item, prop.Name, true);
+                            // 处理布尔值，PostgreSql 使用 true/false
+                            if (value is bool pgBoolVal)
+                                param.Value = pgBoolVal;
+                            else
+                                param.Value = value ?? DBNull.Value;
+                            cmd.Parameters.Add(param);
+                        }
+                        
+                        if (conn.State == ConnectionState.Closed)
+                            conn.Open();
+                        cmd.ExecuteNonQuery();
+                    }
+                    
+                    if (!IsTrans)
+                        SubmitTrans();
+                    
+                    result.writeReturn.IsSuccess = true;
+                    result.sql = $"{insertSql} (x{list.Count})";
+                    
+                    AopAfter(new List<string> { pgTableName }, result.sql, null, config, false, AopType.AddList, result.writeReturn.IsSuccess);
                     #endregion
                 }
 
@@ -592,8 +706,42 @@ namespace FastData.Context
                 {
                     #region sqlite
                     Dispose(cmd);
-                    result.writeReturn.IsSuccess = false;
-                    result.writeReturn.Message = "SQLite batch insert is not supported. Use individual Add calls instead.";
+                    
+                    var sqliteTableName = TableNameHelper.GetTableName<T>();
+                    var properties = PropertyCache.GetPropertyInfo<T>();
+                    var columns = string.Join(", ", properties.Select(p => p.Name));
+                    var placeholders = string.Join(", ", properties.Select(p => $"{config.Flag}{p.Name}"));
+                    var insertSql = $"INSERT INTO {sqliteTableName} ({columns}) VALUES ({placeholders})";
+                    
+                    AopBefore(new List<string> { sqliteTableName }, insertSql, null, config, false, AopType.AddList);
+                    
+                    // 使用事务包裹批量插入
+                    if (!IsTrans)
+                        BeginTrans();
+                    
+                    cmd.CommandText = insertSql;
+                    
+                    foreach (var item in list)
+                    {
+                        cmd.Parameters.Clear();
+                        foreach (var prop in properties)
+                        {
+                            var param = cmd.CreateParameter();
+                            param.ParameterName = $"{config.Flag}{prop.Name}";
+                            var value = dyn.GetValue(item, prop.Name, true);
+                            param.Value = value ?? DBNull.Value;
+                            cmd.Parameters.Add(param);
+                        }
+                        cmd.ExecuteNonQuery();
+                    }
+                    
+                    if (!IsTrans)
+                        SubmitTrans();
+                    
+                    result.writeReturn.IsSuccess = true;
+                    result.sql = $"{insertSql} (x{list.Count})";
+                    
+                    AopAfter(new List<string> { sqliteTableName }, result.sql, null, config, false, AopType.AddList, result.writeReturn.IsSuccess);
                     #endregion
                 }
 
@@ -615,6 +763,9 @@ namespace FastData.Context
                     DbLogTable.LogException<T>(config, ex, "AddList<T>", "");
                 else
                     DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "AddList<T>", result.sql);
+
+                result.writeReturn.IsSuccess = false;
+                result.writeReturn.Message = ex.Message;
             }
 
             return result;
@@ -649,6 +800,8 @@ namespace FastData.Context
                 if (isAop)
                     AopBefore(null, sql, param?.ToList(), config, false,AopType.Execute_Sql_Bool);
 
+                if (conn.State == ConnectionState.Closed)
+                    conn.Open();
                 result.writeReturn.IsSuccess = BaseExecute.ToBool(cmd, sql, IsProcedure);
 
                 if (isTrans && result.writeReturn.IsSuccess)
@@ -695,7 +848,7 @@ namespace FastData.Context
             try
             {
                 BeginTrans();
-                var tableName = typeof(T).Name;
+                var tableName = TableNameHelper.GetTableName<T>();
                 var properties = typeof(T).GetProperties().Where(p => p.CanRead && p.CanWrite).ToList();
                 var columns = properties.Select(p => p.Name).ToList();
                 var columnNames = string.Join(", ", columns);

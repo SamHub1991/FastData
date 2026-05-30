@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <!--
+    BuildPlatform=cross: 排除 net45/net462，仅构建 net6.0;net8.0;net10.0
+    BuildPlatform=windows: 保持 csproj 原始 TargetFrameworks（含 net45/net462）
+    
+    使用方式:
+      dotnet build -p:BuildPlatform=cross    # 跨平台构建
+      dotnet build -p:BuildPlatform=windows  # Windows 全目标构建
+  -->
+  <PropertyGroup Condition="'$(BuildPlatform)' == 'cross' And '$(TargetFrameworks)' != '' And '$(UseWindowsForms)' != 'true' And '$(UseWPF)' != 'true'">
+    <TargetFrameworks>net6.0;net8.0;net10.0</TargetFrameworks>
+  </PropertyGroup>
+</Project>

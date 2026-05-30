@@ -1,8 +1,10 @@
 ﻿using FastData.Property;
 using FastUntility.Base;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
+using System.Linq;
 using System.Text;
 
 namespace FastData.Base
@@ -58,14 +60,26 @@ namespace FastData.Base
             var sql1 = new StringBuilder();
             var sql2 = new StringBuilder();
 
+            // 获取属性信息，排除 Identity 列
+            var properties = PropertyCache.GetPropertyInfo<T>();
+            var entityType = typeof(T);
+            var nonIdentityProperties = properties.Where(p => 
+            {
+                var propInfo = entityType.GetProperty(p.Name);
+                if (propInfo == null) return true;
+                var columnAttr = propInfo.GetCustomAttributes(typeof(ColumnAttribute), false)
+                    .FirstOrDefault() as ColumnAttribute;
+                return columnAttr == null || !columnAttr.IsIdentity;
+            }).ToList();
+
             sql1.AppendFormat("insert into {0} (", TableNameHelper.GetTableName<T>());
             sql2.Append("select ");
-            PropertyCache.GetPropertyInfo<T>().ForEach(a => {
+            nonIdentityProperties.ForEach(a => {
                 sql1.AppendFormat("{0},", a.Name);
                 sql2.AppendFormat("tb.{0},", a.Name);
             });
             sql1.Append(")");
-            sql2.AppendFormat("from @{0} as tb", typeof(T).Name);
+            sql2.AppendFormat("from @{0}_TVP as tb", typeof(T).Name);
 
             return string.Format("{0}{1}", sql1.ToString().Replace(",)", ") "), sql2.ToString().Replace(",from", " from"));
         }
@@ -82,12 +96,29 @@ namespace FastData.Base
         {
             var dyn = new Property.DynamicGet<T>();
             var dt = new DataTable();
-            cmd.CommandText = string.Format("select top 1 * from {0}", TableNameHelper.GetTableName<T>());
-            dt.Load(cmd.ExecuteReader());
-            dt.Clear();
+            
+            // 获取属性信息，排除 Identity 列
+            var properties = PropertyCache.GetPropertyInfo<T>();
+            var entityType = typeof(T);
+            var nonIdentityProperties = properties.Where(p => 
+            {
+                var propInfo = entityType.GetProperty(p.Name);
+                if (propInfo == null) return true;
+                var columnAttr = propInfo.GetCustomAttributes(typeof(ColumnAttribute), false)
+                    .FirstOrDefault() as ColumnAttribute;
+                return columnAttr == null || !columnAttr.IsIdentity;
+            }).ToList();
+            
+            // 创建 DataTable 结构
+            foreach (var prop in nonIdentityProperties)
+            {
+                dt.Columns.Add(prop.Name, prop.PropertyType);
+            }
+            
+            // 填充数据
             list.ForEach(p => {
                 var row = dt.NewRow();
-                PropertyCache.GetPropertyInfo<T>().ForEach(a => { row[a.Name] = dyn.GetValue(p, a.Name, true); });
+                nonIdentityProperties.ForEach(a => { row[a.Name] = dyn.GetValue(p, a.Name, true) ?? DBNull.Value; });
                 dt.Rows.Add(row);
             });
             return dt;
@@ -103,15 +134,19 @@ namespace FastData.Base
         public static void InitTvps<T>(DbCommand cmd)
         {
             var sql = new StringBuilder();
-            cmd.CommandText = string.Format("select a.name,(select top 1 name from sys.systypes c where a.xtype=c.xtype) as type,length,isnullable,prec,scale from syscolumns a where a.id=object_id('{0}') order by a.colid asc", TableNameHelper.GetTableName<T>());
+            // 查询表结构，排除 Identity 列
+            cmd.CommandText = string.Format("select a.name,(select top 1 name from sys.systypes c where a.xtype=c.xtype) as type,length,isnullable,prec,scale,(a.status & 0x80) as is_identity from syscolumns a where a.id=object_id('{0}') order by a.colid asc", TableNameHelper.GetTableName<T>());
             var dr = cmd.ExecuteReader();
             var dic = BaseJson.DataReaderToDic(dr);
             dr.Close();
 
-            sql.AppendFormat("if not exists(SELECT 1 FROM sys.table_types where name='{0}')", typeof(T).Name);
-            sql.AppendFormat("CREATE TYPE {0} AS TABLE(", typeof(T).Name);
+            // 过滤掉 Identity 列
+            var nonIdentityColumns = dic.Where(item => item.GetValue("is_identity").ToStr() != "128").ToList();
 
-            foreach (var item in dic)
+            sql.AppendFormat("if not exists(SELECT 1 FROM sys.table_types where name='{0}_TVP')", typeof(T).Name);
+            sql.AppendFormat("CREATE TYPE {0}_TVP AS TABLE(", typeof(T).Name);
+
+            foreach (var item in nonIdentityColumns)
             {
                 switch (item.GetValue("type").ToStr())
                 {
@@ -160,7 +195,14 @@ namespace FastData.Base
             list.ForEach(a => {
                 sql.Append("(");
                 PropertyCache.GetPropertyInfo<T>().ForEach(p => {
-                    sql.AppendFormat("'{0}',", dyn.GetValue(a, p.Name, true));
+                    var value = dyn.GetValue(a, p.Name, true);
+                    // 处理布尔值，MySQL 使用 0/1
+                    if (value is bool boolVal)
+                        sql.AppendFormat("{0},", boolVal ? 1 : 0);
+                    else if (value == null)
+                        sql.Append("NULL,");
+                    else
+                        sql.AppendFormat("'{0}',", value);
                 });
                 sql.Append("),").Replace(",)", ")");
             });

@@ -39,8 +39,7 @@
 
   <!-- 项目引用 -->
   <ItemGroup>
-    <ProjectReference Include="..\FastRedis\FastRedis.csproj" />
-    <ProjectReference Include="..\FastUntility\FastUntility.csproj" />
+    <ProjectReference Include="..\FastData.Untility\FastData.Untility.csproj" />
   </ItemGroup>
 
   <!-- 排除 net452 的 Queue 目录 -->

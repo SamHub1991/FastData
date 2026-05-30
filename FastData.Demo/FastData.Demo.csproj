@@ -10,9 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\FastData\FastData.csproj" />
-    <ProjectReference Include="..\FastRedis\FastRedis.csproj" />
-    <ProjectReference Include="..\FastUntility\FastUntility.csproj" />
-    <ProjectReference Include="..\FastData.Tooling\FastData.Tooling.csproj" />
+    <ProjectReference Include="..\FastData.Untility\FastData.Untility.csproj" />
   </ItemGroup>
 
   <ItemGroup>

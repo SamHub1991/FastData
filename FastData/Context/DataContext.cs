@@ -14,6 +14,7 @@ using System.Data;
 using FastData.Property;
 using FastData.Aop;
 using FastData.Core.Base;
+using FastData.ConnectionPool;
 
 namespace FastData.Context
 {
@@ -24,6 +25,8 @@ namespace FastData.Context
         private DbConnection conn;
         private DbCommand cmd;
         private DbTransaction trans;
+        private PooledConnection _pooledConnection;
+        private bool _usePool;
 
         private void Dispose(DbCommand cmd)
         {
@@ -125,9 +128,20 @@ namespace FastData.Context
         public void Dispose()
         {
             Dispose(cmd);
-            try { if (conn != null) conn.Close(); } catch { }
-            if (cmd != null) cmd.Dispose();
-            if (conn != null) conn.Dispose();
+
+            if (_usePool && _pooledConnection != null)
+            {
+                // 使用连接池时，归还连接而不是关闭
+                _pooledConnection.Dispose();
+                _pooledConnection = null;
+            }
+            else
+            {
+                try { if (conn != null) conn.Close(); } catch { }
+                if (cmd != null) cmd.Dispose();
+                if (conn != null) conn.Dispose();
+            }
+
             GC.SuppressFinalize(this);
         }
         #endregion
@@ -136,7 +150,7 @@ namespace FastData.Context
         /// <summary>
         /// 初始化（延迟打开连接）
         /// </summary>
-        public DataContext(string key = null, string projectName = null)
+        public DataContext(string key = null, string projectName = null, ConnectionPoolConfig poolConfig = null)
         {
             try
             {
@@ -149,8 +163,6 @@ namespace FastData.Context
                 var factory = DbProviderFactories.GetFactory(this.config.ProviderName);
                 if (factory == null)
                     throw new Exception($"DbProviderFactory not found for provider: {this.config.ProviderName}");
-                
-                conn = factory.CreateConnection();
                 
                 // 支持连接字符串加密
                 var connStr = this.config.ConnStr;
@@ -165,10 +177,32 @@ namespace FastData.Context
                         // 解密失败则使用原始值
                     }
                 }
-                
-                conn.ConnectionString = connStr;
-                // 延迟打开连接，提高资源利用率
-                cmd = conn.CreateCommand();
+
+                // 使用连接池
+                if (poolConfig != null)
+                {
+                    _usePool = true;
+                    var pool = ConnectionPoolFactory.Instance.GetOrCreatePool(
+                        key ?? "default",
+                        () =>
+                        {
+                            var c = factory.CreateConnection();
+                            c.ConnectionString = connStr;
+                            return c;
+                        },
+                        poolConfig);
+
+                    _pooledConnection = pool.GetConnectionAsync().GetAwaiter().GetResult();
+                    conn = _pooledConnection.Connection;
+                    cmd = conn.CreateCommand();
+                }
+                else
+                {
+                    conn = factory.CreateConnection();
+                    conn.ConnectionString = connStr;
+                    // 延迟打开连接，提高资源利用率
+                    cmd = conn.CreateCommand();
+                }
             }
             catch (Exception ex)
             {

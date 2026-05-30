@@ -207,7 +207,11 @@ namespace FastData.Base
                     // Check if the member is a bool type - if used as predicate, convert to "= 1"
                     if ((exp as MemberExpression).Type == typeof(bool))
                     {
-                        return string.Format("{0}=1", memberName);
+                        // PostgreSQL uses 'true'/'false' instead of 1/0 for boolean
+                        if (config.DbType == DataDbType.PostgreSql)
+                            return string.Format("{0}=true", memberName);
+                        else
+                            return string.Format("{0}=1", memberName);
                     }
                     return memberName;
                 }

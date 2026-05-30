@@ -163,7 +163,9 @@ namespace FastData.Config
             var defaultKey = string.Empty;
 
             if (DbCache.Exists(CacheType.Web, cacheKey))
-                list = DbCache.Get<List<ConfigModel>>(CacheType.Web, cacheKey);
+            {
+                list = new List<ConfigModel>(DbCache.Get<List<ConfigModel>>(CacheType.Web, cacheKey));
+            }
             else if (projectName == null)
             {
                 // Load db.config to get Active value
@@ -358,7 +360,7 @@ namespace FastData.Config
             // Apply environment variable overrides
             ApplyEnvironmentOverrides(list);
 
-            list = SetDefaultFirst(list, defaultKey);
+            list = SetDefaultFirst(new List<ConfigModel>(list), defaultKey);
             DbCache.Set<List<ConfigModel>>(CacheType.Web, cacheKey, list);
 
             if (string.IsNullOrEmpty(key))
@@ -367,7 +369,7 @@ namespace FastData.Config
                 result = list.Find(a => a.Key == key);
 
             if (result == null)
-                throw new Exception(string.Format("数据库配置Key不存在:{0}; 可用Key:{1}", key, string.Join(",", list.Select(a => a.Key))));
+                throw new Exception(string.Format("数据库配置 Key 不存在:{0}; 可用 Key:{1}", key, string.Join(",", list.Select(a => a.Key))));
 
             return result;
         }

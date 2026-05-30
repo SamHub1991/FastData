@@ -34,7 +34,11 @@ namespace FastData.Example
                 Console.WriteLine("  10. 分页查询 API");
                 Console.WriteLine("  11. 分表（数据分片）");
                 Console.WriteLine("  12. 分表完整示例（SQL Server）");
-                Console.WriteLine("  13. 运行所有示例");
+                Console.WriteLine("  13. AOP 拦截器");
+                Console.WriteLine("  14. 连接字符串加密");
+                Console.WriteLine("  15. Repository 模式");
+                Console.WriteLine("  16. 多数据库表名映射");
+                Console.WriteLine("  17. 运行所有示例");
                 Console.WriteLine("  0. 退出");
                 Console.WriteLine();
 
@@ -93,6 +97,18 @@ namespace FastData.Example
                         ShardingFullExample.Run();
                         break;
                     case "13":
+                        AopExample.Run();
+                        break;
+                    case "14":
+                        EncryptionExample.Run();
+                        break;
+                    case "15":
+                        RepositoryExample.Run();
+                        break;
+                    case "16":
+                        MultiDbExample.Run();
+                        break;
+                    case "17":
                         BasicCrudExample.Run();
                         LambdaQueryExample.Run();
                         RawSqlExample.Run();
@@ -105,6 +121,9 @@ namespace FastData.Example
 #endif
                         PaginationExample.Run();
                         ShardingExample.Run();
+                        AopExample.Run();
+                        EncryptionExample.Run();
+                        RepositoryExample.Run();
                         break;
                     default:
                         Console.WriteLine("无效选项，请重新输入");

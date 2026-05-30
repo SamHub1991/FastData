@@ -81,6 +81,8 @@ namespace FastData.Context
 
                 AopBefore(item.Table, sql.ToString(), param, config, true,AopType.Query_List_Lambda);
 
+                if (conn.State == ConnectionState.Closed)
+                    conn.Open();
                 var dr = BaseExecute.ToDataReader(cmd, sql.ToString());
 
                 if (item.Take == 1)
@@ -130,6 +132,8 @@ namespace FastData.Context
                 pModel.StarId = (pModel.PageId - 1) * pModel.PageSize + 1;
                 pModel.EndId = pModel.PageId * pModel.PageSize;
                 Dispose(cmd);
+                if (conn.State == ConnectionState.Closed)
+                    conn.Open();
                 pModel.TotalRecord = BaseExecute.ToPageCount(item, cmd, ref sql);
 
                 if (pModel.TotalRecord > 0)
@@ -189,6 +193,8 @@ namespace FastData.Context
                 pModel.StarId = (pModel.PageId - 1) * pModel.PageSize + 1;
                 pModel.EndId = pModel.PageId * pModel.PageSize;
                 Dispose(cmd);
+                if (conn.State == ConnectionState.Closed)
+                    conn.Open();
                 pModel.TotalRecord = BaseExecute.ToPageCount(item, cmd, ref sql);
 
                 if (pModel.TotalRecord > 0)
@@ -248,6 +254,8 @@ namespace FastData.Context
                 pModel.StarId = (pModel.PageId - 1) * pModel.PageSize + 1;
                 pModel.EndId = pModel.PageId * pModel.PageSize;
                 Dispose(cmd);
+                if (conn.State == ConnectionState.Closed)
+                    conn.Open();
                 pModel.TotalRecord = BaseExecute.ToPageCountSql(param, cmd, sql, config, ref countSql);
 
                 if (pModel.TotalRecord > 0)
@@ -310,6 +318,8 @@ namespace FastData.Context
                 pModel.StarId = (pModel.PageId - 1) * pModel.PageSize + 1;
                 pModel.EndId = pModel.PageId * pModel.PageSize;
                 Dispose(cmd);
+                if (conn.State == ConnectionState.Closed)
+                    conn.Open();
                 pModel.TotalRecord = BaseExecute.ToPageCountSql(param, cmd, sql, config, ref countSql);
 
                 if (pModel.TotalRecord > 0)
@@ -418,6 +428,8 @@ namespace FastData.Context
 
                 AopBefore(null, sql.ToString(), param?.ToList(), config, true,AopType.Query_Json_Lambda);
 
+                if (conn.State == ConnectionState.Closed)
+                    conn.Open();
                 var dr = BaseExecute.ToDataReader(cmd, sql.ToString());
 
                 result.Json = BaseJson.DataReaderToJson(dr, config.DbType == DataDbType.Oracle);
@@ -487,6 +499,8 @@ namespace FastData.Context
 
                 AopBefore(null, sql.ToString(), param?.ToList(), config, true,AopType.Query_Json_Lambda);
 
+                if (conn.State == ConnectionState.Closed)
+                    conn.Open();
                 var dt = BaseExecute.ToDataTable(cmd, sql.ToString());
 
                 if (dt.Rows.Count > 0)
@@ -533,6 +547,8 @@ namespace FastData.Context
 
                 AopBefore(null, sql.ToString(), param?.ToList(), config, true,AopType.Execute_Sql_Model);
 
+                if (conn.State == ConnectionState.Closed)
+                    conn.Open();
                 var dr = BaseExecute.ToDataReader(cmd, sql);
 
                 result.list = BaseDataReader.ToList<T>(dr, config);
@@ -581,6 +597,8 @@ namespace FastData.Context
                 if(isAop)
                     AopBefore(null, sql.ToString(), param?.ToList(), config, true,AopType.Execute_Sql_Dic);
 
+                if (conn.State == ConnectionState.Closed)
+                    conn.Open();
                 var dr = BaseExecute.ToDataReader(cmd, sql);
 
                 result.DicList = BaseJson.DataReaderToDic(dr, config.DbType == DataDbType.Oracle);
@@ -671,6 +689,8 @@ namespace FastData.Context
 
                 AopBefore(item.Table, sql.ToString(), param, config, true,AopType.Query_Dic_Lambda);
 
+                if (conn.State == ConnectionState.Closed)
+                    conn.Open();
                 var dr = BaseExecute.ToDataReader(cmd, sql.ToString());
 
                 if (item.Take == 1)
@@ -765,6 +785,8 @@ namespace FastData.Context
 
                 AopBefore(item.Table, sql.ToString(), param, config, true,AopType.Query_DataTable_Lambda);
 
+                if (conn.State == ConnectionState.Closed)
+                    conn.Open();
                 var dr = BaseExecute.ToDataReader(cmd, sql.ToString());
 
                 result.Table.Load(dr);

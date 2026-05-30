@@ -6,6 +6,8 @@
     <LangVersion>latest</LangVersion>
     <Nullable>disable</Nullable>
     <TreatWarningsAsWarnings>true</TreatWarningsAsWarnings>
+    <!-- BuildPlatform: cross=仅 net6.0+, windows=含 net45/net462 -->
+    <BuildPlatform Condition="'$(BuildPlatform)' == ''">cross</BuildPlatform>
   </PropertyGroup>
   
   <!-- net45: FrameworkPathOverride for reference assemblies -->

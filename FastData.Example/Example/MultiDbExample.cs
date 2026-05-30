@@ -1,12 +1,40 @@
 using System;
 using System.Collections.Generic;
 using FastData.Example.Model;
+using FastData.Property;
 
 namespace FastData.Example.Example
 {
     /// <summary>
+    /// 多数据库表名映射示例
+    /// 场景：同一个 Model 在不同数据库中表名不同
+    /// </summary>
+    [Table(DbTableNames = "SqlServer.Users,MySql.user_info,PostgreSQL.tb_users")]
+    public class MultiDbUser
+    {
+        [Column(IsIdentity = true)]
+        public int Id { get; set; }
+        public string UserName { get; set; }
+        public string Email { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+
+    /// <summary>
+    /// 混合模式：优先使用 DbTableNames，回退到 Name
+    /// </summary>
+    [Table(Name = "default_orders", DbTableNames = "SqlServer.Orders,MySql.order_info")]
+    public class MixedDbOrder
+    {
+        [Column(IsIdentity = true)]
+        public int Id { get; set; }
+        public int UserId { get; set; }
+        public decimal Amount { get; set; }
+        public DateTime OrderDate { get; set; }
+    }
+
+    /// <summary>
     /// 多数据库使用示例
-    /// 场景：多数据源、读写分离、跨库查询
+    /// 场景：多数据源、读写分离、跨库查询、多数据库表名映射
     /// </summary>
     public static class MultiDbExample
     {
@@ -22,6 +50,88 @@ namespace FastData.Example.Example
             DemoReadWriteSeparation();
             DemoCrossDatabaseQuery();
             DemoDefaultDatabase();
+            DemoMultiDbTableNameMapping();
+        }
+
+        /// <summary>
+        /// 示例 5: 多数据库表名映射
+        /// 场景：同一个 Model 在不同数据库中表名不同
+        /// </summary>
+        private static void DemoMultiDbTableNameMapping()
+        {
+            Console.WriteLine("=== 示例 5: 多数据库表名映射 ===");
+            Console.WriteLine("场景：同一个 Model 在不同数据库中表名不同");
+            Console.WriteLine();
+
+            Console.WriteLine("Model 定义：");
+            Console.WriteLine(@"  // 格式: ""数据库Key.表名,数据库Key.表名""
+  [Table(DbTableNames = ""SqlServer.Users,MySql.user_info,PostgreSQL.tb_users"")]
+  public class MultiDbUser
+  {
+      [Column(IsIdentity = true)]
+      public int Id { get; set; }
+      public string UserName { get; set; }
+      public string Email { get; set; }
+      public DateTime CreatedAt { get; set; }
+  }");
+            Console.WriteLine();
+
+            Console.WriteLine("混合模式（优先使用 DbTableNames，回退到 Name）：");
+            Console.WriteLine(@"  [Table(Name = ""default_orders"", DbTableNames = ""SqlServer.Orders,MySql.order_info"")]
+  public class MixedDbOrder
+  {
+      [Column(IsIdentity = true)]
+      public int Id { get; set; }
+      public int UserId { get; set; }
+      public decimal Amount { get; set; }
+      public DateTime OrderDate { get; set; }
+  }");
+            Console.WriteLine();
+
+            Console.WriteLine("C# 代码：");
+            Console.WriteLine(@"  // 使用 FastDb.Use() 切换数据库上下文
+  using (FastDb.Use(""SqlServer""))
+  {
+      var users = FastRead.Query<MultiDbUser>(u => u.Id > 0).ToList();
+      // 实际查询的表名是 ""Users""
+      Console.WriteLine($""SqlServer 表名: Users, 查询到 {users.Count} 条记录"");
+  }
+
+  using (FastDb.Use(""MySql""))
+  {
+      var users = FastRead.Query<MultiDbUser>(u => u.Id > 0).ToList();
+      // 实际查询的表名是 ""user_info""
+      Console.WriteLine($""MySql 表名: user_info, 查询到 {users.Count} 条记录"");
+  }
+
+  using (FastDb.Use(""PostgreSQL""))
+  {
+      var users = FastRead.Query<MultiDbUser>(u => u.Id > 0).ToList();
+      // 实际查询的表名是 ""tb_users""
+      Console.WriteLine($""PostgreSQL 表名: tb_users, 查询到 {users.Count} 条记录"");
+  }
+
+  // 混合模式示例
+  using (FastDb.Use(""SqlServer""))
+  {
+      var orders = FastRead.Query<MixedDbOrder>(o => o.Id > 0).ToList();
+      // 实际查询的表名是 ""Orders""（使用 DbTableNames 映射）
+  }
+
+  using (FastDb.Use(""Oracle""))
+  {
+      var orders = FastRead.Query<MixedDbOrder>(o => o.Id > 0).ToList();
+      // 实际查询的表名是 ""default_orders""（回退到 Name 属性）
+  }");
+            Console.WriteLine();
+
+            Console.WriteLine("说明：");
+            Console.WriteLine("  - DbTableNames 格式: \"数据库Key.表名,数据库Key.表名\"");
+            Console.WriteLine("  - 数据库 Key 区分大小写");
+            Console.WriteLine("  - 优先级: DbTableNames 映射 > Name 属性 > 类名");
+            Console.WriteLine("  - 混合模式: 同时设置 Name 和 DbTableNames，DbTableNames 优先");
+            Console.WriteLine("  - 未匹配时回退到 Name 属性或类名");
+            Console.WriteLine();
         }
 
         /// <summary>
