@@ -4,12 +4,16 @@ using System.Data.Common;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
 using FastData.Base;
+using FastData.Config;
+using FastData.ConnectionPool;
 using FastData.Context;
+using FastData.Core;
 using FastData.Model;
 using FastData.Property;
 using FastUntility.Page;
 #if !NETFRAMEWORK
 using FastData.Queue;
+using NewLife.Caching;
 #endif
 
 namespace FastData
@@ -103,10 +107,15 @@ namespace FastData
     /// }
     /// </code>
     /// </summary>
-    public sealed class FastDataClient
+    public sealed class FastDataClient : IDisposable
     {
         private readonly string _key;
         private bool _enableSqlLog;
+#if !NETFRAMEWORK
+        private readonly ConnectionPoolConfig _poolConfig;
+        private readonly FullRedis _redis;
+        private readonly ResilientWriteExecutor _resilientExecutor;
+#endif
 
         /// <summary>
         /// 获取数据库 Key
@@ -129,6 +138,53 @@ namespace FastData
             if (string.IsNullOrEmpty(key))
                 throw new ArgumentException("数据库 Key 不能为空", nameof(key));
             _key = key;
+        }
+
+#if !NETFRAMEWORK
+        /// <summary>
+        /// 创建带连接池配置和消息队列支持的 FastDataClient 实例
+        /// </summary>
+        /// <param name="key">数据库配置的 Key 名称</param>
+        /// <param name="poolConfig">连接池配置</param>
+        /// <param name="redis">Redis 实例（用于消息队列降级）</param>
+        /// <param name="maxRetries">最大重试次数</param>
+        /// <example>
+        /// <code>
+        /// var redis = new FullRedis { Server = "127.0.0.1:6379", Db = 7 };
+        /// var poolConfig = new ConnectionPoolConfig { MinPoolSize = 2, MaxPoolSize = 10 };
+        /// var client = new FastDataClient("db1", poolConfig, redis);
+        /// 
+        /// // 写入操作会自动降级到消息队列
+        /// var result = client.Add(user);
+        /// </code>
+        /// </example>
+        public FastDataClient(string key, ConnectionPoolConfig poolConfig, FullRedis redis = null, int maxRetries = 3)
+        {
+            if (string.IsNullOrEmpty(key))
+                throw new ArgumentException("数据库 Key 不能为空", nameof(key));
+            _key = key;
+            _poolConfig = poolConfig;
+            _redis = redis;
+            
+            if (redis != null)
+            {
+                _resilientExecutor = new ResilientWriteExecutor(
+                    databaseKey: key,
+                    poolConfig: poolConfig,
+                    redis: redis,
+                    maxRetries: maxRetries);
+            }
+        }
+#endif
+
+        /// <summary>
+        /// 释放资源
+        /// </summary>
+        public void Dispose()
+        {
+#if !NETFRAMEWORK
+            _resilientExecutor?.Dispose();
+#endif
         }
 
         /// <summary>
@@ -333,6 +389,62 @@ namespace FastData
 
         #region 写入操作（Add/Update/Delete）
 
+#if !NETFRAMEWORK
+        /// <summary>
+        /// 创建写入操作对象（用于弹性写入）
+        /// </summary>
+        private WriteOperation CreateWriteOperation<T>(WriteOperationType operationType, T model) where T : class, new()
+        {
+            return new WriteOperation
+            {
+                OperationType = operationType,
+                EntityType = typeof(T).AssemblyQualifiedName,
+                TableName = TableNameHelper.GetTableName<T>(),
+                Data = Newtonsoft.Json.JsonConvert.SerializeObject(model)
+            };
+        }
+
+        /// <summary>
+        /// 使用弹性写入执行器执行写入（支持消息队列降级）
+        /// </summary>
+        private WriteReturn ExecuteResilientWrite<T>(WriteOperationType operationType, T model) where T : class, new()
+        {
+            if (_resilientExecutor == null)
+            {
+                // 没有配置弹性执行器，使用普通写入
+                return ExecuteDirectWrite(operationType, model);
+            }
+
+            var operation = CreateWriteOperation(operationType, model);
+            var result = _resilientExecutor.ExecuteWrite(operation);
+            
+            if (result.Success)
+            {
+                // 记录成功到连接池
+                return new WriteReturn { IsSuccess = true };
+            }
+            else
+            {
+                // 写入失败
+                return new WriteReturn { IsSuccess = false, Message = result.ErrorMessage };
+            }
+        }
+
+        /// <summary>
+        /// 直接写入数据库（不使用消息队列）
+        /// </summary>
+        private WriteReturn ExecuteDirectWrite<T>(WriteOperationType operationType, T model) where T : class, new()
+        {
+            switch (operationType)
+            {
+                case WriteOperationType.Add:
+                    return FastWrite.Add<T>(model, null, _key, _enableSqlLog);
+                default:
+                    throw new NotSupportedException($"不支持的操作类型: {operationType}");
+            }
+        }
+#endif
+
         /// <summary>
         /// 添加单条数据
         /// </summary>
@@ -350,6 +462,12 @@ namespace FastData
         /// </example>
         public WriteReturn Add<T>(T model, DataContext db = null) where T : class, new()
         {
+#if !NETFRAMEWORK
+            if (_resilientExecutor != null && db == null)
+            {
+                return ExecuteResilientWrite(WriteOperationType.Add, model);
+            }
+#endif
             return FastWrite.Add<T>(model, db, _key, _enableSqlLog);
         }
 

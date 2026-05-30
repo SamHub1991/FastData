@@ -267,4 +267,37 @@ namespace FastData.Demo.Models
         /// </summary>
         public DateTime CreateTime { get; set; }
     }
+
+    /// <summary>
+    /// 性能测试用户模型
+    /// 用于高并发压力测试
+    /// </summary>
+    public class PerfUser
+    {
+        /// <summary>
+        /// 用户ID
+        /// </summary>
+        [Column(IsKey = true, IsIdentity = true)]
+        public int Id { get; set; }
+
+        /// <summary>
+        /// 用户名
+        /// </summary>
+        public string Name { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 邮箱
+        /// </summary>
+        public string Email { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 年龄
+        /// </summary>
+        public int Age { get; set; }
+
+        /// <summary>
+        /// 创建时间
+        /// </summary>
+        public DateTime CreatedAt { get; set; }
+    }
 }

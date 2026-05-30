@@ -33,12 +33,28 @@ namespace FastRedis.Config
             else if (projectName == null)
             {
                 if (dbFile.ToLower() == "web.config")
+                {
                     section = (RedisConfig)ConfigurationManager.GetSection("RedisConfig");
+                }
                 else
                 {
-                    var exeConfig = new ExeConfigurationFileMap();
-                    exeConfig.ExeConfigFilename = string.Format("{0}bin\\{1}", AppDomain.CurrentDomain.BaseDirectory, dbFile);
-                    section = (RedisConfig)ConfigurationManager.OpenMappedExeConfiguration(exeConfig, ConfigurationUserLevel.None).GetSection("RedisConfig");
+                    // 支持多环境配置：先加载 db.config 获取 Active 值，再加载对应的环境配置
+                    var baseConfigPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, dbFile);
+                    var activeEnv = ResolveActiveEnvironment(baseConfigPath);
+                    
+                    // 尝试加载环境配置（如 db.dev.config）
+                    if (!string.IsNullOrEmpty(activeEnv))
+                    {
+                        var envDbFile = $"db.{activeEnv}.config";
+                        var envConfigPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, envDbFile);
+                        section = LoadRedisSectionFromFile(envConfigPath);
+                    }
+                    
+                    // 如果环境配置没有 Redis 配置，尝试加载基础配置
+                    if (section == null || string.IsNullOrEmpty(section.WriteServerList))
+                    {
+                        section = LoadRedisSectionFromFile(baseConfigPath);
+                    }
                 }
             }
             else
@@ -69,6 +85,76 @@ namespace FastRedis.Config
 
             BaseCache.Set<RedisConfig>(cacheKey, section);
             return section;
+        }
+
+        /// <summary>
+        /// 从配置文件加载 Redis 配置节
+        /// </summary>
+        /// <param name="configFilePath">配置文件路径</param>
+        /// <returns>Redis配置</returns>
+        private static RedisConfig LoadRedisSectionFromFile(string configFilePath)
+        {
+            try
+            {
+                if (!File.Exists(configFilePath))
+                    return null;
+
+                var content = File.ReadAllText(configFilePath);
+                var xmlDoc = new XmlDocument();
+                xmlDoc.LoadXml(content);
+                
+                // 查找 RedisConfig 节点
+                var redisNode = xmlDoc.SelectSingleNode("DataConfig/RedisConfig");
+                if (redisNode == null)
+                    return null;
+
+                var section = new RedisConfig();
+                section.AutoStart = redisNode.Attributes["AutoStart"]?.Value.ToStr().ToLower() == "true";
+                section.MaxReadPoolSize = redisNode.Attributes["MaxReadPoolSize"]?.Value.ToStr().ToInt(60) ?? 60;
+                section.MaxWritePoolSize = redisNode.Attributes["MaxWritePoolSize"]?.Value.ToStr().ToInt(60) ?? 60;
+                section.ReadServerList = redisNode.Attributes["ReadServerList"]?.Value;
+                section.WriteServerList = redisNode.Attributes["WriteServerList"]?.Value;
+                
+                return section;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// 从配置文件解析 Active 环境变量
+        /// </summary>
+        /// <param name="configFilePath">配置文件路径</param>
+        /// <returns>环境名称</returns>
+        private static string ResolveActiveEnvironment(string configFilePath)
+        {
+            try
+            {
+                // 优先检查环境变量
+                var envActive = Environment.GetEnvironmentVariable("FASTDATA_ACTIVE");
+                if (!string.IsNullOrEmpty(envActive))
+                    return envActive.ToLower();
+
+                if (!File.Exists(configFilePath))
+                    return "dev"; // 默认 dev 环境
+
+                var content = File.ReadAllText(configFilePath);
+                var xmlDoc = new XmlDocument();
+                xmlDoc.LoadXml(content);
+                
+                // 查找 DataConfig 节点的 Active 属性
+                var dataConfigNode = xmlDoc.SelectSingleNode("DataConfig");
+                if (dataConfigNode?.Attributes["Active"] != null)
+                    return dataConfigNode.Attributes["Active"].Value.ToLower();
+
+                return "dev"; // 默认 dev 环境
+            }
+            catch
+            {
+                return "dev";
+            }
         }
         #endregion
 

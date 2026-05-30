@@ -135,6 +135,26 @@ namespace FastData.ConnectionPool
         public int MaxShrinkCount { get; set; } = 5;
 
         /// <summary>
+        /// 异常缩容阈值（连续失败次数达到此值时触发缩容）
+        /// </summary>
+        public int ErrorShrinkThreshold { get; set; } = 3;
+
+        /// <summary>
+        /// 异常缩容比例（每次缩容减少的百分比）
+        /// </summary>
+        public int ErrorShrinkPercentage { get; set; } = 20;
+
+        /// <summary>
+        /// 是否启用 Redis 可用性检测（Redis 可用时允许扩容）
+        /// </summary>
+        public bool EnableRedisCheck { get; set; } = false;
+
+        /// <summary>
+        /// Redis 连接字符串（用于可用性检测）
+        /// </summary>
+        public string RedisConnectionString { get; set; }
+
+        /// <summary>
         /// 熔断器配置
         /// </summary>
         public CircuitBreakerConfig CircuitBreaker { get; set; } = new CircuitBreakerConfig();
@@ -267,6 +287,13 @@ namespace FastData.ConnectionPool
         private DateTime _circuitOpenedAt;
         private int _halfOpenRequests;
 
+        // 智能调整字段
+        private long _recentErrors;
+        private DateTime _lastErrorTime;
+        private DateTime _lastExpandTime;
+        private bool _isRedisAvailable;
+        private DateTime _lastRedisCheckTime;
+
         /// <summary>
         /// 启用连接池日志输出
         /// </summary>
@@ -391,7 +418,8 @@ namespace FastData.ConnectionPool
                 if (!await _semaphore.WaitAsync(TimeSpan.FromSeconds(_config.ConnectionTimeout), cancellationToken))
                 {
                     Interlocked.Increment(ref _failedRequests);
-                    throw new TimeoutException($"连接池 {_name} 获取连接超时({_config.ConnectionTimeout}秒)");
+                    // 抛出连接池耗尽异常，用于触发降级到消息队列
+                    throw new ConnectionPoolExhaustedException(_name, _config.ConnectionTimeout);
                 }
 
                 stopwatch.Stop();
@@ -426,7 +454,8 @@ namespace FastData.ConnectionPool
                 {
                     _semaphore.Release();
                     Interlocked.Increment(ref _failedRequests);
-                    throw new InvalidOperationException($"连接池 {_name} 无法创建新连接");
+                    // 连接创建失败也视为连接池耗尽
+                    throw new ConnectionPoolExhaustedException(_name, _config.ConnectionTimeout);
                 }
 
                 connection.MarkUsed();
@@ -435,6 +464,10 @@ namespace FastData.ConnectionPool
                 Interlocked.Increment(ref _successfulRequests);
 
                 return connection;
+            }
+            catch (ConnectionPoolExhaustedException)
+            {
+                throw;
             }
             catch
             {
@@ -465,7 +498,8 @@ namespace FastData.ConnectionPool
                 {
                     Interlocked.Increment(ref _failedRequests);
                     RecordFailure();
-                    throw new TimeoutException($"连接池 {_name} 获取连接超时({_config.ConnectionTimeout}秒)");
+                    // 抛出连接池耗尽异常，用于触发降级到消息队列
+                    throw new ConnectionPoolExhaustedException(_name, _config.ConnectionTimeout);
                 }
 
                 stopwatch.Stop();
@@ -500,7 +534,8 @@ namespace FastData.ConnectionPool
                 {
                     _semaphore.Release();
                     Interlocked.Increment(ref _failedRequests);
-                    throw new InvalidOperationException($"连接池 {_name} 无法创建新连接");
+                    // 连接创建失败也视为连接池耗尽
+                    throw new ConnectionPoolExhaustedException(_name, _config.ConnectionTimeout);
                 }
 
                 connection.MarkUsed();
@@ -509,6 +544,10 @@ namespace FastData.ConnectionPool
                 Interlocked.Increment(ref _successfulRequests);
 
                 return connection;
+            }
+            catch (ConnectionPoolExhaustedException)
+            {
+                throw;
             }
             catch
             {
@@ -737,10 +776,46 @@ namespace FastData.ConnectionPool
                 var metrics = GetMetrics();
                 var loadPercentage = (double)metrics.ActiveConnections / _config.MaxPoolSize * 100;
 
-                // 负载过高时扩容
-                if (loadPercentage > _config.LoadThreshold)
+                // 检测环境状态
+                var environmentStatus = CheckEnvironmentStatus();
+
+                // 1. 异常检测缩容：当近期错误多时，主动缩容
+                if (_recentErrors >= _config.ErrorShrinkThreshold)
                 {
-                    var expandCount = Math.Min(_config.MaxExpandCount, _config.MaxPoolSize - metrics.TotalConnections);
+                    var currentTotal = metrics.TotalConnections;
+                    var shrinkTarget = Math.Max(_config.MinPoolSize, 
+                        currentTotal * (100 - _config.ErrorShrinkPercentage) / 100);
+                    var shrinkCount = Math.Min(_config.MaxShrinkCount, currentTotal - shrinkTarget);
+                    
+                    if (shrinkCount > 0)
+                    {
+                        for (int i = 0; i < shrinkCount; i++)
+                        {
+                            if (_availableConnections.TryTake(out var conn))
+                            {
+                                DestroyConnection(conn);
+                            }
+                        }
+                        Log($"连接池 {_name} 异常缩容: 近期错误 {_recentErrors} 次，移除 {shrinkCount} 个连接");
+                    }
+                    
+                    // 重置错误计数
+                    Interlocked.Exchange(ref _recentErrors, 0);
+                }
+                // 2. 负载过高时扩容（需要环境支持）
+                else if (loadPercentage > _config.LoadThreshold && 
+                         environmentStatus.CanExpand &&
+                         metrics.TotalConnections < _config.MaxPoolSize)
+                {
+                    var expandCount = Math.Min(_config.MaxExpandCount, 
+                        _config.MaxPoolSize - metrics.TotalConnections);
+                    
+                    // 根据环境状态调整扩容数量
+                    if (environmentStatus.ExpandFactor < 1.0)
+                    {
+                        expandCount = Math.Max(1, (int)(expandCount * environmentStatus.ExpandFactor));
+                    }
+                    
                     for (int i = 0; i < expandCount; i++)
                     {
                         var newConn = CreateNewConnection();
@@ -749,20 +824,24 @@ namespace FastData.ConnectionPool
                         else
                             break;
                     }
-                    Log($"连接池 {_name} 扩容: 新增 {expandCount} 个连接");
+                    _lastExpandTime = DateTime.UtcNow;
+                    Log($"连接池 {_name} 扩容: 新增 {expandCount} 个连接（负载 {loadPercentage:F1}%）");
                 }
-                // 负载过低时缩容
+                // 3. 负载过低时缩容
                 else if (loadPercentage < _config.ShrinkThreshold && metrics.TotalConnections > _config.MinPoolSize)
                 {
                     var shrinkCount = Math.Min(_config.MaxShrinkCount, metrics.IdleConnections - _config.MinPoolSize);
-                    for (int i = 0; i < shrinkCount; i++)
+                    if (shrinkCount > 0)
                     {
-                        if (_availableConnections.TryTake(out var conn))
+                        for (int i = 0; i < shrinkCount; i++)
                         {
-                            DestroyConnection(conn);
+                            if (_availableConnections.TryTake(out var conn))
+                            {
+                                DestroyConnection(conn);
+                            }
                         }
+                        Log($"连接池 {_name} 缩容: 移除 {shrinkCount} 个连接（负载 {loadPercentage:F1}%）");
                     }
-                    Log($"连接池 {_name} 缩容: 移除 {shrinkCount} 个连接");
                 }
             }
             catch (Exception ex)
@@ -774,6 +853,124 @@ namespace FastData.ConnectionPool
                 Monitor.Exit(_adjustmentLock);
             }
         }
+
+        /// <summary>
+        /// 环境状态检测结果
+        /// </summary>
+        private class EnvironmentStatus
+        {
+            public bool CanExpand { get; set; } = true;
+            public double ExpandFactor { get; set; } = 1.0;
+            public string Reason { get; set; }
+        }
+
+        /// <summary>
+        /// 检测环境状态（服务器资源、Redis 可用性等）
+        /// </summary>
+        private EnvironmentStatus CheckEnvironmentStatus()
+        {
+            var status = new EnvironmentStatus();
+            var reasons = new List<string>();
+
+            try
+            {
+                // 1. 检查服务器资源
+                var memoryInfo = GC.GetGCMemoryInfo();
+                var memoryUsagePercent = 100.0 - (double)memoryInfo.TotalAvailableMemoryBytes / 
+                    (memoryInfo.TotalAvailableMemoryBytes + memoryInfo.MemoryLoadBytes) * 100;
+                
+                // 内存使用超过 85% 时限制扩容
+                if (memoryUsagePercent > 85)
+                {
+                    status.ExpandFactor *= 0.5;
+                    reasons.Add($"内存使用率高({memoryUsagePercent:F1}%)");
+                }
+
+                // 2. 检查 Redis 可用性（如果配置了）
+                if (_config.EnableRedisCheck && !string.IsNullOrEmpty(_config.RedisConnectionString))
+                {
+                    // 每 30 秒检测一次 Redis
+                    if (DateTime.UtcNow - _lastRedisCheckTime > TimeSpan.FromSeconds(30))
+                    {
+                        _isRedisAvailable = CheckRedisAvailability(_config.RedisConnectionString);
+                        _lastRedisCheckTime = DateTime.UtcNow;
+                    }
+
+                    if (!_isRedisAvailable)
+                    {
+                        status.CanExpand = false;
+                        reasons.Add("Redis 不可用");
+                    }
+                }
+
+                // 3. 检查近期扩容频率（避免频繁扩缩容）
+                if (DateTime.UtcNow - _lastExpandTime < TimeSpan.FromSeconds(60))
+                {
+                    status.ExpandFactor *= 0.3;
+                    reasons.Add("近期已扩容");
+                }
+
+                // 4. 检查近期错误率
+                if (_recentErrors > 0)
+                {
+                    status.ExpandFactor *= 0.5;
+                    reasons.Add($"近期有错误({_recentErrors})");
+                }
+
+                if (reasons.Any())
+                {
+                    status.Reason = string.Join(", ", reasons);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log($"环境检测异常: {ex.Message}");
+            }
+
+            return status;
+        }
+
+        /// <summary>
+        /// 检查 Redis 可用性
+        /// </summary>
+        private bool CheckRedisAvailability(string connectionString)
+        {
+            try
+            {
+                // 简单的 Redis 连接测试
+                // 实际项目中应该使用 Redis 客户端库进行测试
+                var parts = connectionString.Split(':');
+                if (parts.Length == 2 && int.TryParse(parts[1], out var port))
+                {
+                    using var client = new System.Net.Sockets.TcpClient();
+                    var result = client.BeginConnect(parts[0], port, null, null);
+                    var success = result.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(2));
+                    client.EndConnect(result);
+                    return success;
+                }
+            }
+            catch
+            {
+                // Redis 连接失败
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// 记录数据库异常（供外部调用）
+        /// </summary>
+        /// <param name="ex">异常信息</param>
+        public void RecordDatabaseError(Exception ex)
+        {
+            Interlocked.Increment(ref _recentErrors);
+            _lastErrorTime = DateTime.UtcNow;
+            Log($"记录数据库异常: {ex.Message}（近期错误 {_recentErrors} 次）");
+        }
+
+        /// <summary>
+        /// 获取近期错误计数
+        /// </summary>
+        public long RecentErrors => Interlocked.Read(ref _recentErrors);
 
         /// <summary>
         /// 释放资源
@@ -915,5 +1112,29 @@ namespace FastData.ConnectionPool
     public class CircuitBreakerOpenException : Exception
     {
         public CircuitBreakerOpenException(string message) : base(message) { }
+    }
+
+    /// <summary>
+    /// 连接池耗尽异常
+    /// 当连接池满且等待超时时抛出，用于触发降级到消息队列
+    /// </summary>
+    public class ConnectionPoolExhaustedException : Exception
+    {
+        /// <summary>
+        /// 连接池名称
+        /// </summary>
+        public string PoolName { get; }
+
+        /// <summary>
+        /// 等待时间（秒）
+        /// </summary>
+        public int WaitTimeoutSeconds { get; }
+
+        public ConnectionPoolExhaustedException(string poolName, int waitTimeoutSeconds)
+            : base($"连接池 {poolName} 已耗尽，等待 {waitTimeoutSeconds} 秒后超时")
+        {
+            PoolName = poolName;
+            WaitTimeoutSeconds = waitTimeoutSeconds;
+        }
     }
 }

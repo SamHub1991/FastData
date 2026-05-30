@@ -288,6 +288,31 @@
   - 使用 `ConnectionPoolFactory.Instance.GetAllMetrics()` 获取所有连接池指标
   - 使用 `ConnectionPoolMonitor` 监控连接池状态和历史
 
+## 项目质量标准
+
+**Example/Demo/Tests 三项目定位与质量要求**
+- Date: 2026-05-30
+- Context: 用户明确要求
+- Category: 行为指令
+- Instructions:
+  - **FastData.Example（示例项目）**：
+    - 偏向业务性和逻辑性，还原真实开发场景
+    - 解决真实开发中遇到的问题和处理逻辑
+    - 不是简单的 API 演示，而是完整的业务场景解决方案
+  - **FastData.Demo（演示项目）**：
+    - 在项目中使用 ORM 并连接数据库的真实项目
+    - 实现"项目中用起来"，并且好用
+    - 包含完整的 Web API、控制器、模型、配置
+  - **FastData.Tests（测试项目）**：
+    - 覆盖 ORM 所有功能的测试
+    - 必须完全通过测试，保证功能都是高可用的
+    - 测试用例要全面，边界情况要覆盖
+  - **三者不重复**：
+    - 不要出现重复的业务逻辑和功能实现
+    - Example 侧重"怎么用"（业务场景）
+    - Demo 侧重"用起来"（完整项目）
+    - Tests 侧重"能用"（功能验证）
+
 **安全与认证工具使用规范**
 - Date: 2026-05-30
 - Context: Agent 在实现安全功能时发现

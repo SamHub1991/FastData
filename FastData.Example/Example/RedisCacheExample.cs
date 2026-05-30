@@ -13,6 +13,11 @@ namespace FastData.Example.Example
     /// 演示两种缓存模式：
     /// 1. 主动缓存：手动管理缓存的读写（灵活控制）
     /// 2. 自动缓存：通过 CacheAttribute 自动管理（声明式）
+    /// 
+    /// 缓存最佳实践：
+    /// 3. Key 设计模式（错误 vs 正确示例）
+    /// 4. CacheHelper 工具类（GetOrSet / Remove）
+    /// 5. CacheKey 生成器（ForEntity / ForList / ForCount）
     /// </summary>
     public static class RedisCacheExample
     {
@@ -106,6 +111,12 @@ namespace FastData.Example.Example
             RunAutoCache();
             Console.WriteLine();
             RunCachePatterns();
+            Console.WriteLine();
+            RunKeyDesignPatterns();
+            Console.WriteLine();
+            RunCustomModelCache();
+            Console.WriteLine();
+            RunCacheHelperDemo();
         }
 
         #region 主动缓存示例
@@ -373,6 +384,175 @@ namespace FastData.Example.Example
     client.Update(user);
     RedisInfo.Remove($""user:{user.Id}"");
 ");
+        }
+
+        #endregion
+
+        #region Key 设计模式
+
+        private static void RunKeyDesignPatterns()
+        {
+            Console.WriteLine("【4】Key 设计模式（错误 vs 正确）");
+            Console.WriteLine("----------------------------------------");
+            Console.WriteLine();
+
+            Console.WriteLine("错误示例 - Key 写死:");
+            Console.WriteLine("  [Cache(Key = \"user\")]  // 所有用户都用同一个 key，数据会互相覆盖");
+            Console.WriteLine("  RedisInfo.Set(\"users\", userList, 300);  // 查询条件不同时会返回错误数据");
+            Console.WriteLine();
+
+            Console.WriteLine("正确示例 - 动态 Key:");
+            Console.WriteLine("  [Cache(Key = \"user:{Id}\")]  // 使用主键作为 key 的一部分");
+            Console.WriteLine("  var cacheKey = $\"users:age_gt_{age}_active_{isActive}\";  // 使用查询条件");
+            Console.WriteLine();
+
+            Console.WriteLine("方案1: 单条数据缓存（按主键）");
+            Console.WriteLine("  Key 格式: 表名:主键值");
+            Console.WriteLine("  示例: user:1, product:100");
+            Console.WriteLine();
+
+            Console.WriteLine("方案2: 列表数据缓存（按查询条件）");
+            Console.WriteLine("  Key 格式: 表名:条件1_值1:条件2_值2");
+            Console.WriteLine("  示例: users:age_gt_18:active_true");
+            Console.WriteLine();
+
+            Console.WriteLine("方案3: 使用 CacheHelper 工具类（推荐）");
+            Console.WriteLine("  自动生成规范的缓存 key");
+        }
+
+        #endregion
+
+        #region 自定义 Model 缓存
+
+        private static void RunCustomModelCache()
+        {
+            Console.WriteLine("【5】自定义 Model 缓存");
+            Console.WriteLine("----------------------------------------");
+            Console.WriteLine();
+
+            Console.WriteLine("支持任意类型的缓存:");
+            Console.WriteLine("  1. 基本类型: int, string, bool 等");
+            Console.WriteLine("  2. 自定义 Model: User, Product 等");
+            Console.WriteLine("  3. 列表: List<User>, List<Product>");
+            Console.WriteLine("  4. 字典: Dictionary<int, User>");
+            Console.WriteLine("  5. 复杂嵌套对象: OrderDetail");
+            Console.WriteLine();
+
+            Console.WriteLine("示例代码:");
+            Console.WriteLine("  // 自定义 Model");
+            Console.WriteLine("  var user = new User { Id = 1, Name = \"张三\" };");
+            Console.WriteLine("  RedisInfo.Set(\"user:1\", user, 300);");
+            Console.WriteLine("  var cached = RedisInfo.Get<User>(\"user:1\");");
+            Console.WriteLine();
+            Console.WriteLine("  // 列表");
+            Console.WriteLine("  var users = new List<User> { user1, user2 };");
+            Console.WriteLine("  RedisInfo.Set(\"users:list\", users, 300);");
+            Console.WriteLine("  var cachedList = RedisInfo.Get<List<User>>(\"users:list\");");
+        }
+
+        #endregion
+
+        #region CacheHelper 与 CacheKey 工具类
+
+        private static void RunCacheHelperDemo()
+        {
+            Console.WriteLine("【6】CacheHelper 与 CacheKey 工具类");
+            Console.WriteLine("----------------------------------------");
+            Console.WriteLine();
+
+            Console.WriteLine("CacheHelper 用法:");
+            Console.WriteLine();
+            Console.WriteLine("  // 获取或设置缓存（带自动加载）");
+            Console.WriteLine("  var user = CacheHelper.GetOrSet(");
+            Console.WriteLine("      CacheKey.ForEntity<User>(1),");
+            Console.WriteLine("      () => client.Query<User>(u => u.Id == 1).ToItem(),");
+            Console.WriteLine("      300");
+            Console.WriteLine("  );");
+            Console.WriteLine();
+            Console.WriteLine("  // 列表数据缓存");
+            Console.WriteLine("  var activeUsers = CacheHelper.GetOrSet(");
+            Console.WriteLine("      CacheKey.ForList<User>(\"active\", \"age_gt_18\"),");
+            Console.WriteLine("      () => client.Query<User>(u => u.IsActive && u.Age > 18).ToList(),");
+            Console.WriteLine("      300");
+            Console.WriteLine("  );");
+            Console.WriteLine();
+            Console.WriteLine("  // 更新后清除相关缓存");
+            Console.WriteLine("  client.Update(user);");
+            Console.WriteLine("  CacheHelper.Remove(");
+            Console.WriteLine("      CacheKey.ForEntity<User>(user.Id),");
+            Console.WriteLine("      CacheKey.ForList<User>(\"active\", \"age_gt_18\")");
+            Console.WriteLine("  );");
+            Console.WriteLine();
+
+            Console.WriteLine("CacheKey 生成规则:");
+            Console.WriteLine("  CacheKey.ForEntity<User>(1)              =>  \"user:1\"");
+            Console.WriteLine("  CacheKey.ForList<User>(\"active\")         =>  \"user:list:active\"");
+            Console.WriteLine("  CacheKey.ForList<User>(\"a\", \"b\")         =>  \"user:list:a:b\"");
+            Console.WriteLine("  CacheKey.ForCount<User>(\"active\")        =>  \"user:count:active\"");
+        }
+
+        /// <summary>
+        /// 缓存帮助类 - 封装常用的缓存读写模式
+        /// </summary>
+        public static class CacheHelper
+        {
+            /// <summary>
+            /// 获取缓存，未命中时通过 factory 加载并写入缓存
+            /// </summary>
+            public static T GetOrSet<T>(string key, Func<T> factory, int expireSeconds = 300) where T : class, new()
+            {
+                var cached = RedisInfo.Get<T>(key);
+                if (cached != null) return cached;
+
+                var value = factory();
+                if (value != null) RedisInfo.Set(key, value, expireSeconds);
+                return value;
+            }
+
+            /// <summary>
+            /// 批量删除缓存
+            /// </summary>
+            public static void Remove(params string[] keys)
+            {
+                foreach (var key in keys)
+                {
+                    RedisInfo.Remove(key);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 缓存键生成器 - 统一管理缓存 key 的命名规范
+        /// </summary>
+        public static class CacheKey
+        {
+            /// <summary>
+            /// 单条数据 key: 表名:主键值
+            /// </summary>
+            public static string ForEntity<T>(object id)
+            {
+                return $"{typeof(T).Name.ToLower()}:{id}";
+            }
+
+            /// <summary>
+            /// 列表数据 key: 表名:list:条件
+            /// </summary>
+            public static string ForList<T>(params string[] conditions)
+            {
+                var table = typeof(T).Name.ToLower();
+                var cond = string.Join(":", conditions);
+                return $"{table}:list:{cond}";
+            }
+
+            /// <summary>
+            /// 计数 key: 表名:count:条件
+            /// </summary>
+            public static string ForCount<T>(params string[] conditions)
+            {
+                var table = typeof(T).Name.ToLower();
+                var cond = string.Join(":", conditions);
+                return $"{table}:count:{cond}";
+            }
         }
 
         #endregion

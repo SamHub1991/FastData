@@ -420,49 +420,375 @@ shardWrite.ShardDelete<Order>(
 
 ---
 
-## CacheHelper/CacheKey 缓存工具类
+## 缓存体系
 
-缓存工具类用于简化 Redis 缓存操作：
+FastData 提供完整的缓存解决方案，支持内存缓存和 Redis 缓存两种模式。
 
-### CacheKey 生成器
+### 缓存架构
 
-```csharp
-// 生成实体缓存 Key（主键查询）
-var cacheKey = CacheKey.ForEntity<User>(1);
-// 结果: "User:1"
-
-// 生成列表缓存 Key（条件查询）
-var listKey = CacheKey.ForList<User>(u => u.IsActive);
-// 结果: "User:List:IsActive=True"
-
-// 生成计数缓存 Key
-var countKey = CacheKey.ForCount<User>(u => u.Age > 18);
-// 结果: "User:Count:Age>18"
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      应用层                                  │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │ CacheService │  │ UserCache    │  │ 业务代码     │      │
+│  │ (Demo示例)   │  │ Service      │  │              │      │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘      │
+├─────────┼─────────────────┼─────────────────┼───────────────┤
+│         │        API层    │                 │               │
+│  ┌──────▼─────────────────▼─────────────────▼───────┐      │
+│  │              RedisInfo (静态方法)                  │      │
+│  │  Get/Set/Remove/Exists/Increment/SetExpire        │      │
+│  └──────────────────────┬────────────────────────────┘      │
+├─────────────────────────┼───────────────────────────────────┤
+│                    实现层                                    │
+│  ┌──────────────────────▼────────────────────────────┐      │
+│  │              DbCache (内部路由)                    │      │
+│  │     根据 CacheType 路由到不同实现                  │      │
+│  └──────┬────────────────────────────┬───────────────┘      │
+│  ┌──────▼───────┐              ┌─────▼────────┐             │
+│  │  BaseCache   │              │  RedisInfo   │             │
+│  │  (内存缓存)   │              │  (Redis缓存) │             │
+│  │  web=默认    │              │  redis=配置  │             │
+│  └──────────────┘              └──────────────┘             │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### CacheHelper
+### 缓存组件说明
+
+| 组件 | 说明 | 使用场景 |
+|------|------|----------|
+| **CacheAttribute** | 声明式缓存配置，标注在实体类上 | 自动缓存管理 |
+| **DbCache** | 内部路由层，根据 CacheType 路由到不同实现 | 框架内部使用 |
+| **BaseCache** | 内存缓存（MemoryCache），CacheType="web" | 单机部署、开发调试 |
+| **RedisInfo** | Redis 缓存，CacheType="redis" | 多机部署、生产环境 |
+
+### 缓存类型
+
+| 类型 | CacheType值 | 说明 | 适用场景 |
+|------|-------------|------|----------|
+| 内存缓存 | `web` (默认) | 进程内 MemoryCache | 单机部署、开发调试 |
+| Redis 缓存 | `redis` | Redis 分布式缓存 | 多机部署、生产环境 |
+
+### 核心 API
+
+#### RedisInfo（推荐使用）
 
 ```csharp
-// 获取或设置缓存（缓存穿透防护）
-var user = CacheHelper.GetOrSet(
-    cacheKey, 
-    () => client.Query<User>(u => u.Id == 1).ToItem(), 
-    expirySeconds: 300
-);
+using FastRedis;
 
-// 获取列表缓存
-var users = CacheHelper.GetOrSet(
-    listKey,
-    () => client.Query<User>(u => u.IsActive).ToList(),
-    expirySeconds: 600
-);
+// 初始化（程序启动时调用一次）
+RedisInfo.Init("db.config");
 
-// 删除缓存
-CacheHelper.Remove(cacheKey);
+// 基本操作
+RedisInfo.Set("user:1", user, 300);              // 设置（300小时过期）
+var user = RedisInfo.Get<User>("user:1");         // 获取
+RedisInfo.Remove("user:1");                       // 删除
+bool exists = RedisInfo.Exists("user:1");         // 是否存在
 
-// 批量删除缓存
-CacheHelper.RemoveByPrefix("User:");
+// 异步操作
+await RedisInfo.SetAsync("user:1", user, 300);
+var user = await RedisInfo.GetAsync<User>("user:1");
+await RedisInfo.RemoveAsync("user:1");
+
+// 计数器
+long count = RedisInfo.Increment("page:views", 1);
+long count = RedisInfo.Increment("user:1:login_count", 1);
+
+// 设置过期时间
+RedisInfo.SetExpire("user:1", TimeSpan.FromMinutes(30));
+
+// 批量操作
+var dict = new Dictionary<string, User> { ["user:1"] = user1, ["user:2"] = user2 };
+RedisInfo.SetDic(dict, db: 0);
+var cachedDict = RedisInfo.GetDic<User>(new[] { "user:1", "user:2" }, db: 0);
 ```
+
+#### BaseCache（内存缓存）
+
+```csharp
+using FastUntility.Cache;
+
+// 基本操作
+BaseCache.Set("key", "value", 24);                // 24小时过期
+var value = BaseCache.Get("key");
+BaseCache.Remove("key");
+bool exists = BaseCache.Exists("key");
+
+// 泛型操作
+BaseCache.Set<User>("user:1", user, 24);
+var user = BaseCache.Get<User>("user:1");
+```
+
+### CacheAttribute（声明式缓存）
+
+在实体类上标注缓存策略，框架自动管理缓存读写：
+
+```csharp
+[Table(Name = "Products")]
+[Cache(IsEnable = true, ExpireTime = 300, Key = "product:{Id}", CacheType = "Redis")]
+public class Product
+{
+    [Primary]
+    [Column(IsIdentity = true)]
+    public int Id { get; set; }
+
+    [Column(Length = 100)]
+    public string ProductName { get; set; }
+
+    public decimal Price { get; set; }
+
+    public int Stock { get; set; }
+
+    public DateTime UpdateTime { get; set; }
+}
+```
+
+**CacheAttribute 参数说明**：
+
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `IsEnable` | bool | false | 是否启用缓存 |
+| `ExpireTime` | int | 300 | 过期时间（秒） |
+| `Key` | string | null | 缓存键模板，支持 `{PropertyName}` 占位符 |
+| `CacheType` | string | "Redis" | 缓存类型：`Redis` 或 `Local` |
+
+**Key 模板示例**：
+- `"product:{Id}"` → `"product:123"`
+- `"user:{Id}:profile"` → `"user:456:profile"`
+- `"order:{UserId}:{Id}"` → `"order:789:1001"`
+
+### 缓存键设计规范
+
+**错误示例**（Key 写死）：
+```csharp
+// 所有用户都用同一个 key，数据会互相覆盖
+[Cache(Key = "user")]
+RedisInfo.Set("users", userList, 300);  // 查询条件不同时会返回错误数据
+```
+
+**正确示例**（动态 Key）：
+```csharp
+// 单条数据：表名:主键值
+var cacheKey = $"user:{userId}";
+var user = RedisInfo.Get<User>(cacheKey);
+
+// 列表数据：表名:条件1_值1:条件2_值2
+var listKey = $"users:age_gt_{age}:active_{isActive}";
+var users = RedisInfo.Get<List<User>>(listKey);
+
+// 计数数据：表名:count:条件
+var countKey = $"users:count:active_{isActive}";
+var count = RedisInfo.Get<int>(countKey);
+```
+
+### 缓存模式
+
+#### 1. Cache-Aside（旁路缓存）- 最常用
+
+```csharp
+// 读取：先查缓存，未命中再查数据库
+public User GetUserById(int id)
+{
+    var cacheKey = $"user:{id}";
+    var user = RedisInfo.Get<User>(cacheKey);
+    
+    if (user == null)
+    {
+        user = FastRead.Query<User>(u => u.Id == id).ToItem();
+        if (user != null)
+        {
+            RedisInfo.Set(cacheKey, user, 300);
+        }
+    }
+    return user;
+}
+
+// 更新：先更新数据库，再删除缓存
+public void UpdateUser(User user)
+{
+    FastWrite.Update(user);
+    RedisInfo.Remove($"user:{user.Id}");
+}
+```
+
+#### 2. Write-Through（写穿透）
+
+```csharp
+// 更新时同时更新数据库和缓存
+public void UpdateUser(User user)
+{
+    FastWrite.Update(user);
+    RedisInfo.Set($"user:{user.Id}", user, 300);  // 同步更新缓存
+}
+```
+
+#### 3. 缓存穿透防护
+
+```csharp
+// 查询可能不存在的数据
+var user = FastRead.Query<User>(u => u.Id == 99999).ToItem();
+if (user != null)
+{
+    RedisInfo.Set($"user:99999", user, 300);
+}
+else
+{
+    // 缓存空值，防止穿透（较短过期时间）
+    RedisInfo.Set($"user:99999", "", 60);
+}
+```
+
+#### 4. 缓存降级
+
+```csharp
+public User GetUserByIdSafe(int id)
+{
+    try
+    {
+        var cacheKey = $"user:{id}";
+        var user = RedisInfo.Get<User>(cacheKey);
+        
+        if (user == null)
+        {
+            user = FastRead.Query<User>(u => u.Id == id).ToItem();
+            if (user != null)
+            {
+                RedisInfo.Set(cacheKey, user, 300);
+            }
+        }
+        return user;
+    }
+    catch (Exception ex)
+    {
+        // Redis 异常，降级到数据库查询
+        Console.WriteLine($"Redis 异常，降级到数据库: {ex.Message}");
+        return FastRead.Query<User>(u => u.Id == id).ToItem();
+    }
+}
+```
+
+#### 5. 缓存预热
+
+```csharp
+public void WarmUpCache()
+{
+    // 加载热门商品到缓存
+    var hotProducts = FastRead.Query<Product>(p => p.Stock > 0)
+        .OrderBy<Product>(p => p.UpdateTime)
+        .Take(100)
+        .ToList();
+
+    foreach (var product in hotProducts)
+    {
+        RedisInfo.Set($"product:{product.Id}", product, 3600);
+    }
+    
+    Console.WriteLine($"预热完成，加载 {hotProducts.Count} 条数据");
+}
+```
+
+### 缓存服务封装（Demo 示例）
+
+```csharp
+// 缓存服务接口
+public interface ICacheService
+{
+    Task<T> GetOrSetAsync<T>(string key, Func<Task<T>> factory, int hours = 24) where T : class, new();
+    Task<bool> SetAsync<T>(string key, T value, int hours = 24) where T : class;
+    Task<T> GetAsync<T>(string key) where T : class, new();
+    Task<bool> RemoveAsync(string key);
+    Task<bool> ExistsAsync(string key);
+    Task<long> IncrementAsync(string key, int value = 1);
+}
+
+// 缓存服务实现
+public class CacheService : ICacheService
+{
+    public async Task<T> GetOrSetAsync<T>(string key, Func<Task<T>> factory, int hours = 24) where T : class, new()
+    {
+        // 尝试从缓存获取
+        try
+        {
+            var cached = RedisInfo.Get<T>(key);
+            if (cached != null && !EqualityComparer<T>.Default.Equals(cached, default))
+                return cached;
+        }
+        catch
+        {
+            // Redis not available, fall through to factory
+        }
+
+        // 从工厂方法获取
+        var value = await factory();
+        if (value != null)
+        {
+            try
+            {
+                RedisInfo.Set(key, value, hours);
+            }
+            catch
+            {
+                // Redis not available, skip caching
+            }
+        }
+
+        return value;
+    }
+}
+
+// 用户缓存服务
+public class UserCacheService : IUserCacheService
+{
+    private readonly ICacheService _cacheService;
+
+    public UserCacheService(ICacheService cacheService)
+    {
+        _cacheService = cacheService;
+    }
+
+    public async Task<AppUser> GetUserAsync(int userId, Func<Task<AppUser>> factory)
+    {
+        var key = $"user:{userId}";
+        return await _cacheService.GetOrSetAsync(key, factory, hours: 2);
+    }
+
+    public async Task<List<AppUser>> GetActiveUsersAsync(Func<Task<List<AppUser>>> factory)
+    {
+        var key = "users:active";
+        return await _cacheService.GetOrSetAsync(key, factory, hours: 1);
+    }
+
+    public async Task RemoveUserAsync(int userId)
+    {
+        await _cacheService.RemoveAsync($"user:{userId}");
+        await _cacheService.RemoveAsync("users:active");
+    }
+
+    public async Task IncrementViewCountAsync(int userId)
+    {
+        await _cacheService.IncrementAsync($"user:{userId}:views");
+    }
+}
+```
+
+### 配置文件示例
+
+```xml
+<DataConfig Default="DefaultDb">
+  <Connections>
+    <Add Provider="SqlServer" Key="DefaultDb" 
+         ConnStr="Server=.;Database=TestDb;Trusted_Connection=true;"
+         CacheType="redis" />
+  </Connections>
+  <Redis>
+    <Add Server="127.0.0.1:6379" Db="0" Password="" />
+  </Redis>
+</DataConfig>
+```
+
+**注意**：
+- `CacheType="web"`（默认）：使用内存缓存，无需配置 Redis 节点
+- `CacheType="redis"`：使用 Redis 缓存，必须配置 Redis 节点
 
 ---
 
@@ -537,11 +863,11 @@ public class User
 
 ### CacheAttribute
 
-标记缓存配置（仅定义，未实现自动逻辑）：
+标记缓存配置：
 
 ```csharp
 [Table("Users")]
-[Cache(ExpirySeconds = 300)]
+[Cache(IsEnable = true, ExpireTime = 300, Key = "user:{Id}", CacheType = "Redis")]
 public class User
 {
     [Column("Id"), Primary]
@@ -551,6 +877,329 @@ public class User
     public string Name { get; set; }
 }
 ```
+
+**参数说明**：
+- `IsEnable`: 是否启用缓存（默认 false）
+- `ExpireTime`: 过期时间，秒（默认 300）
+- `Key`: 缓存键模板，支持 `{PropertyName}` 占位符
+- `CacheType`: 缓存类型，`Redis` 或 `Local`（默认 Redis）
+
+---
+
+## 消息队列
+
+FastData 提供完整的消息队列解决方案，支持 RTU 削峰、多方推送、数据库降级等场景。
+
+### 消息队列架构
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        应用层                                    │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
+│  │ FastWrite    │  │ FastRead     │  │ 业务代码     │          │
+│  │ .QueueBuilder│  │ .QueueBuilder│  │              │          │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘          │
+├─────────┼─────────────────┼─────────────────┼───────────────────┤
+│         │        API层    │                 │                   │
+│  ┌──────▼─────────────────▼─────────────────▼───────┐          │
+│  │           WriteBehindExecutor / ReadQueueExecutor │          │
+│  │           执行器（自动路由到数据库或队列）         │          │
+│  └──────────────────────┬────────────────────────────┘          │
+├─────────────────────────┼───────────────────────────────────────┤
+│                    配置层                                        │
+│  ┌──────────────────────▼────────────────────────────┐          │
+│  │           WriteBehindRegistry (注册表)             │          │
+│  │           管理表级别的队列配置                      │          │
+│  └──────────────────────┬────────────────────────────┘          │
+├─────────────────────────┼───────────────────────────────────────┤
+│                    实现层                                        │
+│  ┌──────────────────────▼────────────────────────────┐          │
+│  │           MessageQueueIntegrationService           │          │
+│  └──────┬────────────────────────────┬───────────────┘          │
+│  ┌──────▼───────┐              ┌─────▼────────┐                 │
+│  │ ReliableQueue│              │    Stream    │                 │
+│  │ (可信队列)   │              │ (多消费组)   │                 │
+│  │ 单消费确认   │              │ 多方推送     │                 │
+│  └──────────────┘              └──────────────┘                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 队列类型
+
+| 类型 | 说明 | 适用场景 |
+|------|------|----------|
+| **ReliableQueue** | 可信队列，单消费确认，消息不丢失 | RTU 削峰、数据库存储 |
+| **Stream** | 多消费组队列，多方独立消费 | 多方推送、事件广播 |
+
+### 核心组件
+
+| 组件 | 说明 |
+|------|------|
+| **WriteBehindConfig** | 队列配置（QueueType/Topic/EnableFallback/EnableAutoRecovery） |
+| **WriteBehindRegistry** | 注册表，管理表级别的队列配置 |
+| **WriteBehindExecutor** | 写入执行器，支持数据库降级到队列 |
+| **ReadQueueExecutor** | 读取执行器，将查询请求推送到队列 |
+| **QueueFlushService** | 后台服务，监控队列并在数据库恢复后自动刷写 |
+| **FastWriteQueueBuilder** | 写入链式 API |
+| **FastReadQueueBuilder** | 读取链式 API |
+
+### 使用场景
+
+#### 场景 1: RTU 削峰
+
+大量 RTU 数据上传时，通过队列缓冲，异步批量写入数据库。
+
+```csharp
+// 配置表级别队列
+FastWrite.ConfigureQueue<SensorData>(new WriteBehindConfig
+{
+    QueueType = WriteBehindQueueType.ReliableQueue,
+    EnableFallback = true,
+    EnableAutoRecovery = true,
+    Topic = "rtu:sensor"
+});
+
+// 使用链式 API 写入
+var result = FastWrite.QueueBuilder()
+    .WithMetadata(new Dictionary<string, object>
+    {
+        {"source", "RTU-001"},
+        {"batchId", "BATCH-2026053001"}
+    })
+    .Add(sensorData1)
+    .Add(sensorData2)
+    .Execute();
+
+// 结果
+Console.WriteLine($"直接写入: {result.DirectWriteCount}");
+Console.WriteLine($"队列降级: {result.QueuedCount}");
+Console.WriteLine($"失败: {result.FailedCount}");
+```
+
+#### 场景 2: 多方推送
+
+使用 Stream 将数据推送到多个消费组，每个组独立消费。
+
+```csharp
+// 配置 Stream 队列
+FastWrite.ConfigureQueue<RealtimeData>(new WriteBehindConfig
+{
+    QueueType = WriteBehindQueueType.Stream,
+    Topic = "rtu:realtime"
+});
+
+// 发布数据
+var mqService = new MessageQueueIntegrationService(redis);
+var count = await mqService.PublishDataAsync("rtu:realtime", dataList, MessageQueueType.Stream);
+
+// 启动多个消费组
+await mqService.StartMultiGroupConsumerAsync(
+    "rtu:realtime",
+    new[] { "db-writer", "alert-system", "analytics" },
+    new Func<RealtimeData, Task>[]
+    {
+        async (data) => { /* 数据库存储 */ },
+        async (data) => { /* 告警系统 */ },
+        async (data) => { /* 数据分析 */ }
+    },
+    cancellationToken,
+    concurrency: 1);
+```
+
+#### 场景 3: 数据库降级
+
+数据库异常时自动降级到队列，恢复后自动刷写。
+
+```csharp
+// 配置降级模式
+FastWrite.ConfigureQueue<Order>(new WriteBehindConfig
+{
+    QueueType = WriteBehindQueueType.ReliableQueue,
+    EnableFallback = true,        // 启用降级
+    EnableAutoRecovery = true,    // 启用自动恢复
+    RecoveryIntervalSeconds = 30, // 恢复检查间隔
+    Topic = "orders"
+});
+
+// 启动后台刷写服务
+var flushService = new QueueFlushService(mqService);
+flushService.Start();
+
+// 写入操作（自动降级）
+var result = FastWrite.QueueBuilder()
+    .Add(order1)
+    .Add(order2)
+    .Execute();
+
+// 查看队列状态
+var status = flushService.GetStatus();
+```
+
+#### 场景 4: 查询审计
+
+将查询请求推送到队列，实现异步查询或查询审计。
+
+```csharp
+// 配置查询队列
+FastRead.ConfigureQueue<User>(new WriteBehindConfig
+{
+    QueueType = WriteBehindQueueType.ReliableQueue,
+    Topic = "user-queries"
+});
+
+// 推送查询请求
+var result = FastRead.QueueBuilder<User>()
+    .WithMetadata(new Dictionary<string, object>
+    {
+        {"requestId", Guid.NewGuid().ToString()},
+        {"source", "web-ui"},
+        {"userId", 1001}
+    })
+    .QueryList(u => u.IsActive)
+    .QueryCount(u => u.Age > 25)
+    .QueryPaging(1, 10, u => u.IsActive, u => u.CreateTime, false)
+    .Execute();
+```
+
+### API 参考
+
+#### FastWrite 链式 API
+
+```csharp
+// 基本用法
+FastWrite.QueueBuilder()
+    .Add(entity)                    // 添加
+    .Update(entity)                 // 更新
+    .Delete(entity)                 // 删除
+    .Execute();                     // 执行
+
+// 带元数据
+FastWrite.QueueBuilder()
+    .WithMetadata(dict)             // 全局元数据
+    .Add(entity, metadata)          // 操作级元数据
+    .Execute();
+
+// 批量操作
+FastWrite.QueueBuilder()
+    .AddRange(entities)             // 批量添加
+    .Execute();
+
+// 异步执行
+var result = await FastWrite.QueueBuilder()
+    .Add(entity)
+    .ExecuteAsync();
+```
+
+#### FastRead 链式 API
+
+```csharp
+// 基本用法
+FastRead.QueueBuilder<User>()
+    .QuerySingle(u => u.Id == 1)   // 查询单条
+    .QueryList(u => u.IsActive)    // 查询列表
+    .QueryCount(u => u.Age > 25)   // 查询数量
+    .QueryPaging(1, 10)            // 分页查询
+    .Execute();
+
+// 带排序
+FastRead.QueueBuilder<User>()
+    .QueryList(u => u.IsActive, u => u.CreateTime, false)
+    .Execute();
+
+// 带元数据
+FastRead.QueueBuilder<User>()
+    .WithMetadata(dict)
+    .QueryList(metadata: metadata)
+    .Execute();
+```
+
+#### 配置管理
+
+```csharp
+// 注册表级别配置
+WriteBehindRegistry.Register<User>(new WriteBehindConfig
+{
+    QueueType = WriteBehindQueueType.ReliableQueue,
+    Topic = "users",
+    EnableFallback = true,
+    EnableAutoRecovery = true,
+    BatchFlushSize = 100,
+    RecoveryIntervalSeconds = 30
+});
+
+// 检查是否启用队列
+bool isEnabled = WriteBehindRegistry.IsQueueEnabled<User>();
+
+// 获取配置
+var config = WriteBehindRegistry.GetConfig<User>();
+
+// 从配置文件加载
+WriteBehindRegistry.LoadFromConfig("writebehind.json");
+
+// 保存配置到文件
+WriteBehindRegistry.SaveToConfig("writebehind.json");
+```
+
+### 配置示例
+
+#### writebehind.json
+
+```json
+[
+  {
+    "TableName": "SensorData",
+    "Config": {
+      "QueueType": 1,
+      "Topic": "rtu:sensor",
+      "EnableFallback": true,
+      "EnableAutoRecovery": true,
+      "BatchFlushSize": 100,
+      "RecoveryIntervalSeconds": 30,
+      "RedisDb": 7
+    }
+  },
+  {
+    "TableName": "RealtimeData",
+    "Config": {
+      "QueueType": 2,
+      "Topic": "rtu:realtime",
+      "EnableFallback": false,
+      "EnableAutoRecovery": false
+    }
+  }
+]
+```
+
+### 消息模型
+
+#### WriteOperation（写入操作）
+
+| 属性 | 类型 | 说明 |
+|------|------|------|
+| `OperationType` | WriteOperationType | 操作类型（Add/Update/Delete） |
+| `TableName` | string | 表名 |
+| `EntityType` | string | 实体类型全名 |
+| `Data` | string | 序列化后的数据（JSON） |
+| `DatabaseKey` | string | 数据库 Key |
+| `Timestamp` | DateTime | 操作时间戳 |
+| `OperationId` | string | 操作唯一标识 |
+| `RetryCount` | int | 重试次数 |
+| `MaxRetries` | int | 最大重试次数 |
+| `Metadata` | Dictionary | 扩展元数据 |
+
+#### ReadOperation（读取操作）
+
+| 属性 | 类型 | 说明 |
+|------|------|------|
+| `OperationType` | ReadOperationType | 操作类型 |
+| `TableName` | string | 表名 |
+| `EntityType` | string | 实体类型全名 |
+| `Predicate` | string | 查询条件（JSON） |
+| `Fields` | string | 查询字段 |
+| `OrderBy` | string | 排序字段 |
+| `PageIndex` | int | 页码 |
+| `PageSize` | int | 每页大小 |
+| `Metadata` | Dictionary | 扩展元数据 |
 
 ---
 
