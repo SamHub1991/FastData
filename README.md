@@ -84,6 +84,119 @@ dotnet add package Fast.Data
 </DataConfig>
 ```
 
+---
+
+## 配置文件结构
+
+### 1. 主配置文件 (db.config)
+
+```xml
+<DataConfig Active="dev" />
+```
+
+| 属性 | 说明 |
+|------|------|
+| `Active` | 指定环境，加载 db.{env}.config |
+| | dev/development → db.dev.config |
+| | pro/production → db.pro.config |
+| | staging → db.staging.config |
+| | 环境变量 FASTDATA_ACTIVE 优先级最高 |
+
+### 2. 环境配置文件 (db.dev.config)
+
+| 节点 | 说明 |
+|------|------|
+| **Connections** | 数据库连接配置 |
+| **Redis** | Redis 缓存配置 |
+| **ConnectionPool** | 连接池配置 |
+
+### 3. Connections 配置项
+
+| 属性 | 默认值 | 说明 |
+|------|--------|------|
+| `Key` | 必填 | 连接标识名，用于代码中引用 |
+| `Provider` | 必填 | 数据库提供程序 |
+| `ConnStr` | 必填 | 连接字符串 |
+| `IsDefault` | false | 是否为默认连接 |
+| `CacheType` | web | 缓存类型（web=内存缓存/redis=Redis缓存） |
+| `IsOutSql` | true | 是否输出 SQL 日志 |
+| `IsOutError` | true | 是否输出错误日志 |
+| `DesignModel` | DbFirst | 设计模式（DbFirst/CodeFirst） |
+| `IsPropertyCache` | true | 是否缓存属性 |
+| `SqlErrorType` | db | SQL 错误存放类型（db/file） |
+| `IsMapSave` | false | Map 文件是否存数据库 |
+| `IsEncrypt` | false | Map 文件是否加密 |
+
+**Provider 值参考**：
+
+| 数据库 | Provider 值 |
+|--------|-------------|
+| SQL Server | `Microsoft.Data.SqlClient` 或 `System.Data.SqlClient` |
+| MySQL | `MySql.Data.MySqlClient` |
+| PostgreSQL | `Npgsql` |
+| Oracle | `Oracle.ManagedDataAccess.Client` |
+| SQLite | `System.Data.SQLite` |
+| DB2 | `IBM.Data.DB2.iSeries` |
+
+### 4. Redis 配置项
+
+| 属性 | 默认值 | 说明 |
+|------|--------|------|
+| `Server` | 127.0.0.1:6379 | 服务器地址（格式：host:port） |
+| `Db` | 0 | 数据库索引（0-15） |
+| `Password` | 空 | 密码（无密码留空） |
+| `ConnectTimeout` | 5000 | 连接超时（毫秒） |
+| `SyncTimeout` | 5000 | 同步超时（毫秒） |
+
+**注意**：仅当 CacheType="redis" 时需要配置此节点
+
+### 5. ConnectionPool 配置项
+
+**基础配置**：
+
+| 属性 | 默认值 | 说明 |
+|------|--------|------|
+| `MinPoolSize` | -1（自动） | 最小连接数（-1=自动计算） |
+| `MaxPoolSize` | -1（自动） | 最大连接数（-1=自动计算） |
+| `ConnectionTimeout` | 30 | 连接超时（秒） |
+| `ConnectionLifetime` | 30 | 连接生命周期（分钟） |
+| `HealthCheckInterval` | 60 | 健康检查间隔（秒） |
+| `LeakDetectionThreshold` | 300 | 泄漏检测阈值（秒） |
+
+**智能调整**：
+
+| 属性 | 默认值 | 说明 |
+|------|--------|------|
+| `EnableSmartAdjustment` | true | 是否启用智能调整 |
+| `LoadThreshold` | 80 | 扩容阈值（百分比） |
+| `ShrinkThreshold` | 30 | 缩容阈值（百分比） |
+| `MaxExpandCount` | 10 | 每次最大扩容数量 |
+| `MaxShrinkCount` | 5 | 每次最大缩容数量 |
+| `SmartAdjustmentInterval` | 30 | 智能调整间隔（秒） |
+
+**重试机制**：
+
+| 属性 | 默认值 | 说明 |
+|------|--------|------|
+| `MaxRetries` | 3 | 连接创建最大重试次数 |
+| `RetryBaseDelayMs` | 50 | 重试基础延迟（毫秒，指数退避） |
+| `ValidationCommandTimeout` | 5 | 连接验证命令超时（秒） |
+
+**熔断器**：
+
+| 属性 | 默认值 | 说明 |
+|------|--------|------|
+| `CircuitBreakerEnabled` | true | 是否启用熔断器 |
+| `CircuitBreakerFailureThreshold` | 5 | 连续失败阈值（达到此值触发熔断） |
+| `CircuitBreakerOpenDurationSec` | 30 | 熔断时长（秒，之后进入半开状态） |
+| `CircuitBreakerHalfOpenMaxRequests` | 3 | 半开状态最大测试请求数 |
+
+**自动计算公式**（当 MinPoolSize/MaxPoolSize 为 -1 时）：
+- MaxPoolSize = Min(CPU核心数 * 1.5, 内存MB * 0.1 / 2)，范围 10-200
+- MinPoolSize = Max(2, MaxPoolSize / 10)
+
+---
+
 ### 2. 定义 Model
 
 ```csharp

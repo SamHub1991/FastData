@@ -3,8 +3,16 @@ using Xunit;
 
 namespace FastData.Tests.Config
 {
+    /// <summary>
+    /// 数据同步选项测试
+    /// 
+    /// 测试 DataSyncOptions 的默认值和全局配置逻辑。
+    /// </summary>
     public class DataSyncOptionsTests
     {
+        /// <summary>
+        /// 测试默认值是否正确
+        /// </summary>
         [Fact]
         public void DefaultValues_AreCorrect()
         {
@@ -18,6 +26,9 @@ namespace FastData.Tests.Config
             Assert.Equal(0, options.RetryCount);
         }
 
+        /// <summary>
+        /// 测试启用全局配置时覆盖范围天数
+        /// </summary>
         [Fact]
         public void EnableGlobalConfig_True_WithGlobalRangeDays_OverridesRangeDays()
         {
@@ -32,6 +43,9 @@ namespace FastData.Tests.Config
             Assert.Equal(7, options.RangeDays);
         }
 
+        /// <summary>
+        /// 测试禁用全局配置时不覆盖范围天数
+        /// </summary>
         [Fact]
         public void EnableGlobalConfig_False_DoesNotOverrideRangeDays()
         {
@@ -46,6 +60,9 @@ namespace FastData.Tests.Config
             Assert.Equal(3, options.RangeDays);
         }
 
+        /// <summary>
+        /// 测试全局范围天数为零时不覆盖
+        /// </summary>
         [Fact]
         public void EnableGlobalConfig_True_WithZeroGlobalRangeDays_DoesNotOverride()
         {
@@ -60,6 +77,10 @@ namespace FastData.Tests.Config
             Assert.Equal(3, options.RangeDays);
         }
 
+        /// <summary>
+        /// 应用全局配置逻辑
+        /// </summary>
+        /// <param name="options">同步选项</param>
         private static void ApplyGlobalConfigLogic(DataSyncOptions options)
         {
             if (options.EnableGlobalConfig)
@@ -70,8 +91,16 @@ namespace FastData.Tests.Config
         }
     }
 
+    /// <summary>
+    /// 表同步配置测试
+    /// 
+    /// 测试 TableSyncConfig 的默认值和属性设置。
+    /// </summary>
     public class TableSyncConfigTests
     {
+        /// <summary>
+        /// 测试默认值是否正确
+        /// </summary>
         [Fact]
         public void DefaultValues_AreCorrect()
         {
@@ -85,6 +114,9 @@ namespace FastData.Tests.Config
             Assert.Equal(SyncDataType.Static, config.DataType);
         }
 
+        /// <summary>
+        /// 测试目标表名可独立设置
+        /// </summary>
         [Fact]
         public void TargetTableName_CanBeSetIndependently()
         {

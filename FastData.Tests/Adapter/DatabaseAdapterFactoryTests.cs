@@ -4,8 +4,16 @@ using Xunit;
 
 namespace FastData.Tests.Adapter
 {
+    /// <summary>
+    /// 数据库适配器工厂测试
+    /// 
+    /// 测试数据库提供程序工厂和同步数据类型的功能。
+    /// </summary>
     public class DatabaseAdapterFactoryTests
     {
+        /// <summary>
+        /// 测试无效提供程序抛出异常
+        /// </summary>
         [Fact]
         public void DbProviderFactories_GetFactory_ThrowsForInvalidProvider()
         {
@@ -15,6 +23,9 @@ namespace FastData.Tests.Adapter
             });
         }
 
+        /// <summary>
+        /// 测试 DataSyncResult 默认值为零
+        /// </summary>
         [Fact]
         public void DataSyncResult_DefaultValues_AreZero()
         {
@@ -28,6 +39,9 @@ namespace FastData.Tests.Adapter
             Assert.Null(result.LastSyncTime);
         }
 
+        /// <summary>
+        /// 测试 SyncDataType 枚举值
+        /// </summary>
         [Fact]
         public void SyncDataType_Enum_HasStaticAndDynamic()
         {

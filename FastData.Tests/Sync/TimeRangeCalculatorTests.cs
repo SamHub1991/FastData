@@ -4,8 +4,16 @@ using Xunit;
 
 namespace FastData.Tests.Sync
 {
+    /// <summary>
+    /// 时间范围计算器测试
+    /// 
+    /// 测试同步时间范围的计算逻辑。
+    /// </summary>
     public class TimeRangeCalculatorTests
     {
+        /// <summary>
+        /// 测试首次同步返回最小时间
+        /// </summary>
         [Fact]
         public void GetSyncStartTime_FirstSync_ReturnsMinValue()
         {
@@ -13,6 +21,9 @@ namespace FastData.Tests.Sync
             Assert.Equal(DateTime.MinValue, result);
         }
 
+        /// <summary>
+        /// 测试后续同步正确计算开始时间
+        /// </summary>
         [Fact]
         public void GetSyncStartTime_SubsequentSync_CalculatesCorrectly()
         {
@@ -21,6 +32,9 @@ namespace FastData.Tests.Sync
             Assert.Equal(lastSync.AddDays(-3), result);
         }
 
+        /// <summary>
+        /// 测试空上次同步时间返回最小时间
+        /// </summary>
         [Fact]
         public void GetSyncStartTime_NullLastSync_ReturnsMinValue()
         {
@@ -28,6 +42,9 @@ namespace FastData.Tests.Sync
             Assert.Equal(DateTime.MinValue, result);
         }
 
+        /// <summary>
+        /// 测试获取同步结束时间
+        /// </summary>
         [Fact]
         public void GetSyncEndTime_ReturnsCurrentTime()
         {
@@ -36,6 +53,9 @@ namespace FastData.Tests.Sync
             Assert.True(result >= now.AddSeconds(-1) && result <= now.AddSeconds(1));
         }
 
+        /// <summary>
+        /// 测试预设范围 - 最近 7 天
+        /// </summary>
         [Fact]
         public void GetPresetRange_Last7Days_ReturnsCorrectRange()
         {
@@ -45,6 +65,9 @@ namespace FastData.Tests.Sync
             Assert.Equal(7, (now.Date - result.Item1.Date).Days);
         }
 
+        /// <summary>
+        /// 测试预设范围 - 本月
+        /// </summary>
         [Fact]
         public void GetPresetRange_ThisMonth_ReturnsFirstDayOfMonth()
         {

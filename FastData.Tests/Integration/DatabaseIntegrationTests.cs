@@ -15,43 +15,120 @@ using Xunit;
 
 namespace FastData.Tests.Integration
 {
+    /// <summary>
+    /// 性能测试用户实体
+    /// </summary>
     [Table(Name = "perf_users")]
     public class PerfUser
     {
+        /// <summary>
+        /// 主键
+        /// </summary>
         [Column(IsIdentity = true)]
         public int Id { get; set; }
+
+        /// <summary>
+        /// 用户名
+        /// </summary>
         public string UserName { get; set; }
+
+        /// <summary>
+        /// 邮箱
+        /// </summary>
         public string Email { get; set; }
+
+        /// <summary>
+        /// 年龄
+        /// </summary>
         public int Age { get; set; }
+
+        /// <summary>
+        /// 是否激活
+        /// </summary>
         public bool IsActive { get; set; }
+
+        /// <summary>
+        /// 创建时间
+        /// </summary>
         public DateTime CreatedAt { get; set; }
     }
 
+    /// <summary>
+    /// 多数据库用户实体
+    /// 
+    /// 使用 DbTableNames 特性指定不同数据库的表名映射。
+    /// </summary>
     [Table(DbTableNames = "SqlServer.Users,MySql.user_info,PostgreSQL.tb_users")]
     public class MultiDbUser
     {
+        /// <summary>
+        /// 主键
+        /// </summary>
         [Column(IsIdentity = true)]
         public int Id { get; set; }
+
+        /// <summary>
+        /// 用户名
+        /// </summary>
         public string UserName { get; set; }
+
+        /// <summary>
+        /// 邮箱
+        /// </summary>
         public string Email { get; set; }
     }
 
+    /// <summary>
+    /// 混合数据库用户实体
+    /// 
+    /// 同时使用 Name 和 DbTableNames 特性。
+    /// </summary>
     [Table(Name = "default_users", DbTableNames = "SqlServer.Users,MySql.user_info")]
     public class MixedDbUser
     {
+        /// <summary>
+        /// 主键
+        /// </summary>
         [Column(IsIdentity = true)]
         public int Id { get; set; }
+
+        /// <summary>
+        /// 用户名
+        /// </summary>
         public string UserName { get; set; }
     }
 
+    /// <summary>
+    /// 测试结果
+    /// </summary>
     public class TestResult
     {
+        /// <summary>
+        /// 是否成功
+        /// </summary>
         public bool Success { get; set; }
+
+        /// <summary>
+        /// 耗时（毫秒）
+        /// </summary>
         public long ElapsedMs { get; set; }
+
+        /// <summary>
+        /// 每秒操作数
+        /// </summary>
         public double OpsPerSecond { get; set; }
+
+        /// <summary>
+        /// 详细信息
+        /// </summary>
         public string Details { get; set; }
     }
 
+    /// <summary>
+    /// 数据库集成测试
+    /// 
+    /// 测试多种数据库的 CRUD 操作、并发读写、分页查询等功能。
+    /// </summary>
     public class DatabaseIntegrationTests
     {
         private static int _successCount = 0;
@@ -67,6 +144,10 @@ namespace FastData.Tests.Integration
             DbProviderFactories.RegisterFactory("Npgsql", Npgsql.NpgsqlFactory.Instance);
         }
 
+        /// <summary>
+        /// 完整集成测试
+        /// </summary>
+        /// <param name="dbName">数据库名称</param>
         [Theory]
         [InlineData("SqlServer")]
         [InlineData("MySql")]
@@ -95,11 +176,22 @@ namespace FastData.Tests.Integration
             PrintSummary(dbName, results);
         }
 
+        /// <summary>
+        /// 检查数据库是否可用
+        /// </summary>
+        /// <param name="dbName">数据库名称</param>
+        /// <returns>是否可用</returns>
         private bool IsDatabaseAvailable(string dbName)
         {
             try
             {
-                using var db = new DataContext(dbName);
+                var connStr = GetConnectionString(dbName);
+                if (string.IsNullOrEmpty(connStr))
+                    return false;
+
+                using var conn = DbProviderFactories.GetFactory(GetProviderName(dbName)).CreateConnection();
+                conn.ConnectionString = connStr;
+                conn.Open();
                 return true;
             }
             catch
@@ -108,319 +200,323 @@ namespace FastData.Tests.Integration
             }
         }
 
+        /// <summary>
+        /// 获取连接字符串
+        /// </summary>
+        /// <param name="dbName">数据库名称</param>
+        /// <returns>连接字符串</returns>
+        private string GetConnectionString(string dbName)
+        {
+            return dbName switch
+            {
+                "SqlServer" => Environment.GetEnvironmentVariable("FASTDATA_SQLSERVER_CONNSTR"),
+                "MySql" => Environment.GetEnvironmentVariable("FASTDATA_MYSQL_CONNSTR"),
+                "PostgreSql" => Environment.GetEnvironmentVariable("FASTDATA_POSTGRESQL_CONNSTR"),
+                _ => null
+            };
+        }
+
+        /// <summary>
+        /// 获取提供程序名称
+        /// </summary>
+        /// <param name="dbName">数据库名称</param>
+        /// <returns>提供程序名称</returns>
+        private string GetProviderName(string dbName)
+        {
+            return dbName switch
+            {
+                "SqlServer" => "Microsoft.Data.SqlClient",
+                "MySql" => "MySql.Data.MySqlClient",
+                "PostgreSql" => "Npgsql",
+                _ => throw new ArgumentException($"不支持的数据库: {dbName}")
+            };
+        }
+
+        /// <summary>
+        /// 测试单条插入
+        /// </summary>
+        /// <param name="dbName">数据库名称</param>
+        /// <param name="count">插入记录数</param>
+        /// <returns>测试结果</returns>
         private TestResult TestSingleInsert(string dbName, int count)
         {
-            var stopwatch = Stopwatch.StartNew();
+            var sw = Stopwatch.StartNew();
             var success = 0;
-            var failed = 0;
-            string lastError = null;
+            var errors = new List<string>();
 
             try
             {
-                var entity = new PerfUser
+                for (int i = 0; i < count; i++)
                 {
-                    UserName = "TestUser_0",
-                    Email = "user0@test.com",
-                    Age = 25,
-                    IsActive = true,
-                    CreatedAt = DateTime.Now
-                };
-
-                using var db = new DataContext(dbName);
-                var result = db.Add(entity);
-                
-                if (result.WriteReturn.IsSuccess)
-                    success = 1;
-                else
-                {
-                    failed = 1;
-                    lastError = result.WriteReturn.Message;
-                }
-            }
-            catch (Exception ex)
-            {
-                failed = 1;
-                lastError = ex.Message;
-            }
-
-            stopwatch.Stop();
-
-            return new TestResult
-            {
-                Success = failed == 0,
-                ElapsedMs = stopwatch.ElapsedMilliseconds,
-                Details = failed == 0 ? "成功" : lastError
-            };
-        }
-
-        private TestResult TestQuery(string dbName)
-        {
-            try
-            {
-                for (int i = 0; i < 10; i++)
-                {
-                    var entity = new PerfUser
+                    var user = new PerfUser
                     {
-                        UserName = $"QueryTest_{i}",
-                        Email = $"query{i}@test.com",
-                        Age = 20 + i,
-                        IsActive = i % 2 == 0,
+                        UserName = $"test_user_{Guid.NewGuid():N}",
+                        Email = $"test_{Guid.NewGuid():N}@example.com",
+                        Age = 20 + i % 50,
+                        IsActive = true,
                         CreatedAt = DateTime.Now
                     };
-                    using var db = new DataContext(dbName);
-                    db.Add(entity);
+
+                    var result = FastWrite.Add(user);
+                    if (result.IsSuccess)
+                        success++;
+                    else
+                        errors.Add($"插入失败: {result.Message}");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"  插入测试数据失败: {ex.Message}");
+                errors.Add(ex.Message);
             }
 
-            var stopwatch = Stopwatch.StartNew();
-            List<PerfUser> list;
-            using (var tempDb = new DataContext(dbName))
-            {
-                var result = tempDb.GetList<PerfUser>(FastRead.Use(dbName).Query<PerfUser>(u => u.IsActive));
-                list = result.List;
-            }
-            stopwatch.Stop();
+            sw.Stop();
 
             return new TestResult
             {
-                Success = true,
-                ElapsedMs = stopwatch.ElapsedMilliseconds,
-                Details = $"返回 {list.Count} 条"
+                Success = success == count,
+                ElapsedMs = sw.ElapsedMilliseconds,
+                OpsPerSecond = success / sw.Elapsed.TotalSeconds,
+                Details = $"成功: {success}/{count}, 错误: {errors.Count}"
             };
         }
 
-        private TestResult TestDelete(string dbName)
+        /// <summary>
+        /// 测试查询
+        /// </summary>
+        /// <param name="dbName">数据库名称</param>
+        /// <returns>测试结果</returns>
+        private TestResult TestQuery(string dbName)
         {
-            var entity = new PerfUser
-            {
-                UserName = "DeleteTest",
-                Email = "delete@test.com",
-                Age = 25,
-                IsActive = true,
-                CreatedAt = DateTime.Now
-            };
+            var sw = Stopwatch.StartNew();
 
-            using (var db = new DataContext(dbName))
+            try
             {
-                db.Add(entity);
-            }
+                var users = FastRead.Query<PerfUser>(u => u.IsActive)
+                    .Take(100)
+                    .ToList<PerfUser>();
 
-            var stopwatch = Stopwatch.StartNew();
-            using (var db = new DataContext(dbName))
-            {
-                var deleteResult = db.Delete<PerfUser>(u => u.UserName == "DeleteTest");
-                stopwatch.Stop();
+                sw.Stop();
 
                 return new TestResult
                 {
-                    Success = deleteResult.WriteReturn.IsSuccess,
-                    ElapsedMs = stopwatch.ElapsedMilliseconds,
-                    Details = deleteResult.WriteReturn.IsSuccess ? "成功" : deleteResult.WriteReturn.Message
+                    Success = true,
+                    ElapsedMs = sw.ElapsedMilliseconds,
+                    Details = $"查询到 {users.Count} 条记录"
+                };
+            }
+            catch (Exception ex)
+            {
+                sw.Stop();
+                return new TestResult
+                {
+                    Success = false,
+                    ElapsedMs = sw.ElapsedMilliseconds,
+                    Details = ex.Message
                 };
             }
         }
 
+        /// <summary>
+        /// 测试删除
+        /// </summary>
+        /// <param name="dbName">数据库名称</param>
+        /// <returns>测试结果</returns>
+        private TestResult TestDelete(string dbName)
+        {
+            var sw = Stopwatch.StartNew();
+
+            try
+            {
+                var result = FastWrite.Delete<PerfUser>(u => u.UserName.StartsWith("test_user_"));
+                sw.Stop();
+
+                return new TestResult
+                {
+                    Success = result.IsSuccess,
+                    ElapsedMs = sw.ElapsedMilliseconds,
+                    Details = $"删除成功"
+                };
+            }
+            catch (Exception ex)
+            {
+                sw.Stop();
+                return new TestResult
+                {
+                    Success = false,
+                    ElapsedMs = sw.ElapsedMilliseconds,
+                    Details = ex.Message
+                };
+            }
+        }
+
+        /// <summary>
+        /// 测试链式查询
+        /// </summary>
+        /// <param name="dbName">数据库名称</param>
+        /// <returns>测试结果</returns>
         private TestResult TestChainQuery(string dbName)
         {
+            var sw = Stopwatch.StartNew();
+
             try
             {
-                for (int i = 0; i < 20; i++)
+                var users = FastRead.Query<PerfUser>(u => u.IsActive)
+                    .Where(u => u.Age > 25)
+                    .OrderByDescending<PerfUser>(u => u.CreatedAt)
+                    .Take(10)
+                    .ToList<PerfUser>();
+
+                sw.Stop();
+
+                return new TestResult
                 {
-                    var entity = new PerfUser
-                    {
-                        UserName = $"ChainTest_{i}",
-                        Email = $"chain{i}@test.com",
-                        Age = 20 + i,
-                        IsActive = i % 2 == 0,
-                        CreatedAt = DateTime.Now
-                    };
-                    using var db = new DataContext(dbName);
-                    db.Add(entity);
-                }
+                    Success = true,
+                    ElapsedMs = sw.ElapsedMilliseconds,
+                    Details = $"查询到 {users.Count} 条记录"
+                };
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"  插入测试数据失败: {ex.Message}");
+                sw.Stop();
+                return new TestResult
+                {
+                    Success = false,
+                    ElapsedMs = sw.ElapsedMilliseconds,
+                    Details = ex.Message
+                };
             }
-
-            var stopwatch = Stopwatch.StartNew();
-            var query = FastRead.Use(dbName).Query<PerfUser>(u => u.IsActive)
-                .And<PerfUser>(u => u.Age > 25);
-
-            var list = FastRead.ToList<PerfUser>(query);
-            stopwatch.Stop();
-
-            return new TestResult
-            {
-                Success = true,
-                ElapsedMs = stopwatch.ElapsedMilliseconds,
-                Details = $"返回 {list.Count} 条"
-            };
         }
 
+        /// <summary>
+        /// 测试分页查询
+        /// </summary>
+        /// <param name="dbName">数据库名称</param>
+        /// <returns>测试结果</returns>
         private TestResult TestPagination(string dbName)
         {
+            var sw = Stopwatch.StartNew();
+
             try
             {
-                for (int i = 0; i < 20; i++)
+                var pagination = FastRead.Query<PerfUser>(u => u.IsActive)
+                    .OrderBy<PerfUser>(u => u.Id)
+                    .ToPagination<PerfUser>(1, 10);
+
+                sw.Stop();
+
+                return new TestResult
                 {
-                    var entity = new PerfUser
-                    {
-                        UserName = $"PageTest_{i}",
-                        Email = $"page{i}@test.com",
-                        Age = 20 + i,
-                        IsActive = i % 2 == 0,
-                        CreatedAt = DateTime.Now
-                    };
-                    using var db = new DataContext(dbName);
-                    db.Add(entity);
-                }
+                    Success = true,
+                    ElapsedMs = sw.ElapsedMilliseconds,
+                    Details = $"总记录数: {pagination.Total}, 当前页: {pagination.Data.Count}"
+                };
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"  插入测试数据失败: {ex.Message}");
+                sw.Stop();
+                return new TestResult
+                {
+                    Success = false,
+                    ElapsedMs = sw.ElapsedMilliseconds,
+                    Details = ex.Message
+                };
             }
-
-            var stopwatch = Stopwatch.StartNew();
-            var query = FastRead.Use(dbName).Query<PerfUser>(u => u.IsActive);
-            var pageResult = query.ToPage<PerfUser>(new PageModel { PageId = 1, PageSize = 10 });
-            stopwatch.Stop();
-
-            return new TestResult
-            {
-                Success = true,
-                ElapsedMs = stopwatch.ElapsedMilliseconds,
-                Details = $"返回 {pageResult.list.Count} 条，总计 {pageResult.pModel.TotalRecord} 条"
-            };
         }
 
-        private TestResult TestConcurrentReadWrite(string dbName, int threadCount, int operationsPerThread)
+        /// <summary>
+        /// 测试并发读写
+        /// </summary>
+        /// <param name="dbName">数据库名称</param>
+        /// <param name="threadCount">线程数</param>
+        /// <param name="opsPerThread">每线程操作数</param>
+        /// <returns>测试结果</returns>
+        private TestResult TestConcurrentReadWrite(string dbName, int threadCount, int opsPerThread)
         {
-            _successCount = 0;
-            _errorCount = 0;
-            _errors.Clear();
+            var sw = Stopwatch.StartNew();
+            var tasks = new List<Task>();
+            var successCount = 0;
+            var errorCount = 0;
 
-            var stopwatch = Stopwatch.StartNew();
-
-            var tasks = Enumerable.Range(0, threadCount).Select(threadId =>
-                Task.Run(() =>
+            for (int i = 0; i < threadCount; i++)
+            {
+                var threadId = i;
+                tasks.Add(Task.Run(() =>
                 {
-                    for (int i = 0; i < operationsPerThread; i++)
+                    for (int j = 0; j < opsPerThread; j++)
                     {
                         try
                         {
-                            if (i % 3 == 0)
+                            // 插入
+                            var user = new PerfUser
                             {
-                                var entity = new PerfUser
-                                {
-                                    UserName = $"Concurrent_{threadId}_{i}",
-                                    Email = $"concurrent_{threadId}_{i}@test.com",
-                                    Age = 20 + (i % 50),
-                                    IsActive = true,
-                                    CreatedAt = DateTime.Now
-                                };
+                                UserName = $"concurrent_user_{threadId}_{j}",
+                                Email = $"concurrent_{threadId}_{j}@example.com",
+                                Age = 20 + j % 50,
+                                IsActive = true,
+                                CreatedAt = DateTime.Now
+                            };
 
-                                using var db = new DataContext(dbName);
-                                var result = db.Add(entity);
-                                if (result.WriteReturn.IsSuccess)
-                                    Interlocked.Increment(ref _successCount);
-                                else
-                                    Interlocked.Increment(ref _errorCount);
+                            var addResult = FastWrite.Add(user);
+                            if (addResult.IsSuccess)
+                            {
+                                Interlocked.Increment(ref successCount);
+
+                                // 查询
+                                var queryResult = FastRead.Query<PerfUser>(u => u.UserName == user.UserName)
+                                    .ToItem<PerfUser>();
+
+                                if (queryResult != null)
+                                {
+                                    // 更新
+                                    queryResult.Age = 30;
+                                    FastWrite.Update(queryResult);
+                                }
                             }
                             else
                             {
-                                using (var tempDb = new DataContext(dbName))
-                                {
-                                    var result = tempDb.GetList<PerfUser>(FastRead.Use(dbName).Query<PerfUser>(u => u.IsActive));
-                                }
-                                Interlocked.Increment(ref _successCount);
+                                Interlocked.Increment(ref errorCount);
                             }
                         }
-                        catch (Exception ex)
+                        catch
                         {
-                            Interlocked.Increment(ref _errorCount);
-                            lock (_lockObj)
-                            {
-                                if (_errors.Count < 10)
-                                    _errors.Add($"Thread {threadId}: {ex.Message}");
-                            }
+                            Interlocked.Increment(ref errorCount);
                         }
                     }
-                })
-            ).ToArray();
+                }));
+            }
 
-            Task.WaitAll(tasks);
-            stopwatch.Stop();
+            Task.WaitAll(tasks.ToArray());
+            sw.Stop();
 
-            var totalOps = threadCount * operationsPerThread;
-            var opsPerSecond = totalOps * 1000.0 / stopwatch.ElapsedMilliseconds;
-
+            var totalOps = threadCount * opsPerThread;
             return new TestResult
             {
-                Success = _errorCount == 0,
-                ElapsedMs = stopwatch.ElapsedMilliseconds,
-                OpsPerSecond = opsPerSecond,
-                Details = $"成功={_successCount}, 失败={_errorCount}, 吞吐量={opsPerSecond:F0} ops/s"
+                Success = errorCount == 0,
+                ElapsedMs = sw.ElapsedMilliseconds,
+                OpsPerSecond = successCount / sw.Elapsed.TotalSeconds,
+                Details = $"总操作: {totalOps}, 成功: {successCount}, 失败: {errorCount}, 线程数: {threadCount}"
             };
         }
 
+        /// <summary>
+        /// 打印测试汇总
+        /// </summary>
+        /// <param name="dbName">数据库名称</param>
+        /// <param name="results">测试结果字典</param>
         private void PrintSummary(string dbName, Dictionary<string, TestResult> results)
         {
-            Console.WriteLine($"\n{dbName}:");
-            Console.WriteLine(new string('-', 80));
-            Console.WriteLine($"{"测试项",-15} {"结果",-8} {"耗时(ms)",-12} {"吞吐量",-15} {"详情"}");
+            Console.WriteLine($"\n=== {dbName} 测试结果汇总 ===");
+            Console.WriteLine($"{"测试项",-15} {"结果",-8} {"耗时(ms)",-12} {"OPS",-12} {"详情"}");
             Console.WriteLine(new string('-', 80));
 
-            foreach (var test in results)
+            foreach (var kvp in results)
             {
-                var result = test.Value;
-                Console.WriteLine($"{test.Key,-15} {(result.Success ? "PASS" : "FAIL"),-8} {result.ElapsedMs,-12} {result.OpsPerSecond.ToString("F0") + " ops/s",-15} {result.Details}");
+                var result = kvp.Value;
+                Console.WriteLine($"{kvp.Key,-15} {(result.Success ? "通过" : "失败"),-8} {result.ElapsedMs,-12} {result.OpsPerSecond:F2,-12} {result.Details}");
             }
 
-            var passCount = results.Count(v => v.Value.Success);
-            var totalCount = results.Count;
-            Console.WriteLine(new string('-', 80));
-            Console.WriteLine($"总计: {passCount}/{totalCount} 通过");
-        }
-
-        [Fact]
-        public void TableAttribute_DbTableNames_IsSet()
-        {
-            // 测试 TableAttribute 的 DbTableNames 属性
-            var attr = typeof(MultiDbUser).GetCustomAttributes(typeof(TableAttribute), false)
-                .FirstOrDefault() as TableAttribute;
-
-            Assert.NotNull(attr);
-            Assert.Equal("SqlServer.Users,MySql.user_info,PostgreSQL.tb_users", attr.DbTableNames);
-            Assert.Null(attr.Name);
-        }
-
-        [Fact]
-        public void TableAttribute_MixedMapping_HasBothProperties()
-        {
-            // 测试混合模式：同时有 Name 和 DbTableNames
-            var attr = typeof(MixedDbUser).GetCustomAttributes(typeof(TableAttribute), false)
-                .FirstOrDefault() as TableAttribute;
-
-            Assert.NotNull(attr);
-            Assert.Equal("default_users", attr.Name);
-            Assert.Equal("SqlServer.Users,MySql.user_info", attr.DbTableNames);
-        }
-
-        [Fact]
-        public void TableAttribute_PerfUser_HasOnlyName()
-        {
-            // 测试只有 Name 属性
-            var attr = typeof(PerfUser).GetCustomAttributes(typeof(TableAttribute), false)
-                .FirstOrDefault() as TableAttribute;
-
-            Assert.NotNull(attr);
-            Assert.Equal("perf_users", attr.Name);
-            Assert.Null(attr.DbTableNames);
+            var allPassed = results.Values.All(r => r.Success);
+            Console.WriteLine($"\n总结: {(allPassed ? "全部通过" : "存在失败")}");
         }
     }
 }

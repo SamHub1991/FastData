@@ -4,8 +4,27 @@ using System.Text;
 
 namespace FastData.Tooling.CodeGeneration
 {
+    /// <summary>
+    /// Model 代码生成器
+    /// 
+    /// 根据数据库表结构生成 C# 实体类代码。
+    /// 
+    /// 使用示例：
+    /// <code>
+    /// var generator = new ModelCodeGenerator();
+    /// var code = generator.Generate("MyApp.Models", table, columns);
+    /// </code>
+    /// </summary>
     public class ModelCodeGenerator
     {
+        /// <summary>
+        /// 生成 Model 代码
+        /// </summary>
+        /// <param name="namespaceName">命名空间</param>
+        /// <param name="table">表信息</param>
+        /// <param name="columns">列信息列表</param>
+        /// <param name="dbTableNames">多数据库表名映射（可选）</param>
+        /// <returns>C# 代码字符串</returns>
         public string Generate(string namespaceName, DatabaseTable table, IList<DatabaseColumn> columns, string dbTableNames = null)
         {
             var builder = new StringBuilder();
@@ -60,11 +79,23 @@ namespace FastData.Tooling.CodeGeneration
             return builder.ToString();
         }
 
+        /// <summary>
+        /// 生成 Model 代码（不包含多数据库表名映射）
+        /// </summary>
+        /// <param name="namespaceName">命名空间</param>
+        /// <param name="table">表信息</param>
+        /// <param name="columns">列信息列表</param>
+        /// <returns>C# 代码字符串</returns>
         public string Generate(string namespaceName, DatabaseTable table, IList<DatabaseColumn> columns)
         {
             return Generate(namespaceName, table, columns, null);
         }
 
+        /// <summary>
+        /// 获取 CLR 类型名称
+        /// </summary>
+        /// <param name="column">列信息</param>
+        /// <returns>CLR 类型名称</returns>
         public string GetClrType(DatabaseColumn column)
         {
             var dbType = (column.DbType ?? string.Empty).ToLower();
@@ -93,34 +124,41 @@ namespace FastData.Tooling.CodeGeneration
             return nullable && type != "byte[]" ? type + "?" : type;
         }
 
+        /// <summary>
+        /// 转换为 Pascal 命名
+        /// </summary>
+        /// <param name="value">原始字符串</param>
+        /// <returns>Pascal 命名字符串</returns>
         private static string ToPascal(string value)
         {
             if (string.IsNullOrEmpty(value))
                 return "Model";
 
-            var builder = new StringBuilder();
-            var upper = true;
-            foreach (var ch in value)
+            // 处理下划线分隔的命名
+            var parts = value.Split('_');
+            var result = new StringBuilder();
+            foreach (var part in parts)
             {
-                if (!char.IsLetterOrDigit(ch))
+                if (part.Length > 0)
                 {
-                    upper = true;
-                    continue;
+                    result.Append(char.ToUpper(part[0]));
+                    if (part.Length > 1)
+                        result.Append(part.Substring(1).ToLower());
                 }
-
-                builder.Append(upper ? char.ToUpperInvariant(ch) : ch);
-                upper = false;
             }
-
-            if (builder.Length == 0 || char.IsDigit(builder[0]))
-                builder.Insert(0, "Model");
-
-            return builder.ToString();
+            return result.ToString();
         }
 
+        /// <summary>
+        /// 转义字符串中的特殊字符
+        /// </summary>
+        /// <param name="value">原始字符串</param>
+        /// <returns>转义后的字符串</returns>
         private static string Escape(string value)
         {
-            return (value ?? string.Empty).Replace("\\", "\\\\").Replace("\"", "\\\"");
+            if (string.IsNullOrEmpty(value))
+                return "";
+            return value.Replace("\"", "\\\"").Replace("\n", "\\n").Replace("\r", "\\r");
         }
     }
 }

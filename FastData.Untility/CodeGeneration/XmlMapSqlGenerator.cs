@@ -5,8 +5,26 @@ using System.Text;
 
 namespace FastData.Tooling.CodeGeneration
 {
+    /// <summary>
+    /// XML Map SQL 生成器
+    /// 
+    /// 根据数据库表结构生成 FastData XML 映射文件。
+    /// 
+    /// 使用示例：
+    /// <code>
+    /// var generator = new XmlMapSqlGenerator();
+    /// var xml = generator.Generate("MyApp.Models", table, columns);
+    /// </code>
+    /// </summary>
     public class XmlMapSqlGenerator
     {
+        /// <summary>
+        /// 生成 XML Map SQL 文件
+        /// </summary>
+        /// <param name="namespaceName">命名空间</param>
+        /// <param name="table">表信息</param>
+        /// <param name="columns">列信息列表</param>
+        /// <returns>XML 字符串</returns>
         public string Generate(string namespaceName, DatabaseTable table, IList<DatabaseColumn> columns)
         {
             var builder = new StringBuilder();
@@ -43,6 +61,13 @@ namespace FastData.Tooling.CodeGeneration
             return builder.ToString();
         }
 
+        /// <summary>
+        /// 生成查询所有记录的 SQL
+        /// </summary>
+        /// <param name="builder">StringBuilder</param>
+        /// <param name="className">类名</param>
+        /// <param name="tableName">表名</param>
+        /// <param name="columns">列信息列表</param>
         private void GenerateSelectAll(StringBuilder builder, string className, string tableName, IList<DatabaseColumn> columns)
         {
             builder.AppendLine("  <!-- 查询所有 -->");
@@ -57,6 +82,14 @@ namespace FastData.Tooling.CodeGeneration
             builder.AppendLine();
         }
 
+        /// <summary>
+        /// 生成根据主键查询的 SQL
+        /// </summary>
+        /// <param name="builder">StringBuilder</param>
+        /// <param name="className">类名</param>
+        /// <param name="tableName">表名</param>
+        /// <param name="primaryKey">主键列</param>
+        /// <param name="columns">列信息列表</param>
         private void GenerateSelectByPrimaryKey(StringBuilder builder, string className, string tableName, DatabaseColumn primaryKey, IList<DatabaseColumn> columns)
         {
             builder.AppendLine("  <!-- 根据主键查询 -->");
@@ -72,6 +105,13 @@ namespace FastData.Tooling.CodeGeneration
             builder.AppendLine();
         }
 
+        /// <summary>
+        /// 生成动态条件查询的 SQL
+        /// </summary>
+        /// <param name="builder">StringBuilder</param>
+        /// <param name="className">类名</param>
+        /// <param name="tableName">表名</param>
+        /// <param name="columns">列信息列表</param>
         private void GenerateSelectWithDynamic(StringBuilder builder, string className, string tableName, IList<DatabaseColumn> columns)
         {
             builder.AppendLine("  <!-- 动态条件查询 -->");
@@ -95,6 +135,13 @@ namespace FastData.Tooling.CodeGeneration
             builder.AppendLine();
         }
 
+        /// <summary>
+        /// 生成插入记录的 SQL
+        /// </summary>
+        /// <param name="builder">StringBuilder</param>
+        /// <param name="className">类名</param>
+        /// <param name="tableName">表名</param>
+        /// <param name="columns">列信息列表</param>
         private void GenerateInsert(StringBuilder builder, string className, string tableName, IList<DatabaseColumn> columns)
         {
             builder.AppendLine("  <!-- 新增 -->");
@@ -114,6 +161,14 @@ namespace FastData.Tooling.CodeGeneration
             builder.AppendLine();
         }
 
+        /// <summary>
+        /// 生成更新记录的 SQL
+        /// </summary>
+        /// <param name="builder">StringBuilder</param>
+        /// <param name="className">类名</param>
+        /// <param name="tableName">表名</param>
+        /// <param name="primaryKey">主键列</param>
+        /// <param name="nonPkColumns">非主键列列表</param>
         private void GenerateUpdate(StringBuilder builder, string className, string tableName, DatabaseColumn primaryKey, IList<DatabaseColumn> nonPkColumns)
         {
             builder.AppendLine("  <!-- 更新 -->");
@@ -128,6 +183,13 @@ namespace FastData.Tooling.CodeGeneration
             builder.AppendLine();
         }
 
+        /// <summary>
+        /// 生成删除记录的 SQL
+        /// </summary>
+        /// <param name="builder">StringBuilder</param>
+        /// <param name="className">类名</param>
+        /// <param name="tableName">表名</param>
+        /// <param name="primaryKey">主键列</param>
         private void GenerateDelete(StringBuilder builder, string className, string tableName, DatabaseColumn primaryKey)
         {
             builder.AppendLine("  <!-- 删除 -->");
@@ -138,6 +200,11 @@ namespace FastData.Tooling.CodeGeneration
             builder.AppendLine();
         }
 
+        /// <summary>
+        /// 转换为 Pascal 命名
+        /// </summary>
+        /// <param name="value">原始字符串</param>
+        /// <returns>Pascal 命名字符串</returns>
         private static string ToPascal(string value)
         {
             if (string.IsNullOrEmpty(value))

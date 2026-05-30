@@ -2,8 +2,24 @@ using System.Text;
 
 namespace FastData.Tooling.Sync
 {
+    /// <summary>
+    /// 中间架构构建器
+    /// 
+    /// 根据不同数据库类型生成同步任务所需的表结构 SQL 脚本。
+    /// 
+    /// 使用示例：
+    /// <code>
+    /// var builder = new IntermediateSchemaBuilder();
+    /// var script = builder.BuildScript("mysql");
+    /// </code>
+    /// </summary>
     public class IntermediateSchemaBuilder
     {
+        /// <summary>
+        /// 根据数据库类型生成建表脚本
+        /// </summary>
+        /// <param name="provider">数据库类型（mysql/oracle/sqlserver）</param>
+        /// <returns>建表 SQL 脚本</returns>
         public string BuildScript(string provider)
         {
             var value = (provider ?? string.Empty).ToLower();
@@ -16,6 +32,10 @@ namespace FastData.Tooling.Sync
             return BuildSqlServerScript();
         }
 
+        /// <summary>
+        /// 生成 SQL Server 建表脚本
+        /// </summary>
+        /// <returns>SQL Server 建表 SQL</returns>
         public string BuildSqlServerScript()
         {
             var builder = new StringBuilder();
@@ -27,6 +47,10 @@ namespace FastData.Tooling.Sync
             return builder.ToString();
         }
 
+        /// <summary>
+        /// 生成 MySQL 建表脚本
+        /// </summary>
+        /// <returns>MySQL 建表 SQL</returns>
         public string BuildMySqlScript()
         {
             var builder = new StringBuilder();
@@ -38,6 +62,10 @@ namespace FastData.Tooling.Sync
             return builder.ToString();
         }
 
+        /// <summary>
+        /// 生成 Oracle 建表脚本
+        /// </summary>
+        /// <returns>Oracle 建表 SQL</returns>
         public string BuildOracleScript()
         {
             var builder = new StringBuilder();

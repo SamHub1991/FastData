@@ -3,8 +3,27 @@ using FastData.DbTypes;
 
 namespace FastData.Adapter
 {
+    /// <summary>
+    /// 数据库适配器工厂
+    /// 
+    /// 根据数据库类型创建对应的适配器实例。
+    /// 
+    /// 使用示例：
+    /// <code>
+    /// // 创建 SQL Server 适配器
+    /// var adapter = DatabaseAdapterFactory.Create(DataDbType.SqlServer);
+    /// 
+    /// // 创建 MySQL 适配器
+    /// var adapter = DatabaseAdapterFactory.Create(DataDbType.MySql);
+    /// </code>
+    /// </summary>
     public static class DatabaseAdapterFactory
     {
+        /// <summary>
+        /// 创建数据库适配器
+        /// </summary>
+        /// <param name="dbType">数据库类型</param>
+        /// <returns>数据库适配器实例</returns>
         public static IDatabaseAdapter Create(DataDbType dbType)
         {
             switch (dbType)

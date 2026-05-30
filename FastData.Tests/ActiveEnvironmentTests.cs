@@ -5,8 +5,16 @@ using Xunit;
 
 namespace FastData.Tests
 {
+    /// <summary>
+    /// 活动环境配置测试
+    /// 
+    /// 测试环境配置的加载和切换功能。
+    /// </summary>
     public class ActiveEnvironmentTests
     {
+        /// <summary>
+        /// 测试开发环境配置加载
+        /// </summary>
         [Fact]
         public void ActiveAttribute_Dev_ShouldLoadDevConfig()
         {
@@ -27,6 +35,9 @@ namespace FastData.Tests
             Console.WriteLine($"Active Environment: {activeEnv}");
         }
 
+        /// <summary>
+        /// 测试环境变量覆盖配置文件
+        /// </summary>
         [Fact]
         public void ActiveAttribute_EnvVar_ShouldOverrideConfig()
         {
@@ -52,6 +63,9 @@ namespace FastData.Tests
             }
         }
 
+        /// <summary>
+        /// 测试配置文件加载
+        /// </summary>
         [Fact]
         public void ActiveAttribute_Config_ShouldLoadConfig()
         {
@@ -71,6 +85,9 @@ namespace FastData.Tests
             Console.WriteLine($"SqlServer ConnectionString: {connStr}");
         }
 
+        /// <summary>
+        /// 测试开发环境配置包含测试数据库
+        /// </summary>
         [Fact]
         public void ActiveAttribute_DevConfig_ShouldHaveDifferentDatabase()
         {
@@ -85,6 +102,9 @@ namespace FastData.Tests
             Assert.Contains("FastDataTest", configContent);
         }
 
+        /// <summary>
+        /// 测试生产环境配置包含 Pro 数据库
+        /// </summary>
         [Fact]
         public void ActiveAttribute_ProConfig_ShouldHaveDifferentDatabase()
         {

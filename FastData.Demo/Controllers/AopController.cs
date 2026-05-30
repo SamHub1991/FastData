@@ -5,10 +5,19 @@ using System.Collections.Generic;
 
 namespace FastData.Demo.Controllers
 {
+    /// <summary>
+    /// AOP 拦截器控制器
+    /// 
+    /// 提供 AOP 拦截器功能的测试和信息查询接口。
+    /// </summary>
     [ApiController]
     [Route("api/[controller]")]
     public class AopController : ControllerBase
     {
+        /// <summary>
+        /// 测试 AOP 拦截器
+        /// </summary>
+        /// <returns>测试结果</returns>
         [HttpGet("test")]
         public IActionResult Test()
         {
@@ -34,6 +43,10 @@ namespace FastData.Demo.Controllers
             return Ok(result);
         }
 
+        /// <summary>
+        /// 获取 AOP 拦截器信息
+        /// </summary>
+        /// <returns>AOP 拦截器使用说明</returns>
         [HttpGet("info")]
         public IActionResult GetInfo()
         {

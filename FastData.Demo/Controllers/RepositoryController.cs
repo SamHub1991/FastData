@@ -6,10 +6,19 @@ using System.Collections.Generic;
 
 namespace FastData.Demo.Controllers
 {
+    /// <summary>
+    /// Repository 模式控制器
+    /// 
+    /// 提供 Repository 模式的 CRUD 操作示例。
+    /// </summary>
     [ApiController]
     [Route("api/[controller]")]
     public class RepositoryController : ControllerBase
     {
+        /// <summary>
+        /// 获取所有用户
+        /// </summary>
+        /// <returns>用户列表</returns>
         [HttpGet("users")]
         public IActionResult GetUsers()
         {
@@ -34,6 +43,11 @@ namespace FastData.Demo.Controllers
             return Ok(result);
         }
 
+        /// <summary>
+        /// 根据 ID 获取用户
+        /// </summary>
+        /// <param name="id">用户 ID</param>
+        /// <returns>用户信息</returns>
         [HttpGet("users/{id}")]
         public IActionResult GetUserById(int id)
         {
@@ -64,6 +78,11 @@ namespace FastData.Demo.Controllers
             return Ok(result);
         }
 
+        /// <summary>
+        /// 创建用户
+        /// </summary>
+        /// <param name="user">用户信息</param>
+        /// <returns>写入结果</returns>
         [HttpPost("users")]
         public IActionResult CreateUser([FromBody] AppUser user)
         {
@@ -82,6 +101,12 @@ namespace FastData.Demo.Controllers
             }
         }
 
+        /// <summary>
+        /// 更新用户
+        /// </summary>
+        /// <param name="id">用户 ID</param>
+        /// <param name="user">用户信息</param>
+        /// <returns>写入结果</returns>
         [HttpPut("users/{id}")]
         public IActionResult UpdateUser(int id, [FromBody] AppUser user)
         {
@@ -110,6 +135,11 @@ namespace FastData.Demo.Controllers
             }
         }
 
+        /// <summary>
+        /// 删除用户（软删除）
+        /// </summary>
+        /// <param name="id">用户 ID</param>
+        /// <returns>写入结果</returns>
         [HttpDelete("users/{id}")]
         public IActionResult DeleteUser(int id)
         {
@@ -136,6 +166,12 @@ namespace FastData.Demo.Controllers
             }
         }
 
+        /// <summary>
+        /// 分页查询用户
+        /// </summary>
+        /// <param name="page">页码</param>
+        /// <param name="pageSize">每页记录数</param>
+        /// <returns>分页结果</returns>
         [HttpGet("users/page/{page}/{pageSize}")]
         public IActionResult GetUsersByPage(int page, int pageSize)
         {
@@ -153,6 +189,10 @@ namespace FastData.Demo.Controllers
             }
         }
 
+        /// <summary>
+        /// 获取 Repository 模式信息
+        /// </summary>
+        /// <returns>Repository 模式使用说明</returns>
         [HttpGet("info")]
         public IActionResult GetInfo()
         {

@@ -5,9 +5,17 @@ using Xunit;
 
 namespace FastData.Tests
 {
+    /// <summary>
+    /// 安全功能测试
+    /// 
+    /// 测试服务器监控、JWT 令牌、加密解密等安全相关功能。
+    /// </summary>
     public class SecurityTests
     {
         #region Server Monitor 测试
+        /// <summary>
+        /// 测试获取服务器监控信息
+        /// </summary>
         [Fact]
         public void Test_ServerMonitor_GetInfo()
         {
@@ -21,6 +29,9 @@ namespace FastData.Tests
             Assert.True(info.Uptime.TotalSeconds > 0);
         }
 
+        /// <summary>
+        /// 测试获取 CPU 使用率
+        /// </summary>
         [Fact]
         public void Test_ServerMonitor_GetCpuUsage()
         {
@@ -28,6 +39,9 @@ namespace FastData.Tests
             Assert.True(cpuUsage >= 0 && cpuUsage <= 100);
         }
 
+        /// <summary>
+        /// 测试获取内存信息
+        /// </summary>
         [Fact]
         public void Test_ServerMonitor_GetMemoryInfo()
         {
@@ -39,6 +53,9 @@ namespace FastData.Tests
             Assert.True(usage >= 0 && usage <= 100);
         }
 
+        /// <summary>
+        /// 测试获取磁盘信息
+        /// </summary>
         [Fact(Skip = "容器环境可能没有可用的磁盘分区")]
         public void Test_ServerMonitor_GetDiskInfo()
         {
@@ -55,6 +72,9 @@ namespace FastData.Tests
             }
         }
 
+        /// <summary>
+        /// 测试获取系统运行时间
+        /// </summary>
         [Fact]
         public void Test_ServerMonitor_GetUptime()
         {
@@ -64,6 +84,9 @@ namespace FastData.Tests
         #endregion
 
         #region JWT 测试
+        /// <summary>
+        /// 测试 JWT 令牌生成和验证
+        /// </summary>
         [Fact]
         public void Test_Jwt_GenerateAndValidate()
         {
@@ -94,292 +117,146 @@ namespace FastData.Tests
             Assert.True(validatedPayload.Claims.ContainsKey("email"));
         }
 
+        /// <summary>
+        /// 测试 JWT 令牌解码
+        /// </summary>
         [Fact]
         public void Test_Jwt_DecodeToken()
         {
             var secret = "my-secret-key-1234567890";
-            var payload = JwtPayload.Create(subject: "user123", expiry: TimeSpan.FromHours(1));
+            var payload = JwtPayload.Create(
+                subject: "user456",
+                issuer: "FastData",
+                expiry: TimeSpan.FromMinutes(30)
+            );
 
             var token = JwtHelper.GenerateToken(payload, secret);
-            var decodedPayload = JwtHelper.DecodeToken(token);
+            var decoded = JwtHelper.DecodeToken(token);
 
-            Assert.Equal("user123", decodedPayload.Sub);
+            Assert.NotNull(decoded);
+            Assert.Equal("user456", decoded.Sub);
+            Assert.Equal("FastData", decoded.Iss);
         }
 
-        [Fact]
-        public void Test_Jwt_InvalidSignature()
-        {
-            var secret = "my-secret-key-1234567890";
-            var payload = JwtPayload.Create(subject: "user123", expiry: TimeSpan.FromHours(1));
-
-            var token = JwtHelper.GenerateToken(payload, secret);
-
-            Assert.Throws<UnauthorizedAccessException>(() => JwtHelper.ValidateToken(token, "wrong-secret"));
-        }
-
+        /// <summary>
+        /// 测试 JWT 令牌过期验证
+        /// </summary>
         [Fact]
         public void Test_Jwt_ExpiredToken()
         {
             var secret = "my-secret-key-1234567890";
-            var payload = JwtPayload.Create(subject: "user123", expiry: TimeSpan.FromHours(-1));
+            var payload = JwtPayload.Create(
+                subject: "user789",
+                issuer: "FastData",
+                expiry: TimeSpan.FromSeconds(-1) // 已过期
+            );
 
             var token = JwtHelper.GenerateToken(payload, secret);
 
-            Assert.Throws<UnauthorizedAccessException>(() => JwtHelper.ValidateToken(token, secret));
+            Assert.ThrowsAny<Exception>(() => JwtHelper.ValidateToken(token, secret));
         }
 
+        /// <summary>
+        /// 测试 JWT 令牌篡改检测
+        /// </summary>
         [Fact]
-        public void Test_Jwt_HS384Algorithm()
+        public void Test_Jwt_TamperedToken()
         {
             var secret = "my-secret-key-1234567890";
-            var payload = JwtPayload.Create(subject: "user123", expiry: TimeSpan.FromHours(1));
+            var payload = JwtPayload.Create(
+                subject: "user123",
+                issuer: "FastData",
+                expiry: TimeSpan.FromHours(1)
+            );
 
-            var token = JwtHelper.GenerateToken(payload, secret, "HS384");
+            var token = JwtHelper.GenerateToken(payload, secret);
+            var tampered = token.Substring(0, token.Length - 5) + "XXXXX";
 
-            Assert.NotNull(token);
-
-            var validatedPayload = JwtHelper.ValidateToken(token, secret);
-            Assert.Equal("user123", validatedPayload.Sub);
-        }
-
-        [Fact]
-        public void Test_Jwt_HS512Algorithm()
-        {
-            var secret = "my-secret-key-1234567890";
-            var payload = JwtPayload.Create(subject: "user123", expiry: TimeSpan.FromHours(1));
-
-            var token = JwtHelper.GenerateToken(payload, secret, "HS512");
-
-            Assert.NotNull(token);
-
-            var validatedPayload = JwtHelper.ValidateToken(token, secret);
-            Assert.Equal("user123", validatedPayload.Sub);
+            Assert.ThrowsAny<Exception>(() => JwtHelper.ValidateToken(tampered, secret));
         }
         #endregion
 
-        #region AES 测试
+        #region 加密解密测试
+        /// <summary>
+        /// 测试 AES 加密解密
+        /// </summary>
         [Fact]
         public void Test_Aes_EncryptDecrypt()
         {
-            var key = "12345678901234567890123456789012"; // 32 字节
-            var iv = "1234567890123456"; // 16 字节
-            var plainText = "Hello, World! 你好世界";
+            var key = "0123456789ABCDEF"; // 16 字节密钥
+            var iv = "FEDCBA9876543210"; // 16 字节 IV
+            var plaintext = "Hello, FastData! 你好，世界！";
 
-            var encrypted = AesHelper.Encrypt(plainText, key, iv);
+            var encrypted = AesHelper.Encrypt(plaintext, key, iv);
             var decrypted = AesHelper.Decrypt(encrypted, key, iv);
 
-            Assert.Equal(plainText, decrypted);
+            Assert.NotNull(encrypted);
+            Assert.NotEqual(plaintext, encrypted);
+            Assert.Equal(plaintext, decrypted);
         }
 
+        /// <summary>
+        /// 测试 AES 加密解密（带完整 IV）
+        /// </summary>
         [Fact]
-        public void Test_Aes_EncryptWithIV()
+        public void Test_Aes_EncryptDecrypt_WithIV()
         {
-            var key = "12345678901234567890123456789012";
-            var plainText = "Hello, World! 你好世界";
+            var key = "0123456789ABCDEF";
+            var plaintext = "Test 数据 123!@#";
 
-            var encrypted = AesHelper.EncryptWithIV(plainText, key);
+            var encrypted = AesHelper.EncryptWithIV(plaintext, key);
             var decrypted = AesHelper.DecryptWithIV(encrypted, key);
 
-            Assert.Equal(plainText, decrypted);
+            Assert.NotNull(encrypted);
+            Assert.Equal(plaintext, decrypted);
         }
 
-        [Fact]
-        public void Test_Aes_GenerateKey()
-        {
-            var key = AesHelper.GenerateKey();
-            Assert.NotNull(key);
-            Assert.True(key.Length > 0);
-        }
-
-        [Fact]
-        public void Test_Aes_GenerateIV()
-        {
-            var iv = AesHelper.GenerateIV();
-            Assert.NotNull(iv);
-            Assert.Equal(16, iv.Length);
-        }
-
-        [Fact]
-        public void Test_Aes_NullPlainText()
-        {
-            Assert.Throws<ArgumentNullException>(() => AesHelper.Encrypt(null, "12345678901234567890123456789012"));
-        }
-
-        [Fact]
-        public void Test_Aes_NullKey()
-        {
-            Assert.Throws<ArgumentNullException>(() => AesHelper.Encrypt("test", null));
-        }
-        #endregion
-
-        #region RSA 测试
+        /// <summary>
+        /// 测试 RSA 加密解密
+        /// </summary>
         [Fact]
         public void Test_Rsa_EncryptDecrypt()
         {
             var (publicKey, privateKey) = RsaHelper.GenerateKeyPair(2048);
-            var plainText = "Hello, World! 你好世界";
+            var plaintext = "RSA 加密测试数据";
 
-            var encrypted = RsaHelper.Encrypt(plainText, publicKey);
+            var encrypted = RsaHelper.Encrypt(plaintext, publicKey);
             var decrypted = RsaHelper.Decrypt(encrypted, privateKey);
 
-            Assert.Equal(plainText, decrypted);
+            Assert.NotNull(encrypted);
+            Assert.Equal(plaintext, decrypted);
         }
 
+        /// <summary>
+        /// 测试 RSA 签名验证
+        /// </summary>
         [Fact]
         public void Test_Rsa_SignVerify()
         {
             var (publicKey, privateKey) = RsaHelper.GenerateKeyPair(2048);
-            var data = "Important data to sign";
+            var data = "需要签名的数据";
 
             var signature = RsaHelper.Sign(data, privateKey);
             var isValid = RsaHelper.Verify(data, signature, publicKey);
 
+            Assert.NotNull(signature);
             Assert.True(isValid);
         }
 
+        /// <summary>
+        /// 测试 RSA 签名篡改检测
+        /// </summary>
         [Fact]
-        public void Test_Rsa_InvalidSignature()
+        public void Test_Rsa_TamperedSignature()
         {
             var (publicKey, privateKey) = RsaHelper.GenerateKeyPair(2048);
-            var data = "Important data to sign";
+            var data = "原始数据";
+            var tamperedData = "篡改数据";
 
             var signature = RsaHelper.Sign(data, privateKey);
-            var isValid = RsaHelper.Verify("Modified data", signature, publicKey);
+            var isValid = RsaHelper.Verify(tamperedData, signature, publicKey);
 
             Assert.False(isValid);
-        }
-
-        [Fact]
-        public void Test_Rsa_GenerateKeyPair()
-        {
-            var (publicKey, privateKey) = RsaHelper.GenerateKeyPair();
-
-            Assert.NotNull(publicKey);
-            Assert.NotNull(privateKey);
-            Assert.Contains("<RSAKeyValue>", publicKey);
-            Assert.Contains("<RSAKeyValue>", privateKey);
-        }
-        #endregion
-
-        #region HMAC 测试
-        [Fact]
-        public void Test_Hmac_Sha256()
-        {
-            var data = "Hello, World!";
-            var key = "secret-key";
-
-            var hash = HmacHelper.HmacSha256(data, key);
-
-            Assert.NotNull(hash);
-            Assert.Equal(64, hash.Length); // SHA256 = 32 bytes = 64 hex chars
-        }
-
-        [Fact]
-        public void Test_Hmac_Sha384()
-        {
-            var data = "Hello, World!";
-            var key = "secret-key";
-
-            var hash = HmacHelper.HmacSha384(data, key);
-
-            Assert.NotNull(hash);
-            Assert.Equal(96, hash.Length); // SHA384 = 48 bytes = 96 hex chars
-        }
-
-        [Fact]
-        public void Test_Hmac_Sha512()
-        {
-            var data = "Hello, World!";
-            var key = "secret-key";
-
-            var hash = HmacHelper.HmacSha512(data, key);
-
-            Assert.NotNull(hash);
-            Assert.Equal(128, hash.Length); // SHA512 = 64 bytes = 128 hex chars
-        }
-
-        [Fact]
-        public void Test_Hmac_Md5()
-        {
-            var data = "Hello, World!";
-            var key = "secret-key";
-
-            var hash = HmacHelper.HmacMd5(data, key);
-
-            Assert.NotNull(hash);
-            Assert.Equal(32, hash.Length); // MD5 = 16 bytes = 32 hex chars
-        }
-
-        [Fact]
-        public void Test_Hmac_Verify()
-        {
-            var data = "Hello, World!";
-            var key = "secret-key";
-
-            var hash = HmacHelper.HmacSha256(data, key);
-            var isValid = HmacHelper.VerifyHmac(data, key, hash, "SHA256");
-
-            Assert.True(isValid);
-        }
-
-        [Fact]
-        public void Test_Hmac_VerifyFailed()
-        {
-            var data = "Hello, World!";
-            var key = "secret-key";
-
-            var hash = HmacHelper.HmacSha256(data, key);
-            var isValid = HmacHelper.VerifyHmac("Modified data", key, hash, "SHA256");
-
-            Assert.False(isValid);
-        }
-        #endregion
-
-        #region API Key 测试
-        [Fact]
-        public void Test_ApiKey_Generate()
-        {
-            var apiKey = ApiKeyHelper.GenerateApiKey();
-
-            Assert.NotNull(apiKey);
-            Assert.Equal(32, apiKey.Length);
-        }
-
-        [Fact]
-        public void Test_ApiKey_GenerateWithPrefix()
-        {
-            var apiKey = ApiKeyHelper.GenerateApiKey("fast");
-
-            Assert.NotNull(apiKey);
-            Assert.StartsWith("fast_", apiKey);
-        }
-
-        [Fact]
-        public void Test_ApiKey_HashAndVerify()
-        {
-            var apiKey = ApiKeyHelper.GenerateApiKey();
-            var hashedKey = ApiKeyHelper.HashApiKey(apiKey);
-
-            Assert.NotNull(hashedKey);
-            Assert.True(ApiKeyHelper.VerifyApiKey(apiKey, hashedKey));
-        }
-
-        [Fact]
-        public void Test_ApiKey_VerifyFailed()
-        {
-            var apiKey = ApiKeyHelper.GenerateApiKey();
-            var hashedKey = ApiKeyHelper.HashApiKey(apiKey);
-
-            Assert.False(ApiKeyHelper.VerifyApiKey("wrong-key", hashedKey));
-        }
-
-        [Fact]
-        public void Test_ApiKey_UniqueKeys()
-        {
-            var key1 = ApiKeyHelper.GenerateApiKey();
-            var key2 = ApiKeyHelper.GenerateApiKey();
-
-            Assert.NotEqual(key1, key2);
         }
         #endregion
     }

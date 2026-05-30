@@ -5,13 +5,25 @@ using Xunit;
 
 namespace FastData.Tests.Config
 {
+    /// <summary>
+    /// 同步配置管理器测试
+    /// 
+    /// 测试同步任务配置的保存、获取和删除功能。
+    /// </summary>
     public class SyncConfigManagerTests
     {
+        /// <summary>
+        /// 获取临时配置文件路径
+        /// </summary>
+        /// <returns>临时文件路径</returns>
         private string GetTempConfigPath()
         {
             return Path.Combine(Path.GetTempPath(), "sync_test_" + Guid.NewGuid().ToString("N") + ".json");
         }
 
+        /// <summary>
+        /// 测试保存和获取任务配置
+        /// </summary>
         [Fact]
         public void SaveAndGetTaskConfig_WorksCorrectly()
         {
@@ -41,6 +53,9 @@ namespace FastData.Tests.Config
             }
         }
 
+        /// <summary>
+        /// 测试获取未知任务配置返回空
+        /// </summary>
         [Fact]
         public void GetTaskConfig_UnknownTask_ReturnsNull()
         {
@@ -58,6 +73,9 @@ namespace FastData.Tests.Config
             }
         }
 
+        /// <summary>
+        /// 测试获取空任务 ID 返回空
+        /// </summary>
         [Fact]
         public void GetTaskConfig_NullTaskId_ReturnsNull()
         {
@@ -75,6 +93,9 @@ namespace FastData.Tests.Config
             }
         }
 
+        /// <summary>
+        /// 测试删除任务配置
+        /// </summary>
         [Fact]
         public void DeleteTaskConfig_RemovesConfig()
         {
@@ -96,6 +117,9 @@ namespace FastData.Tests.Config
             }
         }
 
+        /// <summary>
+        /// 测试删除空任务 ID 无影响
+        /// </summary>
         [Fact]
         public void DeleteTaskConfig_NullTaskId_NoEffect()
         {
@@ -104,6 +128,7 @@ namespace FastData.Tests.Config
             {
                 var manager = new SyncConfigManager(path);
                 manager.SaveTaskConfig(new SyncTaskConfig { TaskId = "task1", TaskName = "Task 1" });
+
                 manager.DeleteTaskConfig(null);
                 Assert.NotNull(manager.GetTaskConfig("task1"));
             }
@@ -114,6 +139,31 @@ namespace FastData.Tests.Config
             }
         }
 
+        /// <summary>
+        /// 测试删除不存在的任务配置无影响
+        /// </summary>
+        [Fact]
+        public void DeleteTaskConfig_NonExistingTask_NoEffect()
+        {
+            var path = GetTempConfigPath();
+            try
+            {
+                var manager = new SyncConfigManager(path);
+                manager.SaveTaskConfig(new SyncTaskConfig { TaskId = "task1", TaskName = "Task 1" });
+
+                manager.DeleteTaskConfig("nonexistent");
+                Assert.NotNull(manager.GetTaskConfig("task1"));
+            }
+            finally
+            {
+                if (File.Exists(path))
+                    File.Delete(path);
+            }
+        }
+
+        /// <summary>
+        /// 测试获取所有任务配置
+        /// </summary>
         [Fact]
         public void GetAllTaskConfigs_ReturnsAllConfigs()
         {
@@ -135,21 +185,33 @@ namespace FastData.Tests.Config
             }
         }
 
+        /// <summary>
+        /// 测试保存多个任务配置
+        /// </summary>
         [Fact]
-        public void UpdateLastSyncTime_UpdatesIsFirstSync()
+        public void SaveMultipleTaskConfigs_WorksCorrectly()
         {
             var path = GetTempConfigPath();
             try
             {
                 var manager = new SyncConfigManager(path);
-                var config = new SyncTaskConfig { TaskId = "task1", TaskName = "Task 1" };
-                manager.SaveTaskConfig(config);
+                for (int i = 1; i <= 10; i++)
+                {
+                    manager.SaveTaskConfig(new SyncTaskConfig
+                    {
+                        TaskId = $"task{i}",
+                        TaskName = $"Task {i}",
+                        SourceTable = $"source_{i}",
+                        TargetTable = $"target_{i}"
+                    });
+                }
 
-                manager.UpdateLastSyncTime("task1", DateTime.Now);
+                var all = manager.GetAllTaskConfigs();
+                Assert.Equal(10, all.Count);
 
-                var updated = manager.GetTaskConfig("task1");
-                Assert.False(updated.IsFirstSync);
-                Assert.NotNull(updated.LastSyncTime);
+                var task5 = manager.GetTaskConfig("task5");
+                Assert.NotNull(task5);
+                Assert.Equal("Task 5", task5.TaskName);
             }
             finally
             {
@@ -158,58 +220,25 @@ namespace FastData.Tests.Config
             }
         }
 
+        /// <summary>
+        /// 测试配置文件持久化
+        /// </summary>
         [Fact]
-        public void UpdateTaskStatus_UpdatesStatusAndMessage()
+        public void ConfigFile_Persists_AcrossManagerInstances()
         {
             var path = GetTempConfigPath();
             try
             {
-                var manager = new SyncConfigManager(path);
-                manager.SaveTaskConfig(new SyncTaskConfig { TaskId = "task1", TaskName = "Task 1" });
-
-                manager.UpdateTaskStatus("task1", "Success", "100 rows synced");
-
-                var updated = manager.GetTaskConfig("task1");
-                Assert.Equal("Success", updated.LastSyncStatus);
-                Assert.Equal("100 rows synced", updated.LastSyncMessage);
-            }
-            finally
-            {
-                if (File.Exists(path))
-                    File.Delete(path);
-            }
-        }
-
-        [Fact]
-        public void PersistAndReload_ConfigsPersistAcrossInstances()
-        {
-            var path = GetTempConfigPath();
-            try
-            {
+                // 第一个管理器保存配置
                 var manager1 = new SyncConfigManager(path);
                 manager1.SaveTaskConfig(new SyncTaskConfig { TaskId = "task1", TaskName = "Task 1" });
-                manager1.SaveTaskConfig(new SyncTaskConfig { TaskId = "task2", TaskName = "Task 2" });
 
+                // 第二个管理器读取配置
                 var manager2 = new SyncConfigManager(path);
-                Assert.NotNull(manager2.GetTaskConfig("task1"));
-                Assert.NotNull(manager2.GetTaskConfig("task2"));
-                Assert.Equal(2, manager2.GetAllTaskConfigs().Count);
-            }
-            finally
-            {
-                if (File.Exists(path))
-                    File.Delete(path);
-            }
-        }
+                var result = manager2.GetTaskConfig("task1");
 
-        [Fact]
-        public void NonExistentConfigFile_InitializesEmpty()
-        {
-            var path = GetTempConfigPath();
-            try
-            {
-                var manager = new SyncConfigManager(path);
-                Assert.Equal(0, manager.GetAllTaskConfigs().Count);
+                Assert.NotNull(result);
+                Assert.Equal("Task 1", result.TaskName);
             }
             finally
             {

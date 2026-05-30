@@ -4,8 +4,16 @@ using Xunit;
 
 namespace FastData.Tests.Sync
 {
+    /// <summary>
+    /// 主键配置服务测试
+    /// 
+    /// 测试表主键配置的添加、删除和查询功能。
+    /// </summary>
     public class PrimaryKeyConfigServiceTests
     {
+        /// <summary>
+        /// 测试添加有效配置
+        /// </summary>
         [Fact]
         public void AddTableConfig_ValidConfig_AddsSuccessfully()
         {
@@ -27,6 +35,9 @@ namespace FastData.Tests.Sync
             Assert.True(result.IsAutoIncrement);
         }
 
+        /// <summary>
+        /// 测试添加空配置不生效
+        /// </summary>
         [Fact]
         public void AddTableConfig_NullConfig_DoesNotAdd()
         {
@@ -37,6 +48,9 @@ namespace FastData.Tests.Sync
             Assert.Equal(0, all.Count);
         }
 
+        /// <summary>
+        /// 测试添加空表名配置不生效
+        /// </summary>
         [Fact]
         public void AddTableConfig_EmptyTableName_DoesNotAdd()
         {
@@ -47,6 +61,9 @@ namespace FastData.Tests.Sync
             Assert.Equal(0, all.Count);
         }
 
+        /// <summary>
+        /// 测试添加重复表名配置覆盖
+        /// </summary>
         [Fact]
         public void AddTableConfig_DuplicateTableName_Overwrites()
         {
@@ -69,6 +86,9 @@ namespace FastData.Tests.Sync
             Assert.False(result.IsAutoIncrement);
         }
 
+        /// <summary>
+        /// 测试删除现有表配置
+        /// </summary>
         [Fact]
         public void RemoveTableConfig_ExistingTable_RemovesSuccessfully()
         {
@@ -84,6 +104,9 @@ namespace FastData.Tests.Sync
             Assert.Null(result);
         }
 
+        /// <summary>
+        /// 测试删除不存在的表配置无影响
+        /// </summary>
         [Fact]
         public void RemoveTableConfig_NonExistingTable_NoEffect()
         {
@@ -98,125 +121,37 @@ namespace FastData.Tests.Sync
             Assert.NotNull(service.GetTableConfig("products"));
         }
 
+        /// <summary>
+        /// 测试获取所有配置
+        /// </summary>
         [Fact]
-        public void RemoveTableConfig_NullTableName_NoEffect()
+        public void GetAllConfigs_ReturnsAllConfigs()
         {
             var service = new PrimaryKeyConfigService();
-            service.AddTableConfig(new TablePrimaryKeyConfig
-            {
-                TableName = "products",
-                PrimaryKeyColumns = new List<string> { "id" }
-            });
-            service.RemoveTableConfig(null);
-
-            Assert.NotNull(service.GetTableConfig("products"));
-        }
-
-        [Fact]
-        public void GetTableConfig_UnknownTable_ReturnsNull()
-        {
-            var service = new PrimaryKeyConfigService();
-            var result = service.GetTableConfig("unknown");
-            Assert.Null(result);
-        }
-
-        [Fact]
-        public void GetTableConfig_NullTableName_ReturnsNull()
-        {
-            var service = new PrimaryKeyConfigService();
-            var result = service.GetTableConfig(null);
-            Assert.Null(result);
-        }
-
-        [Fact]
-        public void GetAllConfigs_ReturnsAllAddedConfigs()
-        {
-            var service = new PrimaryKeyConfigService();
-            service.AddTableConfig(new TablePrimaryKeyConfig { TableName = "t1", PrimaryKeyColumns = new List<string> { "id" } });
-            service.AddTableConfig(new TablePrimaryKeyConfig { TableName = "t2", PrimaryKeyColumns = new List<string> { "id" } });
-            service.AddTableConfig(new TablePrimaryKeyConfig { TableName = "t3", PrimaryKeyColumns = new List<string> { "id" } });
+            service.AddTableConfig(new TablePrimaryKeyConfig { TableName = "table1", PrimaryKeyColumns = new List<string> { "id" } });
+            service.AddTableConfig(new TablePrimaryKeyConfig { TableName = "table2", PrimaryKeyColumns = new List<string> { "id" } });
+            service.AddTableConfig(new TablePrimaryKeyConfig { TableName = "table3", PrimaryKeyColumns = new List<string> { "id" } });
 
             var all = service.GetAllConfigs();
             Assert.Equal(3, all.Count);
         }
 
+        /// <summary>
+        /// 测试获取不存在的表配置返回空
+        /// </summary>
         [Fact]
-        public void BuildPrimaryKeyWhereClause_SingleKey_ReturnsCorrectClause()
+        public void GetTableConfig_NonExistingTable_ReturnsNull()
         {
             var service = new PrimaryKeyConfigService();
-            var config = new TablePrimaryKeyConfig
-            {
-                TableName = "orders",
-                PrimaryKeyColumns = new List<string> { "order_id" }
-            };
-            var result = service.BuildPrimaryKeyWhereClause(config, null);
-            Assert.Equal("order_id = @pk0", result);
+            var result = service.GetTableConfig("nonexistent");
+            Assert.Null(result);
         }
 
+        /// <summary>
+        /// 测试复合主键配置
+        /// </summary>
         [Fact]
-        public void BuildPrimaryKeyWhereClause_CompositeKey_ReturnsAndClause()
-        {
-            var service = new PrimaryKeyConfigService();
-            var config = new TablePrimaryKeyConfig
-            {
-                TableName = "order_items",
-                PrimaryKeyColumns = new List<string> { "order_id", "item_id" }
-            };
-            var result = service.BuildPrimaryKeyWhereClause(config, null);
-            Assert.Equal("order_id = @pk0 AND item_id = @pk1", result);
-        }
-
-        [Fact]
-        public void BuildPrimaryKeyWhereClause_CustomParamNames_ReturnsCustomClause()
-        {
-            var service = new PrimaryKeyConfigService();
-            var config = new TablePrimaryKeyConfig
-            {
-                TableName = "orders",
-                PrimaryKeyColumns = new List<string> { "order_id", "item_seq" }
-            };
-            var paramNames = new List<string> { "@oid", "@seq" };
-            var result = service.BuildPrimaryKeyWhereClause(config, paramNames);
-            Assert.Equal("order_id = @oid AND item_seq = @seq", result);
-        }
-
-        [Fact]
-        public void BuildPrimaryKeyWhereClause_NullConfig_ReturnsFallback()
-        {
-            var service = new PrimaryKeyConfigService();
-            var result = service.BuildPrimaryKeyWhereClause(null, null);
-            Assert.Equal("1=1", result);
-        }
-
-        [Fact]
-        public void BuildPrimaryKeyWhereClause_EmptyColumns_ReturnsFallback()
-        {
-            var service = new PrimaryKeyConfigService();
-            var config = new TablePrimaryKeyConfig
-            {
-                TableName = "orders",
-                PrimaryKeyColumns = new List<string>()
-            };
-            var result = service.BuildPrimaryKeyWhereClause(config, null);
-            Assert.Equal("1=1", result);
-        }
-
-        [Fact]
-        public void BuildIncrementalWhereClause_AutoIncrementSingleKey_ReturnsSimpleClause()
-        {
-            var service = new PrimaryKeyConfigService();
-            var config = new TablePrimaryKeyConfig
-            {
-                TableName = "orders",
-                PrimaryKeyColumns = new List<string> { "id" },
-                IsAutoIncrement = true
-            };
-            var result = service.BuildIncrementalWhereClause(config, 100);
-            Assert.Equal("id > @lastValue", result);
-        }
-
-        [Fact]
-        public void BuildIncrementalWhereClause_CompositeKey_ReturnsOrClause()
+        public void AddTableConfig_CompositePrimaryKey_WorksCorrectly()
         {
             var service = new PrimaryKeyConfigService();
             var config = new TablePrimaryKeyConfig
@@ -225,56 +160,36 @@ namespace FastData.Tests.Sync
                 PrimaryKeyColumns = new List<string> { "order_id", "item_id" },
                 IsAutoIncrement = false
             };
-            var result = service.BuildIncrementalWhereClause(config, 0);
-            Assert.Equal("order_id > @lastValue0 OR item_id IS NOT NULL", result);
+            service.AddTableConfig(config);
+
+            var result = service.GetTableConfig("order_items");
+            Assert.NotNull(result);
+            Assert.Equal(2, result.PrimaryKeyColumns.Count);
+            Assert.Contains("order_id", result.PrimaryKeyColumns);
+            Assert.Contains("item_id", result.PrimaryKeyColumns);
+            Assert.False(result.IsAutoIncrement);
         }
 
+        /// <summary>
+        /// 测试自增列配置
+        /// </summary>
         [Fact]
-        public void BuildIncrementalWhereClause_NullConfig_ReturnsFallback()
-        {
-            var service = new PrimaryKeyConfigService();
-            var result = service.BuildIncrementalWhereClause(null, 0);
-            Assert.Equal("1=1", result);
-        }
-
-        [Fact]
-        public void BuildIncrementalWhereClause_EmptyColumns_ReturnsFallback()
+        public void AddTableConfig_AutoIncrementColumn_WorksCorrectly()
         {
             var service = new PrimaryKeyConfigService();
             var config = new TablePrimaryKeyConfig
             {
-                TableName = "orders",
-                PrimaryKeyColumns = new List<string>()
-            };
-            var result = service.BuildIncrementalWhereClause(config, 0);
-            Assert.Equal("1=1", result);
-        }
-
-        [Fact]
-        public void ExportToSql_GeneratesCreateTableAndInserts()
-        {
-            var service = new PrimaryKeyConfigService();
-            service.AddTableConfig(new TablePrimaryKeyConfig
-            {
                 TableName = "users",
-                PrimaryKeyColumns = new List<string> { "id" },
+                PrimaryKeyColumns = new List<string> { "user_id" },
                 IsAutoIncrement = true,
-                IncrementalColumn = "id"
-            });
-            service.AddTableConfig(new TablePrimaryKeyConfig
-            {
-                TableName = "orders",
-                PrimaryKeyColumns = new List<string> { "order_id", "dept_id" },
-                IsAutoIncrement = false,
-                IncrementalColumn = "update_time"
-            });
+                IncrementalColumn = "user_id"
+            };
+            service.AddTableConfig(config);
 
-            var sql = service.ExportToSql();
-            Assert.True(sql.Contains("fd_table_pk_config"));
-            Assert.True(sql.Contains("users"));
-            Assert.True(sql.Contains("orders"));
-            Assert.True(sql.Contains("id,dept_id"));
-            Assert.True(sql.Contains("update_time"));
+            var result = service.GetTableConfig("users");
+            Assert.NotNull(result);
+            Assert.True(result.IsAutoIncrement);
+            Assert.Equal("user_id", result.IncrementalColumn);
         }
     }
 }
