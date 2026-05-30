@@ -128,9 +128,9 @@ namespace FastData
             return FastWrite.ExecuteSql(sql, param, db, key, isOutSql || enableSqlLog);
         }
 
-        public Task<WriteReturn> ExecuteSqlAsy(string sql, DbParameter[] param, DataContext db = null, bool isOutSql = false)
+        public Task<WriteReturn> ExecuteSqlAsync(string sql, DbParameter[] param, DataContext db = null, bool isOutSql = false)
         {
-            return FastWrite.ExecuteSqlAsy(sql, param, db, key, isOutSql || enableSqlLog);
+            return FastWrite.ExecuteSqlAsync(sql, param, db, key, isOutSql || enableSqlLog);
         }
 
         public WriteReturn BulkInsert<T>(List<T> list, DataContext db = null) where T : class, new()

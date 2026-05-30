@@ -52,9 +52,9 @@ namespace FastData
             return FastRead.ExecuteSql<T>(sql, param, db, key, isOutSql);
         }
 
-        public Task<List<T>> ExecuteSqlAsy<T>(string sql, DbParameter[] param, DataContext db = null, bool isOutSql = false) where T : class, new()
+        public Task<List<T>> ExecuteSqlAsync<T>(string sql, DbParameter[] param, DataContext db = null, bool isOutSql = false) where T : class, new()
         {
-            return FastRead.ExecuteSqlAsy<T>(sql, param, db, key, isOutSql);
+            return FastRead.ExecuteSqlAsync<T>(sql, param, db, key, isOutSql);
         }
 
         public Lazy<List<T>> ExecuteLazySql<T>(string sql, DbParameter[] param, DataContext db = null, bool isOutSql = false) where T : class, new()
@@ -62,9 +62,9 @@ namespace FastData
             return FastRead.ExecuteLazySql<T>(sql, param, db, key, isOutSql);
         }
 
-        public Task<Lazy<List<T>>> ExecuteLazySqlAsy<T>(string sql, DbParameter[] param, DataContext db = null, bool isOutSql = false) where T : class, new()
+        public Task<Lazy<List<T>>> ExecuteLazySqlAsync<T>(string sql, DbParameter[] param, DataContext db = null, bool isOutSql = false) where T : class, new()
         {
-            return FastRead.ExecuteLazySqlAsy<T>(sql, param, db, key, isOutSql);
+            return FastRead.ExecuteLazySqlAsync<T>(sql, param, db, key, isOutSql);
         }
 
         public List<Dictionary<string, object>> ExecuteSql(string sql, DbParameter[] param, DataContext db = null, bool isOutSql = false)
@@ -72,9 +72,9 @@ namespace FastData
             return FastRead.ExecuteSql(sql, param, db, key, isOutSql);
         }
 
-        public Task<List<Dictionary<string, object>>> ExecuteSqlAsy(string sql, DbParameter[] param, DataContext db = null, bool isOutSql = false)
+        public Task<List<Dictionary<string, object>>> ExecuteSqlAsync(string sql, DbParameter[] param, DataContext db = null, bool isOutSql = false)
         {
-            return FastRead.ExecuteSqlAsy(sql, param, db, key, isOutSql);
+            return FastRead.ExecuteSqlAsync(sql, param, db, key, isOutSql);
         }
 
         public Lazy<List<Dictionary<string, object>>> ExecuteLazySql(string sql, DbParameter[] param, DataContext db = null, bool isOutSql = false)
@@ -82,9 +82,9 @@ namespace FastData
             return FastRead.ExecuteLazySql(sql, param, db, key, isOutSql);
         }
 
-        public Task<Lazy<List<Dictionary<string, object>>>> ExecuteLazySqlAsy(string sql, DbParameter[] param, DataContext db = null, bool isOutSql = false)
+        public Task<Lazy<List<Dictionary<string, object>>>> ExecuteLazySqlAsync(string sql, DbParameter[] param, DataContext db = null, bool isOutSql = false)
         {
-            return FastRead.ExecuteLazySqlAsy(sql, param, db, key, isOutSql);
+            return FastRead.ExecuteLazySqlAsync(sql, param, db, key, isOutSql);
         }
     }
 }

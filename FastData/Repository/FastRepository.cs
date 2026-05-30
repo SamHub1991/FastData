@@ -36,7 +36,7 @@ namespace FastData.Repository
         /// <summary>
         /// 执行sql asy
         /// </summary>
-        public Task<List<T>> QueryAsy<T>(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
+        public Task<List<T>> QueryAsync<T>(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
             return AsyncHelper.RunSyncAsAsync(() => Query<T>(name, param, db, key, isOutSql));
         }
@@ -52,7 +52,7 @@ namespace FastData.Repository
         /// <summary>
         /// maq 执行返回结果 lazy asy
         /// </summary>
-        public Task<Lazy<List<T>>> QueryLazyAsy<T>(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
+        public Task<Lazy<List<T>>> QueryLazyAsync<T>(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
             return AsyncHelper.RunSyncAsLazyAsync(() => Query<T>(name, param, db, key, isOutSql));
         }
@@ -70,7 +70,7 @@ namespace FastData.Repository
         /// <summary>
         /// 执行sql List<Dictionary<string, object>> asy
         /// </summary>
-        public Task<List<Dictionary<string, object>>> QueryAsy(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
+        public Task<List<Dictionary<string, object>>> QueryAsync(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
             return AsyncHelper.RunSyncAsAsync(() => Query(name, param, db, key, isOutSql));
         }
@@ -86,7 +86,7 @@ namespace FastData.Repository
         /// <summary>
         /// maq 执行返回 List<Dictionary<string, object>> lazy asy
         /// </summary>
-        public Task<Lazy<List<Dictionary<string, object>>>> QueryLazyAsy(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
+        public Task<Lazy<List<Dictionary<string, object>>>> QueryLazyAsync(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
             return AsyncHelper.RunSyncAsLazyAsync(() => Query(name, param, db, key, isOutSql));
         }
@@ -104,7 +104,7 @@ namespace FastData.Repository
         /// <summary>
         ///  maq 执行写操作 asy
         /// </summary>
-        public Task<WriteReturn> WriteAsy(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
+        public Task<WriteReturn> WriteAsync(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
             return AsyncHelper.RunSyncAsAsync(() => Write(name, param, db, key, isOutSql));
         }
@@ -120,7 +120,7 @@ namespace FastData.Repository
         /// <summary>
         /// maq 执行写操作 asy lazy asy
         /// </summary>
-        public Task<Lazy<WriteReturn>> WriteLazyAsy(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
+        public Task<Lazy<WriteReturn>> WriteLazyAsync(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
             return AsyncHelper.RunSyncAsLazyAsync(() => Write(name, param, db, key, isOutSql));
         }
@@ -138,7 +138,7 @@ namespace FastData.Repository
         /// <summary>
         /// 执行分页 asy
         /// </summary>
-        public Task<PageResult> QueryPageAsy(PageModel pModel, string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
+        public Task<PageResult> QueryPageAsync(PageModel pModel, string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
             return AsyncHelper.RunSyncAsAsync(() => QueryPage(pModel, name, param, db, key, isOutSql));
         }
@@ -154,7 +154,7 @@ namespace FastData.Repository
         /// <summary>
         /// maq 执行分页lazy asy
         /// </summary>
-        public Task<Lazy<PageResult>> QueryPageLazyAsy(PageModel pModel, string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
+        public Task<Lazy<PageResult>> QueryPageLazyAsync(PageModel pModel, string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
             return AsyncHelper.RunSyncAsLazyAsync(() => QueryPage(pModel, name, param, db, key, isOutSql));
         }
@@ -172,7 +172,7 @@ namespace FastData.Repository
         /// <summary>
         /// 执行分页 asy
         /// </summary>
-        public Task<PageResult<T>> QueryPageAsy<T>(PageModel pModel, string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
+        public Task<PageResult<T>> QueryPageAsync<T>(PageModel pModel, string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
             return AsyncHelper.RunSyncAsAsync(() => QueryPage<T>(pModel, name, param, db, key, isOutSql));
         }
@@ -188,7 +188,7 @@ namespace FastData.Repository
         /// <summary>
         /// maq 执行分页lazy asy
         /// </summary>
-        public Task<Lazy<PageResult<T>>> QueryPageLazyAsy<T>(PageModel pModel, string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
+        public Task<Lazy<PageResult<T>>> QueryPageLazyAsync<T>(PageModel pModel, string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
             return AsyncHelper.RunSyncAsLazyAsync(() => QueryPage<T>(pModel, name, param, db, key, isOutSql));
         }
@@ -767,7 +767,7 @@ namespace FastData.Repository
         /// <summary>
         /// 执行sql asy
         /// </summary>
-        public Task<WriteReturn> ExecuteSqlAsy(string sql, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
+        public Task<WriteReturn> ExecuteSqlAsync(string sql, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
             return AsyncHelper.RunSyncAsAsync(() => ExecuteSql(sql, param, db, key, isOutSql));
         }

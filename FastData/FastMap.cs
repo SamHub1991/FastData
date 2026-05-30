@@ -294,7 +294,7 @@ namespace FastData
         /// <summary>
         /// 执行sql asy
         /// </summary>
-        public static Task<List<T>> QueryAsy<T>(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
+        public static Task<List<T>> QueryAsync<T>(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
             return AsyncHelper.RunAsync(() => Query<T>(name, param, db, key, isOutSql));
         }
@@ -349,7 +349,7 @@ namespace FastData
         /// <summary>
         ///  maq 执行写操作 asy
         /// </summary>
-        public static Task<WriteReturn> WriteAsy(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
+        public static Task<WriteReturn> WriteAsync(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
             return AsyncHelper.RunAsync(() => Write(name, param, db, key, isOutSql));
         }
@@ -365,7 +365,7 @@ namespace FastData
         /// <summary>
         /// maq 执行写操作 asy lazy asy
         /// </summary>
-        public static Task<Lazy<WriteReturn>> WriteLazyAsy(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
+        public static Task<Lazy<WriteReturn>> WriteLazyAsync(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
             return AsyncHelper.RunAsync(() => AsyncHelper.ToLazy(() => Write(name, param, db, key, isOutSql)));
         }
@@ -421,7 +421,7 @@ namespace FastData
         /// <summary>
         /// 执行sql List<Dictionary<string, object>> asy
         /// </summary>
-        public static Task<List<Dictionary<string, object>>> QueryAsy(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
+        public static Task<List<Dictionary<string, object>>> QueryAsync(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
             return AsyncHelper.RunAsync(() => Query(name, param, db, key, isOutSql));
         }
@@ -437,7 +437,7 @@ namespace FastData
         /// <summary>
         /// maq 执行返回 List<Dictionary<string, object>> lazy asy
         /// </summary>
-        public static Task<Lazy<List<Dictionary<string, object>>>> ExecuteLazyMapAsy(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
+        public static Task<Lazy<List<Dictionary<string, object>>>> ExecuteLazyMapAsync(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
             return AsyncHelper.RunAsync(() => new Lazy<List<Dictionary<string, object>>>(() => Query(name, param, db, key, isOutSql)));
         }
@@ -524,7 +524,7 @@ namespace FastData
         /// <summary>
         /// 执行分页 asy
         /// </summary>
-        public static Task<PageResult> QueryPageAsy(PageModel pModel, string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
+        public static Task<PageResult> QueryPageAsync(PageModel pModel, string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
             return AsyncHelper.RunAsync(() => QueryPage(pModel, name, param, db, key, isOutSql));
         }
@@ -540,7 +540,7 @@ namespace FastData
         /// <summary>
         /// maq 执行分页lazy asy
         /// </summary>
-        public static Task<Lazy<PageResult>> QueryPageLazyAsy(PageModel pModel, string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
+        public static Task<Lazy<PageResult>> QueryPageLazyAsync(PageModel pModel, string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
             return AsyncHelper.RunAsync(() => AsyncHelper.ToLazy(() => QueryPage(pModel, name, param, db, key, isOutSql)));
         }
@@ -626,7 +626,7 @@ namespace FastData
         /// <summary>
         /// 执行分页 asy
         /// </summary>
-        public static Task<PageResult<T>> QueryPageAsy<T>(PageModel pModel, string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
+        public static Task<PageResult<T>> QueryPageAsync<T>(PageModel pModel, string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
             return AsyncHelper.RunAsync(() => QueryPage<T>(pModel, name, param, db, key, isOutSql));
         }
@@ -642,7 +642,7 @@ namespace FastData
         /// <summary>
         /// maq 执行分页lazy asy
         /// </summary>
-        public static Task<Lazy<PageResult<T>>> QueryPageLazyAsy<T>(PageModel pModel, string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
+        public static Task<Lazy<PageResult<T>>> QueryPageLazyAsync<T>(PageModel pModel, string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
             return AsyncHelper.RunAsync(() => new Lazy<PageResult<T>>(() => QueryPage<T>(pModel, name, param, db, key, isOutSql)));
         }

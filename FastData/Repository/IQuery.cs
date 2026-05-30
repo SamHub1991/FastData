@@ -24,11 +24,11 @@ namespace FastData.Repository
 
         public abstract string ToJson(DataContext db = null, bool isOutSql = false);
 
-        public abstract Task<string> ToJsonAsy(DataContext db = null, bool isOutSql = false);
+        public abstract Task<string> ToJsonAsync(DataContext db = null, bool isOutSql = false);
 
         public abstract Lazy<string> ToLazyJson(DataContext db = null, bool isOutSql = false);
 
-        public abstract Task<Lazy<string>> ToLazyJsonAsy(DataContext db = null, bool isOutSql = false);
+        public abstract Task<Lazy<string>> ToLazyJsonAsync(DataContext db = null, bool isOutSql = false);
 
         public abstract T ToItem<T>(DataContext db = null, bool isOutSql = false) where T : class, new();
 
@@ -44,43 +44,43 @@ namespace FastData.Repository
 
         public abstract PageResult<T> ToPage<T>(PageModel pModel, DataContext db = null, bool isOutSql = false) where T : class, new();
 
-        public abstract Task<PageResult<T>> ToPageAsy<T>(PageModel pModel, DataContext db = null, bool isOutSql = false) where T : class, new();
+        public abstract Task<PageResult<T>> ToPageAsync<T>(PageModel pModel, DataContext db = null, bool isOutSql = false) where T : class, new();
 
         public abstract Lazy<PageResult<T>> ToLazyPage<T>(PageModel pModel, DataContext db = null, bool isOutSql = false) where T : class, new();
 
-        public abstract Task<Lazy<PageResult<T>>> ToLazyPageAsy<T>(PageModel pModel, DataContext db = null, bool isOutSql = false) where T : class, new();
+        public abstract Task<Lazy<PageResult<T>>> ToLazyPageAsync<T>(PageModel pModel, DataContext db = null, bool isOutSql = false) where T : class, new();
 
         public abstract PageResult ToPage(PageModel pModel, DataContext db = null, bool isOutSql = false);
 
-        public abstract Task<PageResult> ToPageAsy(PageModel pModel, DataContext db = null, bool isOutSql = false);
+        public abstract Task<PageResult> ToPageAsync(PageModel pModel, DataContext db = null, bool isOutSql = false);
 
         public abstract Lazy<PageResult> ToLazyPage(PageModel pModel, DataContext db = null, bool isOutSql = false);
 
-        public abstract Task<Lazy<PageResult>> ToLazyPageAsy(PageModel pModel, DataContext db = null, bool isOutSql = false);
+        public abstract Task<Lazy<PageResult>> ToLazyPageAsync(PageModel pModel, DataContext db = null, bool isOutSql = false);
 
         public abstract DataTable ToDataTable(DataContext db = null, bool isOutSql = false);
 
-        public abstract Task<DataTable> ToDataTableAsy(DataContext db = null, bool isOutSql = false);
+        public abstract Task<DataTable> ToDataTableAsync(DataContext db = null, bool isOutSql = false);
 
         public abstract Lazy<DataTable> ToLazyDataTable(DataContext db = null, bool isOutSql = false);
 
-        public abstract Task<Lazy<DataTable>> ToLazyDataTableAsy(DataContext db = null, bool isOutSql = false);
+        public abstract Task<Lazy<DataTable>> ToLazyDataTableAsync(DataContext db = null, bool isOutSql = false);
 
         public abstract List<Dictionary<string, object>> ToDics(DataContext db = null, bool isOutSql = false);
 
-        public abstract Task<List<Dictionary<string, object>>> ToDicsAsy(DataContext db = null, bool isOutSql = false);
+        public abstract Task<List<Dictionary<string, object>>> ToDicsAsync(DataContext db = null, bool isOutSql = false);
 
         public abstract Lazy<List<Dictionary<string, object>>> ToLazyDics(DataContext db = null, bool isOutSql = false);
 
-        public abstract Task<Lazy<List<Dictionary<string, object>>>> ToLazyDicsAsy(DataContext db = null, bool isOutSql = false);
+        public abstract Task<Lazy<List<Dictionary<string, object>>>> ToLazyDicsAsync(DataContext db = null, bool isOutSql = false);
 
         public abstract Dictionary<string, object> ToDic(DataContext db = null, bool isOutSql = false);
 
-        public abstract Task<Dictionary<string, object>> ToDicAsy(DataContext db = null, bool isOutSql = false);
+        public abstract Task<Dictionary<string, object>> ToDicAsync(DataContext db = null, bool isOutSql = false);
 
         public abstract Lazy<Dictionary<string, object>> ToLazyDic(DataContext db = null, bool isOutSql = false);
 
-        public abstract Task<Lazy<Dictionary<string, object>>> ToLazyDicAsy(DataContext db = null, bool isOutSql = false);
+        public abstract Task<Lazy<Dictionary<string, object>>> ToLazyDicAsync(DataContext db = null, bool isOutSql = false);
 
         public abstract List<T> ToList<T>(DataContext db = null, bool isOutSql = false) where T : class, new();
 

@@ -228,7 +228,7 @@ namespace FastData.Repository
         /// </summary>
         /// <param name="item"></param>
         /// <returns></returns>
-        public override Task<string> ToJsonAsy(DataContext db = null, bool isOutSql = false)
+        public override Task<string> ToJsonAsync(DataContext db = null, bool isOutSql = false)
         {
             return AsyncHelper.RunAsync(() => ToJson(db, isOutSql));
         }
@@ -248,7 +248,7 @@ namespace FastData.Repository
         /// </summary>
         /// <param name="item"></param>
         /// <returns></returns>
-        public override Task<Lazy<string>> ToLazyJsonAsy(DataContext db = null, bool isOutSql = false)
+        public override Task<Lazy<string>> ToLazyJsonAsync(DataContext db = null, bool isOutSql = false)
         {
             return AsyncHelper.RunAsync(() => AsyncHelper.ToLazy(() => ToJson(db, isOutSql)));
         }
@@ -408,7 +408,7 @@ namespace FastData.Repository
         /// <param name="item"></param>
         /// <param name="pModel"></param>
         /// <returns></returns>
-        public override Task<PageResult<T>> ToPageAsy<T>(PageModel pModel, DataContext db = null, bool isOutSql = false)
+        public override Task<PageResult<T>> ToPageAsync<T>(PageModel pModel, DataContext db = null, bool isOutSql = false)
         {
             return AsyncHelper.RunAsync(() => ToPage<T>(pModel, db, isOutSql));
         }
@@ -432,7 +432,7 @@ namespace FastData.Repository
         /// <param name="item"></param>
         /// <param name="pModel"></param>
         /// <returns></returns>
-        public override Task<Lazy<PageResult<T>>> ToLazyPageAsy<T>(PageModel pModel, DataContext db = null, bool isOutSql = false)
+        public override Task<Lazy<PageResult<T>>> ToLazyPageAsync<T>(PageModel pModel, DataContext db = null, bool isOutSql = false)
         {
             return AsyncHelper.RunAsync(() => new Lazy<PageResult<T>>(() => ToPage<T>(pModel, db, isOutSql)));
         }
@@ -477,7 +477,7 @@ namespace FastData.Repository
         /// <param name="item"></param>
         /// <param name="pModel"></param>
         /// <returns></returns>
-        public override Task<PageResult> ToPageAsy(PageModel pModel, DataContext db = null, bool isOutSql = false)
+        public override Task<PageResult> ToPageAsync(PageModel pModel, DataContext db = null, bool isOutSql = false)
         {
             return AsyncHelper.RunAsync(() => ToPage(pModel, db, isOutSql));
         }
@@ -500,7 +500,7 @@ namespace FastData.Repository
         /// <param name="item"></param>
         /// <param name="pModel"></param>
         /// <returns></returns>
-        public override Task<Lazy<PageResult>> ToLazyPageAsy(PageModel pModel, DataContext db = null, bool isOutSql = false)
+        public override Task<Lazy<PageResult>> ToLazyPageAsync(PageModel pModel, DataContext db = null, bool isOutSql = false)
         {
             return AsyncHelper.RunAsync(() => AsyncHelper.ToLazy(() => ToPage(pModel, db, isOutSql)));
         }
@@ -544,7 +544,7 @@ namespace FastData.Repository
         /// </summary>
         /// <param name="item"></param>
         /// <returns></returns>
-        public override Task<DataTable> ToDataTableAsy(DataContext db = null, bool isOutSql = false)
+        public override Task<DataTable> ToDataTableAsync(DataContext db = null, bool isOutSql = false)
         {
             return AsyncHelper.RunAsync(() => ToDataTable(db, isOutSql));
         }
@@ -564,7 +564,7 @@ namespace FastData.Repository
         /// </summary>
         /// <param name="item"></param>
         /// <returns></returns>
-        public override Task<Lazy<DataTable>> ToLazyDataTableAsy(DataContext db = null, bool isOutSql = false)
+        public override Task<Lazy<DataTable>> ToLazyDataTableAsync(DataContext db = null, bool isOutSql = false)
         {
             return AsyncHelper.RunAsync(() => AsyncHelper.ToLazy(() => ToDataTable(db, isOutSql)));
         }
@@ -607,7 +607,7 @@ namespace FastData.Repository
         /// </summary>
         /// <param name="item"></param>
         /// <returns></returns>
-        public override Task<List<Dictionary<string, object>>> ToDicsAsy(DataContext db = null, bool isOutSql = false)
+        public override Task<List<Dictionary<string, object>>> ToDicsAsync(DataContext db = null, bool isOutSql = false)
         {
             return AsyncHelper.RunAsync(() => ToDics(db, isOutSql));
         }
@@ -627,7 +627,7 @@ namespace FastData.Repository
         /// </summary>
         /// <param name="item"></param>
         /// <returns></returns>
-        public override Task<Lazy<List<Dictionary<string, object>>>> ToLazyDicsAsy(DataContext db = null, bool isOutSql = false)
+        public override Task<Lazy<List<Dictionary<string, object>>>> ToLazyDicsAsync(DataContext db = null, bool isOutSql = false)
         {
             return AsyncHelper.RunAsync(() => new Lazy<List<Dictionary<string, object>>>(() => ToDics(db, isOutSql)));
         }
@@ -671,7 +671,7 @@ namespace FastData.Repository
         /// </summary>
         /// <param name="item"></param>
         /// <returns></returns>
-        public override Task<Dictionary<string, object>> ToDicAsy(DataContext db = null, bool isOutSql = false)
+        public override Task<Dictionary<string, object>> ToDicAsync(DataContext db = null, bool isOutSql = false)
         {
             return AsyncHelper.RunAsync(() => ToDic(db, isOutSql));
         }
@@ -691,7 +691,7 @@ namespace FastData.Repository
         /// </summary>
         /// <param name="item"></param>
         /// <returns></returns>
-        public override Task<Lazy<Dictionary<string, object>>> ToLazyDicAsy(DataContext db = null, bool isOutSql = false)
+        public override Task<Lazy<Dictionary<string, object>>> ToLazyDicAsync(DataContext db = null, bool isOutSql = false)
         {
             return AsyncHelper.RunAsync(() => new Lazy<Dictionary<string, object>>(() => ToDic(db, isOutSql)));
         }
