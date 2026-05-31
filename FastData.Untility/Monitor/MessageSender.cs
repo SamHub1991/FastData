@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using FastUntility.Base;
 
 namespace FastUntility.Monitor
 {
@@ -43,7 +44,7 @@ namespace FastUntility.Monitor
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"发送私聊消息失败: {ex.Message}");
+                BaseLog.SaveLog($"发送私聊消息失败: {ex.Message}", "MessageSender_Error");
             }
         }
 
@@ -69,7 +70,7 @@ namespace FastUntility.Monitor
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"发送群消息失败: {ex.Message}");
+                BaseLog.SaveLog($"发送群消息失败: {ex.Message}", "MessageSender_Error");
             }
         }
 

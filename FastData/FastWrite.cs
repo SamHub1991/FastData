@@ -674,7 +674,8 @@ namespace FastData
 
                 if (isDropExists)
                 {
-                    try { db.ExecuteSql($"DROP TABLE [{tableName}]", null, false, false); } catch { }
+                    try { db.ExecuteSql($"DROP TABLE [{tableName}]", null, false, false); }
+                    catch (Exception dropEx) { DbLog.LogException(true, DataDbType.SqlServer, dropEx, "CodeFirst_DropTable", ""); }
                 }
 
                 db.ExecuteSql(sql, null, false, true);

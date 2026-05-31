@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using FastUntility.Base;
 
 namespace FastData.ConnectionPool
 {
@@ -136,7 +137,7 @@ namespace FastData.ConnectionPool
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"连接池监控失败: {ex.Message}");
+                BaseLog.SaveLog($"连接池监控失败: {ex.Message}", "ConnectionPool_Monitor");
             }
         }
 

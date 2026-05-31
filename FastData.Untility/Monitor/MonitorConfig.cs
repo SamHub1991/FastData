@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Xml;
+using FastUntility.Base;
 
 namespace FastUntility.Monitor
 {
@@ -249,7 +250,7 @@ namespace FastUntility.Monitor
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"解析 IM 平台配置失败: {ex.Message}");
+                BaseLog.SaveLog($"解析 IM 平台配置失败: {ex.Message}", "MonitorConfig_Error");
             }
 
             return (botConfig, notifyConfig);

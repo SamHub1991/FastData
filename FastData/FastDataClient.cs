@@ -895,6 +895,46 @@ namespace FastData
         {
             return new FastWriteQueueBuilder(_key);
         }
+
+        /// <summary>
+        /// 配置表级别的消息队列
+        /// </summary>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="config">队列配置</param>
+        public void ConfigureQueue<T>(WriteBehindConfig config) where T : class
+        {
+            WriteBehindRegistry.Register<T>(config);
+        }
+
+        /// <summary>
+        /// 配置表级别的消息队列
+        /// </summary>
+        /// <param name="tableName">表名</param>
+        /// <param name="config">队列配置</param>
+        public void ConfigureQueue(string tableName, WriteBehindConfig config)
+        {
+            WriteBehindRegistry.Register(tableName, config);
+        }
+
+        /// <summary>
+        /// 检查表是否启用了消息队列
+        /// </summary>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <returns>是否启用队列</returns>
+        public bool IsQueueEnabled<T>() where T : class
+        {
+            return WriteBehindRegistry.IsQueueEnabled<T>();
+        }
+
+        /// <summary>
+        /// 检查表是否启用了消息队列
+        /// </summary>
+        /// <param name="tableName">表名</param>
+        /// <returns>是否启用队列</returns>
+        public bool IsQueueEnabled(string tableName)
+        {
+            return WriteBehindRegistry.IsQueueEnabled(tableName);
+        }
 #endif
 
         #endregion

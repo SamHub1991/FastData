@@ -1,12 +1,14 @@
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using FastData;
+using FastData.Demo.Models;
 
 namespace FastData.Demo.Controllers
 {
     /// <summary>
-    /// 数据同步 Demo
-    /// 演示 FastData 的数据同步功能
+    /// 数据同步 Demo - 跨数据库数据同步
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
@@ -18,99 +20,179 @@ namespace FastData.Demo.Controllers
         [HttpGet("status")]
         public IActionResult GetStatus()
         {
-            var result = new Dictionary<string, object>
+            return Ok(new
             {
-                ["feature"] = "数据同步",
-                ["description"] = "多数据库数据同步",
-                ["status"] = "就绪",
-                ["supportedDatabases"] = new[] { "SqlServer", "MySql", "PostgreSql", "SQLite" }
-            };
-            
-            return Ok(result);
+                Feature = "数据同步",
+                Description = "多数据库数据同步",
+                Status = "就绪",
+                SupportedDatabases = new[] { "SqlServer", "MySql", "PostgreSql", "SQLite" }
+            });
         }
 
         /// <summary>
-        /// 执行数据同步
+        /// 同步用户数据：从源数据库读取，写入目标数据库
         /// </summary>
-        [HttpPost("sync")]
-        public IActionResult SyncData([FromBody] DataSyncRequest request)
+        [HttpPost("sync-users")]
+        public IActionResult SyncUsers([FromBody] DataSyncRequest request)
         {
-            var result = new Dictionary<string, object>();
-            
+            var stopwatch = Stopwatch.StartNew();
             try
             {
-                // 示例：数据同步配置
-                // 实际使用需要配置源数据库和目标数据库
-                result["success"] = true;
-                result["message"] = "数据同步任务已创建";
-                result["data"] = new
+                var sourceKey = request.SourceDb ?? "mysql";
+                var targetKey = request.TargetDb ?? "postgres";
+
+                var sourceUsers = FastRead.Query<AppUser>(u => u.Id > 0, key: sourceKey).ToList<AppUser>();
+
+                var synced = 0;
+                var failed = 0;
+                foreach (var user in sourceUsers)
                 {
-                    request.SourceDb,
-                    request.TargetDb,
-                    request.TableName,
-                    Timestamp = DateTime.Now
-                };
+                    var existing = FastRead.Query<AppUser>(u => u.UserName == user.UserName, key: targetKey).ToItem<AppUser>();
+                    if (existing != null)
+                    {
+                        existing.Email = user.Email;
+                        existing.Phone = user.Phone;
+                        existing.Age = user.Age;
+                        existing.Department = user.Department;
+                        existing.Salary = user.Salary;
+                        existing.UpdateTime = DateTime.Now;
+                        var updateResult = FastWrite.Update(existing, key: targetKey);
+                        if (updateResult.IsSuccess) synced++;
+                        else failed++;
+                    }
+                    else
+                    {
+                        user.Id = 0;
+                        user.CreateTime = DateTime.Now;
+                        var addResult = FastWrite.Add(user, key: targetKey);
+                        if (addResult.IsSuccess) synced++;
+                        else failed++;
+                    }
+                }
+
+                stopwatch.Stop();
+                return Ok(new
+                {
+                    Success = true,
+                    Message = $"同步完成: 成功 {synced} 条, 失败 {failed} 条",
+                    SourceDb = sourceKey,
+                    TargetDb = targetKey,
+                    TotalRead = sourceUsers.Count,
+                    Synced = synced,
+                    Failed = failed,
+                    ElapsedMs = stopwatch.ElapsedMilliseconds
+                });
             }
             catch (Exception ex)
             {
-                result["success"] = false;
-                result["error"] = ex.Message;
+                stopwatch.Stop();
+                return Ok(new
+                {
+                    Success = false,
+                    Message = $"同步失败: {ex.Message}",
+                    ElapsedMs = stopwatch.ElapsedMilliseconds
+                });
             }
-            
-            return Ok(result);
         }
 
         /// <summary>
-        /// 获取同步历史
+        /// 同步订单数据
         /// </summary>
-        [HttpGet("history")]
-        public IActionResult GetHistory()
+        [HttpPost("sync-orders")]
+        public IActionResult SyncOrders([FromBody] DataSyncRequest request)
         {
-            var result = new Dictionary<string, object>
+            var stopwatch = Stopwatch.StartNew();
+            try
             {
-                ["success"] = true,
-                ["data"] = new[]
+                var sourceKey = request.SourceDb ?? "mysql";
+                var targetKey = request.TargetDb ?? "postgres";
+
+                var sourceOrders = FastRead.Query<AppOrder>(o => o.Id > 0, key: sourceKey).ToList<AppOrder>();
+
+                var synced = 0;
+                var failed = 0;
+                foreach (var order in sourceOrders)
                 {
-                    new { Id = 1, SourceDb = "SqlServer", TargetDb = "MySql", Status = "成功", Time = DateTime.Now.AddHours(-2) },
-                    new { Id = 2, SourceDb = "PostgreSql", TargetDb = "SQLite", Status = "成功", Time = DateTime.Now.AddHours(-1) }
+                    var existing = FastRead.Query<AppOrder>(o => o.OrderNo == order.OrderNo, key: targetKey).ToItem<AppOrder>();
+                    if (existing != null)
+                    {
+                        existing.Status = order.Status;
+                        existing.TotalAmount = order.TotalAmount;
+                        existing.PayTime = order.PayTime;
+                        var updateResult = FastWrite.Update(existing, key: targetKey);
+                        if (updateResult.IsSuccess) synced++;
+                        else failed++;
+                    }
+                    else
+                    {
+                        order.Id = 0;
+                        var addResult = FastWrite.Add(order, key: targetKey);
+                        if (addResult.IsSuccess) synced++;
+                        else failed++;
+                    }
                 }
-            };
-            
-            return Ok(result);
+
+                stopwatch.Stop();
+                return Ok(new
+                {
+                    Success = true,
+                    Message = $"订单同步完成: 成功 {synced} 条, 失败 {failed} 条",
+                    SourceDb = sourceKey,
+                    TargetDb = targetKey,
+                    TotalRead = sourceOrders.Count,
+                    Synced = synced,
+                    Failed = failed,
+                    ElapsedMs = stopwatch.ElapsedMilliseconds
+                });
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                return Ok(new
+                {
+                    Success = false,
+                    Message = $"订单同步失败: {ex.Message}",
+                    ElapsedMs = stopwatch.ElapsedMilliseconds
+                });
+            }
         }
 
         /// <summary>
-        /// 获取数据同步使用说明
+        /// 获取各数据库用户数量
         /// </summary>
-        [HttpGet("info")]
-        public IActionResult GetInfo()
+        [HttpGet("count")]
+        public IActionResult GetUserCount()
         {
-            var info = new Dictionary<string, object>
+            try
             {
-                ["feature"] = "数据同步",
-                ["description"] = "多数据库数据同步",
-                ["usage"] = new Dictionary<string, string>
+                var sqlserver = FastRead.Query<AppUser>(u => u.Id > 0, key: "sqlserver").ToCount();
+                var mysql = FastRead.Query<AppUser>(u => u.Id > 0, key: "mysql").ToCount();
+                var postgres = FastRead.Query<AppUser>(u => u.Id > 0, key: "postgres").ToCount();
+                var sqlite = FastRead.Query<AppUser>(u => u.Id > 0, key: "sqlite").ToCount();
+
+                return Ok(new
                 {
-                    ["配置源数据库"] = "在 db.config 中配置源数据库连接",
-                    ["配置目标数据库"] = "在 db.config 中配置目标数据库连接",
-                    ["执行同步"] = "调用同步 API 或定时任务"
-                },
-                ["examples"] = new[]
-                {
-                    "SqlServer 同步到 MySql",
-                    "PostgreSql 同步到 SQLite",
-                    "定时数据备份"
-                }
-            };
-            
-            return Ok(info);
+                    Success = true,
+                    Data = new
+                    {
+                        SqlServer = sqlserver,
+                        MySql = mysql,
+                        PostgreSql = postgres,
+                        SQLite = sqlite
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return Ok(new { Success = false, Message = ex.Message });
+            }
         }
     }
 
     public class DataSyncRequest
     {
-        public string SourceDb { get; set; } = "";
-        public string TargetDb { get; set; } = "";
-        public string TableName { get; set; } = "";
+        public string SourceDb { get; set; }
+        public string TargetDb { get; set; }
+        public string TableName { get; set; }
     }
 }

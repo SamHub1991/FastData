@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using FastUntility.Base;
 
 namespace FastData.ConnectionPool
 {
@@ -315,7 +316,7 @@ namespace FastData.ConnectionPool
             if (_logCallback != null)
                 _logCallback.Invoke($"连接池 {_name}: {message}");
             else
-                Console.WriteLine($"连接池 {_name}: {message}");
+                BaseLog.SaveLog($"连接池 {_name}: {message}", "ConnectionPool");
         }
 
         // 指标

@@ -1,4 +1,5 @@
 using FastData;
+using FastData.Context;
 using FastData.Demo.Models;
 using FastUntility.Page;
 using System;
@@ -7,243 +8,158 @@ using System.Threading.Tasks;
 
 namespace FastData.Demo.Repositories
 {
-    /// <summary>
-    /// 用户仓储接口
-    /// </summary>
     public interface IUserRepository
     {
-        /// <summary>
-        /// 获取所有用户
-        /// </summary>
-        /// <returns>用户列表</returns>
         Task<List<AppUser>> GetAllAsync();
-
-        /// <summary>
-        /// 根据 ID 获取用户
-        /// </summary>
-        /// <param name="id">用户 ID</param>
-        /// <returns>用户信息</returns>
         Task<AppUser> GetByIdAsync(int id);
-
-        /// <summary>
-        /// 根据部门获取用户
-        /// </summary>
-        /// <param name="department">部门名称</param>
-        /// <returns>用户列表</returns>
         Task<List<AppUser>> GetByDepartmentAsync(string department);
-
-        /// <summary>
-        /// 获取活跃用户
-        /// </summary>
-        /// <returns>用户列表</returns>
         Task<List<AppUser>> GetActiveUsersAsync();
-
-        /// <summary>
-        /// 添加用户
-        /// </summary>
-        /// <param name="user">用户信息</param>
-        /// <returns>影响行数</returns>
-        Task<int> AddAsync(AppUser user);
-
-        /// <summary>
-        /// 更新用户
-        /// </summary>
-        /// <param name="user">用户信息</param>
-        /// <returns>影响行数</returns>
-        Task<int> UpdateAsync(AppUser user);
-
-        /// <summary>
-        /// 删除用户
-        /// </summary>
-        /// <param name="id">用户 ID</param>
-        /// <returns>影响行数</returns>
-        Task<int> DeleteAsync(int id);
-
-        /// <summary>
-        /// 分页获取用户
-        /// </summary>
-        /// <param name="pageIndex">页码</param>
-        /// <param name="pageSize">每页记录数</param>
-        /// <returns>用户列表</returns>
-        Task<List<AppUser>> GetPagedAsync(int pageIndex, int pageSize);
+        Task<(bool Success, string Message)> AddAsync(AppUser user);
+        Task<(bool Success, string Message)> UpdateAsync(AppUser user);
+        Task<(bool Success, string Message)> DeleteAsync(int id);
+        Task<(List<AppUser> Data, int Total)> GetPagedAsync(int pageIndex, int pageSize);
     }
 
-    /// <summary>
-    /// 用户仓储实现
-    /// </summary>
     public class UserRepository : IUserRepository
     {
+        private readonly string _key;
+
+        public UserRepository(string key = null)
+        {
+            _key = key;
+        }
+
         public async Task<List<AppUser>> GetAllAsync()
         {
-            return await Task.Run(() => 
-                FastRead.Query<AppUser>(u => u.Id > 0)
+            return await Task.Run(() =>
+                FastRead.Query<AppUser>(u => u.Id > 0, key: _key)
                     .OrderBy(u => u.Id)
-                    .ToList());
+                    .ToList<AppUser>());
         }
 
         public async Task<AppUser> GetByIdAsync(int id)
         {
-            return await Task.Run(() => 
-                FastRead.Query<AppUser>(u => u.Id == id)
-                    .ToItem());
+            return await Task.Run(() =>
+                FastRead.Query<AppUser>(u => u.Id == id, key: _key)
+                    .ToItem<AppUser>());
         }
 
         public async Task<List<AppUser>> GetByDepartmentAsync(string department)
         {
-            return await Task.Run(() => 
-                FastRead.Query<AppUser>(u => u.Department == department)
-                    .ToList());
+            return await Task.Run(() =>
+                FastRead.Query<AppUser>(u => u.Department == department, key: _key)
+                    .ToList<AppUser>());
         }
 
         public async Task<List<AppUser>> GetActiveUsersAsync()
         {
-            return await Task.Run(() => 
-                FastRead.Query<AppUser>(u => u.IsActive == true)
-                    .ToList());
+            return await Task.Run(() =>
+                FastRead.Query<AppUser>(u => u.IsActive == true, key: _key)
+                    .ToList<AppUser>());
         }
 
-        public async Task<int> AddAsync(AppUser user)
+        public async Task<(bool Success, string Message)> AddAsync(AppUser user)
         {
-            try
-            {
-                user.CreateTime = DateTime.Now;
-                user.IsActive = true;
-                var result = await Task.Run(() => FastWrite.Add(user));
-                return result.IsSuccess ? 1 : 0;
-            }
-            catch (Exception)
-            {
-                return 0;
-            }
+            user.CreateTime = DateTime.Now;
+            user.IsActive = true;
+            var result = await Task.Run(() => FastWrite.Add(user, key: _key));
+            return (result.IsSuccess, result.Message);
         }
 
-        public async Task<int> UpdateAsync(AppUser user)
+        public async Task<(bool Success, string Message)> UpdateAsync(AppUser user)
         {
             user.UpdateTime = DateTime.Now;
-            var result = await Task.Run(() => 
-                FastWrite.Update(user, a => new { a.UserName, a.Email, a.Phone, a.Age, a.Department, a.Salary, a.UpdateTime }));
-            return result.IsSuccess ? 1 : 0;
+            var result = await Task.Run(() =>
+                FastWrite.Update(user, a => new { a.UserName, a.Email, a.Phone, a.Age, a.Department, a.Salary, a.UpdateTime }, key: _key));
+            return (result.IsSuccess, result.Message);
         }
 
-        public async Task<int> DeleteAsync(int id)
+        public async Task<(bool Success, string Message)> DeleteAsync(int id)
         {
-            var result = await Task.Run(() => 
-                FastWrite.Delete<AppUser>(a => a.Id == id));
-            return result.IsSuccess ? 1 : 0;
+            var result = await Task.Run(() =>
+                FastWrite.Delete<AppUser>(a => a.Id == id, key: _key));
+            return (result.IsSuccess, result.Message);
         }
 
-        public async Task<List<AppUser>> GetPagedAsync(int pageIndex, int pageSize)
+        public async Task<(List<AppUser> Data, int Total)> GetPagedAsync(int pageIndex, int pageSize)
         {
-            var result = await Task.Run(() => 
-                FastRead.Query<AppUser>(u => u.Id > 0)
+            var result = await Task.Run(() =>
+                FastRead.Query<AppUser>(u => u.Id > 0, key: _key)
                     .OrderBy(u => u.Id)
                     .ToPage<AppUser>(new PageModel { PageId = pageIndex, PageSize = pageSize }));
-            return result.list;
+            return (result.list, result.pModel.TotalRecord);
         }
     }
 
-    /// <summary>
-    /// 订单仓储接口
-    /// </summary>
     public interface IOrderRepository
     {
-        /// <summary>
-        /// 获取所有订单
-        /// </summary>
-        /// <returns>订单列表</returns>
         Task<List<AppOrder>> GetAllAsync();
-
-        /// <summary>
-        /// 根据 ID 获取订单
-        /// </summary>
-        /// <param name="id">订单 ID</param>
-        /// <returns>订单信息</returns>
         Task<AppOrder> GetByIdAsync(int id);
-
-        /// <summary>
-        /// 根据用户 ID 获取订单
-        /// </summary>
-        /// <param name="userId">用户 ID</param>
-        /// <returns>订单列表</returns>
         Task<List<AppOrder>> GetByUserIdAsync(int userId);
-
-        /// <summary>
-        /// 根据状态获取订单
-        /// </summary>
-        /// <param name="status">订单状态</param>
-        /// <returns>订单列表</returns>
         Task<List<AppOrder>> GetByStatusAsync(int status);
-
-        /// <summary>
-        /// 添加订单
-        /// </summary>
-        /// <param name="order">订单信息</param>
-        /// <returns>影响行数</returns>
-        Task<int> AddAsync(AppOrder order);
-
-        /// <summary>
-        /// 更新订单状态
-        /// </summary>
-        /// <param name="id">订单 ID</param>
-        /// <param name="status">订单状态</param>
-        /// <returns>影响行数</returns>
-        Task<int> UpdateStatusAsync(int id, int status);
+        Task<(bool Success, string Message, string OrderNo)> AddAsync(AppOrder order);
+        Task<(bool Success, string Message)> UpdateStatusAsync(int id, int status);
     }
 
-    /// <summary>
-    /// 订单仓储实现
-    /// </summary>
     public class OrderRepository : IOrderRepository
     {
+        private static readonly Random _random = new Random();
+        private readonly string _key;
+
+        public OrderRepository(string key = null)
+        {
+            _key = key;
+        }
+
         public async Task<List<AppOrder>> GetAllAsync()
         {
-            return await Task.Run(() => 
-                FastRead.Query<AppOrder>(o => o.Id > 0)
+            return await Task.Run(() =>
+                FastRead.Query<AppOrder>(o => o.Id > 0, key: _key)
                     .OrderByDescending(o => o.Id)
-                    .ToList());
+                    .ToList<AppOrder>());
         }
 
         public async Task<AppOrder> GetByIdAsync(int id)
         {
-            return await Task.Run(() => 
-                FastRead.Query<AppOrder>(o => o.Id == id)
-                    .ToItem());
+            return await Task.Run(() =>
+                FastRead.Query<AppOrder>(o => o.Id == id, key: _key)
+                    .ToItem<AppOrder>());
         }
 
         public async Task<List<AppOrder>> GetByUserIdAsync(int userId)
         {
-            return await Task.Run(() => 
-                FastRead.Query<AppOrder>(o => o.UserId == userId)
+            return await Task.Run(() =>
+                FastRead.Query<AppOrder>(o => o.UserId == userId, key: _key)
                     .OrderByDescending(o => o.CreateTime)
-                    .ToList());
+                    .ToList<AppOrder>());
         }
 
         public async Task<List<AppOrder>> GetByStatusAsync(int status)
         {
-            return await Task.Run(() => 
-                FastRead.Query<AppOrder>(o => o.Status == status)
-                    .ToList());
+            return await Task.Run(() =>
+                FastRead.Query<AppOrder>(o => o.Status == status, key: _key)
+                    .ToList<AppOrder>());
         }
 
-        public async Task<int> AddAsync(AppOrder order)
+        public async Task<(bool Success, string Message, string OrderNo)> AddAsync(AppOrder order)
         {
             order.CreateTime = DateTime.Now;
             order.Status = 0;
-            order.OrderNo = $"ORD{DateTime.Now:yyyyMMddHHmmss}{new Random().Next(1000, 9999)}";
-            var result = await Task.Run(() => FastWrite.Add(order));
-            return result.IsSuccess ? 1 : 0;
+            order.OrderNo = $"ORD{DateTime.Now:yyyyMMddHHmmss}{_random.Next(1000, 9999)}";
+            var result = await Task.Run(() => FastWrite.Add(order, key: _key));
+            return (result.IsSuccess, result.Message, order.OrderNo);
         }
 
-        public async Task<int> UpdateStatusAsync(int id, int status)
+        public async Task<(bool Success, string Message)> UpdateStatusAsync(int id, int status)
         {
             var order = await GetByIdAsync(id);
-            if (order == null) return 0;
+            if (order == null) return (false, "订单不存在");
 
             order.Status = status;
             if (status == 1) order.PayTime = DateTime.Now;
-            var result = await Task.Run(() => 
-                FastWrite.Update(order, a => new { a.Status, a.PayTime }));
-            return result.IsSuccess ? 1 : 0;
+            var result = await Task.Run(() =>
+                FastWrite.Update(order, a => new { a.Status, a.PayTime }, key: _key));
+            return (result.IsSuccess, result.Message);
         }
     }
 }

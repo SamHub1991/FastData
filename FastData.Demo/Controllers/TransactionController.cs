@@ -1,5 +1,9 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using FastData;
+using FastData.Context;
+using FastData.Demo.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FastData.Demo.Controllers
@@ -14,19 +18,48 @@ namespace FastData.Demo.Controllers
         /// <summary>
         /// 事务示例：批量创建订单
         /// </summary>
-        /// <remarks>
-        /// 演示 FastWrite 事务用法：
-        /// 
-        /// 注意：当前版本暂不支持事务操作，此接口仅作为示例。
-        /// </remarks>
         [HttpPost("batch-orders")]
         public IActionResult CreateBatchOrders([FromBody] BatchOrderRequest request)
         {
-            return Ok(new
+            try
             {
-                Success = false,
-                Message = "当前版本暂不支持事务操作"
-            });
+                var db = new DataContext("sqlserver");
+                db.BeginTrans();
+
+                var orders = new List<AppOrder>();
+                for (int i = 0; i < request.ProductIds.Length; i++)
+                {
+                    var order = new AppOrder
+                    {
+                        UserId = request.UserId,
+                        OrderNo = $"ORD{DateTime.Now:yyyyMMddHHmmss}{i:D4}",
+                        TotalAmount = request.Quantities[i] * 100,
+                        Quantity = request.Quantities[i],
+                        Status = 0,
+                        CreateTime = DateTime.Now
+                    };
+
+                    var result = db.Add(order);
+                    if (!result.WriteReturn.IsSuccess)
+                    {
+                        db.RollbackTrans();
+                        return Ok(new { Success = false, Message = $"第{i + 1}个订单创建失败: {result.WriteReturn.Message}" });
+                    }
+                    orders.Add(order);
+                }
+
+                db.SubmitTrans();
+                return Ok(new
+                {
+                    Success = true,
+                    Message = $"成功创建 {orders.Count} 个订单",
+                    Orders = orders.Select(o => new { o.OrderNo, o.TotalAmount })
+                });
+            }
+            catch (Exception ex)
+            {
+                return Ok(new { Success = false, Message = $"事务执行失败: {ex.Message}" });
+            }
         }
 
         /// <summary>
@@ -35,82 +68,109 @@ namespace FastData.Demo.Controllers
         [HttpPost("transfer")]
         public IActionResult Transfer([FromBody] TransferRequest request)
         {
-            return Ok(new
+            try
             {
-                Success = false,
-                Message = "当前版本暂不支持事务操作"
-            });
+                var db = new DataContext("sqlserver");
+                db.BeginTrans();
+
+                var fromUser = FastRead.Query<AppUser>(u => u.Id == request.FromAccountId).ToItem<AppUser>();
+                var toUser = FastRead.Query<AppUser>(u => u.Id == request.ToAccountId).ToItem<AppUser>();
+
+                if (fromUser == null || toUser == null)
+                {
+                    db.RollbackTrans();
+                    return Ok(new { Success = false, Message = "账户不存在" });
+                }
+
+                if (fromUser.Salary < request.Amount)
+                {
+                    db.RollbackTrans();
+                    return Ok(new { Success = false, Message = "余额不足" });
+                }
+
+                fromUser.Salary -= request.Amount;
+                toUser.Salary += request.Amount;
+
+                var r1 = db.Update(fromUser, a => new { a.Salary });
+                if (!r1.WriteReturn.IsSuccess)
+                {
+                    db.RollbackTrans();
+                    return Ok(new { Success = false, Message = $"扣款失败: {r1.WriteReturn.Message}" });
+                }
+
+                var r2 = db.Update(toUser, a => new { a.Salary });
+                if (!r2.WriteReturn.IsSuccess)
+                {
+                    db.RollbackTrans();
+                    return Ok(new { Success = false, Message = $"入账失败: {r2.WriteReturn.Message}" });
+                }
+
+                db.SubmitTrans();
+                return Ok(new
+                {
+                    Success = true,
+                    Message = $"转账成功: {fromUser.UserName} -> {toUser.UserName}, 金额: {request.Amount}",
+                    FromBalance = fromUser.Salary,
+                    ToBalance = toUser.Salary
+                });
+            }
+            catch (Exception ex)
+            {
+                return Ok(new { Success = false, Message = $"转账失败: {ex.Message}" });
+            }
         }
 
         /// <summary>
-        /// 事务示例：批量操作
+        /// 事务示例：批量添加用户
         /// </summary>
-        [HttpPost("batch")]
-        public IActionResult BatchOperation([FromBody] BatchRequest request)
+        [HttpPost("batch-users")]
+        public IActionResult BatchCreateUsers([FromBody] List<AppUser> users)
         {
-            return Ok(new
+            try
             {
-                Success = false,
-                Message = "当前版本暂不支持事务操作"
-            });
+                var db = new DataContext("sqlserver");
+                db.BeginTrans();
+
+                var created = new List<string>();
+                foreach (var user in users)
+                {
+                    user.CreateTime = DateTime.Now;
+                    user.IsActive = true;
+                    var result = db.Add(user);
+                    if (!result.WriteReturn.IsSuccess)
+                    {
+                        db.RollbackTrans();
+                        return Ok(new { Success = false, Message = $"用户 {user.UserName} 创建失败: {result.WriteReturn.Message}" });
+                    }
+                    created.Add(user.UserName);
+                }
+
+                db.SubmitTrans();
+                return Ok(new
+                {
+                    Success = true,
+                    Message = $"成功创建 {created.Count} 个用户",
+                    Users = created
+                });
+            }
+            catch (Exception ex)
+            {
+                return Ok(new { Success = false, Message = $"批量创建失败: {ex.Message}" });
+            }
         }
     }
 
-    /// <summary>
-    /// 批量订单请求
-    /// </summary>
     public class BatchOrderRequest
     {
-        /// <summary>
-        /// 用户 ID
-        /// </summary>
         public int UserId { get; set; }
-
-        /// <summary>
-        /// 商品 ID 列表
-        /// </summary>
         public int[] ProductIds { get; set; }
-
-        /// <summary>
-        /// 数量列表
-        /// </summary>
         public int[] Quantities { get; set; }
     }
 
-    /// <summary>
-    /// 转账请求
-    /// </summary>
     public class TransferRequest
     {
-        /// <summary>
-        /// 源账户 ID
-        /// </summary>
         public int FromAccountId { get; set; }
-
-        /// <summary>
-        /// 目标账户 ID
-        /// </summary>
         public int ToAccountId { get; set; }
-
-        /// <summary>
-        /// 金额
-        /// </summary>
         public decimal Amount { get; set; }
-    }
-
-    /// <summary>
-    /// 批量操作请求
-    /// </summary>
-    public class BatchRequest
-    {
-        /// <summary>
-        /// 操作类型
-        /// </summary>
-        public string OperationType { get; set; }
-
-        /// <summary>
-        /// 数据列表
-        /// </summary>
-        public object[] Data { get; set; }
     }
 }

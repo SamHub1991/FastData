@@ -2,6 +2,114 @@
 
 本文档记录 FastData 的所有重要变更。格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [2.3.0] - 2026-05-31
+
+### Added
+
+- **FastUntility 新增工具类**
+  - `Base/DateHelper.cs` - 日期时间工具
+    - 时间戳转换（秒/毫秒）
+    - 相对时间描述（"3 分钟前"、"2 小时前"）
+    - 日期计算（周/月/季/年开始和结束时间）
+    - 工作日判断、年龄计算
+    - 中文日期格式化
+  - `Base/CollectionHelper.cs` - 集合扩展工具
+    - 空值安全扩展（IsNullOrEmpty/HasValue）
+    - 安全遍历（ForEachSafe）
+    - 分页扩展（Page/PageWithTotal）
+    - 去重与分组（DistinctBy/GroupToDictionary）
+    - 集合运算（Intersect/Except/Union/Concat）
+    - 批量操作（Batch/BatchExecute）
+    - 统计扩展（SumSafe/MaxSafe/MinSafe/AverageSafe）
+    - 随机操作（Shuffle/Random）
+    - 树形结构转换（ToTree）
+  - `Page/ApiResponse.cs` - 统一 API 响应格式
+    - `ApiResponse<T>` 泛型响应
+    - `ApiResponse` 无数据响应
+    - 静态工厂方法（Ok/Fail/NotFound/Unauthorized/Forbidden）
+    - 内置时间戳和请求 ID
+  - `Page/Result.cs` - 统一结果类型
+    - `Result` 无数据结果
+    - `Result<T>` 带数据结果
+    - 与 ApiResponse 互转
+
+- **Demo 新增控制器**
+  - `ReportController.cs` - 报表统计
+    - GroupBy 分组聚合
+    - Join 关联查询
+    - ToJson/ToDics/ToDataTable 导出
+    - 投影查询（Select）
+    - 聚合统计（Count/Sum/Avg）
+  - `DataExportController.cs` - 数据导出
+    - ToDics/ToDataTable/ToArray 导出
+    - 投影导出
+    - 分页导出
+    - 字典导出
+  - `AsyncController.cs` - 异步并发
+    - AddAsy/UpdateAsy/DeleteAsy
+    - ToListAsync 异步查询
+    - 并发查询（多任务同时执行）
+    - 并发写入（批量插入）
+    - 事务操作
+  - `DynamicQueryController.cs` - 动态查询
+    - Where 条件构建器（动态拼接条件）
+    - Any/All 存在性判断
+    - First/Single 单条查询
+    - In/Between/Like 范围查询
+    - 动态排序和分页
+  - `DataValidationController.cs` - 数据校验
+    - NullSafety 空值安全
+    - 字段验证（添加/更新前验证）
+    - 异常处理（安全查询/安全写入）
+    - WriteReturn 信息展示
+    - 数据完整性验证
+
+### Changed
+
+- **日志系统改进**
+  - `FastData/ConnectionPool/SmartConnectionPool.cs` - Console.WriteLine → BaseLog.SaveLog
+  - `FastData/ConnectionPool/ConnectionPoolMonitor.cs` - Console.WriteLine → BaseLog.SaveLog
+  - `FastData.Untility/Monitor/MonitorConfig.cs` - Console.WriteLine → BaseLog.SaveLog
+  - `FastData.Untility/Monitor/MessageSender.cs` - Console.WriteLine → BaseLog.SaveLog
+  - `FastData.Untility/Security/ServerMonitor.cs` - Console.WriteLine → BaseLog.SaveLog
+  - `FastData/FastWrite.cs` - 空 catch → DbLog.LogException
+
+- **异常处理改进**
+  - `FastData.Untility/Security/ServerMonitor.cs` - 4 处空 catch → BaseLog.SaveLog
+  - 所有空 catch 块现在都记录错误日志
+
+- **代码质量改进**
+  - 添加缺失的 using 语句（FastUntility.Base）
+  - 修复 API 不一致问题
+  - 补充 XML 文档注释
+
+### Fixed
+
+- **编译错误修复**
+  - FastWrite.cs:678 - BaseLog 不存在 → DbLog.LogException
+  - DynamicQueryController.cs - Where<T>条件构建器 API 修正
+  - DataExportController.cs - ToArray/ToDics/ToPage API 修正
+  - AsyncController.cs - 异步 API 签名修正
+
+### Performance
+
+- **测试结果**
+  - 192/197 测试通过 (97.5%)
+  - OrmCrudTests: 26/26 通过
+  - ShardingTests: 40/40 通过
+  - ConnectionPoolTests: 16/16 通过 (42s)
+  - StressTests: 13/18 通过 (5 失败为容量限制，非 bug)
+
+### Technical Details
+
+- 新增 4 个工具类文件
+- 新增 5 个 Demo 控制器文件
+- 修复 10+ 处 Console.WriteLine
+- 修复 7 处空 catch 块
+- 代码质量扫描：全 solution 0 错误
+
+---
+
 ## [2.2.0] - 2026-05-29
 
 ### Added

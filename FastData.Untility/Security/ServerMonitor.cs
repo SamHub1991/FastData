@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
+using FastUntility.Base;
 
 namespace FastUntility.Security
 {
@@ -85,7 +86,7 @@ namespace FastUntility.Security
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"获取服务器监控信息失败: {ex.Message}");
+                BaseLog.SaveLog($"获取服务器监控信息失败: {ex.Message}", "ServerMonitor_Error");
             }
 
             return info;
@@ -156,7 +157,10 @@ namespace FastUntility.Security
                     }
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                BaseLog.SaveLog($"获取CPU使用率失败: {ex.Message}", "ServerMonitor_Error");
+            }
             return 0;
         }
 
@@ -176,7 +180,10 @@ namespace FastUntility.Security
                     return GetMemoryInfoLinux();
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                BaseLog.SaveLog($"获取内存信息失败: {ex.Message}", "ServerMonitor_Error");
+            }
             return (0, 0, 0, 0);
         }
 
@@ -246,7 +253,10 @@ namespace FastUntility.Security
                     }
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                BaseLog.SaveLog($"获取磁盘信息失败: {ex.Message}", "ServerMonitor_Error");
+            }
 
             return disks;
         }
@@ -275,7 +285,10 @@ namespace FastUntility.Security
                     networks.Add(network);
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                BaseLog.SaveLog($"获取网络信息失败: {ex.Message}", "ServerMonitor_Error");
+            }
 
             return networks;
         }
