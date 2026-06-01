@@ -10,7 +10,7 @@ namespace FastData.Demo.Controllers
     /// 分页查询 API 示例
     /// </summary>
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/Pagination")]
     public class PaginationController : ControllerBase
     {
         /// <summary>

@@ -1,9 +1,11 @@
 using System;
+using Microsoft.Extensions.Logging;
 #if NETFRAMEWORK
 using System.Runtime.Remoting.Messaging;
 #else
 using System.Threading;
 #endif
+using FastData.Base;
 
 namespace FastData
 {
@@ -46,11 +48,25 @@ namespace FastData
         private static readonly AsyncLocal<string> _currentKey = new AsyncLocal<string>();
 #endif
 
-        /// <summary>
-        /// 全局SQL日志开关（默认关闭）
-        /// 设置为 true 时，所有SQL查询都会被记录
+/// <summary>
+        /// 全局 SQL 日志开关（默认关闭）
+        /// 设置为 true 时，所有 SQL 查询都会被记录
         /// </summary>
         public static bool EnableSqlLog { get; set; } = false;
+
+        /// <summary>
+        /// 慢查询阈值（毫秒），超过此阈值的查询会被记录为警告
+        /// </summary>
+        public static int SlowQueryThresholdMs { get; set; } = 1000;
+
+        /// <summary>
+        /// 配置 FastData 使用 Microsoft.Extensions.Logging
+        /// </summary>
+        /// <param name="loggerFactory">日志工厂</param>
+        public static void ConfigureLogging(ILoggerFactory loggerFactory)
+        {
+            EnhancedDbLog.Initialize(loggerFactory);
+        }
 
         /// <summary>
         /// 当前数据库Key

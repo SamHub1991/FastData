@@ -2,6 +2,7 @@ using FastData.Demo.Repositories;
 using FastData.Demo.Services;
 using FastData.Repository;
 using FastData.Config;
+using FastData;
 using FastRedis;
 using FastRedis.Messaging;
 using FastRedis.Repository;
@@ -16,6 +17,12 @@ DbProviderFactories.RegisterFactory("System.Data.SQLite", System.Data.SQLite.SQL
 DbProviderFactories.RegisterFactory("Npgsql", Npgsql.NpgsqlFactory.Instance);
 
 var builder = WebApplication.CreateBuilder(args);
+
+// 初始化 FastData 数据库配置
+// 必须在注册服务之前初始化，确保配置可用
+var _ = FastDataConfig.GetConnectionSummaries();
+
+// FastData 日志系统将在服务配置完成后初始化
 
 // 高并发 Kestrel 配置
 builder.WebHost.ConfigureKestrel(options =>
@@ -58,8 +65,8 @@ builder.Services.AddSingleton(sp => new MessageQueueIntegrationService(sp.GetReq
 builder.Services.AddSingleton(sp => new MessageQueueService(sp.GetRequiredService<NewLife.Caching.FullRedis>()));
 
 // 注册仓储服务
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IUserRepository>(sp => new UserRepository("SqlServer"));
+builder.Services.AddScoped<IOrderRepository>(sp => new OrderRepository("SqlServer"));
 
 // 注册数据同步服务
 builder.Services.AddScoped<IDataSyncService, DataSyncService>();
@@ -192,6 +199,11 @@ app.MapPost("/api/mq/demo/write-queue", (MessageQueueService mqService) =>
         return Results.BadRequest(new { Success = false, Error = ex.Message });
     }
 });
+
+// 配置 FastData 日志系统
+FastDb.ConfigureLogging(app.Services.GetRequiredService<ILoggerFactory>());
+FastDb.EnableSqlLog = true;  // 启用 SQL 日志
+FastDb.SlowQueryThresholdMs = 500;  // 慢查询阈值 500ms
 
 // FastRead 链式 API 示例（查询队列）
 app.MapPost("/api/mq/demo/read-queue", (MessageQueueService mqService) =>

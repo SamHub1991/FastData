@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
+using System.Data;
 using System.Data.Common;
 using FastData.Base;
 using FastData.Model;
@@ -223,6 +224,12 @@ namespace FastData
 
             stopwatch.Start();
 
+            // 审计字段自动填充
+            if (FastData.Config.FastDataOptions.Audit.Enabled)
+            {
+                AutoFillAuditFields(model, isUpdate: false);
+            }
+
             if (db == null)
             {
                 using (var tempDb = new DataContext(key, projectName))
@@ -275,6 +282,12 @@ namespace FastData
         /// <returns></returns>
         public static WriteReturn Delete<T>(Expression<Func<T, bool>> predicate, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
+            // 软删除支持
+            if (Config.FastDataOptions.SoftDelete.Enabled)
+            {
+                return SoftDelete<T>(predicate, db, key, isOutSql);
+            }
+
             key = key ?? FastDb.CurrentKey;
             var projectName = Assembly.GetCallingAssembly().GetName().Name;
             ConfigModel config = null;
@@ -303,6 +316,43 @@ namespace FastData
             DbLog.LogSql(config.IsOutSql, result.Sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
 
             return result.WriteReturn;
+        }
+
+        /// <summary>
+        /// 软删除实现
+        /// </summary>
+        private static WriteReturn SoftDelete<T>(Expression<Func<T, bool>> predicate, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
+        {
+            key = key ?? FastDb.CurrentKey;
+            try
+            {
+                var deleteProperty = FastData.Config.FastDataOptions.SoftDelete.PropertyName;
+                var property = typeof(T).GetProperty(deleteProperty);
+                if (property == null) throw new Exception($"字段{deleteProperty}不存在");
+
+                var parameter = Expression.Parameter(typeof(T), "x");
+                var updateField = Expression.Lambda<Func<T, object>>(
+                    Expression.Convert(Expression.Property(parameter, property), typeof(object)), parameter);
+
+                var example = new T();
+                if (db == null)
+                {
+                    using (var tempDb = new DataContext(key, Assembly.GetCallingAssembly().GetName().Name))
+                    {
+                        var result = tempDb.Update(example, predicate, updateField);
+                        return result.WriteReturn;
+                    }
+                }
+                else
+                {
+                    var result = db.Update(example, predicate, updateField);
+                    return result.WriteReturn;
+                }
+            }
+            catch (Exception ex)
+            {
+                return new WriteReturn { IsSuccess = false, Message = ex.Message };
+            }
         }
         #endregion
 
@@ -391,6 +441,12 @@ namespace FastData
             var stopwatch = new Stopwatch();
 
             stopwatch.Start();
+
+            // 审计字段自动填充
+            if (FastData.Config.FastDataOptions.Audit.Enabled)
+            {
+                AutoFillAuditFields(model, isUpdate: true);
+            }
 
             if (db == null)
             {
@@ -734,6 +790,223 @@ namespace FastData
         public static Task<WriteReturn> CodeFirstAsync<T>(string key = null, bool isDropExists = false) where T : class, new()
         {
             return AsyncHelper.RunAsync(() => CodeFirst<T>(key, isDropExists));
+        }
+
+
+        /// <summary>
+        /// 自动填充审计字段
+        /// </summary>
+        private static void AutoFillAuditFields<T>(T model, bool isUpdate) where T : class, new()
+        {
+            var audit = FastData.Config.FastDataOptions.Audit;
+            var now = DateTime.Now;
+            var currentUser = audit.GetCurrentUser?.Invoke() ?? "System";
+
+            // 创建时间
+            if (!isUpdate)
+            {
+                var createdTimeProp = typeof(T).GetProperty(audit.CreatedTimeProperty);
+                if (createdTimeProp != null && createdTimeProp.CanWrite)
+                    createdTimeProp.SetValue(model, now);
+
+                var createdByProp = typeof(T).GetProperty(audit.CreatedByProperty);
+                if (createdByProp != null && createdByProp.CanWrite)
+                    createdByProp.SetValue(model, currentUser);
+            }
+
+            // 更新时间
+            var updatedTimeProp = typeof(T).GetProperty(audit.UpdatedTimeProperty);
+            if (updatedTimeProp != null && updatedTimeProp.CanWrite)
+                updatedTimeProp.SetValue(model, now);
+
+            var updatedByProp = typeof(T).GetProperty(audit.UpdatedByProperty);
+            if (updatedByProp != null && updatedByProp.CanWrite)
+                updatedByProp.SetValue(model, currentUser);
+        }
+        #endregion
+
+        #region SqlBulkCopy 辅助方法
+
+        /// <summary>
+        /// 创建用于 SqlBulkCopy 的 DataTable，自动包含实体所有属性对应的列
+        /// </summary>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="includeIdentity">是否包含自增列（默认为 true）</param>
+        /// <returns>配置好的 DataTable</returns>
+        public static DataTable CreateBulkCopyDataTable<T>(bool includeIdentity = true) where T : class, new()
+        {
+            var dataTable = new DataTable();
+            var properties = typeof(T).GetProperties()
+                .Where(p => p.CanRead && p.CanWrite)
+                .ToList();
+
+            foreach (var prop in properties)
+            {
+                // 检查是否是自增列（通过 Column 特性）
+                var columnAttr = prop.GetCustomAttributes(typeof(Property.ColumnAttribute), false)
+                    .FirstOrDefault() as Property.ColumnAttribute;
+                
+                if (!includeIdentity && columnAttr?.IsIdentity == true)
+                    continue;
+
+                dataTable.Columns.Add(prop.Name, Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType);
+            }
+
+            return dataTable;
+        }
+
+        /// <summary>
+        /// 将实体列表填充到 DataTable（用于 SqlBulkCopy）
+        /// </summary>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="list">实体列表</param>
+        /// <param name="dataTable">目标 DataTable</param>
+        /// <param name="includeIdentity">是否包含自增列</param>
+        public static void FillBulkCopyDataTable<T>(List<T> list, DataTable dataTable, bool includeIdentity = true) where T : class, new()
+        {
+            if (list == null || list.Count == 0)
+                return;
+
+            var properties = typeof(T).GetProperties()
+                .Where(p => p.CanRead && p.CanWrite)
+                .ToList();
+
+            foreach (var item in list)
+            {
+                var row = dataTable.NewRow();
+                foreach (var prop in properties)
+                {
+                    // 检查是否是自增列
+                    var columnAttr = prop.GetCustomAttributes(typeof(Property.ColumnAttribute), false)
+                        .FirstOrDefault() as Property.ColumnAttribute;
+                    
+                    if (!includeIdentity && columnAttr?.IsIdentity == true)
+                        continue;
+
+                    if (dataTable.Columns.Contains(prop.Name))
+                    {
+                        var value = prop.GetValue(item);
+                        row[prop.Name] = value ?? DBNull.Value;
+                    }
+                }
+                dataTable.Rows.Add(row);
+            }
+        }
+
+        #endregion
+
+        #region 批量更新/删除
+
+        /// <summary>
+        /// 批量更新实体（使用 SQL UPDATE ... WHERE IN）
+        /// </summary>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="list">实体列表</param>
+        /// <param name="predicate">更新条件（通常使用 ID）</param>
+        /// <param name="db">数据上下文（可选）</param>
+        /// <param name="key">数据库Key（可选）</param>
+        /// <returns>更新结果</returns>
+        public static WriteReturn BulkUpdate<T>(List<T> list, Expression<Func<T, bool>> predicate, DataContext db = null, string key = null) where T : class, new()
+        {
+            if (list == null || list.Count == 0)
+                return new WriteReturn { IsSuccess = true };
+
+            key = key ?? FastDb.CurrentKey;
+            var projectName = Assembly.GetCallingAssembly().GetName().Name;
+            ConfigModel config = null;
+            var result = new DataReturn();
+            var stopwatch = new Stopwatch();
+
+            stopwatch.Start();
+
+            try
+            {
+                if (db == null)
+                {
+                    using (var tempDb = new DataContext(key, projectName))
+                    {
+                        config = tempDb.config;
+                        result = tempDb.BulkUpdate(list, predicate, config.IsOutSql);
+                    }
+                }
+                else
+                {
+                    config = db.config;
+                    result = db.BulkUpdate(list, predicate, config.IsOutSql);
+                }
+            }
+            catch (Exception ex)
+            {
+                result.WriteReturn.IsSuccess = false;
+                result.WriteReturn.Message = ex.Message;
+            }
+
+            stopwatch.Stop();
+            DbLog.LogSql(config?.IsOutSql ?? false, result.Sql, config?.DbType ?? DataDbType.SqlServer, stopwatch.Elapsed.TotalMilliseconds);
+
+            return result.WriteReturn;
+        }
+
+        /// <summary>
+        /// 批量删除实体（使用 SQL DELETE FROM ... WHERE IN）
+        /// </summary>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="predicate">删除条件</param>
+        /// <param name="db">数据上下文（可选）</param>
+        /// <param name="key">数据库Key（可选）</param>
+        /// <returns>删除结果</returns>
+        public static WriteReturn BulkDelete<T>(Expression<Func<T, bool>> predicate, DataContext db = null, string key = null) where T : class, new()
+        {
+            if (predicate == null)
+                throw new ArgumentNullException(nameof(predicate), "删除条件不能为空");
+
+            key = key ?? FastDb.CurrentKey;
+            var projectName = Assembly.GetCallingAssembly().GetName().Name;
+            ConfigModel config = null;
+            var result = new DataReturn();
+            var stopwatch = new Stopwatch();
+
+            stopwatch.Start();
+
+            try
+            {
+                if (db == null)
+                {
+                    using (var tempDb = new DataContext(key, projectName))
+                    {
+                        config = tempDb.config;
+                        result = tempDb.BulkDelete(predicate, config.IsOutSql);
+                    }
+                }
+                else
+                {
+                    config = db.config;
+                    result = db.BulkDelete(predicate, config.IsOutSql);
+                }
+            }
+            catch (Exception ex)
+            {
+                result.WriteReturn.IsSuccess = false;
+                result.WriteReturn.Message = ex.Message;
+            }
+
+            stopwatch.Stop();
+            DbLog.LogSql(config?.IsOutSql ?? false, result.Sql, config?.DbType ?? DataDbType.SqlServer, stopwatch.Elapsed.TotalMilliseconds);
+
+            return result.WriteReturn;
+        }
+
+        /// <summary>
+        /// 批量更新/删除异步
+        /// </summary>
+        public static Task<WriteReturn> BulkUpdateAsync<T>(List<T> list, Expression<Func<T, bool>> predicate, DataContext db = null, string key = null) where T : class, new()
+        {
+            return AsyncHelper.RunAsync(() => BulkUpdate(list, predicate, db, key));
+        }
+
+        public static Task<WriteReturn> BulkDeleteAsync<T>(Expression<Func<T, bool>> predicate, DataContext db = null, string key = null) where T : class, new()
+        {
+            return AsyncHelper.RunAsync(() => BulkDelete(predicate, db, key));
         }
 
         #endregion

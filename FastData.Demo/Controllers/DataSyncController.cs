@@ -11,7 +11,7 @@ namespace FastData.Demo.Controllers
     /// 数据同步 Demo - 跨数据库数据同步
     /// </summary>
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/DataSync")]
     public class DataSyncController : ControllerBase
     {
         /// <summary>

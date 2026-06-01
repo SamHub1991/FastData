@@ -418,10 +418,17 @@ namespace FastData.Config
             if (string.IsNullOrEmpty(key))
                 result = GetDefaultConfig(list, defaultKey);
             else
-                result = list.Find(a => a.Key == key);
+                result = list.Find(a => string.Equals(a.Key, key, StringComparison.OrdinalIgnoreCase));
 
             if (result == null)
-                throw new Exception(string.Format("数据库配置 Key 不存在:{0}; 可用 Key:{1}", key, string.Join(",", list.Select(a => a.Key))));
+            {
+                var availableKeys = string.Join(", ", list.Select(a => a.Key));
+                var configPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "db.config");
+                var errorMessage = string.Format(
+                    "数据库配置 Key 不存在：{0}（注意：Key 匹配已忽略大小写）\n可用 Key: {1}\n配置文件路径：{2}\n\n解决方案：\n1. 检查 db.config 文件中是否定义了该 Key\n2. 确认 Key 名称拼写正确\n3. 确保配置文件已发布到输出目录",
+                    key, availableKeys, configPath);
+                throw new Exception(errorMessage);
+            }
 
             return result;
         }
@@ -445,7 +452,7 @@ namespace FastData.Config
         {
             if (!string.IsNullOrEmpty(defaultKey))
             {
-                var item = list.Find(a => a.Key == defaultKey);
+var item = list.Find(a => string.Equals(a.Key, defaultKey, StringComparison.OrdinalIgnoreCase));
                 if (item != null)
                     return item;
             }

@@ -15,7 +15,7 @@ namespace FastData.Demo.Controllers
     /// 演示 FastData 的消息队列功能
     /// </summary>
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/MessageQueue")]
     public class MessageQueueController : ControllerBase
     {
         private static MessageQueueIntegrationService _mqService;

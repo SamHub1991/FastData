@@ -1,0 +1,490 @@
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FastData.DevTools
+{
+    /// <summary>
+    /// 日志聚合器
+    /// </summary>
+    public static class LogAggregator
+    {
+        private static readonly ConcurrentQueue<LogEntry> _logQueue = new ConcurrentQueue<LogEntry>();
+        private static readonly List<ILogProvider> _providers = new List<ILogProvider>();
+        private static readonly object _lock = new object();
+        private static bool _isRunning;
+        private static Task _processingTask;
+
+        /// <summary>
+        /// 添加日志提供者
+        /// </summary>
+        public static void AddProvider(ILogProvider provider)
+        {
+            lock (_lock)
+            {
+                _providers.Add(provider);
+            }
+        }
+
+        /// <summary>
+        /// 移除日志提供者
+        /// </summary>
+        public static void RemoveProvider(ILogProvider provider)
+        {
+            lock (_lock)
+            {
+                _providers.Remove(provider);
+            }
+        }
+
+        /// <summary>
+        /// 记录日志
+        /// </summary>
+        public static void Log(LogLevel level, string message, string category = null, Dictionary<string, object> properties = null)
+        {
+            var entry = new LogEntry
+            {
+                Timestamp = DateTime.Now,
+                Level = level,
+                Message = message,
+                Category = category,
+                Properties = properties ?? new Dictionary<string, object>()
+            };
+
+            _logQueue.Enqueue(entry);
+
+            StartProcessing();
+        }
+
+        /// <summary>
+        /// 记录信息日志
+        /// </summary>
+        public static void Info(string message, string category = null, Dictionary<string, object> properties = null)
+        {
+            Log(LogLevel.Info, message, category, properties);
+        }
+
+        /// <summary>
+        /// 记录警告日志
+        /// </summary>
+        public static void Warning(string message, string category = null, Dictionary<string, object> properties = null)
+        {
+            Log(LogLevel.Warning, message, category, properties);
+        }
+
+        /// <summary>
+        /// 记录错误日志
+        /// </summary>
+        public static void Error(string message, string category = null, Dictionary<string, object> properties = null)
+        {
+            Log(LogLevel.Error, message, category, properties);
+        }
+
+        /// <summary>
+        /// 记录异常日志
+        /// </summary>
+        public static void Exception(Exception ex, string message = null, string category = null, Dictionary<string, object> properties = null)
+        {
+            var errorMessage = message ?? ex.Message;
+            properties = properties ?? new Dictionary<string, object>();
+            properties["ExceptionType"] = ex.GetType().Name;
+            properties["StackTrace"] = ex.StackTrace;
+
+            Log(LogLevel.Error, errorMessage, category, properties);
+        }
+
+        /// <summary>
+        /// 查询日志
+        /// </summary>
+        public static List<LogEntry> QueryLogs(LogQuery query = null)
+        {
+            query = query ?? new LogQuery();
+
+            var allLogs = GetAllLogs();
+
+            return allLogs.Where(log =>
+                (query.StartTime == null || log.Timestamp >= query.StartTime) &&
+                (query.EndTime == null || log.Timestamp <= query.EndTime) &&
+                (query.Level == null || log.Level == query.Level) &&
+                (string.IsNullOrEmpty(query.Category) || log.Category == query.Category) &&
+                (string.IsNullOrEmpty(query.Message) || log.Message.Contains(query.Message))
+            ).OrderByDescending(l => l.Timestamp).ToList();
+        }
+
+        /// <summary>
+        /// 获取日志统计
+        /// </summary>
+        public static LogStatistics GetStatistics()
+        {
+            var allLogs = GetAllLogs();
+
+            return new LogStatistics
+            {
+                TotalLogs = allLogs.Count,
+                InfoCount = allLogs.Count(l => l.Level == LogLevel.Info),
+                WarningCount = allLogs.Count(l => l.Level == LogLevel.Warning),
+                ErrorCount = allLogs.Count(l => l.Level == LogLevel.Error),
+                Categories = allLogs.GroupBy(l => l.Category).ToDictionary(g => g.Key, g => g.Count()),
+                TimeRange = allLogs.Any() ? new DateTimeRange
+                {
+                    StartTime = allLogs.Min(l => l.Timestamp),
+                    EndTime = allLogs.Max(l => l.Timestamp)
+                } : null
+            };
+        }
+
+        /// <summary>
+        /// 清理日志
+        /// </summary>
+        public static int CleanupLogs(TimeSpan olderThan)
+        {
+            var cutoff = DateTime.Now - olderThan;
+            int cleanedCount = 0;
+
+            lock (_lock)
+            {
+                foreach (var provider in _providers.OfType<MemoryLogProvider>())
+                {
+                    cleanedCount += provider.Cleanup(olderThan);
+                }
+            }
+
+            return cleanedCount;
+        }
+
+        private static void StartProcessing()
+        {
+            lock (_lock)
+            {
+                if (_isRunning) return;
+                _isRunning = true;
+                _processingTask = ProcessLogsAsync();
+            }
+        }
+
+        private static async Task ProcessLogsAsync()
+        {
+            while (_logQueue.TryDequeue(out var logEntry))
+            {
+                try
+                {
+                    ILogProvider[] providers;
+                    lock (_lock)
+                    {
+                        providers = _providers.ToArray();
+                    }
+
+                    foreach (var provider in providers)
+                    {
+                        try
+                        {
+                            await provider.WriteLogAsync(logEntry);
+                        }
+                        catch
+                        {
+                            // 忽略单个提供者的错误
+                        }
+                    }
+                }
+                catch
+                {
+                    // 忽略处理错误
+                }
+            }
+
+            lock (_lock)
+            {
+                if (_logQueue.IsEmpty)
+                {
+                    _isRunning = false;
+                }
+                else
+                {
+                    _processingTask = ProcessLogsAsync();
+                }
+            }
+        }
+
+        private static List<LogEntry> GetAllLogs()
+        {
+            var allLogs = new List<LogEntry>();
+
+            lock (_lock)
+            {
+                foreach (var provider in _providers.OfType<MemoryLogProvider>())
+                {
+                    allLogs.AddRange(provider.GetLogs());
+                }
+            }
+
+            return allLogs;
+        }
+
+        /// <summary>
+        /// 停止日志处理
+        /// </summary>
+        public static async Task StopAsync()
+        {
+            // 处理所有剩余日志
+            while (!_logQueue.IsEmpty)
+            {
+                await Task.Delay(100);
+            }
+        }
+    }
+
+    /// <summary>
+    /// 日志提供者接口
+    /// </summary>
+    public interface ILogProvider
+    {
+        Task WriteLogAsync(LogEntry entry);
+    }
+
+    /// <summary>
+    /// 控制台日志提供者
+    /// </summary>
+    public class ConsoleLogProvider : ILogProvider
+    {
+        public Task WriteLogAsync(LogEntry entry)
+        {
+            var color = Console.ForegroundColor;
+            Console.ForegroundColor = GetColor(entry.Level);
+            Console.WriteLine($"[{entry.Timestamp:yyyy-MM-dd HH:mm:ss}] [{entry.Level}] {entry.Category}: {entry.Message}");
+            Console.ForegroundColor = color;
+            return Task.CompletedTask;
+        }
+
+        private ConsoleColor GetColor(LogLevel level)
+        {
+            return level switch
+            {
+                LogLevel.Info => ConsoleColor.White,
+                LogLevel.Warning => ConsoleColor.Yellow,
+                LogLevel.Error => ConsoleColor.Red,
+                _ => ConsoleColor.Gray
+            };
+        }
+    }
+
+    /// <summary>
+    /// 文件日志提供者
+    /// </summary>
+    public class FileLogProvider : ILogProvider
+    {
+        private readonly string _logDirectory;
+        private readonly string _filePattern;
+
+        public FileLogProvider(string logDirectory = "./logs", string filePattern = "yyyy-MM-dd")
+        {
+            _logDirectory = logDirectory;
+            _filePattern = filePattern;
+
+            if (!Directory.Exists(_logDirectory))
+            {
+                Directory.CreateDirectory(_logDirectory);
+            }
+        }
+
+        public async Task WriteLogAsync(LogEntry entry)
+        {
+            var fileName = DateTime.Now.ToString(_filePattern) + ".log";
+            var filePath = Path.Combine(_logDirectory, fileName);
+
+            var logLine = FormatLogLine(entry);
+
+            await File.AppendAllTextAsync(filePath, logLine + Environment.NewLine);
+        }
+
+        private string FormatLogLine(LogEntry entry)
+        {
+            var sb = new StringBuilder();
+            sb.Append($"[{entry.Timestamp:yyyy-MM-dd HH:mm:ss.fff}]");
+            sb.Append($" [{entry.Level}]");
+            if (!string.IsNullOrEmpty(entry.Category))
+            {
+                sb.Append($" [{entry.Category}]");
+            }
+            sb.Append($" {entry.Message}");
+
+            if (entry.Properties != null && entry.Properties.Any())
+            {
+                sb.Append($" | Properties: {string.Join(", ", entry.Properties.Select(p => $"{p.Key}={p.Value}"))}");
+            }
+
+            return sb.ToString();
+        }
+    }
+
+    /// <summary>
+    /// 内存日志提供者
+    /// </summary>
+    public class MemoryLogProvider : ILogProvider
+    {
+        private readonly ConcurrentQueue<LogEntry> _logs = new ConcurrentQueue<LogEntry>();
+        private readonly int _maxLogs;
+
+        public MemoryLogProvider(int maxLogs = 10000)
+        {
+            _maxLogs = maxLogs;
+        }
+
+        public Task WriteLogAsync(LogEntry entry)
+        {
+            _logs.Enqueue(entry);
+
+            // 限制日志数量
+            while (_logs.Count > _maxLogs && _logs.TryDequeue(out _)) { }
+
+            return Task.CompletedTask;
+        }
+
+        public List<LogEntry> GetLogs()
+        {
+            return _logs.ToList();
+        }
+
+        public int Cleanup(TimeSpan olderThan)
+        {
+            var cutoff = DateTime.Now - olderThan;
+            var currentLogs = GetLogs();
+            var filteredLogs = currentLogs.Where(l => l.Timestamp >= cutoff).ToList();
+
+            _logs.Clear();
+            foreach (var log in filteredLogs)
+            {
+                _logs.Enqueue(log);
+            }
+
+            return currentLogs.Count - filteredLogs.Count;
+        }
+    }
+
+    /// <summary>
+    /// 日志条目
+    /// </summary>
+    public class LogEntry
+    {
+        public DateTime Timestamp { get; set; }
+        public LogLevel Level { get; set; }
+        public string Message { get; set; }
+        public string Category { get; set; }
+        public Dictionary<string, object> Properties { get; set; }
+    }
+
+    /// <summary>
+    /// 日志级别
+    /// </summary>
+    public enum LogLevel
+    {
+        Info,
+        Warning,
+        Error
+    }
+
+    /// <summary>
+    /// 日志查询
+    /// </summary>
+    public class LogQuery
+    {
+        public DateTime? StartTime { get; set; }
+        public DateTime? EndTime { get; set; }
+        public LogLevel? Level { get; set; }
+        public string Category { get; set; }
+        public string Message { get; set; }
+    }
+
+    /// <summary>
+    /// 日志统计
+    /// </summary>
+    public class LogStatistics
+    {
+        public int TotalLogs { get; set; }
+        public int InfoCount { get; set; }
+        public int WarningCount { get; set; }
+        public int ErrorCount { get; set; }
+        public Dictionary<string, int> Categories { get; set; }
+        public DateTimeRange TimeRange { get; set; }
+    }
+
+    /// <summary>
+    /// 日期时间范围
+    /// </summary>
+    public class DateTimeRange
+    {
+        public DateTime StartTime { get; set; }
+        public DateTime EndTime { get; set; }
+    }
+
+    /// <summary>
+    /// 日志作用域
+    /// </summary>
+    public class LogScope : IDisposable
+    {
+        private readonly string _category;
+        private readonly Dictionary<string, object> _properties;
+
+        public LogScope(string category, Dictionary<string, object> properties = null)
+        {
+            _category = category;
+            _properties = properties;
+        }
+
+        public void Info(string message, Dictionary<string, object> additionalProperties = null)
+        {
+            var mergedProperties = MergeProperties(_properties, additionalProperties);
+            LogAggregator.Info(message, _category, mergedProperties);
+        }
+
+        public void Warning(string message, Dictionary<string, object> additionalProperties = null)
+        {
+            var mergedProperties = MergeProperties(_properties, additionalProperties);
+            LogAggregator.Warning(message, _category, mergedProperties);
+        }
+
+        public void Error(string message, Dictionary<string, object> additionalProperties = null)
+        {
+            var mergedProperties = MergeProperties(_properties, additionalProperties);
+            LogAggregator.Error(message, _category, mergedProperties);
+        }
+
+        public void Exception(Exception ex, string message = null, Dictionary<string, object> additionalProperties = null)
+        {
+            var mergedProperties = MergeProperties(_properties, additionalProperties);
+            LogAggregator.Exception(ex, message, _category, mergedProperties);
+        }
+
+        private Dictionary<string, object> MergeProperties(Dictionary<string, object> props1, Dictionary<string, object> props2)
+        {
+            var merged = new Dictionary<string, object>(props1 ?? new Dictionary<string, object>());
+            if (props2 != null)
+            {
+                foreach (var prop in props2)
+                {
+                    merged[prop.Key] = prop.Value;
+                }
+            }
+            return merged;
+        }
+
+        public void Dispose()
+        {
+            // 可以在这里添加清理逻辑
+        }
+    }
+
+    /// <summary>
+    /// 日志工厂
+    /// </summary>
+    public static class LoggerFactory
+    {
+        public static LogScope CreateScope(string category, Dictionary<string, object> properties = null)
+        {
+            return new LogScope(category, properties);
+        }
+    }
+}

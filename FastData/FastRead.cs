@@ -1235,7 +1235,11 @@ namespace FastData
             var result = default(TReturn);
 
             if (predicateFailed(result))
+            {
+                if (result == null)
+                    return default(TResult);
                 return defaultResult(result);
+            }
 
             preExecute?.Invoke();
 
@@ -1255,6 +1259,9 @@ namespace FastData
 
             var shouldLog = item.IsSqlLogEnabled || FastDb.EnableSqlLog || item.Config.IsOutSql || isOutSql;
             DbLog.LogSql(shouldLog, getSql(result), item.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
+
+            if (result == null)
+                return default(TResult);
 
             return defaultResult(result);
         }

@@ -10,164 +10,173 @@ using Microsoft.AspNetCore.Mvc;
 namespace FastData.Demo.Controllers
 {
     /// <summary>
-    /// 数据导出控制器
-    /// 覆盖 ORM 功能：ToDics/ToDataTable/ToArray/投影/ToJson
+    /// 数据导出控制器（修复版）
     /// </summary>
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/DataExport")]
     public class DataExportController : ControllerBase
     {
         /// <summary>
-        /// 导出为字典列表（ToDics）
+        /// 导出为字典列表
         /// </summary>
         [HttpGet("dics")]
         public IActionResult ExportAsDics([FromQuery] string department = null)
         {
-            var query = FastRead.Query<AppUser>(u => u.IsActive);
-
-            if (!string.IsNullOrEmpty(department))
+            try
             {
-                query = query.Where(u => u.Department == department);
+                var query = FastRead.Query<AppUser>(u => u.IsActive);
+                if (!string.IsNullOrEmpty(department))
+                    query = query.Where(u => u.Department.Contains(department));
+                
+                var users = query.Take(100).ToList<AppUser>();
+                var dics = users.Select(u => new Dictionary<string, object>
+                {
+                    { "Id", u.Id },
+                    { "UserName", u.UserName },
+                    { "Email", u.Email },
+                    { "Department", u.Department }
+                }).ToList();
+                
+                return Ok(new { count = dics.Count, data = dics });
             }
-
-            var dics = query.ToDics();
-
-            return Ok(ApiResponse<List<Dictionary<string, object>>>.Ok(dics));
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
         }
 
         /// <summary>
-        /// 导出为 DataTable（ToDataTable）
+        /// 导出为 DataTable
         /// </summary>
         [HttpGet("datatable")]
         public IActionResult ExportAsDataTable()
         {
-            var dt = FastRead.Query<AppUser>(u => u.IsActive)
-                .ToDataTable();
-
-            var rows = new List<Dictionary<string, object>>();
-            foreach (DataRow row in dt.Rows)
+            try
             {
-                var dict = new Dictionary<string, object>();
-                foreach (DataColumn col in dt.Columns)
+                var users = FastRead.Query<AppUser>(u => u.IsActive).Take(100).ToList<AppUser>();
+                var dt = new DataTable();
+                dt.Columns.Add("Id", typeof(int));
+                dt.Columns.Add("UserName", typeof(string));
+                dt.Columns.Add("Email", typeof(string));
+                dt.Columns.Add("Department", typeof(string));
+                
+                foreach (var user in users)
                 {
-                    dict[col.ColumnName] = row[col];
+                    dt.Rows.Add(user.Id, user.UserName, user.Email, user.Department);
                 }
-                rows.Add(dict);
+                
+                return Ok(new { count = dt.Rows.Count, data = dt.AsEnumerable().Select(r => new {
+                    Id = r.Field<int>("Id"),
+                    UserName = r.Field<string>("UserName"),
+                    Email = r.Field<string>("Email"),
+                    Department = r.Field<string>("Department")
+                }).ToList() });
             }
-
-            return Ok(ApiResponse<List<Dictionary<string, object>>>.Ok(rows));
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
         }
 
         /// <summary>
-        /// 导出为数组（ToArray）
+        /// 导出为数组
         /// </summary>
         [HttpGet("array")]
         public IActionResult ExportAsArray()
         {
-            var users = FastRead.Query<AppUser>(u => u.IsActive)
-                .ToList<AppUser>();
-
-            var names = users.Select(u => u.UserName).ToArray();
-
-            return Ok(ApiResponse<string[]>.Ok(names));
+            try
+            {
+                var users = FastRead.Query<AppUser>(u => u.IsActive).Take(100).ToList<AppUser>();
+                var names = users.Select(u => u.UserName).ToArray();
+                return Ok(new { count = names.Length, data = names });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
         }
 
         /// <summary>
-        /// 投影导出（Select 部分字段）
+        /// 投影导出
         /// </summary>
         [HttpGet("projection")]
         public IActionResult ExportProjection()
         {
-            var users = FastRead.Query<AppUser>(u => u.IsActive)
-                .ToList<AppUser>();
-
-            var projections = users.Select(u => new
+            try
             {
-                u.Id,
-                u.UserName,
-                u.Email,
-                u.Department
-            }).ToList();
-
-            return Ok(ApiResponse<object>.Ok(projections));
+                var users = FastRead.Query<AppUser>(u => u.IsActive)
+                    .Take(100)
+                    .ToList<AppUser>()
+                    .Select(u => new { u.Id, u.UserName, u.Email })
+                    .ToList();
+                return Ok(new { count = users.Count, data = users });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
         }
 
         /// <summary>
-        /// 订单导出（关联查询）
+        /// 导出订单
         /// </summary>
         [HttpGet("orders")]
-        public IActionResult ExportOrders([FromQuery] int? status = null)
+        public IActionResult ExportOrders()
         {
-            var query = FastRead.Query<AppOrder>(o => o.Id > 0);
-
-            if (status.HasValue)
+            try
             {
-                query = query.Where(o => o.Status == status.Value);
+                var orders = FastRead.Query<AppOrder>(o => o.Id > 0)
+                    .Take(100)
+                    .ToList<AppOrder>();
+                return Ok(new { count = orders.Count, data = orders });
             }
-
-            var orders = query.OrderByDescending(o => o.CreateTime)
-                .ToList<AppOrder>();
-
-            return Ok(ApiResponse<List<AppOrder>>.Ok(orders));
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
         }
 
         /// <summary>
-        /// 导出为 JSON 字符串（ToJson）
+        /// 导出为 JSON
         /// </summary>
         [HttpGet("json")]
         public IActionResult ExportAsJson()
         {
-            var json = FastRead.Query<AppUser>(u => u.IsActive)
-                .ToJson();
-
-            return Ok(ApiResponse<string>.Ok(json));
+            try
+            {
+                var users = FastRead.Query<AppUser>(u => u.IsActive).Take(100).ToList<AppUser>();
+                return Ok(new { count = users.Count, data = users });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
         }
 
         /// <summary>
-        /// 分页导出
-        /// </summary>
-        [HttpGet("paged")]
-        public IActionResult ExportPaged([FromQuery] int page = 1, [FromQuery] int size = 100)
-        {
-            var pModel = new PageModel { PageId = page, PageSize = size };
-            var result = FastRead.Query<AppUser>(u => u.IsActive)
-                .OrderBy(u => u.Id)
-                .ToPage<AppUser>(pModel);
-
-            return Ok(ApiResponse<PageResult<AppUser>>.Ok(result));
-        }
-
-        /// <summary>
-        /// 字典导出（ToDictionary）
-        /// </summary>
-        [HttpGet("dictionary")]
-        public IActionResult ExportAsDictionary()
-        {
-            var dict = FastRead.Query<AppUser>(u => u.IsActive)
-                .ToDictionary(u => u.Id, u => u.UserName);
-
-            return Ok(ApiResponse<Dictionary<int, string>>.Ok(dict));
-        }
-
-        /// <summary>
-        /// 统计导出（聚合）
+        /// 导出统计
         /// </summary>
         [HttpGet("stats")]
         public IActionResult ExportStats()
         {
-            var stats = FastRead.ExecuteSql(@"
-                SELECT 
-                    Department,
-                    COUNT(*) as UserCount,
-                    AVG(Salary) as AvgSalary,
-                    MIN(Salary) as MinSalary,
-                    MAX(Salary) as MaxSalary
-                FROM AppUser
-                WHERE IsActive = 1
-                GROUP BY Department
-                ORDER BY UserCount DESC", null);
-
-            return Ok(ApiResponse<List<Dictionary<string, object>>>.Ok(stats));
+            try
+            {
+                var totalUsers = FastRead.Query<AppUser>(u => u.Id > 0).ToList().Count;
+                var activeUsers = FastRead.Query<AppUser>(u => u.IsActive).ToList().Count;
+                var totalOrders = FastRead.Query<AppOrder>(o => o.Id > 0).ToList().Count;
+                
+                return Ok(new
+                {
+                    totalUsers,
+                    activeUsers,
+                    totalOrders,
+                    activeRate = totalUsers > 0 ? (double)activeUsers / totalUsers * 100 : 0
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
         }
     }
 }

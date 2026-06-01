@@ -16,7 +16,7 @@ namespace FastData.Demo.Controllers
     /// 覆盖 ORM 功能：AddAsy/UpdateAsy/DeleteAsy/QueryAsy/ToPageAsy/CountAsy
     /// </summary>
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/Async")]
     public class AsyncController : ControllerBase
     {
         /// <summary>
@@ -254,7 +254,8 @@ namespace FastData.Demo.Controllers
         public IActionResult GetUserById(int id)
         {
             var user = FastRead.Query<AppUser>(u => u.Id == id)
-                .FirstOrDefault<AppUser>();
+                .ToList()
+                .FirstOrDefault();
 
             if (user == null)
                 return Ok(ApiResponse<AppUser>.NotFound());
@@ -270,7 +271,8 @@ namespace FastData.Demo.Controllers
         {
             var user = FastRead.Query<AppUser>(u => u.IsActive)
                 .OrderBy(u => u.Id)
-                .FirstOrDefault<AppUser>();
+                .ToList()
+                .FirstOrDefault();
 
             return Ok(ApiResponse<AppUser>.Ok(user));
         }

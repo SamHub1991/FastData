@@ -15,7 +15,7 @@ namespace FastData.Demo.Controllers
     /// 用户 API 控制器
     /// </summary>
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/Users")]
     public class UsersController : ControllerBase
     {
         private readonly IUserRepository _userRepository;
@@ -80,15 +80,12 @@ namespace FastData.Demo.Controllers
         {
             try
             {
-                var users = await _cacheService.GetActiveUsersAsync(async () =>
-                {
-                    return await _userRepository.GetActiveUsersAsync();
-                });
+                var users = await _userRepository.GetActiveUsersAsync();
                 return Ok(users);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { error = ex.Message });
+                return StatusCode(500, new { error = ex.Message, stack = ex.ToString() });
             }
         }
 
@@ -258,7 +255,7 @@ namespace FastData.Demo.Controllers
     /// 订单 API 控制器
     /// </summary>
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/Users")]
     public class OrdersController : ControllerBase
     {
         private readonly IOrderRepository _orderRepository;
@@ -273,8 +270,8 @@ namespace FastData.Demo.Controllers
         /// <summary>
         /// 获取所有订单
         /// </summary>
-        [HttpGet]
-        public async Task<ActionResult<List<AppOrder>>> GetAll()
+        [HttpGet("orders")]
+        public async Task<ActionResult<List<AppOrder>>> GetAllOrders()
         {
             try
             {
@@ -377,7 +374,7 @@ namespace FastData.Demo.Controllers
     /// 数据同步 API 控制器
     /// </summary>
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/Users")]
     public class SyncController : ControllerBase
     {
         private readonly IDataSyncService _syncService;
@@ -443,7 +440,7 @@ namespace FastData.Demo.Controllers
     /// 健康检查 API
     /// </summary>
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/Users")]
     public class HealthController : ControllerBase
     {
         private readonly ICacheService _cacheService;
@@ -610,7 +607,7 @@ namespace FastData.Demo.Controllers
         /// <summary>
         /// 健康检查
         /// </summary>
-        [HttpGet]
+        [HttpGet("health")]
         public async Task<ActionResult> Check()
         {
             var result = new

@@ -13,7 +13,7 @@ namespace FastData.Demo.Controllers
     /// 高并发测试控制器
     /// 用于对各个 API 进行高并发压力测试
     /// </summary>
-    [Route("api/[controller]")]
+    [Route("api/ConcurrencyTest")]
     [ApiController]
     public class ConcurrencyTestController : ControllerBase
     {

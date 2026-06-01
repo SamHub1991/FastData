@@ -8,7 +8,7 @@ namespace FastData.Demo.Controllers
     /// 演示同一个实体在不同数据库中使用不同表名
     /// </summary>
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/MultiDbUsers")]
     public class MultiDbUsersController : ControllerBase
     {
         /// <summary>

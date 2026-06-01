@@ -14,7 +14,7 @@ namespace FastData.Demo.Controllers
     /// 覆盖 ORM 功能：Where条件构建器/Any/All/First/Single/Contains/In/Between
     /// </summary>
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/DynamicQuery")]
     public class DynamicQueryController : ControllerBase
     {
         /// <summary>
@@ -101,7 +101,7 @@ namespace FastData.Demo.Controllers
         {
             // 判断是否存在该部门的用户
             var exists = FastRead.Query<AppUser>(u => u.Department == department && u.IsActive)
-                .Any();
+                .ToCount() > 0;
 
             return Ok(ApiResponse<bool>.Ok(exists));
         }
@@ -114,7 +114,7 @@ namespace FastData.Demo.Controllers
         {
             // 判断所有用户薪资是否都大于指定值
             var allAbove = FastRead.Query<AppUser>(u => u.IsActive)
-                .All(u => u.Salary >= minSalary);
+                .ToList().All(u => u.Salary >= minSalary);
 
             return Ok(ApiResponse<bool>.Ok(allAbove));
         }
@@ -125,16 +125,16 @@ namespace FastData.Demo.Controllers
         [HttpGet("first")]
         public IActionResult First([FromQuery] string department = null)
         {
-            // 查询第一个活跃用户
             var first = FastRead.Query<AppUser>(u => u.IsActive)
                 .OrderBy<AppUser>(u => u.Id)
-                .FirstOrDefault<AppUser>();
+                .ToList<AppUser>()
+                .FirstOrDefault();
 
-            // 查询指定部门第一个用户
             var deptFirst = !string.IsNullOrEmpty(department)
                 ? FastRead.Query<AppUser>(u => u.Department == department && u.IsActive)
                     .OrderBy<AppUser>(u => u.Id)
-                    .FirstOrDefault<AppUser>()
+                    .ToList<AppUser>()
+                    .FirstOrDefault()
                 : null;
 
             return Ok(ApiResponse<object>.Ok(new
@@ -144,15 +144,12 @@ namespace FastData.Demo.Controllers
             }));
         }
 
-        /// <summary>
-        /// Single 查询
-        /// </summary>
         [HttpGet("single")]
         public IActionResult Single([FromQuery] int id = 1)
         {
-            // 查询单个用户（ID 唯一匹配）
             var user = FastRead.Query<AppUser>(u => u.Id == id)
-                .FirstOrDefault<AppUser>();
+                .ToList<AppUser>()
+                .FirstOrDefault();
 
             return Ok(ApiResponse<AppUser>.Ok(user));
         }

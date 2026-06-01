@@ -906,5 +906,156 @@ namespace FastData.Context
             return result;
         }
         #endregion
+
+        #region 批量更新/删除
+
+        /// <summary>
+        /// 批量更新实体（使用 SQL UPDATE ... WHERE IN）
+        /// </summary>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="list">实体列表</param>
+        /// <param name="predicate">更新条件</param>
+        /// <param name="isLog">是否记录SQL</param>
+        /// <returns>更新结果</returns>
+        public DataReturn BulkUpdate<T>(List<T> list, Expression<Func<T, bool>> predicate, bool isLog = false) where T : class, new()
+        {
+            var result = new DataReturn();
+            var stopwatch = Stopwatch.StartNew();
+
+            try
+            {
+                BeginTrans();
+
+                var tableName = TableNameHelper.GetTableName<T>();
+                var properties = typeof(T).GetProperties()
+                    .Where(p => p.CanRead && p.CanWrite && p.Name != "Id")
+                    .ToList();
+
+                var setClause = string.Join(", ", properties.Select(p => $"{p.Name} = @{p.Name}"));
+                var paramNames = string.Join(", ", properties.Select(p => $"@{p.Name}"));
+
+                var visitModel = VisitExpression.LambdaWhere<T>(predicate, config);
+                if (!visitModel.IsSuccess)
+                {
+                    throw new InvalidOperationException("更新条件解析失败");
+                }
+
+                var whereClause = visitModel.Where;
+                var paramList = visitModel.Param;
+
+                foreach (var item in list)
+                {
+                    cmd.Parameters.Clear();
+                    foreach (var prop in properties)
+                    {
+                        var value = prop.GetValue(item);
+                        var param = cmd.CreateParameter();
+                        param.ParameterName = $"@{prop.Name}";
+                        param.Value = value ?? DBNull.Value;
+                        cmd.Parameters.Add(param);
+                    }
+
+                    if (conn.State == ConnectionState.Closed)
+                        conn.Open();
+
+                    var updateSql = $"UPDATE {tableName} SET {setClause} WHERE {whereClause}";
+                    cmd.CommandText = updateSql;
+                    cmd.ExecuteNonQuery();
+                }
+
+                result.Sql = $"UPDATE {tableName} SET {setClause} WHERE {whereClause} (x{list.Count})";
+                if (isLog)
+                    DbLog.LogSql(true, result.Sql, config.DbType, 0);
+
+                AopBefore(new List<string> { tableName }, result.Sql, paramList, config, false, AopType.UpdateList);
+                result.WriteReturn.IsSuccess = true;
+                SubmitTrans();
+                AopAfter(new List<string> { tableName }, result.Sql, paramList, config, false, AopType.UpdateList, list.Count);
+            }
+            catch (Exception ex)
+            {
+                RollbackTrans();
+                AopException(ex, "BulkUpdate", config, AopType.UpdateList);
+
+                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                    DbLogTable.LogException(config, ex, "BulkUpdate", result.Sql);
+                else
+                    DbLog.LogException(config.IsOutError, config.DbType, ex, "BulkUpdate", result.Sql);
+
+                result.WriteReturn.IsSuccess = false;
+                result.WriteReturn.Message = ex.Message;
+            }
+
+            stopwatch.Stop();
+            return result;
+        }
+
+        /// <summary>
+        /// 批量删除实体（使用 SQL DELETE FROM ... WHERE IN）
+        /// </summary>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="predicate">删除条件</param>
+        /// <param name="isLog">是否记录SQL</param>
+        /// <returns>删除结果</returns>
+        public DataReturn BulkDelete<T>(Expression<Func<T, bool>> predicate, bool isLog = false) where T : class, new()
+        {
+            var result = new DataReturn();
+            var stopwatch = Stopwatch.StartNew();
+
+            try
+            {
+                BeginTrans();
+
+                var tableName = TableNameHelper.GetTableName<T>();
+                var visitModel = VisitExpression.LambdaWhere<T>(predicate, config);
+                if (!visitModel.IsSuccess)
+                {
+                    throw new InvalidOperationException("删除条件解析失败");
+                }
+
+                var whereClause = visitModel.Where;
+                var paramList = visitModel.Param;
+
+                if (conn.State == ConnectionState.Closed)
+                    conn.Open();
+
+                var deleteSql = $"DELETE FROM {tableName} WHERE {whereClause}";
+                cmd.CommandText = deleteSql;
+
+                foreach (var param in paramList)
+                {
+                    cmd.Parameters.Add(param);
+                }
+
+                int affectedRows = cmd.ExecuteNonQuery();
+                result.Sql = $"DELETE FROM {tableName} WHERE {whereClause} (x{affectedRows})";
+                if (isLog)
+                    DbLog.LogSql(true, result.Sql, config.DbType, 0);
+
+                AopBefore(new List<string> { tableName }, result.Sql, paramList, config, false, AopType.Delete_Lambda);
+                result.WriteReturn.IsSuccess = true;
+                result.WriteReturn.Message = $"删除 {affectedRows} 条记录";
+                SubmitTrans();
+                AopAfter(new List<string> { tableName }, result.Sql, paramList, config, false, AopType.Delete_Lambda, affectedRows);
+            }
+            catch (Exception ex)
+            {
+                RollbackTrans();
+                AopException(ex, "BulkDelete", config, AopType.Delete_Lambda);
+
+                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                    DbLogTable.LogException(config, ex, "BulkDelete", result.Sql);
+                else
+                    DbLog.LogException(config.IsOutError, config.DbType, ex, "BulkDelete", result.Sql);
+
+                result.WriteReturn.IsSuccess = false;
+                result.WriteReturn.Message = ex.Message;
+            }
+
+            stopwatch.Stop();
+            return result;
+        }
+
+        #endregion
     }
 }

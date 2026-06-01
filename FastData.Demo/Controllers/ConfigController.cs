@@ -2,6 +2,8 @@ using FastData.Config;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Linq;
+using System.IO;
+using System.Reflection;
 
 namespace FastData.Demo.Controllers
 {
@@ -24,6 +26,26 @@ namespace FastData.Demo.Controllers
             {
                 active = active,
                 envVarOverride = envOverride
+            });
+        }
+
+        /// <summary>
+        /// 调试：获取配置加载详细信息
+        /// </summary>
+        [HttpGet("debug")]
+        public ActionResult<object> GetDebug()
+        {
+            var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            var dbConfig = System.IO.Path.Combine(baseDir, "db.config");
+            var dbDevConfig = System.IO.Path.Combine(baseDir, "db.dev.config");
+            
+            return Ok(new
+            {
+                baseDirectory = baseDir,
+                dbConfigExists = System.IO.File.Exists(dbConfig),
+                dbDevConfigExists = System.IO.File.Exists(dbDevConfig),
+                currentDirectory = Environment.CurrentDirectory,
+                active = FastDataConfig.GetActiveEnvironment()
             });
         }
 

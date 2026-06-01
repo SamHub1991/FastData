@@ -12,7 +12,7 @@ namespace FastData.Demo.Controllers
     /// 提供 Repository 模式的 CRUD 操作示例。
     /// </summary>
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/Repository")]
     public class RepositoryController : ControllerBase
     {
         /// <summary>

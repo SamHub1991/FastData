@@ -13,7 +13,7 @@ namespace FastData.Demo.Controllers
     /// 覆盖 ORM 功能：NullSafety/字段验证/异常处理/WriteReturn
     /// </summary>
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/DataValidation")]
     public class DataValidationController : ControllerBase
     {
         /// <summary>

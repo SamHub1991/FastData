@@ -15,7 +15,7 @@ namespace FastData.Demo.Controllers
     /// 覆盖 ORM 功能：GroupBy/Join/聚合/ToJson/ToDics/ToDataTable
     /// </summary>
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/Report")]
     public class ReportController : ControllerBase
     {
         /// <summary>

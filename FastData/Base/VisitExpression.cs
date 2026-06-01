@@ -423,6 +423,27 @@ namespace FastData.Base
         {
             string needParKey = "=,>,<,>=,<=,<>";
 
+            // Special handling for boolean member == true/false
+            // Simplify "u.IsActive == true" to "IsActive=1"
+            if (expType == ExpressionType.Equal && 
+                left is MemberExpression leftMember && 
+                leftMember.Type == typeof(bool) &&
+                right is ConstantExpression rightConst && 
+                rightConst.Value is bool)
+            {
+                // For "u.IsActive == true", generate "IsActive=1"
+                // For "u.IsActive == false", generate "IsActive=0"
+                var memberName = leftMember.Member.Name;
+                var boolValue = (bool)rightConst.Value;
+                
+                if (config.DbType == DataDbType.PostgreSql)
+                    sb.AppendFormat("{0}={1}", memberName, boolValue ? "true" : "false");
+                else
+                    sb.AppendFormat("{0}={1}", memberName, boolValue ? "1" : "0");
+                
+                return sb.ToString();
+            }
+
             string leftPar = RouteExpressionHandler(config, left, expType, ref leftList, ref rightList, ref typeList, ref sb, ref strType, ref i, isRight);
 
             string typeStr = ExpressionTypeCast(expType);

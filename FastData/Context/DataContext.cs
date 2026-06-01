@@ -218,7 +218,7 @@ namespace FastData.Context
             }
             catch (Exception ex)
             {
-                AopException(ex, "DataContext :" + key,config,AopType.DataContext);
+                AopException(ex, "DataContext :" + key, config ?? new ConfigModel(), AopType.DataContext);
 
                 if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
                     DbLogTable.LogException(config, ex, "DataContext", "");

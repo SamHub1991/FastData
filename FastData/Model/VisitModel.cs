@@ -6,7 +6,7 @@ namespace FastData.Model
     /// <summary>
     /// lambda查询
     /// </summary>
-    internal class VisitModel
+    public class VisitModel
     {
         /// <summary>
         /// 参数

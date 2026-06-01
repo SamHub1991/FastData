@@ -148,21 +148,6 @@ namespace FastData
             return list.ToDictionary(keySelector);
         }
 
-        /// <summary>
-        /// 排序
-        /// </summary>
-        public static DataQuery<T> OrderBy<T>(this DataQuery<T> query, Func<T, object> keySelector) where T : class, new()
-        {
-            return query.OrderBy(keySelector);
-        }
-
-        /// <summary>
-        /// 降序排序
-        /// </summary>
-        public static DataQuery<T> OrderByDescending<T>(this DataQuery<T> query, Func<T, object> keySelector) where T : class, new()
-        {
-            return query.OrderByDescending(keySelector);
-        }
     }
 
     /// <summary>

@@ -12,7 +12,7 @@ namespace FastData.Demo.Controllers
     /// 事务操作示例
     /// </summary>
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/Transaction")]
     public class TransactionController : ControllerBase
     {
         /// <summary>
@@ -23,7 +23,7 @@ namespace FastData.Demo.Controllers
         {
             try
             {
-                var db = new DataContext("sqlserver");
+                var db = new DataContext("SqlServer");
                 db.BeginTrans();
 
                 var orders = new List<AppOrder>();
@@ -70,7 +70,7 @@ namespace FastData.Demo.Controllers
         {
             try
             {
-                var db = new DataContext("sqlserver");
+                var db = new DataContext("SqlServer");
                 db.BeginTrans();
 
                 var fromUser = FastRead.Query<AppUser>(u => u.Id == request.FromAccountId).ToItem<AppUser>();
@@ -128,7 +128,7 @@ namespace FastData.Demo.Controllers
         {
             try
             {
-                var db = new DataContext("sqlserver");
+                var db = new DataContext("SqlServer");
                 db.BeginTrans();
 
                 var created = new List<string>();

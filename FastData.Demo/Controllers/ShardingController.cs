@@ -17,7 +17,7 @@ namespace FastData.Demo.Controllers
     /// 分表功能完整演示控制器
     /// </summary>
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/Sharding")]
     public class ShardingController : ControllerBase
     {
         private readonly string _connectionString;
@@ -136,6 +136,7 @@ namespace FastData.Demo.Controllers
                         bulkCopy.BatchSize = 1000;
 
                         var dataTable = new DataTable();
+                        dataTable.Columns.Add("Id", typeof(int));
                         dataTable.Columns.Add("OrderNo", typeof(string));
                         dataTable.Columns.Add("CustomerId", typeof(string));
                         dataTable.Columns.Add("Amount", typeof(decimal));
@@ -150,6 +151,7 @@ namespace FastData.Demo.Controllers
                         for (int i = 0; i < orderCount; i++)
                         {
                             var row = dataTable.NewRow();
+                            row["Id"] = i + 1;
                             row["OrderNo"] = $"ORD{i:D8}";
                             row["CustomerId"] = $"CUST{random.Next(1000):D4}";
                             row["Amount"] = Math.Round((decimal)(random.NextDouble() * 10000), 2);

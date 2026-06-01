@@ -1,0 +1,597 @@
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace FastData.DevTools
+{
+    /// <summary>
+    /// 任务调度器
+    /// </summary>
+    public static class TaskScheduler
+    {
+        private static readonly ConcurrentDictionary<string, ScheduledTask> _scheduledTasks = new ConcurrentDictionary<string, ScheduledTask>();
+        private static readonly ConcurrentDictionary<string, CancellationTokenSource> _cancellationTokens = new ConcurrentDictionary<string, CancellationTokenSource>();
+        private static readonly object _lock = new object();
+
+        /// <summary>
+        /// 调度任务
+        /// </summary>
+        public static string Schedule(string name, Action action, TimeSpan delay, bool repeat = false)
+        {
+            return Schedule(name, () => { action(); return Task.CompletedTask; }, delay, repeat);
+        }
+
+        /// <summary>
+        /// 调度异步任务
+        /// </summary>
+        public static string Schedule(string name, Func<Task> action, TimeSpan delay, bool repeat = false)
+        {
+            var taskId = $"{name}_{Guid.NewGuid():N}";
+
+            var cts = new CancellationTokenSource();
+            _cancellationTokens[taskId] = cts;
+
+            var task = new ScheduledTask
+            {
+                TaskId = taskId,
+                Name = name,
+                Action = action,
+                Delay = delay,
+                Repeat = repeat,
+                CreatedAt = DateTime.Now,
+                Status = TaskStatus.Scheduled
+            };
+
+            _scheduledTasks[taskId] = task;
+
+            RunTask(task, cts.Token);
+
+            return taskId;
+        }
+
+        /// <summary>
+        /// 按Cron表达式调度任务
+        /// </summary>
+        public static string ScheduleCron(string name, Action action, string cronExpression)
+        {
+            return ScheduleCron(name, () => { action(); return Task.CompletedTask; }, cronExpression);
+        }
+
+        /// <summary>
+        /// 按Cron表达式调度异步任务
+        /// </summary>
+        public static string ScheduleCron(string name, Func<Task> action, string cronExpression)
+        {
+            // 简化的 Cron 解析，实际应用中应使用专门的 Cron 库
+            var delay = ParseSimpleCron(cronExpression);
+            return Schedule(name, action, delay, repeat: true);
+        }
+
+        /// <summary>
+        /// 取消任务
+        /// </summary>
+        public static bool Cancel(string taskId)
+        {
+            if (_cancellationTokens.TryRemove(taskId, out var cts))
+            {
+                cts.Cancel();
+
+                if (_scheduledTasks.TryGetValue(taskId, out var task))
+                {
+                    task.Status = TaskStatus.Cancelled;
+                }
+
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// 取消所有任务
+        /// </summary>
+        public static void CancelAll()
+        {
+            foreach (var taskId in _cancellationTokens.Keys.ToList())
+            {
+                Cancel(taskId);
+            }
+        }
+
+        /// <summary>
+        /// 获取任务信息
+        /// </summary>
+        public static ScheduledTask GetTask(string taskId)
+        {
+            return _scheduledTasks.TryGetValue(taskId, out var task) ? task : null;
+        }
+
+        /// <summary>
+        /// 获取所有任务
+        /// </summary>
+        public static List<ScheduledTask> GetAllTasks()
+        {
+            return _scheduledTasks.Values.ToList();
+        }
+
+        /// <summary>
+        /// 获取活动任务
+        /// </summary>
+        public static List<ScheduledTask> GetActiveTasks()
+        {
+            return _scheduledTasks.Values.Where(t => t.Status == TaskStatus.Running || t.Status == TaskStatus.Scheduled).ToList();
+        }
+
+        /// <summary>
+        /// 等待任务完成
+        /// </summary>
+        public static async Task WaitForCompletion(string taskId)
+        {
+            while (true)
+            {
+                if (_scheduledTasks.TryGetValue(taskId, out var task))
+                {
+                    if (task.Status == TaskStatus.Completed || task.Status == TaskStatus.Failed || task.Status == TaskStatus.Cancelled)
+                    {
+                        return;
+                    }
+                }
+                else
+                {
+                    return;
+                }
+
+                await Task.Delay(100);
+            }
+        }
+
+        /// <summary>
+        /// 立即执行任务
+        /// </summary>
+        public static async Task ExecuteNow(string taskId)
+        {
+            if (_scheduledTasks.TryGetValue(taskId, out var task))
+            {
+                await RunTask(task, _cancellationTokens[taskId].Token, immediate: true);
+            }
+        }
+
+        private static async Task RunTask(ScheduledTask task, CancellationToken cancellationToken, bool immediate = false)
+        {
+            if (immediate)
+            {
+                await ExecuteTask(task, cancellationToken);
+            }
+            else
+            {
+                try
+                {
+                    await Task.Delay(task.Delay, cancellationToken);
+
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        task.Status = TaskStatus.Cancelled;
+                        return;
+                    }
+
+                    await ExecuteTask(task, cancellationToken);
+
+                    if (task.Repeat && !cancellationToken.IsCancellationRequested)
+                    {
+                        RunTask(task, cancellationToken);
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    task.Status = TaskStatus.Cancelled;
+                }
+                catch (Exception ex)
+                {
+                    task.Status = TaskStatus.Failed;
+                    task.LastError = ex.Message;
+                    LogAggregator.Exception(ex, $"任务执行失败: {task.Name}", "TaskScheduler");
+                }
+            }
+        }
+
+        private static async Task ExecuteTask(ScheduledTask task, CancellationToken cancellationToken)
+        {
+            task.Status = TaskStatus.Running;
+            task.LastRunAt = DateTime.Now;
+            task.RunCount++;
+
+            try
+            {
+                await task.Action();
+
+                task.Status = task.Repeat ? TaskStatus.Scheduled : TaskStatus.Completed;
+                task.LastError = null;
+            }
+            catch (OperationCanceledException)
+            {
+                task.Status = TaskStatus.Cancelled;
+                throw;
+            }
+            catch (Exception ex)
+            {
+                task.Status = TaskStatus.Failed;
+                task.LastError = ex.Message;
+                throw;
+            }
+        }
+
+        private static TimeSpan ParseSimpleCron(string cronExpression)
+        {
+            // 简化的 Cron 解析，仅支持基本格式
+            // 格式：秒 分 时
+            var parts = cronExpression.Split(' ');
+            if (parts.Length == 3)
+            {
+                try
+                {
+                    var seconds = int.Parse(parts[0]);
+                    var minutes = int.Parse(parts[1]);
+                    var hours = int.Parse(parts[2]);
+
+                    return new TimeSpan(hours, minutes, seconds);
+                }
+                catch
+                {
+                    // 忽略解析错误
+                }
+            }
+
+            return TimeSpan.FromMinutes(1);
+        }
+    }
+
+    /// <summary>
+    /// 调度任务
+    /// </summary>
+    public class ScheduledTask
+    {
+        public string TaskId { get; set; }
+        public string Name { get; set; }
+        public Func<Task> Action { get; set; }
+        public TimeSpan Delay { get; set; }
+        public bool Repeat { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime? LastRunAt { get; set; }
+        public int RunCount { get; set; }
+        public TaskStatus Status { get; set; }
+        public string LastError { get; set; }
+    }
+
+    /// <summary>
+    /// 任务状态
+    /// </summary>
+    public enum TaskStatus
+    {
+        Scheduled,
+        Running,
+        Completed,
+        Failed,
+        Cancelled
+    }
+
+    /// <summary>
+    /// 任务管理器
+    /// </summary>
+    public static class TaskManager
+    {
+        private static readonly ConcurrentDictionary<string, RunningTask> _runningTasks = new ConcurrentDictionary<string, RunningTask>();
+
+        /// <summary>
+        /// 创建任务
+        /// </summary>
+        public static string Create(string name, Func<Task> action)
+        {
+            var taskId = $"{name}_{Guid.NewGuid():N}";
+
+            var task = new RunningTask
+            {
+                TaskId = taskId,
+                Name = name,
+                Action = action,
+                CreatedAt = DateTime.Now,
+                Status = TaskState.Pending
+            };
+
+            _runningTasks[taskId] = task;
+
+            return taskId;
+        }
+
+        /// <summary>
+        /// 启动任务
+        /// </summary>
+        public static async Task Start(string taskId)
+        {
+            if (_runningTasks.TryGetValue(taskId, out var task))
+            {
+                task.Status = TaskState.Running;
+                task.StartedAt = DateTime.Now;
+
+                try
+                {
+                    await task.Action();
+                    task.Status = TaskState.Completed;
+                    task.CompletedAt = DateTime.Now;
+                }
+                catch (Exception ex)
+                {
+                    task.Status = TaskState.Failed;
+                    task.CompletedAt = DateTime.Now;
+                    task.Error = ex.Message;
+                    LogAggregator.Exception(ex, $"任务执行失败: {task.Name}", "TaskManager");
+                }
+            }
+        }
+
+        /// <summary>
+        /// 创建并启动任务
+        /// </summary>
+        public static string StartNew(string name, Func<Task> action)
+        {
+            var taskId = Create(name, action);
+            _ = Task.Run(() => Start(taskId));
+            return taskId;
+        }
+
+        /// <summary>
+        /// 取消任务
+        /// </summary>
+        public static bool Cancel(string taskId)
+        {
+            if (_runningTasks.TryGetValue(taskId, out var task))
+            {
+                task.Status = TaskState.Cancelled;
+                task.CompletedAt = DateTime.Now;
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// 获取任务信息
+        /// </summary>
+        public static RunningTask GetTask(string taskId)
+        {
+            return _runningTasks.TryGetValue(taskId, out var task) ? task : null;
+        }
+
+        /// <summary>
+        /// 获取所有任务
+        /// </summary>
+        public static List<RunningTask> GetAllTasks()
+        {
+            return _runningTasks.Values.ToList();
+        }
+
+        /// <summary>
+        /// 清理已完成的任务
+        /// </summary>
+        public static int Cleanup()
+        {
+            var completedTasks = _runningTasks.Values
+                .Where(t => t.Status == TaskState.Completed || t.Status == TaskState.Failed || t.Status == TaskState.Cancelled)
+                .ToList();
+
+            foreach (var task in completedTasks)
+            {
+                _runningTasks.TryRemove(task.TaskId, out _);
+            }
+
+            return completedTasks.Count;
+        }
+
+        /// <summary>
+        /// 获取任务统计
+        /// </summary>
+        public static TaskStatistics GetStatistics()
+        {
+            var tasks = _runningTasks.Values.ToList();
+
+            return new TaskStatistics
+            {
+                TotalTasks = tasks.Count,
+                PendingTasks = tasks.Count(t => t.Status == TaskState.Pending),
+                RunningTasks = tasks.Count(t => t.Status == TaskState.Running),
+                CompletedTasks = tasks.Count(t => t.Status == TaskState.Completed),
+                FailedTasks = tasks.Count(t => t.Status == TaskState.Failed),
+                CancelledTasks = tasks.Count(t => t.Status == TaskState.Cancelled),
+                AverageDuration = tasks.Where(t => t.StartedAt.HasValue && t.CompletedAt.HasValue)
+                    .Average(t => (t.CompletedAt.Value - t.StartedAt.Value).TotalMilliseconds)
+            };
+        }
+    }
+
+    /// <summary>
+    /// 运行中的任务
+    /// </summary>
+    public class RunningTask
+    {
+        public string TaskId { get; set; }
+        public string Name { get; set; }
+        public Func<Task> Action { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime? StartedAt { get; set; }
+        public DateTime? CompletedAt { get; set; }
+        public TaskState Status { get; set; }
+        public string Error { get; set; }
+    }
+
+    /// <summary>
+    /// 任务状态
+    /// </summary>
+    public enum TaskState
+    {
+        Pending,
+        Running,
+        Completed,
+        Failed,
+        Cancelled
+    }
+
+    /// <summary>
+    /// 任务统计
+    /// </summary>
+    public class TaskStatistics
+    {
+        public int TotalTasks { get; set; }
+        public int PendingTasks { get; set; }
+        public int RunningTasks { get; set; }
+        public int CompletedTasks { get; set; }
+        public int FailedTasks { get; set; }
+        public int CancelledTasks { get; set; }
+        public double AverageDuration { get; set; }
+    }
+
+    /// <summary>
+    /// 批量任务执行器
+    /// </summary>
+    public static class BatchTaskExecutor
+    {
+        /// <summary>
+        /// 批量执行任务
+        /// </summary>
+        public static async Task<List<BatchTaskResult>> ExecuteAsync<T>(
+            IEnumerable<T> items,
+            Func<T, Task> action,
+            int batchSize = 10,
+            int maxConcurrency = 5)
+        {
+            var results = new List<BatchTaskResult>();
+            var semaphore = new System.Threading.SemaphoreSlim(maxConcurrency);
+
+            foreach (var batch in items.Batch(batchSize))
+            {
+                var tasks = batch.Select(async item =>
+                {
+                    await semaphore.WaitAsync();
+                    try
+                    {
+                        var startTime = DateTime.Now;
+                        await action(item);
+                        var duration = DateTime.Now - startTime;
+
+                        return new BatchTaskResult
+                        {
+                            Item = item,
+                            Success = true,
+                            Duration = duration
+                        };
+                    }
+                    catch (Exception ex)
+                    {
+                        return new BatchTaskResult
+                        {
+                            Item = item,
+                            Success = false,
+                            Error = ex.Message,
+                            Duration = TimeSpan.Zero
+                        };
+                    }
+                    finally
+                    {
+                        semaphore.Release();
+                    }
+                });
+
+                var batchResults = await Task.WhenAll(tasks);
+                results.AddRange(batchResults);
+            }
+
+            return results;
+        }
+
+        /// <summary>
+        /// 带重试的批量执行
+        /// </summary>
+        public static async Task<List<BatchTaskResult>> ExecuteWithRetryAsync<T>(
+            IEnumerable<T> items,
+            Func<T, Task> action,
+            int maxRetries = 3,
+            TimeSpan? retryDelay = null)
+        {
+            retryDelay = retryDelay ?? TimeSpan.FromSeconds(1);
+            var results = new List<BatchTaskResult>();
+
+            foreach (var item in items)
+            {
+                var result = new BatchTaskResult { Item = item };
+                var attempt = 0;
+
+                while (attempt <= maxRetries)
+                {
+                    try
+                    {
+                        var startTime = DateTime.Now;
+                        await action(item);
+                        result.Duration = DateTime.Now - startTime;
+                        result.Success = true;
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        attempt++;
+                        if (attempt > maxRetries)
+                        {
+                            result.Error = ex.Message;
+                            result.Success = false;
+                        }
+                        else
+                        {
+                            await Task.Delay(retryDelay.Value);
+                        }
+                    }
+                }
+
+                results.Add(result);
+            }
+
+            return results;
+        }
+    }
+
+    /// <summary>
+    /// 批量任务结果
+    /// </summary>
+    public class BatchTaskResult
+    {
+        public object Item { get; set; }
+        public bool Success { get; set; }
+        public string Error { get; set; }
+        public TimeSpan Duration { get; set; }
+    }
+
+    /// <summary>
+    /// 批处理扩展方法
+    /// </summary>
+    public static class BatchExtensions
+    {
+        public static IEnumerable<IEnumerable<T>> Batch<T>(this IEnumerable<T> source, int batchSize)
+        {
+            var batch = new List<T>(batchSize);
+
+            foreach (var item in source)
+            {
+                batch.Add(item);
+
+                if (batch.Count == batchSize)
+                {
+                    yield return batch;
+                    batch = new List<T>(batchSize);
+                }
+            }
+
+            if (batch.Count > 0)
+            {
+                yield return batch;
+            }
+        }
+    }
+}

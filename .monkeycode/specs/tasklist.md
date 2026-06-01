@@ -5,6 +5,44 @@
 
 ---
 
+## 0. 早期改进任务（FastData-TaskList）
+
+> **完成日期**: 2026-05-31
+> **完成率**: 100% (12/12)
+
+| 编号 | 任务 | 状态 | 备注 |
+|------|------|------|------|
+| T-0001 | 配置自动加载 - GetConnectionSummaries 自动触发 GetConfig | ✅ | - |
+| T-0002 | 统一返回类型 - Result<T>, FastDataErrorCode, FastDataException | ✅ | - |
+| T-0003 | WhereIf 扩展 - 动态条件、异步查询、分页、批量操作 | ✅ | - |
+| T-0004 | 完整异步支持 - ToListAsync, CountAsync, AnyAsync, FirstOrDefaultAsync | ✅ | - |
+| T-0005 | 统一方法命名 - AddAsync, UpdateEntityAsync, DeleteAsync | ✅ | - |
+| T-0006 | 改进分页 API - ToPage 返回元组 (List<T>, int Total) | ✅ | - |
+| T-0007 | 软删除支持 - SoftDelete 方法，IsDeleted 字段 | ✅ | - |
+| T-0008 | 审计字段 - AutoFillAuditFields, CreateTime/By, UpdateTime/By | ✅ | - |
+| T-0009 | 错误处理 - FastDataErrorCode (8 种), FastDataException | ✅ | - |
+| T-0010 | 多租户支持 - MultiTenantOptions, TenantProperty, CurrentTenant | ✅ | - |
+| T-0011 | 变更跟踪 - ChangeTrackingOptions, CacheExpiration | ✅ | - |
+| T-0012 | 懒加载 - LazyLoadingOptions, TimeoutSeconds | ✅ | - |
+
+### 文件清单
+
+**新增文件 (6)**
+- `/workspace/FastData/Result.cs` - 返回类型和异常
+- `/workspace/FastData/DataQueryExtensions.cs` - 查询扩展方法
+- `/workspace/FastData/FastWriteAsyncExtensions.cs` - 异步写入方法
+- `/workspace/FastData/Config/FastDataOptions.cs` - 全局配置
+- `/workspace/FastData/USAGE_GUIDE.md` - 使用指南
+
+**修改文件 (1)**
+- `/workspace/FastData/FastWrite.cs` - 软删除 + 审计字段核心逻辑
+
+### 编译状态
+- ✅ FastData: 0 Error(s)
+- ✅ FastData.Demo: 0 Error(s)
+
+---
+
 ## 1. ORM 核心能力
 
 | 编号 | 任务 | 状态 | 备注 |

@@ -22,7 +22,7 @@ namespace FastData.Demo.Controllers
     /// 7. 缓存键设计规范
     /// </summary>
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/Cache")]
     public class CacheController : ControllerBase
     {
         private readonly ICacheService _cacheService;

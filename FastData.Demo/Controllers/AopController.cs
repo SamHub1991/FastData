@@ -11,7 +11,7 @@ namespace FastData.Demo.Controllers
     /// 提供 AOP 拦截器功能的测试和信息查询接口。
     /// </summary>
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/Aop")]
     public class AopController : ControllerBase
     {
         /// <summary>
