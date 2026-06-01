@@ -17,8 +17,7 @@
 
 ## 报告文档
 
-- [改进总结](./IMPROVEMENTS_SUMMARY.md) - 详细的改进总结报告
-- [最终完成报告 v2.0](./FINAL_COMPLETION_REPORT.md) - 项目最终完成报告 v1.4.0
+- [最终完成报告 v2.0](./FINAL_COMPLETION_REPORT.md) - 项目最终完成报告 v1.4.0，包含所有改进和功能的完整记录
 
 ## 相关文档
 
@@ -38,9 +37,8 @@ FastData/
 │   ├── DevTools/                 # 开发工具集
 │   │   └── README.md              # DevTools 工具文档
 │   ├── README.md                 # ORM 主文档
-│   ├── USAGE_GUIDE.md            # 使用指南
 │   ├── CODE_STYLE.md             # 代码风格规范
-│   └── MODERN_ORM_FEATURES.md    # 现代 ORM 特性
+│   └── MODERN_ORM_FEATURES.md    # 现代 ORM 特性（变更跟踪、迁移）
 ├── FastData.Untility/            # 工具库
 │   └── README.md
 ├── FastData.Tests/               # 单元测试
@@ -58,8 +56,7 @@ FastData/
 │   │   ├── README.md             # 文档索引（本文件）
 │   │   ├── QUICK_START.md        # 快速入门
 │   │   ├── FUTURE_IMPROVEMENTS.md # 未来规划
-│   │   ├── IMPROVEMENTS_SUMMARY.md # 改进总结
-│   │   └── FINAL_COMPLETION_REPORT.md # 最终报告
+│   │   └── FINAL_COMPLETION_REPORT.md # 最终完成报告
 │   ├── specs/                    # 需求/设计/任务规格
 │   │   └── tasklist.md           # 任务清单
 │   └── MEMORY.md                 # 用户指令记忆

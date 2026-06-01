@@ -121,7 +121,6 @@ var (items, total) = FastRead.Read.Query<User>()
 - [数据同步工具文档](./FastData.SyncTool.WinForms/README.md)
 
 ### 报告文档
-- [改进总结](./.monkeycode/docs/IMPROVEMENTS_SUMMARY.md)
 - [最终完成报告 v2.0](./.monkeycode/docs/FINAL_COMPLETION_REPORT.md)
 
 ---
