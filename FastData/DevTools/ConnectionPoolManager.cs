@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FastData.Config;
+using FastData.Context;
 
 namespace FastData.DevTools
 {
@@ -137,14 +138,14 @@ namespace FastData.DevTools
     public class ConnectionPool : IDisposable
     {
         private readonly string _dbKey;
-        private readonly DataConfig _config;
+        internal readonly object _config;
         private readonly ConnectionPoolOptions _options;
         private readonly ConcurrentBag<PooledConnection> _idleConnections = new ConcurrentBag<PooledConnection>();
         private readonly ConcurrentBag<PooledConnection> _activeConnections = new ConcurrentBag<PooledConnection>();
         private int _totalConnections;
         private bool _disposed;
 
-        public ConnectionPool(string dbKey, DataConfig config, ConnectionPoolOptions options)
+        internal ConnectionPool(string dbKey, object config, ConnectionPoolOptions options)
         {
             _dbKey = dbKey;
             _config = config;

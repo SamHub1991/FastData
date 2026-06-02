@@ -1,4 +1,5 @@
 using System;
+using FastData.Context;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -226,7 +227,7 @@ namespace FastData.DevTools
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        public static FastData.Model.Result AddWithAudit<T>(T entity, string dbKey = null) where T : class, new()
+        public static Result AddWithAudit<T>(T entity, string dbKey = null) where T : class, new()
         {
             var result = FastData.Write.Write.Add<T>(entity, dbKey);
             if (result.IsSuccess)
@@ -236,7 +237,7 @@ namespace FastData.DevTools
             return result;
         }
 
-        public static FastData.Model.Result UpdateWithAudit<T>(T oldEntity, T newEntity, string dbKey = null) where T : class, new()
+        public static Result UpdateWithAudit<T>(T oldEntity, T newEntity, string dbKey = null) where T : class, new()
         {
             var result = FastData.Write.Write.Update<T>(newEntity, dbKey);
             if (result.IsSuccess)
@@ -246,7 +247,7 @@ namespace FastData.DevTools
             return result;
         }
 
-        public static FastData.Model.Result DeleteWithAudit<T>(T entity, string dbKey = null) where T : class, new()
+        public static Result DeleteWithAudit<T>(T entity, string dbKey = null) where T : class, new()
         {
             var result = FastData.Write.Write.Delete<T>(entity, dbKey);
             if (result.IsSuccess)
@@ -256,7 +257,7 @@ namespace FastData.DevTools
             return result;
         }
 
-        public static FastData.Model.Result AddRangeWithAudit<T>(IEnumerable<T> entities, string dbKey = null) where T : class, new()
+        public static Result AddRangeWithAudit<T>(IEnumerable<T> entities, string dbKey = null) where T : class, new()
         {
             var result = FastData.Write.Write.AddRange(entities, dbKey);
             if (result.IsSuccess)

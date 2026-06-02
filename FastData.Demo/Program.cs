@@ -3,6 +3,7 @@ using FastData.Demo.Services;
 using FastData.Repository;
 using FastData.Config;
 using FastData;
+// using FastData.DevTools;
 using FastRedis;
 using FastRedis.Messaging;
 using FastRedis.Repository;
@@ -15,6 +16,9 @@ DbProviderFactories.RegisterFactory("Microsoft.Data.SqlClient", Microsoft.Data.S
 DbProviderFactories.RegisterFactory("MySql.Data.MySqlClient", MySql.Data.MySqlClient.MySqlClientFactory.Instance);
 DbProviderFactories.RegisterFactory("System.Data.SQLite", System.Data.SQLite.SQLiteFactory.Instance);
 DbProviderFactories.RegisterFactory("Npgsql", Npgsql.NpgsqlFactory.Instance);
+
+// 初始化 DevTools 配置管理器
+// ConfigurationManager.LoadFromFile();
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -75,6 +79,40 @@ builder.Services.AddScoped<IDataSyncService, DataSyncService>();
 RedisInfo.Init();
 
 var app = builder.Build();
+
+// 注册健康检查
+/*
+HealthChecker.RegisterHealthCheck("Database", new CommonHealthChecks.DatabaseHealthCheck(() =>
+{
+    try
+    {
+        using var db = new FastData.Context.DataContext("SqlServer");
+        db.conn.Open();
+        db.conn.Close();
+        return true;
+    }
+    catch { return false; }
+}));
+
+HealthChecker.RegisterHealthCheck("Redis", new CommonHealthChecks.CustomHealthCheck(() =>
+{
+    try
+    {
+        var redis = app.Services.GetRequiredService<NewLife.Caching.FullRedis>();
+        var ping = redis.Ping();
+        return new HealthCheckStatus
+        {
+            IsHealthy = ping > 0,
+            Status = ping > 0 ? "Healthy" : "Unhealthy",
+            Message = $"Ping: {ping}ms"
+        };
+    }
+    catch (Exception ex)
+    {
+        return new HealthCheckStatus { IsHealthy = false, Status = "Error", Message = ex.Message };
+    }
+}));
+*/
 
 // 配置中间件
 if (app.Environment.IsDevelopment())

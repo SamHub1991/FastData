@@ -359,7 +359,7 @@ namespace FastData.DevTools.Examples
                 Console.WriteLine($"参数: {string.Join(", ", deleteParams)}\n");
 
                 // 复杂查询构建
-                var (complexSql, complexParams) = SqlBuilder.Select()
+                (string complexSql, DbParameter[] complexParams) = SqlBuilder.Select()
                     .From("User u")
                     .InnerJoin("Order o", "u.Id = o.UserId")
                     .Select("u.Name, COUNT(o.Id) as OrderCount")

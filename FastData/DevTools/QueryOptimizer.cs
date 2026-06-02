@@ -1,4 +1,5 @@
 using System;
+using FastData.Context;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -52,7 +53,7 @@ namespace FastData.DevTools
             }
 
             // 检查 LIKE 查询
-            var likePattern = new Regex(@"LIKE\s+['\"]%[\w%]+['\"]", RegexOptions.IgnoreCase);
+            var likePattern = new Regex(@"LIKE\s+['""]%[\w%]+['""]", RegexOptions.IgnoreCase);
             if (likePattern.IsMatch(sql))
             {
                 result.Optimizations.Add(new OptimizationSuggestion
@@ -593,6 +594,17 @@ namespace FastData.DevTools
         Low,
         Medium,
         High
+    }
+
+    /// <summary>
+    /// 索引建议优先级
+    /// </summary>
+    public enum IndexPriority
+    {
+        Low,
+        Medium,
+        High,
+        Critical
     }
 
     /// <summary>

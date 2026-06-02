@@ -391,9 +391,63 @@
 - Date: 2026-06-01
 - Category: 项目知识
 - Instructions:
-  - 已将技术文档移动到 docs/ 目录
-  - 已将报告文档移动到 .monkeycode/docs/ 目录
-  - 已创建 docs/README.md 作为文档索引
-  - 已创建 .monkeycode/docs/README.md 作为报告索引
-  - 已更新根目录 README.md，使其更简洁
-  - 已更新 MEMORY.md，记录文档整理情况
+   - 已将技术文档移动到 docs/ 目录
+   - 已将报告文档移动到 .monkeycode/docs/ 目录
+   - 已创建 docs/README.md 作为文档索引
+   - 已创建 .monkeycode/docs/README.md 作为报告索引
+   - 已更新根目录 README.md，使其更简洁
+   - 已更新 MEMORY.md，记录文档整理情况
+
+**配置管理规范**
+- Date: 2026-06-02
+- Context: 用户明确要求
+- Category: 环境配置
+- Instructions:
+   - 数据库配置必须使用 `db.config` 和 `db.{env}.config` 文件
+   - 不得在 `appsettings.json` 中硬编码连接字符串
+   - 使用 `FastDataConfig.GetConnectionString(key)` 获取连接字符串
+   - 使用 `FastDataConfig.GetActiveEnvironment()` 获取当前环境
+   - `db.config` 中的 `Active` 属性决定加载哪个环境配置（如 `db.dev.config`、`db.pro.config`）
+   - 支持环境变量 `FASTDATA_ACTIVE` 覆盖配置文件的 Active 属性
+   - `ConfigurationManager` 自动检测环境并加载对应配置文件
+
+**DevTools 工具使用规范**
+- Date: 2026-06-02
+- Context: 用户明确要求"既然写了就要用起来"
+- Category: 环境配置
+- Instructions:
+   - 使用 `DatabaseDiagnostic.Diagnose(key)` 进行数据库诊断，替代手动连接测试
+   - 使用 `HealthChecker.RegisterHealthCheck()` 注册健康检查
+   - 使用 `HealthChecker.CheckAll()` 执行健康检查
+   - 使用 `LogAggregator.Info()` 记录日志，替代 `Console.WriteLine`
+   - 使用 `LogAggregator.Exception()` 记录异常日志
+   - 使用 `PerformanceProfiler.StartProfiling()` 进行性能分析
+   - 使用 `CacheManager.GetCacheStats()` 获取缓存统计
+   - 使用 `CacheManager.GetAllCacheKeys()` 获取所有缓存键
+
+**FastData.Untility 工具使用规范**
+- Date: 2026-06-02
+- Context: 用户明确要求"不要重复造轮子"
+- Category: 环境配置
+- Instructions:
+   - 使用 `BaseRegular.ToInt(defValue)` 替代 `int.Parse`，避免格式异常
+   - 使用 `BaseRegular.ToLong(defValue)` 替代 `long.Parse`，避免格式异常
+   - 使用 `CollectionHelper.IsNullOrEmpty()` 进行空值检查
+   - 使用 `CollectionHelper.HasOne()` 检查集合是否有元素
+   - 使用 `CollectionHelper.ToListSafe()` 处理可能的 null 集合
+   - 使用 `DateHelper.GetTimestamp()` 获取时间戳
+   - 使用 `DateHelper.GetTimestampMs()` 获取毫秒时间戳
+   - 使用 `DateHelper.NowToString(format)` 时间格式化
+   - 使用 `DateHelper.AddDays(days)` 日期计算
+   - 使用 `PageResult<T>` 统一分页返回类型
+
+**"不要重复造轮子"原则**
+- Date: 2026-06-02
+- Context: 用户明确要求
+- Category: 行为指令
+- Instructions:
+   - 优先使用 FastData.Untility 和 FastData.DevTools 中已有的工具和方法
+   - 避免重复实现已有的功能（如类型转换、集合操作、日期处理、日志记录等）
+   - 代码审查时检查是否可以使用现有工具替代重复实现
+   - 使用工具类可以提高代码一致性、健壮性和可维护性
+   - 如果工具不满足需求，应该扩展现有工具而非重新实现

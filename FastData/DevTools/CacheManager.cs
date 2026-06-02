@@ -1,4 +1,5 @@
 using System;
+using FastData.Context;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -53,6 +54,14 @@ namespace FastData.DevTools
         public static bool Exists(string key)
         {
             return _cache.Contains(key);
+        }
+
+        /// <summary>
+        /// 获取所有缓存键
+        /// </summary>
+        public static List<string> GetAllCacheKeys()
+        {
+            return _cache.Select(kvp => kvp.Key).ToList();
         }
 
         /// <summary>

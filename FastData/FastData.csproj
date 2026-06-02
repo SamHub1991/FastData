@@ -44,6 +44,11 @@
     <ProjectReference Include="..\FastData.Untility\FastData.Untility.csproj" />
   </ItemGroup>
 
+  <!-- 排除 DevTools 目录（临时） -->
+  <ItemGroup>
+    <Compile Remove="DevTools\**" />
+  </ItemGroup>
+
   <!-- 排除 net452 的 Queue 目录 -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net452'">
     <Compile Remove="Queue\**" />

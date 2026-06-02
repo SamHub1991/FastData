@@ -1,12 +1,19 @@
 using FastData;
 using FastData.Base;
+using FastData.Context;
+using FastData.Config;
+using FastData.Model;
 using FastData.Demo.Models;
 using FastData.Demo.Repositories;
 using FastData.Demo.Services;
-using FastData.Model;
+// using FastData.DevTools;
+using FastRedis.Repository;
+using FastRedis.Services;
+using FastUntility.Page;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace FastData.Demo.Controllers
@@ -15,7 +22,7 @@ namespace FastData.Demo.Controllers
     /// 用户 API 控制器
     /// </summary>
     [ApiController]
-    [Route("api/Users")]
+    [Route("api/users")]
     public class UsersController : ControllerBase
     {
         private readonly IUserRepository _userRepository;
@@ -110,7 +117,7 @@ namespace FastData.Demo.Controllers
         /// 分页获取用户
         /// </summary>
         [HttpGet("paged")]
-        public async Task<ActionResult<List<AppUser>>> GetPaged([FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 20)
+        public async Task<ActionResult<PageResult<AppUser>>> GetPaged([FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 20)
         {
             try
             {
@@ -135,12 +142,12 @@ namespace FastData.Demo.Controllers
                 {
                     return BadRequest(new { error = "User is null" });
                 }
-                
+
                 // 直接调用 FastWrite.Add 诊断
                 user.CreateTime = DateTime.Now;
                 user.IsActive = true;
                 var writeResult = await Task.Run(() => FastWrite.Add(user));
-                
+
                 return Ok(new
                 {
                     IsSuccess = writeResult.IsSuccess,
@@ -249,379 +256,34 @@ namespace FastData.Demo.Controllers
                 return StatusCode(500, new { error = ex.Message });
             }
         }
-    }
-
-    /// <summary>
-    /// 订单 API 控制器
-    /// </summary>
-    [ApiController]
-    [Route("api/Users")]
-    public class OrdersController : ControllerBase
-    {
-        private readonly IOrderRepository _orderRepository;
-        private readonly ICacheService _cacheService;
-
-        public OrdersController(IOrderRepository orderRepository, ICacheService cacheService)
-        {
-            _orderRepository = orderRepository;
-            _cacheService = cacheService;
-        }
-
-        /// <summary>
-        /// 获取所有订单
-        /// </summary>
-        [HttpGet("orders")]
-        public async Task<ActionResult<List<AppOrder>>> GetAllOrders()
-        {
-            try
-            {
-                var orders = await _orderRepository.GetAllAsync();
-                return Ok(orders);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { error = ex.Message });
-            }
-        }
-
-        /// <summary>
-        /// 根据 ID 获取订单
-        /// </summary>
-        [HttpGet("{id}")]
-        public async Task<ActionResult<AppOrder>> GetById(int id)
-        {
-            try
-            {
-                var key = $"order:{id}";
-                var order = await _cacheService.GetOrSetAsync(key, async () =>
-                {
-                    return await _orderRepository.GetByIdAsync(id);
-                }, hours: 2);
-
-                if (order == null)
-                    return NotFound();
-
-                return Ok(order);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { error = ex.Message });
-            }
-        }
-
-        /// <summary>
-        /// 获取用户订单
-        /// </summary>
-        [HttpGet("user/{userId}")]
-        public async Task<ActionResult<List<AppOrder>>> GetByUserId(int userId)
-        {
-            try
-            {
-                var key = $"orders:user:{userId}";
-                var orders = await _cacheService.GetOrSetAsync(key, async () =>
-                {
-                    return await _orderRepository.GetByUserIdAsync(userId);
-                }, hours: 1);
-
-                return Ok(orders);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { error = ex.Message });
-            }
-        }
-
-        /// <summary>
-        /// 创建订单
-        /// </summary>
-        [HttpPost]
-        public async Task<ActionResult<int>> Create([FromBody] AppOrder order)
-        {
-            try
-            {
-                var result = await _orderRepository.AddAsync(order);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { error = ex.Message });
-            }
-        }
-
-        /// <summary>
-        /// 更新订单状态
-        /// </summary>
-        [HttpPut("{id}/status")]
-        public async Task<ActionResult<int>> UpdateStatus(int id, [FromQuery] int status)
-        {
-            try
-            {
-                var result = await _orderRepository.UpdateStatusAsync(id, status);
-
-                // 清除缓存
-                await _cacheService.RemoveAsync($"order:{id}");
-
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { error = ex.Message });
-            }
-        }
-    }
-
-    /// <summary>
-    /// 数据同步 API 控制器
-    /// </summary>
-    [ApiController]
-    [Route("api/Users")]
-    public class SyncController : ControllerBase
-    {
-        private readonly IDataSyncService _syncService;
-
-        public SyncController(IDataSyncService syncService)
-        {
-            _syncService = syncService;
-        }
-
-        /// <summary>
-        /// 同步所有表
-        /// </summary>
-        [HttpPost("all")]
-        public async Task<ActionResult<SyncResult>> SyncAll()
-        {
-            try
-            {
-                var result = await _syncService.SyncAllTablesAsync();
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { error = ex.Message });
-            }
-        }
-
-        /// <summary>
-        /// 同步用户表
-        /// </summary>
-        [HttpPost("users")]
-        public async Task<ActionResult<SyncResult>> SyncUsers()
-        {
-            try
-            {
-                var result = await _syncService.SyncUsersAsync();
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { error = ex.Message });
-            }
-        }
-
-        /// <summary>
-        /// 同步订单表
-        /// </summary>
-        [HttpPost("orders")]
-        public async Task<ActionResult<SyncResult>> SyncOrders()
-        {
-            try
-            {
-                var result = await _syncService.SyncOrdersAsync();
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { error = ex.Message });
-            }
-        }
-    }
-
-    /// <summary>
-    /// 健康检查 API
-    /// </summary>
-    [ApiController]
-    [Route("api/Users")]
-    public class HealthController : ControllerBase
-    {
-        private readonly ICacheService _cacheService;
-
-        /// <summary>
-        /// 性能基准测试 - 批量插入
-        /// </summary>
-        /// <param name="count">插入数量</param>
-        [HttpPost("benchmark/batch-insert")]
-        public async Task<ActionResult> BenchmarkBatchInsert([FromQuery] int count = 1000)
-        {
-            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-            try
-            {
-                var users = new List<AppUser>();
-                for (int i = 0; i < count; i++)
-                {
-                    users.Add(new AppUser
-                    {
-                        UserName = $"bench_{i}_{Guid.NewGuid().ToString().Substring(0, 8)}",
-                        Email = $"bench{i}@test.com",
-                        Age = 20 + (i % 30),
-                        Department = $"Dept{i % 10}",
-                        IsActive = true,
-                        CreateTime = DateTime.Now
-                    });
-                }
-
-                var insertStopwatch = System.Diagnostics.Stopwatch.StartNew();
-                var result = await FastWrite.Use("SqlServer").BulkInsertAsync(users);
-                insertStopwatch.Stop();
-
-                stopwatch.Stop();
-
-                return Ok(new
-                {
-                    Success = true,
-                    Count = count,
-                    TotalTimeMs = stopwatch.ElapsedMilliseconds,
-                    InsertTimeMs = insertStopwatch.ElapsedMilliseconds,
-                    OpsPerSecond = count * 1000.0 / insertStopwatch.ElapsedMilliseconds
-                });
-            }
-            catch (Exception ex)
-            {
-                stopwatch.Stop();
-                return StatusCode(500, new
-                {
-                    Success = false,
-                    Error = ex.Message,
-                    TotalTimeMs = stopwatch.ElapsedMilliseconds
-                });
-            }
-        }
-
-        /// <summary>
-        /// 性能基准测试 - 批量查询
-        /// </summary>
-        /// <param name="count">查询数量</param>
-        [HttpGet("benchmark/batch-query")]
-        public async Task<ActionResult> BenchmarkBatchQuery([FromQuery] int count = 1000)
-        {
-            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-            try
-            {
-                var queryStopwatch = System.Diagnostics.Stopwatch.StartNew();
-                var users = FastRead.Use("SqlServer").Query<AppUser>(q => q.Id > 0).Take(count).ToList<AppUser>();
-                queryStopwatch.Stop();
-
-                stopwatch.Stop();
-
-                return Ok(new
-                {
-                    Success = true,
-                    Count = users.Count,
-                    TotalTimeMs = stopwatch.ElapsedMilliseconds,
-                    QueryTimeMs = queryStopwatch.ElapsedMilliseconds,
-                    OpsPerSecond = users.Count * 1000.0 / queryStopwatch.ElapsedMilliseconds
-                });
-            }
-            catch (Exception ex)
-            {
-                stopwatch.Stop();
-                return StatusCode(500, new
-                {
-                    Success = false,
-                    Error = ex.Message,
-                    TotalTimeMs = stopwatch.ElapsedMilliseconds
-                });
-            }
-        }
-
-        /// <summary>
-        /// 性能基准测试 - 并发查询
-        /// </summary>
-        /// <param name="concurrency">并发数</param>
-        /// <param name="iterations">迭代次数</param>
-        [HttpGet("benchmark/concurrent-query")]
-        public async Task<ActionResult> BenchmarkConcurrentQuery([FromQuery] int concurrency = 10, [FromQuery] int iterations = 100)
-        {
-            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-            try
-            {
-                var tasks = new List<Task<int>>();
-                for (int i = 0; i < concurrency; i++)
-                {
-                    int localId = i;
-                    tasks.Add(Task.Run(async () =>
-                    {
-                        var localStopwatch = System.Diagnostics.Stopwatch.StartNew();
-                        int successCount = 0;
-                        for (int j = 0; j < iterations; j++)
-                        {
-                            try
-                            {
-                                var user = FastRead.Use("SqlServer").Query<AppUser>(q => q.Id == localId + 1).ToItem<AppUser>();
-                                if (user != null) successCount++;
-                            }
-                            catch
-                            {
-                                // 忽略错误
-                            }
-                        }
-                        localStopwatch.Stop();
-                        return successCount;
-                    }));
-                }
-
-                var results = await Task.WhenAll(tasks);
-                stopwatch.Stop();
-
-                var totalSuccess = results.Sum();
-                var totalOps = concurrency * iterations;
-
-                return Ok(new
-                {
-                    Success = true,
-                    TotalOperations = totalOps,
-                    SuccessfulOperations = totalSuccess,
-                    Concurrency = concurrency,
-                    Iterations = iterations,
-                    TotalTimeMs = stopwatch.ElapsedMilliseconds,
-                    OpsPerSecond = totalOps * 1000.0 / stopwatch.ElapsedMilliseconds,
-                    SuccessRate = totalSuccess * 100.0 / totalOps
-                });
-            }
-            catch (Exception ex)
-            {
-                stopwatch.Stop();
-                return StatusCode(500, new
-                {
-                    Success = false,
-                    Error = ex.Message,
-                    TotalTimeMs = stopwatch.ElapsedMilliseconds
-                });
-            }
-        }
-
-        public HealthController(ICacheService cacheService)
-        {
-            _cacheService = cacheService;
-        }
 
         /// <summary>
         /// 健康检查
         /// </summary>
         [HttpGet("health")]
-        public async Task<ActionResult> Check()
+        public ActionResult<object> Check()
         {
-            var result = new
+            // var result = HealthChecker.CheckAll();
+            // return Ok(new
+            // {
+            //     Status = result.IsHealthy ? "Healthy" : "Unhealthy",
+            //     Timestamp = result.Timestamp,
+            //     Framework = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription,
+            //     Checks = result.Checks.ToDictionary(kvp => kvp.Key, kvp => new
+            //     {
+            //         status = kvp.Value.Status,
+            //         isHealthy = kvp.Value.IsHealthy,
+            //         message = kvp.Value.Message
+            //     })
+            // });
+
+            return Ok(new
             {
-                Status = "Healthy",
-                Timestamp = DateTime.Now,
-                Framework = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription,
-                RedisConnected = await _cacheService.ExistsAsync("health:check")
-            };
-
-            // 写入健康检查标记
-            await _cacheService.SetAsync("health:check", new { Timestamp = DateTime.Now }, hours: 1);
-
-            return Ok(result);
+                status = "Healthy",
+                timestamp = DateTime.UtcNow,
+                framework = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription,
+                redisConnected = false
+            });
         }
     }
 }

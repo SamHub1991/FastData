@@ -10,6 +10,9 @@ using MySql.Data.MySqlClient;
 using Npgsql;
 using System.Data.SQLite;
 using FastData.Config;
+using FastData.Demo.Utils;
+// using FastData.DevTools;
+using FastUntility.Base;
 using FastData.Sharding;
 using FastData.Sharding.Strategies;
 
@@ -386,7 +389,7 @@ namespace FastData.Demo.Controllers
                     FrequencyConfig = new QueryFrequencyShardingConfig
                     {
                         Field = "CustomerId",
-                        HotThreshold = long.Parse(hotThreshold),
+                        HotThreshold = hotThreshold.ToLong(0),
                         HotSuffix = "_hot",
                         ColdSuffix = "_cold"
                     }
@@ -745,7 +748,7 @@ namespace FastData.Demo.Controllers
                     catch (Exception ex)
                     {
                         // 记录错误但继续
-                        Console.WriteLine($"Error inserting to {tableName}: {ex.Message}");
+                        SimpleLogger.Exception($"Error inserting to {tableName}", ex);
                     }
                 }
             }

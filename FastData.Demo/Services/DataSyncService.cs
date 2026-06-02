@@ -1,4 +1,5 @@
 using FastData.Tooling.Sync;
+using FastData.Config;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -109,9 +110,9 @@ namespace FastData.Demo.Services
             return new DataSyncOptions
             {
                 SourceProvider = sourceProvider ?? "MySql.Data.MySqlClient",
-                SourceConnectionString = sourceConnStr ?? "server=127.0.0.1;database=FastDataDemo;uid=root;pwd=FastData@Test123;SslMode=None",
+                SourceConnectionString = sourceConnStr ?? FastDataConfig.GetConnectionString("MySql"),
                 TargetProvider = targetProvider ?? "Npgsql",
-                TargetConnectionString = targetConnStr ?? "server=127.0.0.1;database=fastdatademo;uid=postgres;pwd=postgres",
+                TargetConnectionString = targetConnStr ?? FastDataConfig.GetConnectionString("PostgreSql"),
                 SourceTable = sourceTable,
                 TargetTable = targetTable,
                 BatchSize = 500,

@@ -4,6 +4,7 @@ using System.Linq;
 using FastData;
 using FastData.Demo.Models;
 using FastData.Model;
+using FastUntility.Base;
 using FastUntility.Page;
 using Microsoft.AspNetCore.Mvc;
 
@@ -160,7 +161,7 @@ namespace FastData.Demo.Controllers
         [HttpGet("in")]
         public IActionResult InQuery([FromQuery] string ids = "1,2,3")
         {
-            var idList = ids.Split(',').Select(int.Parse).ToList();
+            var idList = ids.Split(',').Select(id => id.ToInt(0)).Where(id => id > 0).ToList();
 
             // 使用 Where 构建器模拟 In 查询
             var where = new Where<AppUser>();

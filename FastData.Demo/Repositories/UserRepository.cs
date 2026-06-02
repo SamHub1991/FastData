@@ -1,6 +1,7 @@
 using FastData;
 using FastData.Context;
 using FastData.Demo.Models;
+using FastUntility.Base;
 using FastUntility.Page;
 using System;
 using System.Collections.Generic;
@@ -17,7 +18,7 @@ namespace FastData.Demo.Repositories
         Task<(bool Success, string Message)> AddAsync(AppUser user);
         Task<(bool Success, string Message)> UpdateAsync(AppUser user);
         Task<(bool Success, string Message)> DeleteAsync(int id);
-        Task<(List<AppUser> Data, int Total)> GetPagedAsync(int pageIndex, int pageSize);
+        Task<PageResult<AppUser>> GetPagedAsync(int pageIndex, int pageSize);
     }
 
     public class UserRepository : IUserRepository
@@ -81,13 +82,12 @@ namespace FastData.Demo.Repositories
             return (result.IsSuccess, result.Message);
         }
 
-        public async Task<(List<AppUser> Data, int Total)> GetPagedAsync(int pageIndex, int pageSize)
+        public async Task<PageResult<AppUser>> GetPagedAsync(int pageIndex, int pageSize)
         {
-            var result = await Task.Run(() =>
+            return await Task.Run(() =>
                 FastRead.Query<AppUser>(u => u.Id > 0, key: _key)
                     .OrderBy(u => u.Id)
                     .ToPage<AppUser>(new PageModel { PageId = pageIndex, PageSize = pageSize }));
-            return (result.list, result.pModel.TotalRecord);
         }
     }
 
@@ -145,7 +145,7 @@ namespace FastData.Demo.Repositories
         {
             order.CreateTime = DateTime.Now;
             order.Status = 0;
-            order.OrderNo = $"ORD{DateTime.Now:yyyyMMddHHmmss}{_random.Next(1000, 9999)}";
+            order.OrderNo = $"ORD{DateHelper.GetTimestamp()}{_random.Next(1000, 9999)}";
             var result = await Task.Run(() => FastWrite.Add(order, key: _key));
             return (result.IsSuccess, result.Message, order.OrderNo);
         }

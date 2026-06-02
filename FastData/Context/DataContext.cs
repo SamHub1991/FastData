@@ -224,6 +224,9 @@ namespace FastData.Context
                     DbLogTable.LogException(config, ex, "DataContext", "");
                 else
                     DbLog.LogException(true, config?.DbType ?? DataDbType.SqlServer, ex, "DataContext", "");
+                
+                // 重新抛出异常，避免创建无效的 DataContext 对象
+                throw;
             }
         }
         #endregion
@@ -231,10 +234,21 @@ namespace FastData.Context
         #region 开始事务
         public void BeginTrans()
         {
-            if (conn.State == ConnectionState.Closed)
+            if (conn == null)
+                throw new InvalidOperationException("Connection is null. DataContext was not initialized properly.");
+
+            if (conn.State != ConnectionState.Open)
                 conn.Open();
+
+            if (cmd == null)
+                cmd = conn.CreateCommand();
+
+            if (cmd.Connection == null)
+                cmd.Connection = conn;
+
             trans = conn.BeginTransaction();
-            cmd.Transaction = trans;
+            if (trans != null)
+                cmd.Transaction = trans;
         }
         #endregion
 

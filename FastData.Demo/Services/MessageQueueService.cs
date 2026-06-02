@@ -4,11 +4,12 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using FastData.Demo.Models;
+using FastData.Demo.Utils;
 using FastData.Queue;
 using FastRedis.Messaging;
 using FastRedis.Services;
 using NewLife.Caching;
-using NewLife.Log;
+// using FastData.DevTools;
 
 namespace FastData.Demo.Services
 {
@@ -41,9 +42,9 @@ namespace FastData.Demo.Services
         /// </summary>
         public async Task<int> DemoReliableQueueAsync()
         {
-            Console.WriteLine("=== 示例 1: 可信队列（削峰场景） ===");
-            Console.WriteLine("场景：RTU 数据 → 队列缓冲 → 批量写入数据库");
-            Console.WriteLine();
+            SimpleLogger.Info("=== 示例 1: 可信队列（削峰场景） ===");
+            SimpleLogger.Info("场景：RTU 数据 → 队列缓冲 → 批量写入数据库");
+            SimpleLogger.Info();
 
             var topic = "rtu:sensor";
 
@@ -58,12 +59,12 @@ namespace FastData.Demo.Services
             };
 
             // 2. 发布到可信队列
-            Console.WriteLine($"发布 {sensorData.Count} 条数据到队列...");
+            SimpleLogger.Info($"发布 {sensorData.Count} 条数据到队列...");
             var count = await _mqService.PublishDataAsync(topic, sensorData, MessageQueueType.ReliableQueue);
-            Console.WriteLine($"成功发布 {count} 条数据");
+            SimpleLogger.Info($"成功发布 {count} 条数据");
 
             // 3. 启动消费者（模拟数据库写入）
-            Console.WriteLine("启动消费者，等待数据...");
+            SimpleLogger.Info("启动消费者，等待数据...");
             var processedCount = 0;
 
             await _mqService.StartConsumerAsync<SensorData>(
@@ -72,14 +73,14 @@ namespace FastData.Demo.Services
                 {
                     // 模拟写入数据库
                     await Task.Delay(10); // 模拟 DB 写入延迟
-                    Console.WriteLine($"  [DB Consumer] 写入数据库: {data.DeviceId} - 温度:{data.Temperature}°C, 湿度:{data.Humidity}%");
+                    SimpleLogger.Info($"  [DB Consumer] 写入数据库: {data.DeviceId} - 温度:{data.Temperature}°C, 湿度:{data.Humidity}%");
                     Interlocked.Increment(ref processedCount);
                 },
                 _cts.Token,
                 MessageQueueType.ReliableQueue,
                 concurrency: 2);
 
-            Console.WriteLine();
+            SimpleLogger.Info();
             return count;
         }
 
@@ -89,9 +90,9 @@ namespace FastData.Demo.Services
         /// </summary>
         public async Task<int> DemoStreamMultiGroupAsync()
         {
-            Console.WriteLine("=== 示例 2: Stream 多消费组（多方推送） ===");
-            Console.WriteLine("场景：RTU 数据 → Stream → [数据库存储, 告警系统, 数据分析]");
-            Console.WriteLine();
+            SimpleLogger.Info("=== 示例 2: Stream 多消费组（多方推送） ===");
+            SimpleLogger.Info("场景：RTU 数据 → Stream → [数据库存储, 告警系统, 数据分析]");
+            SimpleLogger.Info();
 
             var topic = "rtu:realtime";
 
@@ -104,7 +105,7 @@ namespace FastData.Demo.Services
             };
 
             // 2. 发布到 Stream
-            Console.WriteLine($"发布 {sensorData.Count} 条数据到 Stream...");
+            SimpleLogger.Info($"发布 {sensorData.Count} 条数据到 Stream...");
             var count = await _mqService.PublishDataAsync(topic, sensorData, MessageQueueType.Stream);
 
             // 3. 启动多个消费组
@@ -115,20 +116,20 @@ namespace FastData.Demo.Services
                 async (data) =>
                 {
                     await Task.Delay(10);
-                    Console.WriteLine($"  [DB Writer] 存储数据: {data.DeviceId} - {data.Temperature}°C");
+                    SimpleLogger.Info($"  [DB Writer] 存储数据: {data.DeviceId} - {data.Temperature}°C");
                 },
                 // 消费组 2: 告警系统
                 async (data) =>
                 {
                     if (data.Temperature > 30)
                     {
-                        Console.WriteLine($"  [Alert] 高温告警: {data.DeviceId} - {data.Temperature}°C");
+                        SimpleLogger.Info($"  [Alert] 高温告警: {data.DeviceId} - {data.Temperature}°C");
                     }
                 },
                 // 消费组 3: 数据分析
                 async (data) =>
                 {
-                    Console.WriteLine($"  [Analytics] 分析数据: {data.DeviceId} - 温度:{data.Temperature}°C, 湿度:{data.Humidity}%");
+                    SimpleLogger.Info($"  [Analytics] 分析数据: {data.DeviceId} - 温度:{data.Temperature}°C, 湿度:{data.Humidity}%");
                 }
             };
 
@@ -139,7 +140,7 @@ namespace FastData.Demo.Services
                 _cts.Token,
                 concurrency: 1);
 
-            Console.WriteLine();
+            SimpleLogger.Info();
             return count;
         }
 
@@ -149,9 +150,9 @@ namespace FastData.Demo.Services
         /// </summary>
         public async Task<int> DemoDataTableQueueAsync()
         {
-            Console.WriteLine("=== 示例 3: DataTable 消息队列 ===");
-            Console.WriteLine("场景：数据库查询结果 → 消息队列 → 异步处理");
-            Console.WriteLine();
+            SimpleLogger.Info("=== 示例 3: DataTable 消息队列 ===");
+            SimpleLogger.Info("场景：数据库查询结果 → 消息队列 → 异步处理");
+            SimpleLogger.Info();
 
             var topic = "db:sync:users";
 
@@ -165,7 +166,7 @@ namespace FastData.Demo.Services
             table.Rows.Add(3, "王五", "wangwu@example.com");
 
             // 2. 发布到消息队列
-            Console.WriteLine($"发布 {table.Rows.Count} 行数据到队列...");
+            SimpleLogger.Info($"发布 {table.Rows.Count} 行数据到队列...");
             var count = _mqService.PublishDataTable(topic, table, MessageQueueType.ReliableQueue);
 
             // 3. 启动消费者
@@ -173,14 +174,14 @@ namespace FastData.Demo.Services
                 topic,
                 async (rowData) =>
                 {
-                    Console.WriteLine($"  [Consumer] 处理数据: Id={rowData["Id"]}, UserName={rowData["UserName"]}, Email={rowData["Email"]}");
+                    SimpleLogger.Info($"  [Consumer] 处理数据: Id={rowData["Id"]}, UserName={rowData["UserName"]}, Email={rowData["Email"]}");
                     await Task.CompletedTask;
                 },
                 _cts.Token,
                 MessageQueueType.ReliableQueue,
                 concurrency: 2);
 
-            Console.WriteLine();
+            SimpleLogger.Info();
             return count;
         }
 
@@ -190,9 +191,9 @@ namespace FastData.Demo.Services
         /// </summary>
         public WriteBehindResult DemoFastWriteQueue()
         {
-            Console.WriteLine("=== 示例 4: FastWrite 链式 API（写入后端队列） ===");
-            Console.WriteLine("场景：数据库异常自动降级到可信队列");
-            Console.WriteLine();
+            SimpleLogger.Info("=== 示例 4: FastWrite 链式 API（写入后端队列） ===");
+            SimpleLogger.Info("场景：数据库异常自动降级到可信队列");
+            SimpleLogger.Info();
 
             // 1. 配置表级别的消息队列（启用降级）
             FastWrite.ConfigureQueue<AppUser>(new WriteBehindConfig
@@ -203,7 +204,7 @@ namespace FastData.Demo.Services
                 Topic = "demo:users"
             });
 
-            Console.WriteLine("已配置 User 表启用可信队列（降级模式）");
+            SimpleLogger.Info("已配置 User 表启用可信队列（降级模式）");
 
             // 2. 使用链式 API 写入（带扩展元数据）
             var users = new List<AppUser>
@@ -213,7 +214,7 @@ namespace FastData.Demo.Services
                 new AppUser { Id = 103, UserName = "rtu_user_003", Email = "rtu003@example.com", Age = 28, IsActive = false, CreateTime = DateTime.Now }
             };
 
-            Console.WriteLine($"使用 FastWrite.QueueBuilder() 写入 {users.Count} 个用户...");
+            SimpleLogger.Info($"使用 FastWrite.QueueBuilder() 写入 {users.Count} 个用户...");
 
             var result = FastWrite.QueueBuilder()
                 .WithMetadata(new Dictionary<string, object>
@@ -228,22 +229,22 @@ namespace FastData.Demo.Services
                 .Execute();
 
             // 3. 输出结果
-            Console.WriteLine($"执行结果: Success={result.Success}");
-            Console.WriteLine($"  直接写入数据库: {result.DirectWriteCount} 条");
-            Console.WriteLine($"  写入队列（降级）: {result.QueuedCount} 条");
-            Console.WriteLine($"  失败: {result.FailedCount} 条");
-            Console.WriteLine($"  降级发生: {result.FallbackOccurred}");
+            SimpleLogger.Info($"执行结果: Success={result.Success}");
+            SimpleLogger.Info($"  直接写入数据库: {result.DirectWriteCount} 条");
+            SimpleLogger.Info($"  写入队列（降级）: {result.QueuedCount} 条");
+            SimpleLogger.Info($"  失败: {result.FailedCount} 条");
+            SimpleLogger.Info($"  降级发生: {result.FallbackOccurred}");
 
             if (result.Details.Count > 0)
             {
-                Console.WriteLine("  详细结果:");
+                SimpleLogger.Info("  详细结果:");
                 foreach (var detail in result.Details)
                 {
-                    Console.WriteLine($"    - {detail.TableName} {detail.OperationType}: Success={detail.Success}, UsedQueue={detail.UsedQueue}");
+                    SimpleLogger.Info($"    - {detail.TableName} {detail.OperationType}: Success={detail.Success}, UsedQueue={detail.UsedQueue}");
                 }
             }
 
-            Console.WriteLine();
+            SimpleLogger.Info();
             return result;
         }
 
@@ -253,9 +254,9 @@ namespace FastData.Demo.Services
         /// </summary>
         public ReadQueueResult DemoFastReadQueue()
         {
-            Console.WriteLine("=== 示例 5: FastRead 链式 API（查询队列） ===");
-            Console.WriteLine("场景：将查询请求推送到消息队列");
-            Console.WriteLine();
+            SimpleLogger.Info("=== 示例 5: FastRead 链式 API（查询队列） ===");
+            SimpleLogger.Info("场景：将查询请求推送到消息队列");
+            SimpleLogger.Info();
 
             // 1. 配置表级别的消息队列
             FastRead.ConfigureQueue<AppUser>(new WriteBehindConfig
@@ -264,10 +265,10 @@ namespace FastData.Demo.Services
                 Topic = "demo:user-queries"
             });
 
-            Console.WriteLine("已配置 User 表启用查询队列");
+            SimpleLogger.Info("已配置 User 表启用查询队列");
 
             // 2. 使用链式 API 推送查询请求（带扩展元数据）
-            Console.WriteLine("使用 FastRead.QueueBuilder<AppUser>() 推送查询请求...");
+            SimpleLogger.Info("使用 FastRead.QueueBuilder<AppUser>() 推送查询请求...");
 
             var result = FastRead.QueueBuilder<AppUser>()
                 .WithMetadata(new Dictionary<string, object>
@@ -282,27 +283,27 @@ namespace FastData.Demo.Services
                 .Execute();
 
             // 3. 输出结果
-            Console.WriteLine($"执行结果: Success={result.Success}");
-            Console.WriteLine($"  推送到队列: {result.QueuedCount} 条");
-            Console.WriteLine($"  失败: {result.FailedCount} 条");
+            SimpleLogger.Info($"执行结果: Success={result.Success}");
+            SimpleLogger.Info($"  推送到队列: {result.QueuedCount} 条");
+            SimpleLogger.Info($"  失败: {result.FailedCount} 条");
 
             if (result.Details.Count > 0)
             {
-                Console.WriteLine("  详细结果:");
+                SimpleLogger.Info("  详细结果:");
                 foreach (var detail in result.Details)
                 {
-                    Console.WriteLine($"    - {detail.TableName} {detail.OperationType}: Success={detail.Success}");
+                    SimpleLogger.Info($"    - {detail.TableName} {detail.OperationType}: Success={detail.Success}");
                     if (detail.Metadata != null && detail.Metadata.Count > 0)
                     {
                         foreach (var meta in detail.Metadata)
                         {
-                            Console.WriteLine($"      Metadata: {meta.Key}={meta.Value}");
+                            SimpleLogger.Info($"      Metadata: {meta.Key}={meta.Value}");
                         }
                     }
                 }
             }
 
-            Console.WriteLine();
+            SimpleLogger.Info();
             return result;
         }
 
@@ -312,9 +313,9 @@ namespace FastData.Demo.Services
         /// </summary>
         public void DemoConfigDrivenQueue()
         {
-            Console.WriteLine("=== 示例 6: 配置驱动的消息队列 ===");
-            Console.WriteLine("场景：通过 TableSyncConfig 配置消息队列");
-            Console.WriteLine();
+            SimpleLogger.Info("=== 示例 6: 配置驱动的消息队列 ===");
+            SimpleLogger.Info("场景：通过 TableSyncConfig 配置消息队列");
+            SimpleLogger.Info();
 
             // 配置可信队列（适合数据库存储）
             var dbConfig = new FastData.Tooling.Sync.TableSyncConfig
@@ -337,9 +338,9 @@ namespace FastData.Demo.Services
                 ConsumerConcurrency = 4
             };
 
-            Console.WriteLine($"表 {dbConfig.TableName}: 启用 {dbConfig.MessageQueueType} 队列, 主题: {dbConfig.MessageQueueTopic}");
-            Console.WriteLine($"表 {pushConfig.TableName}: 启用 {pushConfig.MessageQueueType} 队列, 主题: {pushConfig.MessageQueueTopic}, 消费组: {pushConfig.ConsumerGroup}");
-            Console.WriteLine();
+            SimpleLogger.Info($"表 {dbConfig.TableName}: 启用 {dbConfig.MessageQueueType} 队列, 主题: {dbConfig.MessageQueueTopic}");
+            SimpleLogger.Info($"表 {pushConfig.TableName}: 启用 {pushConfig.MessageQueueType} 队列, 主题: {pushConfig.MessageQueueTopic}, 消费组: {pushConfig.ConsumerGroup}");
+            SimpleLogger.Info();
         }
 
         /// <summary>

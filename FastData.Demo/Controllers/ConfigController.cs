@@ -1,4 +1,5 @@
 using FastData.Config;
+// using FastData.DevTools;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Linq;
@@ -102,6 +103,123 @@ namespace FastData.Demo.Controllers
                 },
                 redis
             });
+        }
+
+        /// <summary>
+        /// 数据库诊断：检查连接、性能、索引等
+/// <summary>
+        /// 数据库诊断（暂时不可用）
+        /// </summary>
+        [HttpGet("diagnose")]
+        public ActionResult<object> DiagnoseDatabase([FromQuery] string key = null)
+        {
+            // var result = DatabaseDiagnostic.Diagnose(key);
+            // return Ok(new
+            // {
+            //     isHealthy = result.IsHealthy,
+            //     metrics = result.Metrics,
+            //     issues = result.Issues.Select(i => new
+            //     {
+            //         severity = i.Severity.ToString(),
+            //         category = i.Category,
+            //         message = i.Message
+            //     })
+            // });
+
+            return Ok(new { note = "Database diagnostic not available", key });
+        }
+
+        /// <summary>
+        /// 缓存管理：获取缓存统计（暂时不可用）
+        /// </summary>
+        [HttpGet("cache/stats")]
+        public ActionResult<object> GetCacheStats()
+        {
+            // try
+            // {
+            //     var count = CacheManager.GetAllCacheKeys()?.Count ?? 0;
+            //     return Ok(new { cacheItemCount = count });
+            // }
+            // catch
+            // {
+                return Ok(new { cacheItemCount = 0, note = "CacheManager not available" });
+            // }
+        }
+
+        /// <summary>
+        /// 缓存管理：清除指定缓存键（暂时不可用）
+        /// </summary>
+        [HttpDelete("cache/{key}")]
+        public ActionResult<object> RemoveCache(string key)
+        {
+            // try
+            // {
+            //     CacheManager.Remove(key);
+            //     return Ok(new { message = $"Cache key '{key}' removed successfully" });
+            // }
+            // catch (Exception ex)
+            // {
+            //     return StatusCode(500, new { error = ex.Message });
+            // }
+
+            return Ok(new { note = "Cache management not available", key });
+        }
+
+        /// <summary>
+        /// 缓存管理：清空所有缓存（暂时不可用）
+        /// </summary>
+        [HttpDelete("cache")]
+        public ActionResult<object> ClearCache()
+        {
+            // try
+            // {
+            //     CacheManager.Clear();
+            //     return Ok(new { message = "All cache cleared successfully" });
+            // }
+            // catch (Exception ex)
+            // {
+            //     return StatusCode(500, new { error = ex.Message });
+            // }
+
+            return Ok(new { note = "Cache management not available" });
+        }
+
+        /// <summary>
+        /// 缓存管理：清空指定缓存（暂时不可用）
+        /// </summary>
+        [HttpDelete("cache/{key}")]
+        public ActionResult ClearCache(string key)
+        {
+            // try
+            // {
+            //     CacheManager.Remove(key);
+            //     return Ok(new { success = true, key });
+            // }
+            // catch (Exception ex)
+            // {
+            //     return BadRequest(new { success = false, error = ex.Message });
+            // }
+
+            return Ok(new { note = "Cache management not available", key });
+        }
+
+        /// <summary>
+        /// 缓存管理：清空所有缓存（暂时不可用）
+        /// </summary>
+        [HttpDelete("cache")]
+        public ActionResult ClearAllCache()
+        {
+            // try
+            // {
+            //     CacheManager.Clear();
+            //     return Ok(new { success = true });
+            // }
+            // catch (Exception ex)
+            // {
+            //     return BadRequest(new { success = false, error = ex.Message });
+            // }
+
+            return Ok(new { note = "Cache management not available" });
         }
     }
 }

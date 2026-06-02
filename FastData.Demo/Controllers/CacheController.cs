@@ -2,6 +2,7 @@ using FastData;
 using FastData.Demo.Models;
 using FastData.Demo.Services;
 using FastRedis;
+using FastUntility.Base;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
@@ -396,7 +397,7 @@ namespace FastData.Demo.Controllers
 
                 // 4. 获取当前值（使用 RedisInfo 直接获取）
                 var currentViews = RedisInfo.Get($"user:{userId}:views");
-                result["current_views"] = !string.IsNullOrEmpty(currentViews) ? long.Parse(currentViews) : views;
+                result["current_views"] = currentViews.ToLong(views);
 
                 result["status"] = "计数器操作完成";
                 result["note"] = "Redis 原子递增操作，支持高并发场景";

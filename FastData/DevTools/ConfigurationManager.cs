@@ -1,8 +1,10 @@
 using System;
+using FastData.Context;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace FastData.DevTools
 {
@@ -13,7 +15,60 @@ namespace FastData.DevTools
     {
         private static readonly Dictionary<string, object> _configurations = new Dictionary<string, object>();
         private static readonly object _lock = new object();
-        private static string _configFilePath = "./config/appsettings.json";
+        private static string _configFilePath;
+
+        static ConfigurationManager()
+        {
+            InitializeConfigPath();
+        }
+
+        private static void InitializeConfigPath()
+        {
+            var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            
+            var activeEnv = GetActiveEnvironment();
+            if (!string.IsNullOrEmpty(activeEnv))
+            {
+                var envConfigPath = Path.Combine(baseDir, $"db.{activeEnv}.config");
+                if (File.Exists(envConfigPath))
+                {
+                    _configFilePath = envConfigPath;
+                    return;
+                }
+            }
+
+            var defaultConfigPath = Path.Combine(baseDir, "db.config");
+            if (File.Exists(defaultConfigPath))
+            {
+                _configFilePath = defaultConfigPath;
+            }
+            else
+            {
+                _configFilePath = Path.Combine(baseDir, "config", "appsettings.json");
+            }
+        }
+
+        private static string GetActiveEnvironment()
+        {
+            try
+            {
+                var envVar = Environment.GetEnvironmentVariable("FASTDATA_ACTIVE");
+                if (!string.IsNullOrEmpty(envVar))
+                    return envVar.ToLower();
+
+                var baseConfigPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "db.config");
+                if (File.Exists(baseConfigPath))
+                {
+                    var content = File.ReadAllText(baseConfigPath);
+                    var match = System.Text.RegularExpressions.Regex.Match(content, @"Active\s*=\s*[""']?([^""'\s/>]+)");
+                    if (match.Success)
+                        return match.Groups[1].Value.ToLower();
+                }
+            }
+            catch { }
+            
+            return "dev";
+        }
 
         /// <summary>
         /// 设置配置文件路径

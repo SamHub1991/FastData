@@ -1,4 +1,5 @@
 using System;
+using FastData.Context;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -315,7 +316,7 @@ namespace FastData.DevTools
     public class TransactionContext
     {
         public string DbKey { get; set; }
-        public DataConfig Config { get; set; }
+        internal object Config { get; set; }
         public IDbConnection Connection { get; set; }
         public IDbTransaction Transaction { get; set; }
     }

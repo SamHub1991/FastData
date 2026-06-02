@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using FastData;
 using FastData.Demo.Models;
+using FastUntility.Base;
 using FastUntility.Page;
 using Microsoft.AspNetCore.Mvc;
 
@@ -211,7 +212,7 @@ namespace FastData.Demo.Controllers
         [HttpPost("safe-batch-write")]
         public IActionResult SafeBatchWrite([FromBody] List<AppUser> users)
         {
-            if (users == null || users.Count == 0)
+            if (users.IsNullOrEmpty())
                 return Ok(ApiResponse.Fail("数据列表不能为空"));
 
             var results = new List<object>();
@@ -306,9 +307,9 @@ namespace FastData.Demo.Controllers
             var result = new
             {
                 IsNull = users == null,
-                IsEmpty = users?.Count == 0,
+                IsEmpty = users.IsNullOrEmpty(),
                 Count = users?.Count ?? 0,
-                FirstOrDefault = users?.FirstOrDefault()?.UserName ?? "无数据"
+                FirstOrDefault = users.Any() ? users.FirstOrDefault()?.UserName : "无数据"
             };
 
             return Ok(ApiResponse<object>.Ok(result));
