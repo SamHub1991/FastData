@@ -224,29 +224,38 @@ namespace FastData.Base
 
                 return BinaryExpressionHandler(config, be.Left, be.Right, be.NodeType, ref leftList, ref rightList, ref typeList, ref sb, ref strType, ref i, isRight);
             }
-            else if (exp is MemberExpression)
+            else if (exp is MemberExpression memberExp)
             {
-                if ((exp as MemberExpression).Expression is ParameterExpression)
+                // Case 1: Direct property access on parameter (e.g., e.Name)
+                if (memberExp.Expression is ParameterExpression)
                 {
-                    var memberName = (exp as MemberExpression).Member.Name;
-                    // Check if the member is a bool type - if used as predicate, convert to "= 1"
-                    if ((exp as MemberExpression).Type == typeof(bool))
+                    var memberName = memberExp.Member.Name;
+                    
+                    // Special handling for bool properties used as predicates
+                    if (memberExp.Type == typeof(bool))
                     {
-                        // PostgreSQL uses 'true'/'false' instead of 1/0 for boolean
-                        if (config.DbType == DataDbType.PostgreSql)
-                            return string.Format("{0}=true", memberName);
-                        else
-                            return string.Format("{0}=1", memberName);
+                        return config.DbType == DataDbType.PostgreSql
+                            ? $"{memberName}=true"
+                            : $"{memberName}=1";
                     }
                     return memberName;
                 }
+                // Case 2: Nested property access (e.g., e.Salary.HasValue)
+                else if (memberExp.Expression is MemberExpression innerMember)
+                {
+                    // Handle nullable type's HasValue property: e.Salary.HasValue => "Salary IS NOT NULL"
+                    if (memberExp.Member.Name == "HasValue" && innerMember.Expression is ParameterExpression)
+                    {
+                        return $"{innerMember.Member.Name} IS NOT NULL";
+                    }
+                    
+                    // For other nested properties, attempt to evaluate
+                    return TryEvaluateExpression(exp, typeList);
+                }
+                // Case 3: Other member expressions (e.g., static field access)
                 else
                 {
-                    if (Expression.Lambda(exp).Compile().DynamicInvoke() == null)
-                        typeList.Add("".GetType());
-                    else
-                        typeList.Add(Expression.Lambda(exp).Compile().DynamicInvoke().GetType());
-                    return Expression.Lambda(exp).Compile().DynamicInvoke() + "";
+                    return TryEvaluateExpression(exp, typeList);
                 }
             }
             else if (exp is NewArrayExpression)
@@ -316,18 +325,22 @@ namespace FastData.Base
                                 leftList.Add(mName);
                                 rightList.Add(string.Format("%{0}%", mValue));
                                 i++;
+                                typeList.Add(typeof(string));
                             }
                             else if (mMethod.ToLower() == "endswith")
                             {
                                 sb.AppendFormat(" {2}{0} like {3}{0}{1}", mName, i, asName, config.Flag);
                                 leftList.Add(mName);
                                 rightList.Add(string.Format("%{0}", mValue));
+                                typeList.Add(typeof(string));
+                                i++;
                             }
                             else if (mMethod.ToLower() == "startswith")
                             {
                                 sb.AppendFormat(" {2}{0} like {3}{0}{1}", mName, i, asName, config.Flag);
                                 leftList.Add(mName);
                                 rightList.Add(string.Format("{0}%", mValue));
+                                typeList.Add(typeof(string));
                                 i++;
                             }
                             else if (mMethod.ToLower() == "substring")
@@ -433,6 +446,32 @@ namespace FastData.Base
         /// <param name="i">计数器</param>
         /// <param name="isRight">是否右侧</param>
         /// <returns>解析结果</returns>
+
+        /// <summary>
+        /// Auxiliary method: Try to evaluate expression value
+        /// </summary>
+        private static string TryEvaluateExpression(Expression exp, List<System.Type> typeList)
+        {
+            try
+            {
+                var value = Expression.Lambda(exp).Compile().DynamicInvoke();
+                if (value == null)
+                {
+                    typeList.Add("".GetType());
+                    return "null";
+                }
+                else
+                {
+                    typeList.Add(value.GetType());
+                    return value.ToString();
+                }
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
+
         private static string BinaryExpressionHandler(ConfigModel config, Expression left, Expression right, ExpressionType expType, ref List<string> leftList, ref List<string> rightList, ref List<System.Type> typeList, ref StringBuilder sb, ref string strType, ref int i, bool isRight = false)
         {
             string needParKey = "=,>,<,>=,<=,<>";
