@@ -200,6 +200,9 @@ namespace FastData.Config
         /// <returns>配置模型</returns>
         public static ConfigModel GetConfig(string key = null, string projectName = null, string dbFile = "db.config")
         {
+            // 自动扫描并注册数据库提供程序（.NET Core/.NET 5+ 需要）
+            Infrastructure.DbProviderAutoRegistrar.Register();
+            
             var cacheKey = "FastData.db.config";
             var result = new ConfigModel();
             var list = new List<ConfigModel>();
@@ -589,6 +592,9 @@ var item = list.Find(a => string.Equals(a.Key, defaultKey, StringComparison.Ordi
 
         /// <summary>
         /// Try to load config from file
+        /// </summary>
+        /// <summary>
+        /// 尝试加载数据库配置文件
         /// </summary>
         private static DataConfig TryLoadConfig(string dbFile)
         {

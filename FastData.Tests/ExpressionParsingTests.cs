@@ -16,6 +16,12 @@ namespace FastData.Tests
     /// </summary>
     public class ExpressionParsingTests
     {
+        public ExpressionParsingTests()
+        {
+            // 确保测试配置已初始化
+            TestConfig.Init();
+        }
+
         private class TestEntity
         {
             public int Id { get; set; }
@@ -207,7 +213,9 @@ namespace FastData.Tests
             // Assert
             Assert.NotNull(visitModel.Where);
             Assert.Contains("like", visitModel.Where.ToLower());
-            Assert.Contains("%test%", visitModel.Where);
+            Assert.Contains("@", visitModel.Where);
+            Assert.Single(visitModel.Param);
+            Assert.Equal("%test%", visitModel.Param[0].Value);
             Assert.True(visitModel.IsSuccess);
         }
 
@@ -224,7 +232,9 @@ namespace FastData.Tests
             // Assert
             Assert.NotNull(visitModel.Where);
             Assert.Contains("like", visitModel.Where.ToLower());
-            Assert.Contains("test%", visitModel.Where);
+            Assert.Contains("@", visitModel.Where);
+            Assert.Single(visitModel.Param);
+            Assert.Equal("test%", visitModel.Param[0].Value);
             Assert.True(visitModel.IsSuccess);
         }
 
@@ -241,7 +251,9 @@ namespace FastData.Tests
             // Assert
             Assert.NotNull(visitModel.Where);
             Assert.Contains("like", visitModel.Where.ToLower());
-            Assert.Contains("%test", visitModel.Where);
+            Assert.Contains("@", visitModel.Where);
+            Assert.Single(visitModel.Param);
+            Assert.Equal("%test", visitModel.Param[0].Value);
             Assert.True(visitModel.IsSuccess);
         }
 
