@@ -1,8 +1,6 @@
 using FastData;
 using FastData.Demo.Models;
 using FastData.Demo.Services;
-using FastRedis;
-using FastUntility.Base;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
@@ -396,11 +394,11 @@ namespace FastData.Demo.Controllers
                 result["likes_after_batch_increment"] = likes;
 
                 // 4. 获取当前值（使用 RedisInfo 直接获取）
-                var currentViews = RedisInfo.Get($"user:{userId}:views");
-                result["current_views"] = currentViews.ToLong(views);
+                var currentViews = await _cacheService.IncrementAsync($"user:{userId}:views", 0);
+                result["current_views"] = currentViews;
 
                 result["status"] = "计数器操作完成";
-                result["note"] = "Redis 原子递增操作，支持高并发场景";
+                result["note"] = "原子递增操作，支持高并发场景";
             }
             catch (Exception ex)
             {
@@ -464,7 +462,7 @@ namespace FastData.Demo.Controllers
             result["wrong_examples"] = new[]
             {
                 new { wrong = "[Cache(Key = \"user\")]", reason = "所有用户都用同一个key，数据会互相覆盖" },
-                new { wrong = "RedisInfo.Set(\"users\", userList, 300)", reason = "查询条件不同时会返回错误数据" }
+                new { wrong = "SetCache(\"users\", userList, 300)", reason = "查询条件不同时会返回错误数据" }
             };
 
             // 5. 正确示例

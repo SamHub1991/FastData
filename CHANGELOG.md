@@ -2,6 +2,59 @@
 
 本文档记录 FastData 的所有重要变更。格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [2.4.0] - 2026-06-02
+
+### Changed
+
+- **代码质量重构**
+  - 统一异步方法命名规范：`AddListAsy` → `AddListAsync`、`UpdateAsy` → `UpdateAsync` 等
+  - 重构 `AsyncHelper.cs`，移除反模式的 `Task.Run` 包装，使用 `TaskFactory.StartNew` 实现真正的异步操作
+  - 修复 `ExceptionManager.cs` 单例实现，使用 `Lazy<T>` 实现线程安全
+  - 改进 `DataContext.cs` 的资源管理，实现完整的 `IDisposable` 模式，修复连接池泄漏问题
+  - 优化 `VisitExpression.cs` 访问级别，支持测试项目访问
+
+- **Demo / Example 项目代码质量提升**
+  - 替换所有 `Task.Run` 为 `Task.Factory.StartNew`，与核心库 AsyncHelper 保持一致
+  - 修复 19 处 `DataQuery<T>` 泛型类型参数冗余问题
+  - 移除 Demo 项目对 FastRedis/NewLife 的硬依赖，改用内存缓存实现
+  - 修复 `SimpleLogger.Info()` 空参数重载
+  - 修复 `BenchmarkController` 中 `Task.Factory.StartNew` 包装 async 方法的问题
+  - 修复 Demo/Example 项目 CPM 版本冲突
+
+### Added
+
+- **依赖注入支持**
+  - 新增 `FastDataDependencyInjection.cs` 提供 `IServiceCollection` 扩展方法
+  - 支持 `AddFastData`、`AddFastDataWithKey`、`AddFastDataContext` 等注册方式
+  - 新增 `FastDataOptionsBuilder` 配置构建器
+  - 新增 `IFastRepositoryFactory` 抽象，解耦 Repository 创建
+  - 新增 `FastRepositoryFactory` 实现
+
+- **FastDataConfig 扩展**
+  - 新增 `GetConfig(string key, string projectName)` 方法，支持完整配置对象访问
+
+- **Provider.cs 数据库驱动常量**
+  - 整理 `Provider.cs` 数据库驱动名称常量，集中管理
+  - 添加详细的 .NET Framework 4.5.2 兼容性说明注释
+  - 明确每个驱动在 net452 下的可用性
+
+### Fixed
+
+- 修复 `SqlErrorType` 缺少 `Db` 别名导致的向后兼容问题
+- 修复 `Dispose(cmd)` 调用错误，改为 `DisposeCommand(cmd)`
+- 修复 `FastData.Base.Config.CodeFirst` 引用错误，统一使用 `FastData.Base.DesignPatterns.CodeFirst`
+- 修复 `OrderByDescending<T>` 泛型方法误用问题
+
+### Documentation
+
+- 精简文档结构，删除 11 个过时/重复文档
+  - 删除 `.monkeycode/docs/` 下的 5 个报告文档
+  - 删除 `.monkeycode/specs/` 下的 3 个任务规范文档
+  - 删除 `FastData/Documentation/README.md`、`FastData/CODE_STYLE.md`、`FastData/DevTools/README.md`
+  - 清理空目录：`.monkeycode/docs/`、`.monkeycode/specs/`、`FastData/Documentation/`
+- 更新 MEMORY.md 文档结构说明
+- 同步核心代码注释与文档描述保持一致
+
 ## [2.3.0] - 2026-05-31
 
 ### Added

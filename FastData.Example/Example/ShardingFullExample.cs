@@ -30,17 +30,16 @@ namespace FastData.Example.Example
 
         private static void LoadConfiguration()
         {
-            // 使用 FastData 统一配置系统
-            var connections = FastDataConfig.GetConnectionSummaries();
-            var sqlServerConfig = connections.Find(c => c["key"] == "SqlServer");
+            // 使用 FastData 统一配置系统获取连接字符串
+            var connectionString = FastDataConfig.GetConnectionString("SqlServer");
             
-            if (sqlServerConfig != null)
+            if (!string.IsNullOrEmpty(connectionString))
             {
-                // 从配置中获取连接字符串（已脱敏，使用默认值）
-                _connectionString = "server=localhost;database=FastDataDemo;uid=sa;pwd=FastData@Test123;TrustServerCertificate=true";
+                _connectionString = connectionString;
             }
             else
             {
+                // 配置读取失败时使用默认值（仅用于示例演示）
                 _connectionString = "server=localhost;database=FastDataDemo;uid=sa;pwd=FastData@Test123;TrustServerCertificate=true";
             }
         }

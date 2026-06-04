@@ -13,19 +13,33 @@ using System.Linq;
 namespace FastData.Base
 {
     /// <summary>
-    /// 标签：2015.9.6，魏中针
-    /// 说明：lambda表达式解析
+    /// Lambda 表达式解析器
+    ///
+    /// 职责：将 LINQ 表达式树解析为 SQL WHERE 条件语句和参数集合。
+    ///
+    /// 主要功能：
+    /// 1. 支持二元运算（==、!=、&gt;、&lt;、&gt;=、&lt;=）
+    /// 2. 支持逻辑运算（And、Or、Not）
+    /// 3. 支持字符串方法（Contains、StartsWith、EndsWith）
+    /// 4. 支持集合运算（In、Not In）
+    /// 5. 支持范围查询（Between）
+    /// 6. 支持空值判断（null 检查）
+    /// 7. 支持多数据库适配（通过 ConfigModel.ProviderName 区分）
+    ///
+    /// 注意事项：
+    /// - 需要有效的 ConfigModel 才能正确处理数据库方言
+    /// - 解析结果包含 VisitModel（IsSuccess、Sql、Param）
     /// </summary>
-    internal static class VisitExpression
+    public static class VisitExpression
     {
         #region Lambda where
         /// <summary>
-        /// Lambda where
+        /// 解析 Lambda 表达式为 SQL WHERE 条件
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="item"></param>
-        /// <param name="Param"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="item">Lambda 表达式（如 u =&gt; u.Age &gt; 18）</param>
+        /// <param name="config">数据库配置（用于确定数据库方言）</param>
+        /// <returns>VisitModel（包含 IsSuccess、解析后的 SQL、参数列表）</returns>
         public static VisitModel LambdaWhere<T>(Expression<Func<T, bool>> item, ConfigModel config)
         {
             var result = new VisitModel();

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -55,6 +55,21 @@ namespace FastData.Base
             cmd.CommandText = sql;
             return cmd.ExecuteReader();
         }
+
+        /// <summary>
+        ///  异步返回DataReader（真正的I/O异步）
+        /// </summary>
+        /// <param name="cmd">数据库命令对象</param>
+        /// <param name="sql">SQL语句</param>
+        /// <param name="IsProcedure">是否存储过程</param>
+        /// <returns>数据读取器任务</returns>
+        public static async Task<DbDataReader> ToDataReaderAsync(DbCommand cmd, string sql, bool IsProcedure = false)
+        {
+            if (IsProcedure)
+                cmd.CommandType = CommandType.StoredProcedure;
+            cmd.CommandText = sql;
+            return await cmd.ExecuteReaderAsync().ConfigureAwait(false);
+        }
         #endregion
 
         #region 返回bool
@@ -73,6 +88,23 @@ namespace FastData.Base
                 cmd.CommandType = CommandType.StoredProcedure;
 
             return cmd.ExecuteNonQuery() > 0;
+        }
+
+        /// <summary>
+        ///  异步返回bool（真正的I/O异步）
+        /// </summary>
+        /// <param name="cmd">数据库命令对象</param>
+        /// <param name="sql">SQL语句</param>
+        /// <param name="IsProcedure">是否存储过程</param>
+        /// <returns>布尔值任务</returns>
+        public static async Task<bool> ToBoolAsync(DbCommand cmd, string sql, bool IsProcedure = false)
+        {
+            cmd.CommandText = sql;
+
+            if (IsProcedure)
+                cmd.CommandType = CommandType.StoredProcedure;
+
+            return await cmd.ExecuteNonQueryAsync().ConfigureAwait(false) > 0;
         }
         #endregion
                 

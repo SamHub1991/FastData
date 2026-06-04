@@ -8,6 +8,8 @@
     <TreatWarningsAsWarnings>true</TreatWarningsAsWarnings>
     <!-- BuildPlatform: cross=仅 net6.0+, windows=含 net45/net462 -->
     <BuildPlatform Condition="'$(BuildPlatform)' == ''">cross</BuildPlatform>
+    <!-- NPOI 2.8+ 需要接受 OSMF EULA 许可 -->
+    <AcceptNPOIOSMFLicense>true</AcceptNPOIOSMFLicense>
   </PropertyGroup>
   
   <!-- net45: FrameworkPathOverride for reference assemblies -->
@@ -16,7 +18,7 @@
     <RegisterForComInterop>false</RegisterForComInterop>
   </PropertyGroup>
   
-  <!-- net6.0+: Clear FrameworkPathOverride -->
+  <!-- net8.0+: Clear FrameworkPathOverride -->
   <PropertyGroup Condition="'$(TargetFramework)' != 'net45' And '$(TargetFramework)' != ''">
     <FrameworkPathOverride></FrameworkPathOverride>
   </PropertyGroup>

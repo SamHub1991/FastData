@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Threading.Tasks;
+using FastData.Config;
 using Microsoft.Data.SqlClient;
 
 namespace FastData.SyncTool.WinForms.Services
@@ -13,7 +14,9 @@ namespace FastData.SyncTool.WinForms.Services
 
         public DatabaseService()
         {
-            _connectionString = "server=localhost;database=FastDataDemo;uid=sa;pwd=FastData@Test123;TrustServerCertificate=true";
+            // 优先从配置文件获取连接字符串
+            var configConn = FastDataConfig.GetConnectionString("SqlServer");
+            _connectionString = configConn ?? "server=localhost;database=FastDataDemo;uid=sa;pwd=FastData@Test123;TrustServerCertificate=true";
         }
 
         public DatabaseService(string connectionString)

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
@@ -11,7 +11,6 @@ using FastData.Repository;
 using System.Diagnostics;
 using FastData.Context;
 using System.Data;
-using System.Reflection;
 #if !NETFRAMEWORK
 using FastData.Queue;
 #endif
@@ -166,12 +165,12 @@ namespace FastData
         /// <typeparam name="T">泛型</typeparam>
         /// <param name="predicate">条件</param>
         /// <param name="field">字段</param>
-        /// <param name="Key"></param>
-        /// <returns></returns>
+        /// <param name="key">数据库连接键</param>
+        /// <returns>查询构建器对象</returns>
         public static DataQuery<T> Query<T>(Expression<Func<T, bool>> predicate, Expression<Func<T, object>> field = null, string key = null, string dbFile = "db.config") where T : class, new()
         {
             key = key ?? FastDb.CurrentKey;
-            var projectName = Assembly.GetCallingAssembly().GetName().Name;
+            var projectName = FastDb.GetProjectName();
             var result = new DataQuery<T>();
             result.Config = DataConfig.GetConfig(key, projectName, dbFile);
             result.Key = key;
@@ -407,12 +406,13 @@ namespace FastData
         /// <summary>
         /// 查询right join
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <typeparam name="T1"></typeparam>
-        /// <param name="item"></param>
-        /// <param name="predicate"></param>
-        /// <param name="field"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">第一个表类型</typeparam>
+        /// <typeparam name="T1">第二个表类型</typeparam>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="predicate">条件表达式</param>
+        /// <param name="field">字段表达式</param>
+        /// <param name="isDblink">是否跨库查询</param>
+        /// <returns>数据查询对象</returns>
         public static DataQuery RightJoin<T, T1>(this DataQuery item, Expression<Func<T, T1, bool>> predicate, Expression<Func<T1, object>> field = null, bool isDblink = false) where T1 : class, new()
         {
             return JoinType("right join", item, predicate, field);
@@ -421,12 +421,13 @@ namespace FastData
         /// <summary>
         /// 查询inner join
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <typeparam name="T1"></typeparam>
-        /// <param name="item"></param>
-        /// <param name="predicate"></param>
-        /// <param name="field"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">第一个表类型</typeparam>
+        /// <typeparam name="T1">第二个表类型</typeparam>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="predicate">条件表达式</param>
+        /// <param name="field">字段表达式</param>
+        /// <param name="isDblink">是否跨库查询</param>
+        /// <returns>数据查询对象</returns>
         public static DataQuery InnerJoin<T, T1>(this DataQuery item, Expression<Func<T, T1, bool>> predicate, Expression<Func<T1, object>> field = null, bool isDblink = false) where T1 : class, new()
         {
             return JoinType("inner join", item, predicate, field);
@@ -450,10 +451,10 @@ namespace FastData
         /// <summary>
         /// 查询group by
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="item"></param>
-        /// <param name="field"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="field">分组字段表达式</param>
+        /// <returns>数据查询对象</returns>
         public static DataQuery GroupBy<T>(this DataQuery item, Expression<Func<T, object>> field)
         {
             var groupBy = BaseField.GroupBy<T>(field, item.Config);
@@ -464,10 +465,9 @@ namespace FastData
         /// <summary>
         /// 查询take
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="item"></param>
-        /// <param name="field"></param>
-        /// <returns></returns>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="i">限制返回的记录数</param>
+        /// <returns>数据查询对象</returns>
         public static DataQuery Take(this DataQuery item, int i)
         {
             item.Take = i;
@@ -483,7 +483,7 @@ namespace FastData
             return ExecuteQueryTemplate<List<T>, DataReturn<T>>(
                 item, db, isOutSql,
                 (ctx, q) => ctx.GetList<T>(q),
-                r => item.Predicate.Exists(a => a.IsSuccess == false),
+                () => item.Predicate.Exists(a => a.IsSuccess == false),
                 r => r.List,
                 r => r.Sql);
         }
@@ -491,9 +491,11 @@ namespace FastData
         /// <summary>
         /// 返回list asy
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="item"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>查询结果列表任务</returns>
         public static Task<List<T>> ToListAsync<T>(this DataQuery item, DataContext db = null, bool isOutSql = false) where T : class, new()
         {
             return AsyncHelper.RunAsync(() => ToList<T>(item, db, isOutSql));
@@ -502,9 +504,11 @@ namespace FastData
         /// <summary>
         /// 返回lazy<list>
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="item"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>延迟加载的查询结果列表</returns>
         public static Lazy<List<T>> ToLazyList<T>(this DataQuery item, DataContext db = null, bool isOutSql = false) where T : class, new()
         {
             return new Lazy<List<T>>(() => ToList<T>(item, db, isOutSql));
@@ -513,9 +517,11 @@ namespace FastData
         /// <summary>
         /// 返回lazy<list> asy
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="item"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>延迟加载的查询结果列表任务</returns>
         public static Task<Lazy<List<T>>> ToLazyListAsync<T>(this DataQuery item, DataContext db = null, bool isOutSql = false) where T : class, new()
         {
             return AsyncHelper.RunAsync(() => new Lazy<List<T>>(() => ToList<T>(item, db, isOutSql)));
@@ -534,7 +540,7 @@ namespace FastData
             return ExecuteQueryTemplate<string, DataReturn>(
                 item, db, isOutSql,
                 (ctx, q) => ctx.GetJson(q),
-                r => item.Predicate.Exists(a => a.IsSuccess == false),
+                () => item.Predicate.Exists(a => a.IsSuccess == false),
                 r => r.Json,
                 r => r.Sql);
         }
@@ -554,8 +560,10 @@ namespace FastData
         /// <summary>
         /// 返回lazy<json>
         /// </summary>
-        /// <param name="item"></param>
-        /// <returns></returns>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>延迟加载的JSON字符串</returns>
         public static Lazy<string> ToLazyJson(this DataQuery item, DataContext db = null, bool isOutSql = false)
         {
             return AsyncHelper.ToLazy(() => ToJson(item, db, isOutSql));
@@ -564,8 +572,10 @@ namespace FastData
         /// <summary>
         /// 返回lazy<json> asy
         /// </summary>
-        /// <param name="item"></param>
-        /// <returns></returns>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>延迟加载的JSON字符串任务</returns>
         public static Task<Lazy<string>> ToLazyJsonAsync(this DataQuery item, DataContext db = null, bool isOutSql = false)
         {
             return AsyncHelper.RunAsync(() => AsyncHelper.ToLazy(() => ToJson(item, db, isOutSql)));
@@ -580,7 +590,7 @@ namespace FastData
             return ExecuteQueryTemplate<T, DataReturn<T>>(
                 item, db, isOutSql,
                 (ctx, q) => ctx.GetList<T>(q),
-                r => item.Predicate.Exists(a => a.IsSuccess == false),
+                () => item.Predicate.Exists(a => a.IsSuccess == false),
                 r => r.Item,
                 r => r.Sql,
                 () => item.Take = 1);
@@ -589,9 +599,11 @@ namespace FastData
         /// <summary>
         /// 返回item asy
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="item"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>单条记录任务</returns>
         public static Task<T> ToItemAsync<T>(this DataQuery item, DataContext db = null, bool isOutSql = false) where T : class, new()
         {
             return AsyncHelper.RunAsync(() => ToItem<T>(item, db, isOutSql));
@@ -600,9 +612,11 @@ namespace FastData
         /// <summary>
         /// 返回Lazy<item>
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="item"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>延迟加载的单条记录</returns>
         public static Lazy<T> ToLazyItem<T>(this DataQuery item, DataContext db = null, bool isOutSql = false) where T : class, new()
         {
             return AsyncHelper.ToLazy(() => ToItem<T>(item, db, isOutSql));
@@ -611,9 +625,11 @@ namespace FastData
         /// <summary>
         /// 返回Lazy<item> asy
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="item"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>延迟加载的单条记录任务</returns>
         public static Task<Lazy<T>> ToLazyItemAsync<T>(this DataQuery item, DataContext db = null, bool isOutSql = false) where T : class, new()
         {
             return AsyncHelper.RunAsync(() => AsyncHelper.ToLazy(() => ToItem<T>(item, db, isOutSql)));
@@ -628,7 +644,7 @@ namespace FastData
             return ExecuteQueryTemplate<int, DataReturn>(
                 item, db, isOutSql,
                 (ctx, q) => ctx.GetCount(q),
-                r => item.Predicate.Exists(a => a.IsSuccess == false),
+                () => item.Predicate.Exists(a => a.IsSuccess == false),
                 r => r.Count,
                 r => r.Sql);
         }
@@ -636,8 +652,10 @@ namespace FastData
         /// <summary>
         /// 返回条数 asy
         /// </summary>
-        /// <param name="item"></param>
-        /// <returns></returns>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>记录总数任务</returns>
         public static Task<int> ToCountAsync<T, T1>(this DataQuery item, DataContext db = null, bool isOutSql = false)
         {
             return AsyncHelper.RunAsync(() => ToCount(item, db, isOutSql));
@@ -647,10 +665,12 @@ namespace FastData
         /// <summary>
         /// 返回分页
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="item"></param>
-        /// <param name="pModel"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="pModel">分页模型</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>分页查询结果</returns>
         public static PageResult<T> ToPage<T>(this DataQuery item, PageModel pModel, DataContext db = null, bool isOutSql = false) where T : class, new()
         {
             var stopwatch = new Stopwatch();
@@ -682,10 +702,12 @@ namespace FastData
         /// <summary>
         /// 返回分页 asy
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="item"></param>
-        /// <param name="pModel"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="pModel">分页模型</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>分页查询结果任务</returns>
         public static Task<PageResult<T>> ToPageAsync<T>(this DataQuery item, PageModel pModel, DataContext db = null, bool isOutSql = false) where T : class, new()
         {
             return AsyncHelper.RunAsync(() => ToPage<T>(item, pModel, db, isOutSql));
@@ -694,10 +716,12 @@ namespace FastData
         /// <summary>
         /// 返回分页lazy
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="item"></param>
-        /// <param name="pModel"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="pModel">分页模型</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>延迟加载的分页查询结果</returns>
         public static Lazy<PageResult<T>> ToLazyPage<T>(this DataQuery item, PageModel pModel, DataContext db = null, bool isOutSql = false) where T : class, new()
         {
             return new Lazy<PageResult<T>>(() => ToPage<T>(item, pModel, db, isOutSql));
@@ -706,10 +730,12 @@ namespace FastData
         /// <summary>
         /// 返回分页lazy asy
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="item"></param>
-        /// <param name="pModel"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="pModel">分页模型</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>延迟加载的分页查询结果任务</returns>
         public static Task<Lazy<PageResult<T>>> ToLazyPageAsync<T>(this DataQuery item, PageModel pModel, DataContext db = null, bool isOutSql = false) where T : class, new()
         {
             return AsyncHelper.RunAsync(() => new Lazy<PageResult<T>>(() => ToPage<T>(item, pModel, db, isOutSql)));
@@ -719,9 +745,11 @@ namespace FastData
         /// <summary>
         /// 返回分页Dictionary<string, object>
         /// </summary>
-        /// <param name="item"></param>
-        /// <param name="pModel"></param>
-        /// <returns></returns>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="pModel">分页模型</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>分页查询结果（字典格式）</returns>
         public static PageResult ToPage(this DataQuery item, PageModel pModel, DataContext db = null, bool isOutSql = false)
         {
             var result = new DataReturn();
@@ -754,9 +782,11 @@ namespace FastData
         /// <summary>
         /// 返回分页Dictionary<string, object> asy
         /// </summary>
-        /// <param name="item"></param>
-        /// <param name="pModel"></param>
-        /// <returns></returns>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="pModel">分页模型</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>分页查询结果任务（字典格式）</returns>
         public static Task<PageResult> ToPageAsync(this DataQuery item, PageModel pModel, DataContext db = null, bool isOutSql = false)
         {
             return AsyncHelper.RunAsync(() => ToPage(item, pModel, db, isOutSql));
@@ -765,10 +795,11 @@ namespace FastData
         /// <summary>
         /// 返回分页Dictionary<string, object> lazy
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="item"></param>
-        /// <param name="pModel"></param>
-        /// <returns></returns>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="pModel">分页模型</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>延迟加载的分页查询结果（字典格式）</returns>
         public static Lazy<PageResult> ToLazyPage(this DataQuery item, PageModel pModel, DataContext db = null, bool isOutSql = false)
         {
             return AsyncHelper.ToLazy(() => ToPage(item, pModel, db, isOutSql));
@@ -777,9 +808,11 @@ namespace FastData
         /// <summary>
         /// 返回分页Dictionary<string, object> lazy asy
         /// </summary>
-        /// <param name="item"></param>
-        /// <param name="pModel"></param>
-        /// <returns></returns>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="pModel">分页模型</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>延迟加载的分页查询结果任务（字典格式）</returns>
         public static Task<Lazy<PageResult>> ToLazyPageAsync(this DataQuery item, PageModel pModel, DataContext db = null, bool isOutSql = false)
         {
             return AsyncHelper.RunAsync(() => AsyncHelper.ToLazy(() => ToPage(item, pModel, db, isOutSql)));
@@ -874,10 +907,13 @@ namespace FastData
         /// <summary>
         /// 执行sql
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="sql"></param>
-        /// <param name="param"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="sql">SQL语句</param>
+        /// <param name="param">SQL参数列表</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="key">数据库连接键</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>查询结果列表</returns>
         public static List<T> ExecuteSql<T>(string sql, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
             key = key ?? FastDb.CurrentKey;
@@ -912,10 +948,13 @@ namespace FastData
         /// <summary>
         /// 执行sql asy
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="sql"></param>
-        /// <param name="param"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="sql">SQL语句</param>
+        /// <param name="param">SQL参数列表</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="key">数据库连接键</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>查询结果列表任务</returns>
         public static Task<List<T>> ExecuteSqlAsync<T>(string sql, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
             return AsyncHelper.RunAsync(() => ExecuteSql<T>(sql, param, db, key, isOutSql));
@@ -924,10 +963,13 @@ namespace FastData
         /// <summary>
         /// 执行sql lazy
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="sql"></param>
-        /// <param name="param"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="sql">SQL语句</param>
+        /// <param name="param">SQL参数列表</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="key">数据库连接键</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>延迟加载的查询结果列表</returns>
         public static Lazy<List<T>> ExecuteLazySql<T>(string sql, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
             return new Lazy<List<T>>(() => ExecuteSql<T>(sql, param, db, key, isOutSql));
@@ -936,10 +978,13 @@ namespace FastData
         /// <summary>
         /// 执行sql lazy asy
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="sql"></param>
-        /// <param name="param"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="sql">SQL语句</param>
+        /// <param name="param">SQL参数列表</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="key">数据库连接键</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>延迟加载的查询结果列表任务</returns>
         public static Task<Lazy<List<T>>> ExecuteLazySqlAsync<T>(string sql, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
             return AsyncHelper.RunAsync(() => new Lazy<List<T>>(() => ExecuteSql<T>(sql, param, db, key, isOutSql)));
@@ -949,8 +994,10 @@ namespace FastData
         /// <summary>
         /// 返回List<Dictionary<string, object>>
         /// </summary>
-        /// <param name="item"></param>
-        /// <returns></returns>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>字典列表查询结果</returns>
         public static List<Dictionary<string, object>> ToDics(this DataQuery item, DataContext db = null, bool isOutSql = false)
         {
             var result = new DataReturn();
@@ -983,8 +1030,10 @@ namespace FastData
         /// <summary>
         /// 返回List<Dictionary<string, object>> asy
         /// </summary>
-        /// <param name="item"></param>
-        /// <returns></returns>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>字典列表查询结果任务</returns>
         public static Task<List<Dictionary<string, object>>> ToDicsAsync(this DataQuery item, DataContext db = null, bool isOutSql = false)
         {
             return AsyncHelper.RunAsync(() => ToDics(item, db, isOutSql));
@@ -993,8 +1042,10 @@ namespace FastData
         /// <summary>
         /// 返回lazy<List<Dictionary<string, object>>>
         /// </summary>
-        /// <param name="item"></param>
-        /// <returns></returns>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>延迟加载的字典列表</returns>
         public static Lazy<List<Dictionary<string, object>>> ToLazyDics(this DataQuery item, DataContext db = null, bool isOutSql = false)
         {
             return new Lazy<List<Dictionary<string, object>>>(() => ToDics(item, db, isOutSql));
@@ -1003,8 +1054,10 @@ namespace FastData
         /// <summary>
         /// 返回lazy<List<Dictionary<string, object>>> asy
         /// </summary>
-        /// <param name="item"></param>
-        /// <returns></returns>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>延迟加载的字典列表任务</returns>
         public static Task<Lazy<List<Dictionary<string, object>>>> ToLazyDicsAsync(this DataQuery item, DataContext db = null, bool isOutSql = false)
         {
             return AsyncHelper.RunAsync(() => new Lazy<List<Dictionary<string, object>>>(() => ToDics(item, db, isOutSql)));
@@ -1014,8 +1067,10 @@ namespace FastData
         /// <summary>
         /// Dictionary<string, object>
         /// </summary>
-        /// <param name="item"></param>
-        /// <returns></returns>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>单条字典记录</returns>
         public static Dictionary<string, object> ToDic(this DataQuery item, DataContext db = null, bool isOutSql = false)
         {
             var result = new DataReturn();
@@ -1049,8 +1104,10 @@ namespace FastData
         /// <summary>
         /// Dictionary<string, object> asy
         /// </summary>
-        /// <param name="item"></param>
-        /// <returns></returns>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>单条字典记录任务</returns>
         public static Task<Dictionary<string, object>> ToDicAsync(this DataQuery item, DataContext db = null, bool isOutSql = false)
         {
             return AsyncHelper.RunAsync(() => ToDic(item, db, isOutSql));
@@ -1059,8 +1116,10 @@ namespace FastData
         /// <summary>
         /// Dictionary<string, object>>
         /// </summary>
-        /// <param name="item"></param>
-        /// <returns></returns>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>延迟加载的单条字典记录</returns>
         public static Lazy<Dictionary<string, object>> ToLazyDic(this DataQuery item, DataContext db = null, bool isOutSql = false)
         {
             return new Lazy<Dictionary<string, object>>(() => ToDic(item, db, isOutSql));
@@ -1069,8 +1128,10 @@ namespace FastData
         /// <summary>
         /// Dictionary<string, object> asy
         /// </summary>
-        /// <param name="item"></param>
-        /// <returns></returns>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>延迟加载的单条字典记录任务</returns>
         public static Task<Lazy<Dictionary<string, object>>> ToLazyDicAsync(this DataQuery item, DataContext db = null, bool isOutSql = false)
         {
             return AsyncHelper.RunAsync(() => new Lazy<Dictionary<string, object>>(() => ToDic(item, db, isOutSql)));
@@ -1080,8 +1141,10 @@ namespace FastData
         /// <summary>
         /// DataTable
         /// </summary>
-        /// <param name="item"></param>
-        /// <returns></returns>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>DataTable查询结果</returns>
         public static DataTable ToDataTable(this DataQuery item, DataContext db = null, bool isOutSql = false)
         {
             var result = new DataReturn();
@@ -1115,8 +1178,10 @@ namespace FastData
         /// <summary>
         /// DataTable asy
         /// </summary>
-        /// <param name="item"></param>
-        /// <returns></returns>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>DataTable查询结果任务</returns>
         public static Task<DataTable> ToDataTableAsync(this DataQuery item, DataContext db = null, bool isOutSql = false)
         {
             return AsyncHelper.RunAsync(() => ToDataTable(item, db, isOutSql));
@@ -1125,8 +1190,10 @@ namespace FastData
         /// <summary>
         /// DataTable lazy
         /// </summary>
-        /// <param name="item"></param>
-        /// <returns></returns>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>延迟加载的DataTable查询结果</returns>
         public static Lazy<DataTable> ToLazyDataTable(this DataQuery item, DataContext db = null, bool isOutSql = false)
         {
             return AsyncHelper.ToLazy(() => ToDataTable(item, db, isOutSql));
@@ -1135,8 +1202,10 @@ namespace FastData
         /// <summary>
         /// DataTable lazy asy
         /// </summary>
-        /// <param name="item"></param>
-        /// <returns></returns>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>延迟加载的DataTable查询结果任务</returns>
         public static Task<Lazy<DataTable>> ToLazyDataTableAsync(this DataQuery item, DataContext db = null, bool isOutSql = false)
         {
             return AsyncHelper.RunAsync(() => AsyncHelper.ToLazy(() => ToDataTable(item, db, isOutSql)));
@@ -1146,9 +1215,12 @@ namespace FastData
         /// <summary>
         /// 执行sql
         /// </summary>
-        /// <param name="sql"></param>
-        /// <param name="param"></param>
-        /// <returns></returns>
+        /// <param name="sql">SQL语句</param>
+        /// <param name="param">SQL参数列表</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="key">数据库连接键</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>字典列表查询结果</returns>
         public static List<Dictionary<string, object>> ExecuteSql(string sql, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
             key = key ?? FastDb.CurrentKey;
@@ -1183,10 +1255,12 @@ namespace FastData
         /// <summary>
         /// 执行sql asy
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="sql"></param>
-        /// <param name="param"></param>
-        /// <returns></returns>
+        /// <param name="sql">SQL语句</param>
+        /// <param name="param">SQL参数列表</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="key">数据库连接键</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>字典列表查询结果任务</returns>
         public static Task<List<Dictionary<string, object>>> ExecuteSqlAsync(string sql, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
             return AsyncHelper.RunAsync(() => ExecuteSql(sql, param, db, key, isOutSql));
@@ -1195,10 +1269,12 @@ namespace FastData
         /// <summary>
         /// 执行sql lazy
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="sql"></param>
-        /// <param name="param"></param>
-        /// <returns></returns>
+        /// <param name="sql">SQL语句</param>
+        /// <param name="param">SQL参数列表</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="key">数据库连接键</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>延迟加载的字典列表查询结果</returns>
         public static Lazy<List<Dictionary<string, object>>> ExecuteLazySql(string sql, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
             return new Lazy<List<Dictionary<string, object>>>(() => ExecuteSql(sql, param, db, key, isOutSql));
@@ -1207,10 +1283,12 @@ namespace FastData
         /// <summary>
         /// 执行sql lazy asy
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="sql"></param>
-        /// <param name="param"></param>
-        /// <returns></returns>
+        /// <param name="sql">SQL语句</param>
+        /// <param name="param">SQL参数列表</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="key">数据库连接键</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>延迟加载的字典列表查询结果任务</returns>
         public static Task<Lazy<List<Dictionary<string, object>>>> ExecuteLazySqlAsync(string sql, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
             return AsyncHelper.RunAsync(() => new Lazy<List<Dictionary<string, object>>>(() => ExecuteSql(sql, param, db, key, isOutSql)));
@@ -1220,28 +1298,25 @@ namespace FastData
 
         /// <summary>
         /// 查询执行模板 - 提取公共逻辑
+        /// predicateFailed 在查询执行前验证 Predicate 列表，避免无效查询
         /// </summary>
         private static TResult ExecuteQueryTemplate<TResult, TReturn>(
             DataQuery item,
             DataContext db,
             bool isOutSql,
             Func<DataContext, DataQuery, TReturn> execute,
-            Func<TReturn, bool> predicateFailed,
+            Func<bool> predicateFailed,
             Func<TReturn, TResult> defaultResult,
             Func<TReturn, string> getSql,
             Action preExecute = null)
         {
-            var stopwatch = new Stopwatch();
-            var result = default(TReturn);
-
-            if (predicateFailed(result))
-            {
-                if (result == null)
-                    return default(TResult);
-                return defaultResult(result);
-            }
+            if (predicateFailed())
+                return default(TResult);
 
             preExecute?.Invoke();
+
+            var stopwatch = new Stopwatch();
+            TReturn result;
 
             stopwatch.Start();
 

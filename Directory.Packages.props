@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <!--
+    FastData 中心包版本管理 (Central Package Management)
+    
+    说明：
+    - 所有子项目 csproj 中的 PackageReference 不再指定 Version
+    - 统一在此文件中管理所有 NuGet 包版本
+    - 更新版本只需修改此文件即可全局生效
+    
+    使用方法：
+    1. 在 Solution 根目录保留此文件
+    2. 各项目 csproj 中的 PackageReference 移除 Version 属性
+    3. 如需覆盖特定项目版本，可使用 VersionOverride
+  -->
+  
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <!-- ===== 核心框架包（统一升级到 10.0.8） ===== -->
+    <PackageVersion Include="System.Configuration.ConfigurationManager" Version="10.0.8" />
+    <PackageVersion Include="System.CodeDom" Version="10.0.8" />
+    <PackageVersion Include="System.Runtime.Caching" Version="10.0.8" />
+    <PackageVersion Include="System.ComponentModel.Annotations" Version="5.0.0" />
+    <PackageVersion Include="System.Text.Json" Version="10.0.8" />
+    <PackageVersion Include="System.Data.OleDb" Version="9.0.0" />
+    
+    <!-- ===== 缓存包（升级到 10.0.8） ===== -->
+    <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="10.0.8" />
+    
+    <!-- ===== 配置包（升级到 10.0.8） ===== -->
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.8" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.FileExtensions" Version="10.0.8" />
+    
+    <!-- ===== 数据库驱动包 ===== -->
+    <!-- SQL Server -->
+    <PackageVersion Include="Microsoft.Data.SqlClient" Version="5.2.2" />
+    <!-- MySQL -->
+    <PackageVersion Include="MySql.Data" Version="9.1.0" />
+    <!-- PostgreSQL -->
+    <PackageVersion Include="Npgsql" Version="8.0.3" />
+    <!-- SQLite (现代 .NET 推荐，纯托管跨平台) - 升级到 10.0.8 -->
+    <PackageVersion Include="Microsoft.Data.Sqlite" Version="10.0.8" />
+    <!-- SQLite (传统 .NET Framework) -->
+    <PackageVersion Include="System.Data.SQLite.Core" Version="1.0.119" />
+    
+    <!-- ===== 序列化包（升级到 13.0.4） ===== -->
+    <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
+    
+    <!-- ===== HTTP/Web API 包（升级 RestSharp 到 114.0.0） ===== -->
+    <PackageVersion Include="RestSharp" Version="114.0.0" />
+    <PackageVersion Include="Microsoft.AspNet.WebApi.Client" Version="5.2.9" />
+    <PackageVersion Include="Microsoft.AspNet.WebApi.Core" Version="5.2.9" />
+    <PackageVersion Include="Microsoft.AspNet.WebApi.SelfHost" Version="5.2.9" />
+    
+    <!-- ===== Office 处理包（升级 NPOI 到 2.8.0） ===== -->
+    <PackageVersion Include="NPOI" Version="2.8.0" />
+    
+    <!-- ===== Redis 包（升级 NewLife.Redis 到 6.5.2026.601） ===== -->
+    <PackageVersion Include="NewLife.Redis" Version="6.5.2026.601" />
+    <PackageVersion Include="NServiceKit.Redis" Version="1.0.17" />
+    <PackageVersion Include="NServiceKit.Common" Version="1.0.31" />
+    <PackageVersion Include="NServiceKit.Text" Version="1.0.10" />
+    
+    <!-- ===== Windows 平台包 ===== -->
+    <PackageVersion Include="Microsoft.Win32Ex" Version="1.2.0.0" />
+    
+    <!-- ===== 测试框架包 ===== -->
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+    <PackageVersion Include="xunit" Version="2.6.2" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="2.5.4" />
+    
+    <!-- ===== 基准测试包 ===== -->
+    <PackageVersion Include="BenchmarkDotNet" Version="0.14.0" />
+    
+    <!-- ===== Swagger/OpenAPI 包 ===== -->
+    <PackageVersion Include="Swashbuckle.AspNetCore" Version="7.2.0" />
+    
+    <!-- ===== Blazor 组件库 ===== -->
+    <PackageVersion Include="MudBlazor" Version="8.8.0" />
+  </ItemGroup>
+  
+  <!-- 
+    依赖关系版本覆盖（确保传递依赖使用一致版本）
+    当多个包依赖同一底层包时，统一版本号避免冲突
+  -->
+  <ItemGroup>
+    <GlobalPackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="8.0.0" Condition="'$(TargetFramework)' != 'net452'" />
+    <GlobalPackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.4" Condition="'$(TargetFramework)' == 'net452'" />
+  </ItemGroup>
+  
+  <!-- 
+    .NET Framework 4.5.2 兼容包：补充缺失的运行时类型
+    - System.ValueTuple: 元组语法支持
+  -->
+  <ItemGroup>
+    <PackageVersion Include="System.ValueTuple" Version="4.5.0" />
+  </ItemGroup>
+</Project>

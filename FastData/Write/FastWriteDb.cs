@@ -125,7 +125,7 @@ namespace FastData
 
         public Task<WriteReturn> UpdateAsy<T>(T model, DataContext db = null, bool isTrans = false, bool isOutSql = false) where T : class, new()
         {
-            return FastWrite.UpdateAsy(model, db, key, isTrans, isOutSql || enableSqlLog);
+            return FastWrite.UpdateAsy(model, null, db, key, isOutSql || enableSqlLog);
         }
 
         public WriteReturn Update<T>(T model, Expression<Func<T, bool>> predicate, Expression<Func<T, object>> field = null, DataContext db = null, bool isOutSql = false) where T : class, new()

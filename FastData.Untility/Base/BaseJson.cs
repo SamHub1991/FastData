@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Data.Common;
@@ -82,8 +82,8 @@ namespace FastUntility.Base
         /// 标签：2015.7.13，魏中针
         /// 说明：model转json
         /// </summary>
-        /// <param name="Model">实体</param>
-        /// <returns></returns>
+        /// <param name="model">实体</param>
+        /// <returns>JSON字符串</returns>
         public static string ModelToJson(object model)
         {
             try
@@ -102,9 +102,9 @@ namespace FastUntility.Base
         /// 标签：2015.7.13，魏中针
         /// 说明：Json转model
         /// </summary>
-        /// <typeparam name="T">实体</typeparam>
-        /// <param name="Json">json</param>
-        /// <returns></returns>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="jsonValue">json字符串</param>
+        /// <returns>实体对象</returns>
         public static T JsonToModel<T>(string jsonValue) where T : class,new()
         {
             try
@@ -153,8 +153,7 @@ namespace FastUntility.Base
         /// <summary>
         /// json转dic
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="jsonValue"></param>
+        /// <param name="jsonValue">JSON字符串</param>
         /// <returns></returns>
         public static Dictionary<string,object> JsonToDic(string jsonValue)
         {
@@ -184,8 +183,7 @@ namespace FastUntility.Base
         /// <summary>
         /// json转dics
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="jsonValue"></param>
+        /// <param name="jsonValue">JSON字符串</param>
         /// <returns></returns>
         public static List<Dictionary<string, object>> JsonToDics(string jsonValue)
         {
@@ -305,10 +303,11 @@ namespace FastUntility.Base
 
         #region datareader to List<Dictionary<string, object>>
         /// <summary>
-        /// datareader to List<Dictionary<string, object>>
+        /// DataReader 转 List&lt;Dictionary&lt;string, object&gt;&gt;
         /// </summary>
-        /// <param name="dr"></param>
-        /// <returns></returns>
+        /// <param name="reader">数据库 DataReader</param>
+        /// <param name="isOracle">是否 Oracle（处理 Oracle 特殊类型）</param>
+        /// <returns>数据字典列表</returns>
         public static List<Dictionary<string, object>> DataReaderToDic(DbDataReader reader, bool isOracle = false)
         {
             var result = new List<Dictionary<string, object>>();

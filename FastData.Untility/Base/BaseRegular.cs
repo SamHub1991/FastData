@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Text.RegularExpressions;
 using System.Reflection;
 using FastUntility.Attributes;
@@ -44,7 +44,7 @@ namespace FastUntility.Base
         /// <summary>
         /// 流转成对象
         /// </summary>
-        /// <param name="s"></param>
+        /// <param name="value">字节数组</param>
         /// <returns></returns>
         public static T ToModel<T>(this byte[] value) where T : class, new()
         {
@@ -113,7 +113,7 @@ namespace FastUntility.Base
         /// <summary>
         /// 验证时间
         /// </summary>
-        /// <param name="s"></param>
+        /// <param name="dateValue">日期字符串</param>
         /// <returns></returns>
         public static bool IsDate(this string dateValue)
         {
@@ -442,7 +442,8 @@ namespace FastUntility.Base
         /// <summary>
         /// 是否中文,空默认为中文
         /// </summary>
-        /// <param name="str"></param>
+        /// <param name="str">待检测字符串</param>
+        /// <param name="IsDefaule">空值时默认返回值</param>
         /// <returns></returns>
         public static bool IsZhString(this string str, bool IsDefaule = true)
         {
@@ -469,8 +470,7 @@ namespace FastUntility.Base
         /// <summary>
         /// 获取特性内容
         /// </summary>
-        /// <typeparam name="T">泛型</typeparam>
-        /// <param name="item">泛型成员</param>
+        /// <param name="item">枚举成员</param>
         /// <returns></returns>
         public static string ToEnum(this Enum item)
         {

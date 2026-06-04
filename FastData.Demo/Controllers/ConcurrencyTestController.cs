@@ -371,12 +371,12 @@ namespace FastData.Demo.Controllers
 
             try
             {
-                var tasks = dbKeys.Select(dbKey => Task.Run(async () =>
+                var tasks = dbKeys.Select(dbKey => Task.Factory.StartNew(async () =>
                 {
                     var sql = "SELECT COUNT(*) as Count FROM perf_users";
                     var result = await FastRead.ExecuteSqlAsync(sql, new DbParameter[0], key: dbKey);
                     return new { dbKey, success = true, count = result.FirstOrDefault() };
-                })).ToArray();
+                }).Unwrap()).ToArray();
 
                 var results = await Task.WhenAll(tasks);
                 
@@ -450,7 +450,7 @@ namespace FastData.Demo.Controllers
 
             try
             {
-                var tasks = Enumerable.Range(1, iterations).Select(i => Task.Run(async () =>
+                var tasks = Enumerable.Range(1, iterations).Select(i => Task.Factory.StartNew(async () =>
                 {
                     var innerSw = Stopwatch.StartNew();
                     try
@@ -465,7 +465,7 @@ namespace FastData.Demo.Controllers
                         innerSw.Stop();
                         results.Add((i, false, innerSw.ElapsedMilliseconds, ex.Message));
                     }
-                })).ToArray();
+                }).Unwrap()).ToArray();
 
                 await Task.WhenAll(tasks);
                 
@@ -505,7 +505,7 @@ namespace FastData.Demo.Controllers
 
             try
             {
-                var tasks = Enumerable.Range(1, count).Select(i => Task.Run(async () =>
+                var tasks = Enumerable.Range(1, count).Select(i => Task.Factory.StartNew(async () =>
                 {
                     var innerSw = Stopwatch.StartNew();
                     try
@@ -537,7 +537,7 @@ namespace FastData.Demo.Controllers
                         innerSw.Stop();
                         results.Add((i, false, innerSw.ElapsedMilliseconds, ex.Message));
                     }
-                })).ToArray();
+                }).Unwrap()).ToArray();
 
                 await Task.WhenAll(tasks);
                 

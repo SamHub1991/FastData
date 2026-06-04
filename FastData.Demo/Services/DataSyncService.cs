@@ -59,7 +59,7 @@ namespace FastData.Demo.Services
             string targetProvider = null, string targetConnStr = null)
         {
             var options = BuildOptions("AppUser", "AppUser", sourceProvider, sourceConnStr, targetProvider, targetConnStr);
-            return await Task.Run(() => ExecuteSync(options));
+            return await Task.Factory.StartNew(() => ExecuteSync(options));
         }
 
         /// <summary>
@@ -74,7 +74,7 @@ namespace FastData.Demo.Services
             foreach (var table in tables)
             {
                 var options = BuildOptions(table, table, sourceProvider, sourceConnStr, targetProvider, targetConnStr);
-                var result = await Task.Run(() => ExecuteSync(options));
+                var result = await Task.Factory.StartNew(() => ExecuteSync(options));
                 results.ReadCount += result.ReadCount;
                 results.WriteCount += result.WriteCount;
                 results.FailedCount += result.FailedCount;
@@ -91,7 +91,7 @@ namespace FastData.Demo.Services
             string targetProvider = null, string targetConnStr = null)
         {
             var options = BuildOptions("AppOrder", "AppOrder", sourceProvider, sourceConnStr, targetProvider, targetConnStr);
-            return await Task.Run(() => ExecuteSync(options));
+            return await Task.Factory.StartNew(() => ExecuteSync(options));
         }
 
         /// <summary>

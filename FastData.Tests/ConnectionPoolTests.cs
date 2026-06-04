@@ -22,7 +22,14 @@ namespace FastData.Tests
 {
     public class ConnectionPoolTests
     {
-        private readonly string _connStr = "server=localhost;database=FastDataTest;uid=sa;pwd=FastData@Test123;TrustServerCertificate=true";
+        private readonly string _connStr;
+
+        public ConnectionPoolTests()
+        {
+            // 从配置文件获取连接字符串，避免硬编码
+            _connStr = FastDataConfig.GetConnectionString("SqlServer")
+                ?? "server=localhost;database=FastDataTest;uid=sa;pwd=FastData@Test123;TrustServerCertificate=true";
+        }
 
         #region Basic Pool
 

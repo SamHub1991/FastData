@@ -4,11 +4,11 @@ using System.Threading.Tasks;
 
 namespace FastUntility.Monitor
 {
-    /// <summary>
-    /// 统一异常管理器
-    /// </summary>
     public class ExceptionManager
     {
+        private static readonly Lazy<ExceptionManager> _lazyInstance = new Lazy<ExceptionManager>(() => 
+            throw new InvalidOperationException("ExceptionManager 尚未初始化，请先调用 Initialize 或 InitializeFromConfig 方法"));
+        
         private static ExceptionManager _instance;
         private static readonly object _lock = new object();
 
@@ -19,6 +19,7 @@ namespace FastUntility.Monitor
         private readonly RemoteCommandManager _commandManager;
         private readonly List<ExceptionInfo> _exceptionHistory = new List<ExceptionInfo>();
         private readonly int _maxHistorySize = 1000;
+        private bool _isDisposed;
 
         private ExceptionManager(QQBotConfig botConfig, ExceptionNotifyConfig notifyConfig, IMessageSender sender = null, IConnectionPoolInfoProvider poolInfoProvider = null)
         {
@@ -28,43 +29,38 @@ namespace FastUntility.Monitor
             _notifier = new ExceptionNotifier(_sender, _botConfig, _notifyConfig);
             _commandManager = new RemoteCommandManager(_botConfig, _sender, poolInfoProvider);
 
-            // 注册内置指令
             RegisterBuiltinCommands();
         }
 
-        /// <summary>
-        /// 获取单例实例
-        /// </summary>
-        public static ExceptionManager Instance => _instance;
+        public static ExceptionManager Instance
+        {
+            get
+            {
+                if (_instance == null)
+                    throw new InvalidOperationException("ExceptionManager 尚未初始化，请先调用 Initialize 或 InitializeFromConfig 方法");
+                return _instance;
+            }
+        }
 
-        /// <summary>
-        /// 从配置文件初始化异常管理器
-        /// </summary>
-        /// <param name="configPath">配置文件路径</param>
-        /// <param name="sender">消息发送器</param>
-        /// <param name="poolInfoProvider">连接池信息提供者</param>
-        /// <returns>异常管理器实例</returns>
+        public static bool IsInitialized => _instance != null;
+
         public static ExceptionManager InitializeFromConfig(string configPath = "db.config", IMessageSender sender = null, IConnectionPoolInfoProvider poolInfoProvider = null)
         {
             var (botConfig, notifyConfig) = IMPlatformConfigParser.ParseFromConfig(configPath);
 
-            // 如果未启用 IM 平台，返回 null
             if (!botConfig.IsEnabled)
                 return null;
 
             return Initialize(botConfig, notifyConfig, sender, poolInfoProvider);
         }
 
-        /// <summary>
-        /// 初始化异常管理器
-        /// </summary>
-        /// <param name="botConfig">QQ机器人配置</param>
-        /// <param name="notifyConfig">异常通知配置</param>
-        /// <param name="sender">消息发送器</param>
-        /// <param name="poolInfoProvider">连接池信息提供者</param>
-        /// <returns>异常管理器实例</returns>
         public static ExceptionManager Initialize(QQBotConfig botConfig, ExceptionNotifyConfig notifyConfig, IMessageSender sender = null, IConnectionPoolInfoProvider poolInfoProvider = null)
         {
+            if (botConfig == null)
+                throw new ArgumentNullException(nameof(botConfig));
+            if (notifyConfig == null)
+                throw new ArgumentNullException(nameof(notifyConfig));
+
             lock (_lock)
             {
                 if (_instance != null)
@@ -75,12 +71,15 @@ namespace FastUntility.Monitor
             }
         }
 
-        /// <summary>
-        /// 获取异常管理器（如果未初始化则返回 null）
-        /// </summary>
         public static ExceptionManager GetInstance()
         {
             return _instance;
+        }
+
+        public static bool TryGetInstance(out ExceptionManager manager)
+        {
+            manager = _instance;
+            return manager != null;
         }
 
         /// <summary>

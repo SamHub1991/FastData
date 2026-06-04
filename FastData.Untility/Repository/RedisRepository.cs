@@ -1,4 +1,5 @@
-﻿using FastRedis.Config;
+using FastRedis.Config;
+using FastUntility.Base;
 using NServiceKit.Redis;
 using System;
 using System.Collections.Generic;
@@ -613,7 +614,7 @@ namespace FastRedis.Repository
         /// <param name="CurrentMethod"></param>
         private void SaveLog<T>(Exception ex, string CurrentMethod)
         {
-            SaveLog(string.Format("方法：{0},对象：{1},出错详情：{2}", CurrentMethod, typeof(T).Name, ex.ToString()), "redis_exp");
+            LogManager.SaveLog(string.Format("方法：{0},对象：{1},出错详情：{2}", CurrentMethod, typeof(T).Name, ex.ToString()), "redis_exp");
         }
         #endregion
 

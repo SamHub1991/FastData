@@ -13,7 +13,7 @@ namespace FastUntility.Base
         /// </summary>
         public static long GetTimestamp()
         {
-            return DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            return FrameworkCompat.ToUnixTimeSeconds(DateTimeOffset.UtcNow);
         }
 
         /// <summary>
@@ -21,7 +21,7 @@ namespace FastUntility.Base
         /// </summary>
         public static long GetTimestampMs()
         {
-            return DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            return FrameworkCompat.ToUnixTimeMilliseconds(DateTimeOffset.UtcNow);
         }
 
         /// <summary>
@@ -32,7 +32,7 @@ namespace FastUntility.Base
             var dto = dateTime.Kind == DateTimeKind.Utc
                 ? new DateTimeOffset(dateTime, TimeSpan.Zero)
                 : new DateTimeOffset(dateTime);
-            return dto.ToUnixTimeSeconds();
+            return FrameworkCompat.ToUnixTimeSeconds(dto);
         }
 
         /// <summary>
@@ -40,7 +40,7 @@ namespace FastUntility.Base
         /// </summary>
         public static DateTime FromTimestamp(long timestamp)
         {
-            return DateTimeOffset.FromUnixTimeSeconds(timestamp).LocalDateTime;
+            return FrameworkCompat.FromUnixTimeSeconds(timestamp).LocalDateTime;
         }
 
         /// <summary>
@@ -48,7 +48,7 @@ namespace FastUntility.Base
         /// </summary>
         public static DateTime FromTimestampMs(long timestampMs)
         {
-            return DateTimeOffset.FromUnixTimeMilliseconds(timestampMs).LocalDateTime;
+            return FrameworkCompat.FromUnixTimeMilliseconds(timestampMs).LocalDateTime;
         }
         #endregion
 

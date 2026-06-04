@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data.Common;
@@ -13,8 +13,10 @@ namespace FastUntility.Base
         /// <summary>
         /// 对象映射
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="model"></param>
+        /// <typeparam name="T">目标类型</typeparam>
+        /// <typeparam name="T1">源类型</typeparam>
+        /// <param name="model">源对象</param>
+        /// <param name="field">选定字段表达式（可选）</param>
         /// <returns></returns>
         public static T CopyModel<T, T1>(T1 model, Expression<Func<T1, object>> field = null) where T : class, new()
         {
@@ -111,10 +113,10 @@ namespace FastUntility.Base
         /// <summary>
         /// 数据库参数
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <typeparam name="Result"></typeparam>
-        /// <param name="item"></param>
-        /// <param name="field"></param>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <typeparam name="Result">参数类型</typeparam>
+        /// <param name="item">实体对象</param>
+        /// <param name="field">字段表达式</param>
         /// <returns></returns>
         public static List<Result> Parameters<T, Result>(T item, Expression<Func<T, object>> field) where Result : class, new()
         {

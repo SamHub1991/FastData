@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using Microsoft.Extensions.Logging;
 #if NETFRAMEWORK
 using System.Runtime.Remoting.Messaging;
@@ -16,6 +17,7 @@ namespace FastData
     /// 1. 全局 SQL 日志开关控制
     /// 2. 数据库 Key 作用域切换（支持嵌套）
     /// 3. 当前数据库 Key 管理
+    /// 4. 调用程序集名称缓存（避免重复 Assembly.GetCallingAssembly() 栈回溯开销）
     /// 
     /// 使用示例：
     /// <code>
@@ -47,6 +49,33 @@ namespace FastData
 #if !NETFRAMEWORK
         private static readonly AsyncLocal<string> _currentKey = new AsyncLocal<string>();
 #endif
+
+        private static readonly Lazy<string> _cachedProjectName =
+            new Lazy<string>(() => Assembly.GetCallingAssembly().GetName().Name, LazyThreadSafetyMode.ExecutionAndPublication);
+
+        /// <summary>
+        /// 调用程序集名称缓存
+        /// 首次访问时通过 Assembly.GetCallingAssembly() 获取并缓存，避免每次 API 调用的栈回溯开销
+        /// 多程序集场景下可通过调用 ResetProjectName() 重置
+        /// </summary>
+        internal static string CachedProjectName => _cachedProjectName.Value;
+
+        /// <summary>
+        /// 获取调用程序集名称（优先使用缓存，首次自动获取）
+        /// </summary>
+        internal static string GetProjectName()
+        {
+            return CachedProjectName;
+        }
+
+        /// <summary>
+        /// 重置缓存的程序集名称（多程序集场景使用）
+        /// </summary>
+        internal static void ResetProjectName()
+        {
+            typeof(FastDb).GetField("_cachedProjectName", BindingFlags.NonPublic | BindingFlags.Static)
+                ?.SetValue(null, new Lazy<string>(() => Assembly.GetCallingAssembly().GetName().Name, LazyThreadSafetyMode.ExecutionAndPublication));
+        }
 
 /// <summary>
         /// 全局 SQL 日志开关（默认关闭）

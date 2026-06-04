@@ -2,17 +2,9 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![NuGet](https://img.shields.io/badge/NuGet-Fast.Data-blue.svg)](https://www.nuget.org/packages/Fast.Data/)
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
-[![Tests](https://img.shields.io/badge/tests-192%20passed-brightgreen.svg)]()
+[![.NET](https://img.shields.io/badge/.NET-4.5%20%7C%208.0%20%7C%2010.0-blueviolet)]()
 
-FastData 是一个企业级多目标框架 ORM，支持 .NET Framework 4.5 / .NET 6.0 / .NET 8.0 / .NET 10.0，提供 Lambda 查询、XML Map SQL、Code First、Db First、AOP、缓存、Redis、消息队列和数据同步。
-
-**最新更新 (2026-06-01)**:
-- ✅ 14 项核心改进完成
-- ✅ 22 个 DevTools 工具开发完成
-- ✅ 完整的企业级特性支持
-- ✅ 分布式事务、分布式锁、事件总线
-- ✅ 项目版本升级至 v1.4.0
+**FastData** 是一个企业级 ORM 框架，支持 .NET Framework 4.5.2 至 .NET 10，提供 Lambda 查询、XML Map SQL、Code First、Db First、AOP、智能连接池、Redis 缓存、消息队列和数据同步等功能。
 
 ---
 
@@ -41,11 +33,9 @@ var (items, total) = FastRead.Read.Query<User>()
 
 ### 详细文档
 
-- 📖 [快速入门指南](./.monkeycode/docs/QUICK_START.md) - 5 分钟快速上手
-- 📖 [文档目录](./.monkeycode/docs/README.md) - 完整文档索引
-- 🛠️ [DevTools 工具集](./FastData/DevTools/README.md) - 22 个专业开发工具
-- 📋 [CHANGELOG](./CHANGELOG.md) - 版本变更记录
-- 🔮 [未来改进规划](./.monkeycode/docs/FUTURE_IMPROVEMENTS.md)
+- 📖 [现代 ORM 特性详解](./FastData/MODERN_ORM_FEATURES.md)
+- 📋 [CHANGELOG](./CHANGELOG.md)
+- 🧠 [用户指令记忆](./.monkeycode/MEMORY.md)
 
 ---
 
@@ -53,13 +43,13 @@ var (items, total) = FastRead.Read.Query<User>()
 
 | 项目 | 说明 | 目标框架 |
 |------|------|----------|
-| [FastData](FastData/) | 核心 ORM 组件 + DevTools 工具集 | net45/net6.0/net8.0/net10.0 |
-| [FastUntility](FastUntility/) | 通用工具库（日志/加密/HTTP/Excel） | net45/net6.0/net8.0/net10.0 |
-| [FastData.ModelGenerator.WinForms](FastData.ModelGenerator.WinForms/) | 代码生成工具 | net6.0-windows+ |
-| [FastData.SyncTool.WinForms](FastData.SyncTool.WinForms/) | 数据同步工具 | net6.0-windows+ |
-| [FastData.Tests](FastData.Tests/) | 单元测试 | net462/net6.0/net8.0/net10.0 |
+| [FastData](FastData/) | 核心 ORM 组件 + DevTools 工具集 | net452;net8.0;net10.0 |
+| [FastData.Untility](FastData.Untility/) | 通用工具库（日志/加密/HTTP/Excel） | net452;net8.0;net10.0 |
+| [FastData.ModelGenerator.WinForms](FastData.ModelGenerator.WinForms/) | 代码生成工具 | net8.0-windows+ |
+| [FastData.SyncTool.WinForms](FastData.SyncTool.WinForms/) | 数据同步工具 | net8.0-windows+ |
+| [FastData.Tests](FastData.Tests/) | 单元测试 | net462;net8.0;net10.0 |
 | [FastData.Demo](FastData.Demo/) | Web API 示例 | net10.0 |
-| [FastData.Example](FastData.Example/) | 控制台示例 | net45/net6.0/net8.0/net10.0 |
+| [FastData.Example](FastData.Example/) | 控制台示例 | net452;net8.0;net10.0 |
 
 ---
 
@@ -112,73 +102,41 @@ var (items, total) = FastRead.Read.Query<User>()
 ## 文档导航
 
 ### 项目文档
-- [📖 文档目录](./.monkeycode/docs/README.md) - 完整文档索引
-- [🛠️ DevTools 文档](./FastData/DevTools/README.md) - 开发工具详细文档
-- [📋 用户指令记忆](./.monkeycode/MEMORY.md) - 用户行为指令和项目知识
+- [🧠 用户指令记忆](./.monkeycode/MEMORY.md)
+- [ CHANGELOG](./CHANGELOG.md)
 
-### 工具文档
-- [代码生成器文档](./FastData.ModelGenerator.WinForms/README.md)
-- [数据同步工具文档](./FastData.SyncTool.WinForms/README.md)
-
-### 报告文档
-- [最终完成报告 v2.0](./.monkeycode/docs/FINAL_COMPLETION_REPORT.md)
+### 子项目文档
+- [FastData 核心库](./FastData/README.md)
+- [FastData.Untility 工具库](./FastData.Untility/README.md)
+- [现代 ORM 特性详解](./FastData/MODERN_ORM_FEATURES.md)
+- [FastData.Tests 测试项目](./FastData.Tests/README.md)
+- [FastData.Demo Web API 示例](./FastData.Demo/README.md)
+- [FastData.Example 控制台示例](./FastData.Example/README.md)
+- [FastData.ModelGenerator.WinForms](./FastData.ModelGenerator.WinForms/README.md)
+- [FastData.SyncTool.WinForms](./FastData.SyncTool.WinForms/README.md)
 
 ---
 
 ## 构建指南
 
-### 跨平台构建
+### 跨平台构建（仅 .NET 6/8/10）
 
 ```bash
-# 仅构建 net6.0;net8.0;net10.0（排除 net45/net462）
-./build.sh --platform cross
 dotnet build -p:BuildPlatform=cross
 ```
 
-### Windows 构建
+### Windows 构建（包含 .NET Framework 4.5.2）
 
 ```bash
-# 构建所有目标框架
-./build.sh --platform windows
 dotnet build -p:BuildPlatform=windows
 ```
-
-### 综合验证
-
-```bash
-./verify-all.sh
-```
-
----
-
-## 质量保证
-
-### 测试状态
-- ✅ 测试覆盖率：97.5% (192/197)
-- ✅ 编译状态：0 错误
-- ✅ 支持：.NET Framework 4.5 / .NET 6.0 / .NET 8.0 / .NET 10.0
-
-### 质量评级
-| 评估项 | 评级 |
-|--------|------|
-| 稳定性 | ⭐⭐⭐⭐⭐ |
-| 性能 | ⭐⭐⭐⭐⭐ |
-| 易用性 | ⭐⭐⭐⭐⭐ |
-| 文档 | ⭐⭐⭐⭐⭐ |
-| 可维护性 | ⭐⭐⭐⭐⭐ |
-| 现代化 | ⭐⭐⭐⭐⭐ |
-| 工具支持 | ⭐⭐⭐⭐⭐ |
-| 企业级 | ⭐⭐⭐⭐⭐ |
-| 分布式 | ⭐⭐⭐⭐⭐ |
-| 可观测性 | ⭐⭐⭐⭐⭐ |
 
 ---
 
 ## 版本信息
 
-**当前版本**：v1.4.0  
-**发布日期**：2026-06-01  
-**推荐指数**：⭐⭐⭐⭐⭐（5/5 星）  
+**当前版本**：v2.4.0  
+**发布日期**：2026-06-02  
 **生产就绪**：✅ 是  
 **企业级就绪**：✅ 是
 

@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using System.Configuration;
 using FastData.DbTypes;
@@ -553,7 +553,7 @@ var item = list.Find(a => string.Equals(a.Key, defaultKey, StringComparison.Ordi
                     break;
                 case DataDbType.SQLite:
                     item.Flag = "@";
-                    item.ProviderName = Provider.SQLite;
+                    item.ProviderName = providerName ?? Provider.SQLite;
                     break;
                 case DataDbType.PostgreSql:
                     item.Flag = ":";
@@ -579,7 +579,7 @@ var item = list.Find(a => string.Equals(a.Key, defaultKey, StringComparison.Ordi
                 return DataDbType.MySql;
             if (provider == Provider.SqlServer || provider == "Microsoft.Data.SqlClient")
                 return DataDbType.SqlServer;
-            if (provider == Provider.SQLite)
+            if (provider == Provider.SQLite || provider == "Microsoft.Data.Sqlite")
                 return DataDbType.SQLite;
             if (provider == Provider.PostgreSql)
                 return DataDbType.PostgreSql;
@@ -872,6 +872,16 @@ var item = list.Find(a => string.Equals(a.Key, defaultKey, StringComparison.Ordi
                         element.Provider = addNode.Attributes?["Provider"]?.Value ?? "";
                         element.ConnStr = addNode.Attributes?["ConnStr"]?.Value ?? "";
                         element.IsDefault = addNode.Attributes?["IsDefault"]?.Value?.ToLower() == "true";
+                        element.IsOutSql = addNode.Attributes?["IsOutSql"]?.Value?.ToLower() == "true";
+                        element.IsOutError = addNode.Attributes?["IsOutError"]?.Value?.ToLower() == "true";
+                        element.IsPropertyCache = addNode.Attributes?["IsPropertyCache"]?.Value?.ToLower() != "false";
+                        element.SqlErrorType = addNode.Attributes?["SqlErrorType"]?.Value ?? "db";
+                        element.CacheType = addNode.Attributes?["CacheType"]?.Value ?? "web";
+                        element.DesignModel = addNode.Attributes?["DesignModel"]?.Value ?? "DbFirst";
+                        element.DbLinkName = addNode.Attributes?["DbLinkName"]?.Value ?? "";
+                        element.IsMapSave = addNode.Attributes?["IsMapSave"]?.Value?.ToLower() == "true";
+                        element.IsEncrypt = addNode.Attributes?["IsEncrypt"]?.Value?.ToLower() == "true";
+                        element.IsUpdateCache = addNode.Attributes?["IsUpdateCache"]?.Value?.ToLower() == "true";
                         collection.AddElement(element);
                     }
                     config["Connections"] = collection;

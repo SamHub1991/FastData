@@ -40,7 +40,7 @@ namespace FastData.Demo.Controllers
                 }
 
                 var insertStopwatch = Stopwatch.StartNew();
-                var result = await Task.Run(() => FastWrite.Use("SqlServer").BulkInsertAsync(users));
+                var result = await FastWrite.Use("SqlServer").BulkInsertAsync(users);
                 insertStopwatch.Stop();
 
                 stopwatch.Stop();

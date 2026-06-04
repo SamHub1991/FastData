@@ -1,1904 +1,1010 @@
-using FastData.Base;
-using FastData.Database;
-using FastData.Tooling.Sync;
-using FastData.SyncTool;
-using FastData.SyncTool.WinForms.IoC;
-using FastData.SyncTool.WinForms.Components;
-using FastData.SyncTool.WinForms.Services;
 using System;
 using System.Collections.Generic;
-using System.Data.Common;
+using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Timers;
-using System.Windows.Forms;
 using System.Text.Json;
+using System.Windows.Forms;
+using System.Timers;
+using FastData.Tooling.Sync;
+using FastData.SyncTool.WinForms.Components;
+using FastData.SyncTool.WinForms.Services;
 
 namespace FastData.SyncTool.WinForms
 {
+    /// <summary>
+    /// FastData 数据同步工具主窗体
+    /// 采用 TabControl + UserControl 模块化架构
+    /// </summary>
     public class MainForm : Form
     {
-        private readonly ComboBox sourceProviderBox = new ComboBox();
-        private readonly TextBox sourceConnectionBox = new TextBox();
-        private readonly ComboBox targetProviderBox = new ComboBox();
-        private readonly TextBox targetConnectionBox = new TextBox();
-        private readonly ComboBox intermediateProviderBox = new ComboBox();
-        private readonly TextBox intermediateConnectionBox = new TextBox();
-        private readonly TextBox taskIdBox = new TextBox();
+        #region 主题颜色常量
 
-        private readonly DataGridView tableListGrid = new DataGridView();
-        private readonly Button addTableButton = new Button();
-        private readonly Button removeTableButton = new Button();
-        private readonly Button loadTablesButton = new Button();
-        private readonly Button moveUpButton = new Button();
-        private readonly Button moveDownButton = new Button();
+        private static readonly Color PrimaryColor = Color.FromArgb(0, 120, 212);
+        private static readonly Color PrimaryDarkColor = Color.FromArgb(0, 90, 158);
+        private static readonly Color PrimaryLightColor = Color.FromArgb(200, 220, 240);
+        private static readonly Color AccentColor = Color.FromArgb(0, 150, 136);
+        private static readonly Color WarningColor = Color.FromArgb(255, 152, 0);
+        private static readonly Color ErrorColor = Color.FromArgb(244, 67, 54);
+        private static readonly Color SuccessColor = Color.FromArgb(76, 175, 80);
+        private static readonly Color BgColor = Color.FromArgb(245, 247, 250);
+        private static readonly Color CardBgColor = Color.White;
+        private static readonly Color TextPrimaryColor = Color.FromArgb(33, 33, 33);
+        private static readonly Color TextSecondaryColor = Color.FromArgb(117, 117, 117);
+        private static readonly Color BorderColor = Color.FromArgb(224, 224, 224);
+        private static readonly Color DividerColor = Color.FromArgb(238, 238, 238);
 
-        private readonly NumericUpDown rangeDaysBox = new NumericUpDown();
-        private readonly Label lastSyncTimeLabel = new Label();
+        #endregion
 
-        private readonly TextBox primaryKeyColumnsBox = new TextBox();
-        private readonly TextBox timeColumnBox = new TextBox();
-        private readonly CheckBox enableTimeRangeBox = new CheckBox();
-        private readonly CheckBox enableGlobalConfigBox = new CheckBox();
-        private readonly NumericUpDown globalRangeDaysBox = new NumericUpDown();
-        private readonly CheckBox alwaysDeduplicateBox = new CheckBox();
-        private readonly NumericUpDown batchSizeBox = new NumericUpDown();
-        private readonly NumericUpDown retryCountBox = new NumericUpDown();
-        private readonly CheckBox autoCreateIntermediateBox = new CheckBox();
-        private readonly CheckBox resumeFailedRecordsBox = new CheckBox();
-        private readonly CheckBox cleanIntermediateBox = new CheckBox();
+        #region UI 控件
 
-        private readonly CheckBox enableTimerBox = new CheckBox();
-        private readonly NumericUpDown intervalBox = new NumericUpDown();
-        private readonly TextBox logBox = new TextBox();
-        private readonly Label syncStatusLabel = new Label();
+        private readonly MenuStrip _menuStrip = new MenuStrip();
+        private readonly TabControl _tabControl = new TabControl();
+        private readonly StatusStrip _statusStrip = new StatusStrip();
+        private readonly ToolStripStatusLabel _statusLabel = new ToolStripStatusLabel();
+        private readonly ToolStripProgressBar _progressBar = new ToolStripProgressBar();
+        private readonly ToolStripStatusLabel _progressText = new ToolStripStatusLabel();
+        private readonly Panel _headerPanel = new Panel();
 
-        private readonly Button exportSchemaButton = new Button();
-        private readonly Button syncButton = new Button();
-        private readonly Button pkConfigButton = new Button();
-        private readonly Button saveTaskButton = new Button();
+        #endregion
 
-        private readonly DataGridView taskListGrid = new DataGridView();
-        private readonly Button newTaskButton = new Button();
-        private readonly Button deleteTaskButton = new Button();
-        private readonly Button loadTaskButton = new Button();
-        private readonly Button refreshTaskButton = new Button();
-        private readonly Button editTaskButton = new Button();
-        private readonly Button batchDeleteButton = new Button();
-        private readonly Button batchEnableButton = new Button();
-        private readonly Button batchDisableButton = new Button();
-        private readonly Button exportTaskButton = new Button();
-        private readonly Button importTaskButton = new Button();
+        #region 组件
 
-        private System.Timers.Timer syncTimer;
-        private bool isSyncing;
-        private readonly ServiceContainer serviceProvider;
-        private readonly PrimaryKeyConfigService pkConfigService;
-        private readonly SyncConfigManager configManager;
-        private List<TableSyncConfig> tableConfigs = new List<TableSyncConfig>();
-        private List<SyncTaskConfig> taskConfigs = new List<SyncTaskConfig>();
-        private TabControl tabControl;
-        private TabPage replayTab;
-        private TabPage dbConfigTab;
+        private DbConnectionPanel _connectionPanel;
+        private TableListManager _tableListManager;
+        private SyncConfigPanel _syncConfigPanel;
+        private TaskManager _taskManager;
+        private ReplayControl _replayControl;
+        private ShardingTabContainer _shardingContainer;
+        private LogViewerControl _logViewer;
 
-        // 补录功能控件
-        private readonly ComboBox replaySourceProviderBox = new ComboBox();
-        private readonly TextBox replaySourceConnectionBox = new TextBox();
-        private readonly ComboBox replayTargetProviderBox = new ComboBox();
-        private readonly TextBox replayTargetConnectionBox = new TextBox();
-        private readonly TextBox replayTableNameBox = new TextBox();
-        private readonly DateTimePicker replayStartTimeBox = new DateTimePicker();
-        private readonly DateTimePicker replayEndTimeBox = new DateTimePicker();
-        private readonly CheckBox replayEnableTimeRangeBox = new CheckBox();
-        private readonly TextBox replayPrimaryKeyBox = new TextBox();
-        private readonly Button replayLoadTablesButton = new Button();
-        private readonly Button replayStartButton = new Button();
-        private readonly TextBox replayLogBox = new TextBox();
-        private readonly Label replayStatusLabel = new Label();
+        #endregion
 
-        // 数据库配置控件
-        private readonly TextBox dbConnectionNameBox = new TextBox();
-        private readonly ComboBox dbProviderBox = new ComboBox();
-        private readonly TextBox dbConnectionStringBox = new TextBox();
-        private readonly Button dbTestButton = new Button();
-        private readonly Button dbSaveButton = new Button();
-        private readonly Button dbDeleteButton = new Button();
-        private readonly DataGridView dbConnectionGrid = new DataGridView();
-        private readonly TextBox dbLogBox = new TextBox();
+        #region 服务
 
-        // 共享日志控件
-        private readonly SplitContainer mainSplitContainer = new SplitContainer();
-        private readonly TextBox sharedLogBox = new TextBox();
-        private readonly Button clearLogButton = new Button();
-        private readonly Button exportLogButton = new Button();
+        private readonly SyncConfigManager _configManager;
+        private readonly SyncService _syncService;
+        private readonly LogService _logService;
+        private readonly PrimaryKeyConfigService _pkConfigService;
+        private readonly TaskSchedulerService _schedulerService;
+        private System.Timers.Timer _syncTimer;
 
+        #endregion
+
+        #region 状态
+
+        private string _currentTaskId;
+        private bool _isSyncing;
+
+        #endregion
+
+        /// <summary>
+        /// 构造函数：初始化所有服务、UI 组件和事件绑定
+        /// </summary>
         public MainForm()
         {
-            Text = "FastData 数据同步工具";
-            Width = 1200;
-            Height = 800;
-            
-            // 初始化依赖注入容器
-            serviceProvider = new ServiceContainer();
-            serviceProvider.RegisterSyncToolServices();
-            
-            // 从容器解析服务
-            pkConfigService = serviceProvider.Resolve<PrimaryKeyConfigService>();
-            configManager = serviceProvider.Resolve<SyncConfigManager>();
-            
-            tabControl = new TabControl();
-            BuildLayout();
+            _configManager = new SyncConfigManager();
+            _syncService = new SyncService();
+            _logService = new LogService();
+            _pkConfigService = new PrimaryKeyConfigService();
+            _schedulerService = new TaskSchedulerService();
+
+            InitWindow();
+            ApplyTheme();
+            InitHeader();
+            InitMenu();
+            InitTabs();
+            InitComponents();
             BindEvents();
-            InitializeTimer();
-            LoadTaskList();
+            InitTimer();
+
+            _logService.Info("FastData 同步工具已启动");
         }
 
-        private void BuildLayout()
+        #region 初始化
+
+        /// <summary>
+        /// 初始化窗体外观
+        /// </summary>
+        private void InitWindow()
         {
-            // 主布局：上部分是 TabControl，下部分是共享日志
-            mainSplitContainer.Dock = DockStyle.Fill;
-            mainSplitContainer.Orientation = Orientation.Horizontal;
-            mainSplitContainer.SplitterDistance = Height - 200;
-
-            Controls.Add(mainSplitContainer);
-
-            // 上部分：TabControl
-            tabControl = new TabControl { Dock = DockStyle.Fill };
-            dbConfigTab = new TabPage("数据库配置");
-            var configTab = new TabPage("同步配置");
-            var taskTab = new TabPage("任务管理");
-            replayTab = new TabPage("数据补录");
-            var shardingTab = new TabPage("分表同步");
-            tabControl.TabPages.Add(dbConfigTab);
-            tabControl.TabPages.Add(configTab);
-            tabControl.TabPages.Add(taskTab);
-            tabControl.TabPages.Add(replayTab);
-            tabControl.TabPages.Add(shardingTab);
-            mainSplitContainer.Panel1.Controls.Add(tabControl);
-
-            // 下部分：共享日志
-            var logPanel = new Panel { Dock = DockStyle.Fill };
-            
-            var logHeaderPanel = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 30 };
-            var logLabel = new Label { Text = "运行日志", AutoSize = true, Anchor = AnchorStyles.Left, Margin = new Padding(5, 5, 0, 0) };
-            logHeaderPanel.Controls.Add(logLabel);
-            
-            clearLogButton.Text = "清空日志";
-            clearLogButton.Anchor = AnchorStyles.Right;
-            clearLogButton.Margin = new Padding(5, 3, 0, 0);
-            logHeaderPanel.Controls.Add(clearLogButton);
-            
-            exportLogButton.Text = "导出日志";
-            exportLogButton.Anchor = AnchorStyles.Right;
-            exportLogButton.Margin = new Padding(5, 3, 0, 0);
-            logHeaderPanel.Controls.Add(exportLogButton);
-
-            sharedLogBox.Dock = DockStyle.Fill;
-            sharedLogBox.Multiline = true;
-            sharedLogBox.ScrollBars = ScrollBars.Both;
-            sharedLogBox.ReadOnly = true;
-            sharedLogBox.Font = new System.Drawing.Font("Consolas", 9);
-            sharedLogBox.WordWrap = false;
-            sharedLogBox.BackColor = System.Drawing.Color.FromArgb(30, 30, 30);
-            sharedLogBox.ForeColor = System.Drawing.Color.FromArgb(220, 220, 220);
-            
-            logPanel.Controls.Add(sharedLogBox);
-            logPanel.Controls.Add(logHeaderPanel);
-            mainSplitContainer.Panel2.Controls.Add(logPanel);
-
-            BuildDbConfigTab(dbConfigTab);
-            BuildConfigTab(configTab);
-            BuildTaskTab(taskTab);
-            BuildReplayTab(replayTab);
-            BuildShardingTab(shardingTab);
+            Text = "FastData 数据同步工具 v2.0";
+            Width = 1260;
+            Height = 840;
+            StartPosition = FormStartPosition.CenterScreen;
+            MinimumSize = new Size(960, 640);
+            BackColor = BgColor;
+            Font = new Font("Microsoft YaHei UI", 9F);
+            Icon = SystemIcons.Application;
         }
 
-        private void BuildDbConfigTab(TabPage tab)
+        /// <summary>
+        /// 应用全局主题样式
+        /// </summary>
+        private void ApplyTheme()
         {
-            var mainPanel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 8 };
-            mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 200));
-            mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            // 菜单栏样式
+            _menuStrip.BackColor = PrimaryColor;
+            _menuStrip.ForeColor = Color.White;
+            _menuStrip.Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Regular);
+            _menuStrip.Renderer = new CustomMenuRenderer(PrimaryColor, Color.FromArgb(0, 103, 184));
 
-            int row = 0;
+            // 状态栏样式
+            _statusStrip.BackColor = PrimaryColor;
+            _statusStrip.ForeColor = Color.White;
+            _statusStrip.Font = new Font("Microsoft YaHei UI", 8.5F);
+            _statusLabel.ForeColor = Color.FromArgb(240, 240, 240);
+            _progressText.ForeColor = Color.FromArgb(240, 240, 240);
 
-            // 连接名称
-            AddLabel(mainPanel, "连接名称", row++);
-            dbConnectionNameBox.Dock = DockStyle.Fill;
-            mainPanel.Controls.Add(dbConnectionNameBox, 1, row - 1);
-
-            // Provider
-            AddLabel(mainPanel, "数据库类型", row++);
-            dbProviderBox.DropDownStyle = ComboBoxStyle.DropDownList;
-            dbProviderBox.Dock = DockStyle.Fill;
-            dbProviderBox.Items.AddRange(DatabaseProviderMappings.AllProviderNames);
-            dbProviderBox.SelectedIndex = 0;
-            mainPanel.Controls.Add(dbProviderBox, 1, row - 1);
-
-            // 连接字符串
-            AddLabel(mainPanel, "连接字符串", row++);
-            dbConnectionStringBox.Dock = DockStyle.Fill;
-            dbConnectionStringBox.Multiline = true;
-            dbConnectionStringBox.ScrollBars = ScrollBars.Vertical;
-            dbConnectionStringBox.Height = 80;
-            mainPanel.Controls.Add(dbConnectionStringBox, 1, row - 1);
-
-            // 按钮
-            var buttonPanel = new FlowLayoutPanel { Dock = DockStyle.Fill };
-            dbTestButton.Text = "测试连接";
-            dbTestButton.BackColor = System.Drawing.Color.FromArgb(0, 120, 215);
-            dbTestButton.ForeColor = System.Drawing.Color.White;
-            dbTestButton.Margin = new Padding(0, 0, 10, 0);
-            buttonPanel.Controls.Add(dbTestButton);
-
-            dbSaveButton.Text = "保存连接";
-            dbSaveButton.BackColor = System.Drawing.Color.FromArgb(0, 120, 215);
-            dbSaveButton.ForeColor = System.Drawing.Color.White;
-            dbSaveButton.Margin = new Padding(0, 0, 10, 0);
-            buttonPanel.Controls.Add(dbSaveButton);
-
-            dbDeleteButton.Text = "删除连接";
-            dbDeleteButton.BackColor = System.Drawing.Color.FromArgb(200, 50, 50);
-            dbDeleteButton.ForeColor = System.Drawing.Color.White;
-            buttonPanel.Controls.Add(dbDeleteButton);
-
-            mainPanel.Controls.Add(buttonPanel, 1, row++);
-
-            // 连接列表
-            AddLabel(mainPanel, "已保存的连接", row++);
-            InitDbConnectionGrid(dbConnectionGrid);
-            dbConnectionGrid.Dock = DockStyle.Fill;
-            mainPanel.Controls.Add(dbConnectionGrid, 1, row++);
-
-            // 日志
-            AddLabel(mainPanel, "数据库配置日志", row++);
-            dbLogBox.Dock = DockStyle.Fill;
-            dbLogBox.Multiline = true;
-            dbLogBox.ScrollBars = ScrollBars.Both;
-            dbLogBox.ReadOnly = true;
-            dbLogBox.Font = new System.Drawing.Font("Consolas", 9);
-            dbLogBox.Height = 100;
-            mainPanel.Controls.Add(dbLogBox, 1, row++);
-
-            for (var i = 0; i < 7; i++)
-                mainPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
-            mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-
-            tab.Controls.Add(mainPanel);
+            // TabControl 样式
+            _tabControl.DrawMode = TabDrawMode.OwnerDrawFixed;
+            _tabControl.DrawItem += DrawTabItem;
+            _tabControl.BackColor = BgColor;
+            _tabControl.Font = new Font("Microsoft YaHei UI", 9F);
+            _tabControl.Padding = new Point(12, 6);
+            _tabControl.ItemSize = new Size(140, 36);
         }
 
-        private void InitDbConnectionGrid(DataGridView grid)
+        /// <summary>
+        /// 自定义 Tab 页绘制（蓝色主题 + 选中态高亮）
+        /// </summary>
+        private void DrawTabItem(object sender, DrawItemEventArgs e)
         {
-            grid.AllowUserToAddRows = false;
-            grid.AllowUserToDeleteRows = false;
-            grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            grid.MultiSelect = false;
-            grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            var tabPage = _tabControl.TabPages[e.Index];
+            var tabRect = _tabControl.GetTabRect(e.Index);
+            var isSelected = _tabControl.SelectedIndex == e.Index;
 
-            grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "Name", HeaderText = "连接名称", Width = 150 });
-            grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "Provider", HeaderText = "数据库类型", Width = 200 });
-            grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "ConnectionString", HeaderText = "连接字符串", Width = 400 });
-            grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "LastTestTime", HeaderText = "最后测试时间", Width = 150 });
+            // 背景
+            var bgBrush = isSelected
+                ? new SolidBrush(Color.White)
+                : new SolidBrush(Color.FromArgb(240, 243, 248));
+            e.Graphics.FillRectangle(bgBrush, tabRect);
+
+            // 选中态底部蓝色指示条
+            if (isSelected)
+            {
+                var indicatorRect = new Rectangle(tabRect.X + 12, tabRect.Bottom - 3, tabRect.Width - 24, 3);
+                e.Graphics.FillRectangle(new SolidBrush(PrimaryColor), indicatorRect);
+            }
+
+            // 文字
+            var textColor = isSelected ? PrimaryColor : TextSecondaryColor;
+            var textFont = new Font("Microsoft YaHei UI", 9F, isSelected ? FontStyle.Bold : FontStyle.Regular);
+            var textBrush = new SolidBrush(textColor);
+            var sf = new StringFormat
+            {
+                Alignment = StringAlignment.Center,
+                LineAlignment = StringAlignment.Center
+            };
+
+            // 图标前缀
+            var icon = GetTabIcon(tabPage.Text);
+            var textRect = new Rectangle(tabRect.X + 8, tabRect.Y, tabRect.Width - 16, tabRect.Height);
+            e.Graphics.DrawString(icon + " " + tabPage.Text, textFont, textBrush, textRect, sf);
+
+            // 底部边框
+            e.Graphics.DrawLine(new Pen(DividerColor), tabRect.X, tabRect.Bottom - 1, tabRect.Right, tabRect.Bottom - 1);
+
+            bgBrush.Dispose();
+            textBrush.Dispose();
+            textFont.Dispose();
+            sf.Dispose();
         }
 
-        private void BuildConfigTab(TabPage tab)
+        /// <summary>
+        /// 获取 Tab 页图标
+        /// </summary>
+        private static string GetTabIcon(string tabName)
         {
-            var mainPanel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 23 };
-            mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 200));
-            mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            tab.Controls.Add(mainPanel);
+            switch (tabName)
+            {
+                case "数据库配置": return "\u2699";   // ⚙
+                case "表列表管理": return "\u2630";   // ☰
+                case "同步配置": return "\u21C4";      // ⇄
+                case "任务管理": return "\u25B6";      // ▶
+                case "数据补录": return "\u21BA";      // ↺
+                case "分表同步": return "\u2261";      // ≡
+                case "运行日志": return "\u2637";      // ☷
+                default: return "\u25CF";              // ●
+            }
+        }
 
-            int row = 0;
+        /// <summary>
+        /// 初始化顶部 Header 面板
+        /// </summary>
+        private void InitHeader()
+        {
+            _headerPanel.Height = 56;
+            _headerPanel.Dock = DockStyle.Top;
+            _headerPanel.BackColor = Color.White;
+            _headerPanel.Padding = new Padding(20, 0, 20, 0);
 
-            AddLabel(mainPanel, "源库 Provider", row++);
-            InitProviderBox(sourceProviderBox);
-            mainPanel.Controls.Add(sourceProviderBox, 1, row - 1);
+            // 左侧标题
+            var titleLabel = new Label
+            {
+                Text = "FastData 数据同步工具",
+                Font = new Font("Microsoft YaHei UI", 14F, FontStyle.Bold),
+                ForeColor = PrimaryColor,
+                AutoSize = true,
+                Location = new Point(20, 12)
+            };
 
-            AddLabel(mainPanel, "源库连接字符串", row++);
-            sourceConnectionBox.Dock = DockStyle.Fill;
-            mainPanel.Controls.Add(sourceConnectionBox, 1, row - 1);
+            // 右侧状态指示
+            var statusDot = new Panel
+            {
+                Size = new Size(8, 8),
+                Location = new Point(_headerPanel.Width - 100, 22),
+                BackColor = SuccessColor
+            };
+            statusDot.Paint += (s, e) =>
+            {
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                e.Graphics.FillEllipse(new SolidBrush(_isSyncing ? WarningColor : SuccessColor), 0, 0, 8, 8);
+            };
+            var statusText = new Label
+            {
+                Text = _isSyncing ? "运行中" : "就绪",
+                Font = new Font("Microsoft YaHei UI", 8.5F),
+                ForeColor = TextSecondaryColor,
+                AutoSize = true,
+                Location = new Point(_headerPanel.Width - 88, 18)
+            };
 
-            AddLabel(mainPanel, "目标库 Provider", row++);
-            InitProviderBox(targetProviderBox);
-            mainPanel.Controls.Add(targetProviderBox, 1, row - 1);
+            _headerPanel.Controls.Add(titleLabel);
+            _headerPanel.Controls.Add(statusDot);
+            _headerPanel.Controls.Add(statusText);
 
-            AddLabel(mainPanel, "目标库连接字符串", row++);
-            targetConnectionBox.Dock = DockStyle.Fill;
-            mainPanel.Controls.Add(targetConnectionBox, 1, row - 1);
+            // 底部分割线
+            var divider = new Panel
+            {
+                Height = 1,
+                Dock = DockStyle.Bottom,
+                BackColor = DividerColor
+            };
+            _headerPanel.Controls.Add(divider);
 
-            AddLabel(mainPanel, "中间库 Provider", row++);
-            InitProviderBox(intermediateProviderBox);
-            mainPanel.Controls.Add(intermediateProviderBox, 1, row - 1);
+            _headerPanel.Resize += (s, e) =>
+            {
+                statusDot.Location = new Point(_headerPanel.Width - 100, 22);
+                statusText.Location = new Point(_headerPanel.Width - 88, 18);
+            };
+        }
 
-            AddLabel(mainPanel, "中间库连接字符串", row++);
-            intermediateConnectionBox.Dock = DockStyle.Fill;
-            mainPanel.Controls.Add(intermediateConnectionBox, 1, row - 1);
+        /// <summary>
+        /// 初始化菜单栏
+        /// </summary>
+        private void InitMenu()
+        {
+            var fileMenu = new ToolStripMenuItem("文件 (&F)");
+            fileMenu.DropDownItems.Add("新建任务", null, (s, e) => CreateNewTask());
+            fileMenu.DropDownItems.Add("保存任务", null, (s, e) => SaveCurrentTask());
+            fileMenu.DropDownItems.Add(new ToolStripSeparator());
+            fileMenu.DropDownItems.Add("导出任务配置", null, (s, e) => ExportCurrentTask());
+            fileMenu.DropDownItems.Add("导入任务配置", null, (s, e) => ImportTask());
+            fileMenu.DropDownItems.Add(new ToolStripSeparator());
+            fileMenu.DropDownItems.Add("退出", null, (s, e) => Close());
 
-            AddLabel(mainPanel, "任务 ID", row++);
-            taskIdBox.Dock = DockStyle.Fill;
-            mainPanel.Controls.Add(taskIdBox, 1, row - 1);
+            var syncMenu = new ToolStripMenuItem("同步 (&S)");
+            syncMenu.DropDownItems.Add("开始同步", null, (s, e) => StartSync());
+            syncMenu.DropDownItems.Add("停止同步", null, (s, e) => StopSync());
+            syncMenu.DropDownItems.Add(new ToolStripSeparator());
+            syncMenu.DropDownItems.Add("启用定时同步", null, (s, e) => EnableScheduledSync());
+            syncMenu.DropDownItems.Add("禁用定时同步", null, (s, e) => DisableScheduledSync());
 
-            // 表配置区域
-            row++;
-            var buttonPanel = new FlowLayoutPanel { Dock = DockStyle.Fill };
-            buttonPanel.Controls.Add(loadTablesButton);
-            buttonPanel.Controls.Add(addTableButton);
-            buttonPanel.Controls.Add(removeTableButton);
-            buttonPanel.Controls.Add(moveUpButton);
-            buttonPanel.Controls.Add(moveDownButton);
+            var toolsMenu = new ToolStripMenuItem("工具 (&T)");
+            toolsMenu.DropDownItems.Add("主键配置", null, (s, e) => OpenPrimaryKeyConfig());
+            toolsMenu.DropDownItems.Add(new ToolStripSeparator());
+            toolsMenu.DropDownItems.Add("定时任务管理", null, (s, e) => OpenSchedulerManager());
 
-            var tablePanel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2 };
-            tablePanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 35));
-            tablePanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            mainPanel.Controls.Add(tablePanel, 1, row);
-            tablePanel.Controls.Add(buttonPanel, 0, 0);
+            var helpMenu = new ToolStripMenuItem("帮助 (&H)");
+            helpMenu.DropDownItems.Add("关于", null, (s, e) => ShowAbout());
 
-            InitTableGrid();
-            tablePanel.Controls.Add(tableListGrid, 0, 1);
+            _menuStrip.Items.AddRange(new ToolStripItem[] { fileMenu, syncMenu, toolsMenu, helpMenu });
+            MainMenuStrip = _menuStrip;
+            Controls.Add(_menuStrip);
+        }
 
-            // 高级配置
-            row++;
-            AddLabel(mainPanel, "主键字段", row);
-            primaryKeyColumnsBox.Dock = DockStyle.Fill;
-            mainPanel.Controls.Add(primaryKeyColumnsBox, 1, row++);
+        /// <summary>
+        /// 初始化 TabControl 标签页
+        /// </summary>
+        private void InitTabs()
+        {
+            _tabControl.Dock = DockStyle.Fill;
+            _tabControl.TabPages.Add("数据库配置");
+            _tabControl.TabPages.Add("表列表管理");
+            _tabControl.TabPages.Add("同步配置");
+            _tabControl.TabPages.Add("任务管理");
+            _tabControl.TabPages.Add("数据补录");
+            _tabControl.TabPages.Add("分表同步");
+            _tabControl.TabPages.Add("运行日志");
 
-            AddLabel(mainPanel, "时间字段", row);
-            timeColumnBox.Dock = DockStyle.Fill;
-            mainPanel.Controls.Add(timeColumnBox, 1, row++);
+            // 布局：Header → TabControl → StatusBar
+            Controls.Add(_tabControl);
+            Controls.Add(_headerPanel);
+            _tabControl.BringToFront();
+        }
 
-            AddLabel(mainPanel, "启用时间范围", row);
-            enableTimeRangeBox.Dock = DockStyle.Fill;
-            mainPanel.Controls.Add(enableTimeRangeBox, 1, row++);
+        /// <summary>
+        /// 初始化各标签页的 UserControl 组件和状态栏
+        /// </summary>
+        private void InitComponents()
+        {
+            // 所有 TabPage 统一样式
+            foreach (TabPage page in _tabControl.TabPages)
+            {
+                page.BackColor = Color.White;
+                page.Padding = new Padding(0);
+                page.UseVisualStyleBackColor = false;
+            }
 
-            AddLabel(mainPanel, "时间范围 (天)", row);
-            rangeDaysBox.Dock = DockStyle.Fill;
-            rangeDaysBox.Minimum = 1;
-            rangeDaysBox.Maximum = 365;
-            rangeDaysBox.Value = 3;
-            mainPanel.Controls.Add(rangeDaysBox, 1, row++);
+            // 数据库配置 Tab
+            _connectionPanel = new DbConnectionPanel();
+            _connectionPanel.BackColor = Color.White;
+            _tabControl.TabPages[0].Controls.Add(_connectionPanel);
 
-            // 全局配置
-            AddLabel(mainPanel, "启用全局配置", row);
-            enableGlobalConfigBox.Dock = DockStyle.Fill;
-            mainPanel.Controls.Add(enableGlobalConfigBox, 1, row++);
+            // 表列表管理 Tab
+            _tableListManager = new TableListManager();
+            _tableListManager.BackColor = Color.White;
+            _tabControl.TabPages[1].Controls.Add(_tableListManager);
 
-            AddLabel(mainPanel, "全局范围天数 (0=使用任务配置)", row);
-            globalRangeDaysBox.Dock = DockStyle.Fill;
-            globalRangeDaysBox.Minimum = 0;
-            globalRangeDaysBox.Maximum = 365;
-            globalRangeDaysBox.Value = 0;
-            mainPanel.Controls.Add(globalRangeDaysBox, 1, row++);
+            // 同步配置 Tab
+            _syncConfigPanel = new SyncConfigPanel();
+            _syncConfigPanel.BackColor = Color.White;
+            _tabControl.TabPages[2].Controls.Add(_syncConfigPanel);
 
-            AddLabel(mainPanel, "始终去重（只插入不存在的记录）", row);
-            alwaysDeduplicateBox.Dock = DockStyle.Fill;
-            alwaysDeduplicateBox.Checked = true;
-            mainPanel.Controls.Add(alwaysDeduplicateBox, 1, row++);
+            // 任务管理 Tab
+            _taskManager = new TaskManager(_configManager);
+            _taskManager.BackColor = Color.White;
+            _tabControl.TabPages[3].Controls.Add(_taskManager);
 
-            AddLabel(mainPanel, "批次大小", row);
-            batchSizeBox.Dock = DockStyle.Fill;
-            batchSizeBox.Minimum = 100;
-            batchSizeBox.Maximum = 10000;
-            batchSizeBox.Increment = 100;
-            batchSizeBox.Value = 1000;
-            mainPanel.Controls.Add(batchSizeBox, 1, row++);
+            // 数据补录 Tab
+            _replayControl = new ReplayControl(_configManager);
+            _replayControl.BackColor = Color.White;
+            _tabControl.TabPages[4].Controls.Add(_replayControl);
 
-            AddLabel(mainPanel, "重试次数", row);
-            retryCountBox.Dock = DockStyle.Fill;
-            retryCountBox.Minimum = 0;
-            retryCountBox.Maximum = 5;
-            retryCountBox.Value = 3;
-            mainPanel.Controls.Add(retryCountBox, 1, row++);
+            // 分表同步 Tab（独立 UserControl）
+            _shardingContainer = new ShardingTabContainer(_logService);
+            _tabControl.TabPages[5].Controls.Add(_shardingContainer);
 
-            AddLabel(mainPanel, "自动创建中间库表结构", row);
-            autoCreateIntermediateBox.Dock = DockStyle.Fill;
-            autoCreateIntermediateBox.Checked = true;
-            mainPanel.Controls.Add(autoCreateIntermediateBox, 1, row++);
-
-            AddLabel(mainPanel, "失败记录续传", row);
-            resumeFailedRecordsBox.Dock = DockStyle.Fill;
-            mainPanel.Controls.Add(resumeFailedRecordsBox, 1, row++);
-
-            AddLabel(mainPanel, "同步后清理中间库", row);
-            cleanIntermediateBox.Dock = DockStyle.Fill;
-            mainPanel.Controls.Add(cleanIntermediateBox, 1, row++);
-
-            // 定时同步
-            row++;
-            var timerPanel = new GroupBox { Text = "定时同步", Dock = DockStyle.Fill };
-            var timerLayout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 4, RowCount = 1 };
-            timerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-            timerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-            timerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-            timerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            timerPanel.Controls.Add(timerLayout);
-
-            timerLayout.Controls.Add(new Label { Text = "启用定时同步", AutoSize = true }, 0, 0);
-            timerLayout.Controls.Add(enableTimerBox, 1, 0);
-            timerLayout.Controls.Add(new Label { Text = "间隔 (秒):", AutoSize = true, Margin = new Padding(20, 0, 0, 0) }, 2, 0);
-            intervalBox.Minimum = 5;
-            intervalBox.Maximum = 3600;
-            intervalBox.Value = 60;
-            intervalBox.Width = 60;
-            timerLayout.Controls.Add(intervalBox, 3, 0);
-            mainPanel.Controls.Add(timerPanel, 1, row++);
-            mainPanel.SetColumnSpan(timerPanel, 1);
-
-            // 按钮区域
-            row++;
-            var actionPanel = new FlowLayoutPanel { Dock = DockStyle.Fill };
-            actionPanel.Controls.Add(syncButton);
-            actionPanel.Controls.Add(exportSchemaButton);
-            actionPanel.Controls.Add(pkConfigButton);
-            actionPanel.Controls.Add(saveTaskButton);
-            mainPanel.Controls.Add(actionPanel, 1, row++);
-            mainPanel.SetColumnSpan(actionPanel, 2);
+            // 运行日志 Tab（独立 UserControl）
+            _logViewer = new LogViewerControl(_logService);
+            _tabControl.TabPages[6].Controls.Add(_logViewer);
 
             // 状态栏
-            row++;
-            syncStatusLabel.Dock = DockStyle.Fill;
-            syncStatusLabel.BackColor = System.Drawing.Color.LightGray;
-            syncStatusLabel.Text = "就绪";
-            syncStatusLabel.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            mainPanel.Controls.Add(syncStatusLabel, 1, row++);
-            mainPanel.SetColumnSpan(syncStatusLabel, 2);
-
-            // 日志区域
-            row++;
-            logBox.Dock = DockStyle.Fill;
-            logBox.Multiline = true;
-            logBox.ScrollBars = ScrollBars.Vertical;
-            logBox.Height = 150;
-            logBox.ReadOnly = true;
-            mainPanel.Controls.Add(logBox, 1, row++);
-            mainPanel.SetColumnSpan(logBox, 2);
+            InitStatusBar();
         }
 
-        private void BuildTaskTab(TabPage tab)
+        /// </summary>
+        private void InitStatusBar()
         {
-            var mainPanel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2 };
-            mainPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
-            mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            tab.Controls.Add(mainPanel);
-
-            var buttonPanel = new FlowLayoutPanel { Dock = DockStyle.Fill };
-            buttonPanel.Controls.Add(newTaskButton);
-            buttonPanel.Controls.Add(editTaskButton);
-            buttonPanel.Controls.Add(loadTaskButton);
-            buttonPanel.Controls.Add(refreshTaskButton);
-            buttonPanel.Controls.Add(new Label { Width = 20 });
-            buttonPanel.Controls.Add(batchEnableButton);
-            buttonPanel.Controls.Add(batchDisableButton);
-            buttonPanel.Controls.Add(batchDeleteButton);
-            buttonPanel.Controls.Add(new Label { Width = 20 });
-            buttonPanel.Controls.Add(exportTaskButton);
-            buttonPanel.Controls.Add(importTaskButton);
-            mainPanel.Controls.Add(buttonPanel, 0, 0);
-
-            InitTaskGrid();
-            mainPanel.Controls.Add(taskListGrid, 0, 1);
+            _statusLabel.Text = "就绪";
+            _statusLabel.Spring = true;
+            _statusLabel.TextAlign = ContentAlignment.MiddleLeft;
+            _progressBar.Width = 200;
+            _progressBar.Visible = false;
+            _progressText.Text = "";
+            _progressText.AutoSize = true;
+            _statusStrip.Items.AddRange(new ToolStripItem[] { _statusLabel, _progressBar, _progressText });
+            Controls.Add(_statusStrip);
         }
 
-        private void BuildReplayTab(TabPage tab)
+        /// <summary>
+        /// 初始化定时同步计时器
+        /// </summary>
+        private void InitTimer()
         {
-            var mainPanel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 13 };
-            mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 200));
-            mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-
-            // 源库配置
-            AddLabel(mainPanel, "源库 Provider", 0);
-            replaySourceProviderBox.DropDownStyle = ComboBoxStyle.DropDownList;
-            replaySourceProviderBox.Items.AddRange(DatabaseProviderMappings.AllProviderNames);
-            replaySourceProviderBox.SelectedIndex = 0;
-            mainPanel.Controls.Add(replaySourceProviderBox, 1, 0);
-
-            AddLabel(mainPanel, "源库连接字符串", 1);
-            replaySourceConnectionBox.Dock = DockStyle.Fill;
-            mainPanel.Controls.Add(replaySourceConnectionBox, 1, 1);
-
-            // 目标库配置
-            AddLabel(mainPanel, "目标库 Provider", 2);
-            replayTargetProviderBox.DropDownStyle = ComboBoxStyle.DropDownList;
-            replayTargetProviderBox.Items.AddRange(DatabaseProviderMappings.AllProviderNames);
-            replayTargetProviderBox.SelectedIndex = 0;
-            mainPanel.Controls.Add(replayTargetProviderBox, 1, 2);
-
-            AddLabel(mainPanel, "目标库连接字符串", 3);
-            replayTargetConnectionBox.Dock = DockStyle.Fill;
-            mainPanel.Controls.Add(replayTargetConnectionBox, 1, 3);
-
-            // 表名
-            AddLabel(mainPanel, "表名", 4);
-            replayTableNameBox.Dock = DockStyle.Fill;
-            mainPanel.Controls.Add(replayTableNameBox, 1, 4);
-
-            // 主键配置
-            AddLabel(mainPanel, "业务主键", 5);
-            replayPrimaryKeyBox.Dock = DockStyle.Fill;
-            replayPrimaryKeyBox.Text = "Id";
-            mainPanel.Controls.Add(replayPrimaryKeyBox, 1, 5);
-
-            // 加载表按钮
-            var loadButtonPanel = new FlowLayoutPanel { Dock = DockStyle.Fill };
-            replayLoadTablesButton.Text = "加载表列表";
-            loadButtonPanel.Controls.Add(replayLoadTablesButton);
-            mainPanel.Controls.Add(loadButtonPanel, 1, 6);
-
-            // 时间范围
-            AddLabel(mainPanel, "启用时间范围", 7);
-            replayEnableTimeRangeBox.Dock = DockStyle.Fill;
-            mainPanel.Controls.Add(replayEnableTimeRangeBox, 1, 7);
-
-            AddLabel(mainPanel, "开始时间", 8);
-            replayStartTimeBox.Dock = DockStyle.Fill;
-            replayStartTimeBox.Format = DateTimePickerFormat.Short;
-            replayStartTimeBox.Enabled = false;
-            mainPanel.Controls.Add(replayStartTimeBox, 1, 8);
-
-            AddLabel(mainPanel, "结束时间", 9);
-            replayEndTimeBox.Dock = DockStyle.Fill;
-            replayEndTimeBox.Format = DateTimePickerFormat.Short;
-            replayEndTimeBox.Enabled = false;
-            mainPanel.Controls.Add(replayEndTimeBox, 1, 9);
-
-            // 执行按钮
-            var executePanel = new FlowLayoutPanel { Dock = DockStyle.Fill };
-            replayStartButton.Text = "开始补录";
-            replayStartButton.BackColor = System.Drawing.Color.FromArgb(0, 120, 215);
-            replayStartButton.ForeColor = System.Drawing.Color.White;
-            executePanel.Controls.Add(replayStartButton);
-            mainPanel.Controls.Add(executePanel, 1, 10);
-
-            // 状态标签
-            AddLabel(mainPanel, "状态", 11);
-            replayStatusLabel.Dock = DockStyle.Fill;
-            replayStatusLabel.Text = "就绪";
-            mainPanel.Controls.Add(replayStatusLabel, 1, 11);
-
-            // 日志框
-            AddLabel(mainPanel, "补录日志", 12);
-            replayLogBox.Dock = DockStyle.Fill;
-            replayLogBox.Multiline = true;
-            replayLogBox.ScrollBars = ScrollBars.Both;
-            replayLogBox.ReadOnly = true;
-            replayLogBox.Font = new System.Drawing.Font("Consolas", 9);
-            mainPanel.Controls.Add(replayLogBox, 1, 12);
-
-            for (var i = 0; i < 12; i++)
-                mainPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
-            mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            _syncTimer = new System.Timers.Timer(60000); // 默认 60 秒
+            _syncTimer.Elapsed += OnTimerElapsed;
+            _syncTimer.AutoReset = true;
         }
 
-        private void BuildShardingTab(TabPage tab)
-        {
-            var logService = serviceProvider.Resolve<LogService>();
-            var shardingTaskService = new FastData.SyncTool.WinForms.Services.ShardingTaskService(logService);
+        #endregion
 
-            // 使用 TabControl 组织分表功能
-            var shardingTabControl = new TabControl { Dock = DockStyle.Fill };
+        #region 事件绑定
 
-            // 配置管理标签页
-            var configTab = new TabPage("分表配置");
-            var configVisualizer = new FastData.SyncTool.WinForms.Components.ShardingConfigVisualizer
-            {
-                Dock = DockStyle.Fill
-            };
-            configTab.Controls.Add(configVisualizer);
-            shardingTabControl.TabPages.Add(configTab);
-
-            // 数据同步标签页
-            var syncTab = new TabPage("数据同步");
-            var shardingSyncControl = new FastData.SyncTool.WinForms.Components.ShardingSyncControl(shardingTaskService, logService)
-            {
-                Dock = DockStyle.Fill
-            };
-            syncTab.Controls.Add(shardingSyncControl);
-            shardingTabControl.TabPages.Add(syncTab);
-
-            // 数据导入标签页
-            var importTab = new TabPage("数据导入");
-            var shardingImportControl = new FastData.SyncTool.WinForms.Components.ShardingImportControl
-            {
-                Dock = DockStyle.Fill
-            };
-            importTab.Controls.Add(shardingImportControl);
-            shardingTabControl.TabPages.Add(importTab);
-
-            // 数据操作标签页
-            var dataTab = new TabPage("数据操作");
-            var shardingDataControl = new FastData.SyncTool.WinForms.Components.ShardingDataControl
-            {
-                Dock = DockStyle.Fill
-            };
-            dataTab.Controls.Add(shardingDataControl);
-            shardingTabControl.TabPages.Add(dataTab);
-
-            tab.Controls.Add(shardingTabControl);
-        }
-
-        private void InitTaskGrid()
-        {
-            taskListGrid.Dock = DockStyle.Fill;
-            taskListGrid.AllowUserToAddRows = false;
-            taskListGrid.AllowUserToDeleteRows = false;
-            taskListGrid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            taskListGrid.MultiSelect = true;
-
-            taskListGrid.Columns.Add(new DataGridViewCheckBoxColumn { Name = "Select", HeaderText = "选择", Width = 50 });
-            taskListGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "TaskName", HeaderText = "任务名称", Width = 180 });
-            taskListGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "TableName", HeaderText = "表名", Width = 150 });
-            taskListGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "SyncColumns", HeaderText = "同步字段", Width = 200 });
-            taskListGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "DataType", HeaderText = "数据类型", Width = 100 });
-            taskListGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "TimeRange", HeaderText = "时间范围", Width = 100 });
-            taskListGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "Status", HeaderText = "状态", Width = 80 });
-            taskListGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "LastSyncTime", HeaderText = "最后同步时间", Width = 150 });
-        }
-
-        private void AddLabel(TableLayoutPanel panel, string text, int row)
-        {
-            var label = new Label { Text = text, AutoSize = true, Anchor = AnchorStyles.Left, Margin = new Padding(0, 5, 0, 5) };
-            panel.Controls.Add(label, 0, row);
-        }
-
-        private void InitProviderBox(ComboBox box)
-        {
-            box.Items.AddRange(DatabaseProviderMappings.AllProviderNames);
-            box.DropDownStyle = ComboBoxStyle.DropDownList;
-            box.Dock = DockStyle.Fill;
-        }
-
-        private void InitTableGrid()
-        {
-            tableListGrid.Dock = DockStyle.Fill;
-            tableListGrid.AllowUserToAddRows = false;
-            tableListGrid.AllowUserToDeleteRows = false;
-            tableListGrid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            tableListGrid.MultiSelect = false;
-
-            tableListGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "TableName", HeaderText = "表名", Width = 200 });
-            tableListGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "PrimaryKeyColumns", HeaderText = "主键字段", Width = 120 });
-            tableListGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "TimeColumn", HeaderText = "时间字段", Width = 120 });
-            tableListGrid.Columns.Add(new DataGridViewCheckBoxColumn { Name = "EnableTimeRange", HeaderText = "启用时间范围", Width = 80 });
-            tableListGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "SyncColumns", HeaderText = "同步字段", Width = 150, ReadOnly = true });
-            tableListGrid.Columns.Add(new DataGridViewCheckBoxColumn { Name = "IsEnabled", HeaderText = "启用", Width = 50 });
-            tableListGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "Status", HeaderText = "状态", Width = 80, ReadOnly = true });
-            tableListGrid.Columns.Add(new DataGridViewButtonColumn { Name = "SelectFields", HeaderText = "选择字段", Text = "选择", UseColumnTextForButtonValue = true, Width = 70 });
-        }
-
-        private void LoadTaskList()
-        {
-            try
-            {
-                var allTasks = configManager.GetAllTaskConfigs();
-                taskListGrid.Rows.Clear();
-
-                foreach (var task in allTasks)
-                {
-                    var timeRangeText = task.EnableTimeRange ? string.Format("最近{0}天", task.RangeDays) : "按主键增量";
-                    var dataTypeText = task.DataType == SyncDataType.Dynamic ? "动态数据" : "静态数据";
-                    var syncColumnsText = !string.IsNullOrEmpty(task.SyncColumns)
-                        ? task.SyncColumns
-                        : "(所有字段)";
-                    var statusText = task.LastSyncStatus ?? "已配置";
-
-                    taskListGrid.Rows.Add(
-                        false,
-                        task.TaskName,
-                        task.SourceTable,
-                        syncColumnsText,
-                        dataTypeText,
-                        timeRangeText,
-                        statusText,
-                        task.LastSyncTime?.ToString("yyyy-MM-dd HH:mm:ss") ?? "未同步"
-                    );
-                }
-
-                Log(string.Format("已加载 {0} 个任务配置", allTasks.Count));
-            }
-            catch (Exception ex)
-            {
-                Log("加载任务列表失败：" + ex.Message);
-            }
-        }
-
+        /// <summary>
+        /// 绑定各组件的事件响应
+        /// </summary>
         private void BindEvents()
         {
-            loadTablesButton.Text = "加载表列表";
-            loadTablesButton.Click += async delegate { await LoadTablesFromDatabase(); };
+            // 组件状态变更事件
+            _connectionPanel.OnConfigChanged += () => _statusLabel.Text = "配置已修改";
+            _tableListManager.OnTablesChanged += () => _statusLabel.Text = "表列表已修改";
+            _syncConfigPanel.OnConfigChanged += () => _statusLabel.Text = "同步配置已修改";
+            _taskManager.OnTaskSelected += LoadSelectedTask;
+            _taskManager.OnTaskDeleted += () => { _currentTaskId = null; _statusLabel.Text = "任务已删除"; };
 
-            addTableButton.Text = "添加表";
-            addTableButton.Click += delegate { AddTable(); };
-
-            removeTableButton.Text = "移除表";
-            removeTableButton.Click += delegate { RemoveTable(); };
-
-            moveUpButton.Text = "上移";
-            moveUpButton.Click += delegate { MoveTable(-1); };
-
-            moveDownButton.Text = "下移";
-            moveDownButton.Click += delegate { MoveTable(1); };
-
-            syncButton.Text = "立即同步";
-            syncButton.Click += delegate { ExecuteSync(); };
-
-            exportSchemaButton.Text = "导出源库表结构到中间库";
-            exportSchemaButton.Click += async delegate { await ExportSchema(); };
-
-            pkConfigButton.Text = "主键配置管理";
-            pkConfigButton.Click += delegate { OpenPkConfigDialog(); };
-
-            saveTaskButton.Text = "保存任务配置";
-            saveTaskButton.Click += delegate { SaveTask(); };
-
-            newTaskButton.Text = "新建任务";
-            newTaskButton.Click += delegate { CreateNewTask(); };
-
-            loadTaskButton.Text = "加载任务";
-            loadTaskButton.Click += delegate { LoadSelectedTask(); };
-
-            editTaskButton.Text = "编辑任务";
-            editTaskButton.Click += delegate { EditSelectedTask(); };
-
-            refreshTaskButton.Text = "刷新列表";
-            refreshTaskButton.Click += delegate { LoadTaskList(); };
-
-            deleteTaskButton.Text = "删除任务";
-            deleteTaskButton.Click += delegate { DeleteSelectedTask(); };
-
-            batchDeleteButton.Text = "批量删除";
-            batchDeleteButton.Click += delegate { BatchDeleteTasks(); };
-
-            batchEnableButton.Text = "批量启用";
-            batchEnableButton.Click += delegate { BatchEnableTasks(true); };
-
-            batchDisableButton.Text = "批量禁用";
-            batchDisableButton.Click += delegate { BatchEnableTasks(false); };
-
-            exportTaskButton.Text = "导出配置";
-            exportTaskButton.Click += delegate { ExportTaskConfig(); };
-
-            importTaskButton.Text = "导入配置";
-            importTaskButton.Click += delegate { ImportTaskConfig(); };
-
-            tableListGrid.SelectionChanged += delegate { OnTableSelectionChanged(); };
-            timeColumnBox.TextChanged += delegate { OnTimeColumnChanged(); };
-            enableTimeRangeBox.CheckedChanged += delegate { OnEnableTimeRangeChanged(); };
-            enableGlobalConfigBox.CheckedChanged += delegate { OnGlobalConfigChanged(); };
-            globalRangeDaysBox.ValueChanged += delegate { OnGlobalConfigChanged(); };
-            alwaysDeduplicateBox.CheckedChanged += delegate { OnGlobalConfigChanged(); };
-            tableListGrid.CellContentClick += delegate (object s, DataGridViewCellEventArgs e) { OnCellContentClick(e.RowIndex); };
-
-            // 补录功能事件
-            replayLoadTablesButton.Click += async delegate { await ReplayLoadTables(); };
-            replayStartButton.Click += async delegate { await ExecuteReplay(); };
-            replayEnableTimeRangeBox.CheckedChanged += delegate { OnReplayTimeRangeChanged(); };
-
-            // 数据库配置事件
-            dbTestButton.Click += async delegate { await TestDatabaseConnection(); };
-            dbSaveButton.Click += delegate { SaveDbConnection(); };
-            dbDeleteButton.Click += delegate { DeleteDbConnection(); };
-            dbConnectionGrid.SelectionChanged += delegate { OnDbConnectionSelected(); };
-            
-            // 共享日志事件
-            clearLogButton.Click += delegate { sharedLogBox.Clear(); };
-            exportLogButton.Click += delegate { ExportLog(); };
-        }
-
-        private void CreateNewTask()
-        {
-            var inputForm = new Form
+            // 同步进度事件（需跨线程调用）
+            _syncService.ProgressChanged += (s, info) =>
             {
-                Text = "新建任务",
-                Width = 400,
-                Height = 150,
-                FormBorderStyle = FormBorderStyle.FixedDialog,
-                StartPosition = FormStartPosition.CenterParent
+                if (InvokeRequired) { BeginInvoke((Action)(() => OnSyncProgress(info))); return; }
+                OnSyncProgress(info);
             };
 
-            var textBox = new TextBox { Left = 20, Top = 20, Width = 340, Text = "task_" + DateTime.Now.ToString("yyyyMMddHHmmss") };
-            var okButton = new Button { Text = "确定", Left = 220, Top = 60, Width = 75, DialogResult = DialogResult.OK };
-            var cancelButton = new Button { Text = "取消", Left = 300, Top = 60, Width = 75, DialogResult = DialogResult.Cancel };
-
-            inputForm.Controls.Add(textBox);
-            inputForm.Controls.Add(okButton);
-            inputForm.Controls.Add(cancelButton);
-            inputForm.AcceptButton = okButton;
-            inputForm.CancelButton = cancelButton;
-
-            if (inputForm.ShowDialog(this) == DialogResult.OK)
+            // 表同步完成事件（需跨线程调用）
+            _syncService.TableCompleted += (s, result) =>
             {
-                var taskName = textBox.Text;
-                if (string.IsNullOrWhiteSpace(taskName))
-                    return;
+                if (InvokeRequired) { BeginInvoke((Action)(() => OnTableCompleted(result))); return; }
+                OnTableCompleted(result);
+            };
 
-                var existingTask = taskConfigs.Find(t => t.TaskName == taskName);
-                if (existingTask != null)
-                {
-                    MessageBox.Show("任务名称已存在");
-                    return;
-                }
+            // 定时任务事件
+            _schedulerService.TaskCompleted += (s, task) =>
+                _logService.Info(string.Format("定时任务完成: {0}", task.TaskId));
+            _schedulerService.TaskFailed += (s, task) =>
+                _logService.Error(string.Format("定时任务失败: {0} - {1}", task.TaskId, task.LastError));
 
-                var newTask = new SyncTaskConfig
-                {
-                    TaskId = taskName,
-                    TaskName = taskName,
-                    CreatedTime = DateTime.Now,
-                    ModifiedTime = DateTime.Now,
-                    IsEnabled = true
-                };
-
-                taskConfigs.Add(newTask);
-                configManager.SaveTaskConfig(newTask);
-                LoadTaskList();
-
-                MessageBox.Show("任务已创建，请在同步配置 Tab 页添加表并配置");
-            }
+            // Tab 切换时自动加载任务列表
+            _tabControl.SelectedIndexChanged += (s, e) =>
+            {
+                if (_tabControl.SelectedIndex == 3)
+                    _taskManager.LoadTaskList();
+            };
         }
 
+        /// <summary>
+        /// 同步进度更新回调
+        /// </summary>
+        private void OnSyncProgress(SyncProgressInfo info)
+        {
+            _progressBar.Value = info.TotalTables > 0
+                ? (int)((double)info.CompletedTables / info.TotalTables * 100)
+                : 0;
+            _progressText.Text = string.Format("{0}/{1}", info.CompletedTables, info.TotalTables);
+            _statusLabel.Text = info.Status;
+        }
+
+        /// <summary>
+        /// 单表同步完成回调
+        /// </summary>
+        private void OnTableCompleted(SyncExecutionResult result)
+        {
+            if (result.Success)
+                _logService.Info(string.Format("表 {0} -> {1} 完成: 读取 {2}, 写入 {3}",
+                    result.SourceTable, result.TargetTable, result.ReadCount, result.WriteCount));
+            else
+                _logService.Error(string.Format("表 {0} -> {1} 失败: {2}",
+                    result.SourceTable, result.TargetTable, result.ErrorMessage));
+        }
+
+        /// <summary>
+        /// 定时器触发回调
+        /// </summary>
+        private void OnTimerElapsed(object sender, ElapsedEventArgs e)
+        {
+            if (_isSyncing) return; // 防止重复触发
+
+            if (InvokeRequired)
+                BeginInvoke((Action)(() => StartSync()));
+            else
+                StartSync();
+        }
+
+        #endregion
+
+        #region 任务管理
+
+        /// <summary>
+        /// 加载选中的任务配置到各组件
+        /// </summary>
         private void LoadSelectedTask()
         {
-            if (taskListGrid.SelectedRows.Count == 0)
-            {
-                MessageBox.Show("请先选择一个任务");
-                return;
-            }
+            var taskId = _taskManager.GetSelectedTaskId();
+            if (string.IsNullOrEmpty(taskId)) return;
 
-            var row = taskListGrid.SelectedRows[0];
-            var taskName = Convert.ToString(row.Cells["TaskName"].Value);
+            var config = _configManager.GetTaskConfig(taskId);
+            if (config == null) return;
 
-            LoadTaskToConfig(taskName);
-            tabControl.SelectedIndex = 0;
+            _currentTaskId = taskId;
+
+            // 将任务配置分发到各组件
+            if (!string.IsNullOrEmpty(config.SourceConnection))
+                _connectionPanel.SetSource("SqlServer", config.SourceConnection);
+            if (!string.IsNullOrEmpty(config.TargetConnection))
+                _connectionPanel.SetTarget("SqlServer", config.TargetConnection);
+            if (!string.IsNullOrEmpty(config.IntermediateConnection))
+                _connectionPanel.SetIntermediate("SqlServer", config.IntermediateConnection);
+
+            _tableListManager.SetTableConfigs(config.TableConfigs);
+            _syncConfigPanel.LoadFromTask(config);
+
+            _statusLabel.Text = "已加载任务: " + taskId;
+            _logService.Info("加载任务: " + taskId);
         }
 
-        private void EditSelectedTask()
+        /// <summary>
+        /// 创建新任务
+        /// </summary>
+        private void CreateNewTask()
         {
-            if (taskListGrid.SelectedRows.Count == 0)
+            using (var form = new Form())
             {
-                MessageBox.Show("请先选择一个任务");
-                return;
-            }
+                form.Text = "新建任务";
+                form.Size = new Size(400, 150);
+                form.StartPosition = FormStartPosition.CenterParent;
+                form.FormBorderStyle = FormBorderStyle.FixedDialog;
+                form.MaximizeBox = false;
+                form.MinimizeBox = false;
 
-            var row = taskListGrid.SelectedRows[0];
-            var taskName = Convert.ToString(row.Cells["TaskName"].Value);
+                var label = new Label { Text = "任务名称:", Location = new Point(20, 20), AutoSize = true };
+                var textBox = new TextBox { Location = new Point(100, 17), Width = 250 };
+                var btnOk = new Button { Text = "确定", Location = new Point(120, 60), Width = 75, DialogResult = DialogResult.OK };
+                var btnCancel = new Button { Text = "取消", Location = new Point(210, 60), Width = 75, DialogResult = DialogResult.Cancel };
+                form.AcceptButton = btnOk;
+                form.CancelButton = btnCancel;
+                form.Controls.AddRange(new Control[] { label, textBox, btnOk, btnCancel });
 
-            LoadTaskToConfig(taskName);
-            tabControl.SelectedIndex = 0;
-
-            MessageBox.Show("任务已加载到同步配置页，您可以修改后重新保存");
-        }
-
-        private void LoadTaskToConfig(string taskName)
-        {
-            try
-            {
-                var taskConfig = configManager.GetTaskConfig(taskName);
-
-                taskIdBox.Text = taskConfig?.TaskName ?? taskName;
-                sourceConnectionBox.Text = taskConfig?.SourceConnection ?? "";
-                targetConnectionBox.Text = taskConfig?.TargetConnection ?? "";
-                intermediateConnectionBox.Text = taskConfig?.IntermediateConnection ?? "";
-
-                if (taskConfig?.TableConfigs != null)
+                if (form.ShowDialog() == DialogResult.OK && !string.IsNullOrEmpty(textBox.Text))
                 {
-                    tableConfigs = new List<TableSyncConfig>(taskConfig.TableConfigs);
-                    tableListGrid.Rows.Clear();
-
-                    foreach (var config in tableConfigs)
+                    var id = textBox.Text.Trim();
+                    var newTask = new SyncTaskConfig
                     {
-                        var syncColumnsText = config.SyncColumns != null && config.SyncColumns.Count > 0
-                            ? string.Join(",", config.SyncColumns)
-                            : "(所有字段)";
-
-                        tableListGrid.Rows.Add(
-                            config.TableName,
-                            config.PrimaryKeyColumns ?? "Id",
-                            config.TimeColumn ?? "",
-                            config.EnableTimeRange,
-                            syncColumnsText,
-                            config.IsEnabled,
-                            "已配置",
-                            "选择"
-                        );
-                    }
-
-                    Log(string.Format("已加载任务 {0}，包含 {1} 个表", taskName, tableConfigs.Count));
+                        TaskId = id,
+                        TaskName = id,
+                        IsEnabled = true,
+                        RangeDays = 3,
+                        CreatedTime = DateTime.Now,
+                        ModifiedTime = DateTime.Now
+                    };
+                    _configManager.SaveTaskConfig(newTask);
+                    _currentTaskId = id;
+                    _taskManager.LoadTaskList();
+                    _taskManager.SelectTask(id);
+                    _statusLabel.Text = "已创建任务: " + id;
+                    _logService.Info("创建任务: " + id);
                 }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("加载任务失败：" + ex.Message);
             }
         }
 
-        private void DeleteSelectedTask()
+        /// <summary>
+        /// 保存当前任务配置
+        /// </summary>
+        private void SaveCurrentTask()
         {
-            if (taskListGrid.SelectedRows.Count == 0)
+            if (string.IsNullOrEmpty(_currentTaskId))
             {
-                MessageBox.Show("请先选择一个任务");
+                ShowWarning("请先创建或加载任务");
                 return;
             }
 
-            var row = taskListGrid.SelectedRows[0];
-            var taskName = Convert.ToString(row.Cells["TaskName"].Value);
+            var config = _configManager.GetTaskConfig(_currentTaskId)
+                ?? new SyncTaskConfig { TaskId = _currentTaskId };
 
-            if (MessageBox.Show(string.Format("确认删除任务 {0}？", taskName), "确认删除", MessageBoxButtons.YesNo) == DialogResult.Yes)
-            {
-                configManager.DeleteTaskConfig(taskName);
-                LoadTaskList();
-                Log(string.Format("任务 {0} 已删除", taskName));
-            }
+            config.TaskName = _currentTaskId;
+            config.SourceConnection = _connectionPanel.SourceConnectionString;
+            config.TargetConnection = _connectionPanel.TargetConnectionString;
+            config.IntermediateConnection = _connectionPanel.IntermediateConnectionString;
+            config.TableConfigs = _tableListManager.GetTableConfigs();
+            config.ModifiedTime = DateTime.Now;
+
+            if (config.CreatedTime == default) config.CreatedTime = DateTime.Now;
+
+            _configManager.SaveTaskConfig(config);
+            _taskManager.LoadTaskList();
+            _taskManager.SelectTask(_currentTaskId);
+            _statusLabel.Text = "任务已保存: " + _currentTaskId;
+            _logService.Info("保存任务: " + _currentTaskId);
+            ShowInfo("任务配置已保存");
         }
 
-        private void BatchDeleteTasks()
+        /// <summary>
+        /// 导出当前任务配置为 JSON 文件
+        /// </summary>
+        private void ExportCurrentTask()
         {
-            var selectedTasks = new List<string>();
-            foreach (DataGridViewRow row in taskListGrid.Rows)
+            if (string.IsNullOrEmpty(_currentTaskId))
             {
-                if (row.Cells["Select"].Value != null && Convert.ToBoolean(row.Cells["Select"].Value))
-                {
-                    selectedTasks.Add(Convert.ToString(row.Cells["TaskName"].Value));
-                }
-            }
-
-            if (selectedTasks.Count == 0)
-            {
-                MessageBox.Show("请先选择要删除的任务");
+                ShowWarning("请先创建或加载任务");
                 return;
             }
 
-            if (MessageBox.Show(string.Format("确认删除选中的 {0} 个任务？", selectedTasks.Count), "批量删除", MessageBoxButtons.YesNo) == DialogResult.Yes)
-            {
-                foreach (var taskName in selectedTasks)
-                {
-                    configManager.DeleteTaskConfig(taskName);
-                }
-                LoadTaskList();
-                Log(string.Format("已批量删除 {0} 个任务", selectedTasks.Count));
-            }
-        }
-
-        private void BatchEnableTasks(bool enable)
-        {
-            var selectedTasks = new List<string>();
-            foreach (DataGridViewRow row in taskListGrid.Rows)
-            {
-                if (row.Cells["Select"].Value != null && Convert.ToBoolean(row.Cells["Select"].Value))
-                {
-                    selectedTasks.Add(Convert.ToString(row.Cells["TaskName"].Value));
-                }
-            }
-
-            if (selectedTasks.Count == 0)
-            {
-                MessageBox.Show("请先选择要操作的任务");
-                return;
-            }
-
-            foreach (var taskName in selectedTasks)
-            {
-                var config = configManager.GetTaskConfig(taskName);
-                if (config != null)
-                {
-                    foreach (var tableConfig in config.TableConfigs)
-                    {
-                        tableConfig.IsEnabled = enable;
-                    }
-                    configManager.SaveTaskConfig(config);
-                }
-            }
-
-            LoadTaskList();
-            Log(string.Format("已批量{0} {1} 个任务", enable ? "启用" : "禁用", selectedTasks.Count));
-        }
-
-        private void ExportTaskConfig()
-        {
-            if (taskListGrid.SelectedRows.Count == 0)
-            {
-                MessageBox.Show("请先选择一个任务");
-                return;
-            }
-
-            var row = taskListGrid.SelectedRows[0];
-            var taskName = Convert.ToString(row.Cells["TaskName"].Value);
-            var config = configManager.GetTaskConfig(taskName);
-
+            var config = _configManager.GetTaskConfig(_currentTaskId);
             if (config == null)
             {
-                MessageBox.Show("任务配置不存在");
+                ShowWarning("任务配置不存在");
                 return;
             }
 
-            var saveDialog = new SaveFileDialog
+            using (var dialog = new SaveFileDialog
             {
                 Filter = "JSON 文件|*.json",
-                FileName = string.Format("{0}_config.json", taskName)
-            };
-
-            if (saveDialog.ShowDialog() == DialogResult.OK)
+                FileName = string.Format("{0}_config.json", _currentTaskId)
+            })
             {
-                var json = JsonSerializer.Serialize(config);
-                File.WriteAllText(saveDialog.FileName, json);
-                Log(string.Format("任务配置已导出到 {0}", saveDialog.FileName));
-                MessageBox.Show("导出成功");
+                if (dialog.ShowDialog() == DialogResult.OK)
+                {
+                    var json = JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });
+                    File.WriteAllText(dialog.FileName, json);
+                    _logService.Info("任务配置已导出: " + dialog.FileName);
+                    ShowInfo("导出成功");
+                }
             }
         }
 
-        private void ImportTaskConfig()
+        /// <summary>
+        /// 从 JSON 文件导入任务配置
+        /// </summary>
+        private void ImportTask()
         {
-            var openFileDialog = new OpenFileDialog
+            using (var dialog = new OpenFileDialog { Filter = "JSON 文件|*.json" })
             {
-                Filter = "JSON 文件|*.json"
-            };
+                if (dialog.ShowDialog() != DialogResult.OK) return;
 
-            if (openFileDialog.ShowDialog() == DialogResult.OK)
-            {
                 try
                 {
-                    var json = File.ReadAllText(openFileDialog.FileName);
+                    var json = File.ReadAllText(dialog.FileName);
                     var config = JsonSerializer.Deserialize<SyncTaskConfig>(json);
 
                     if (config != null && !string.IsNullOrEmpty(config.TaskId))
                     {
-                        configManager.SaveTaskConfig(config);
-                        LoadTaskList();
-                        Log(string.Format("任务配置已从 {0} 导入", openFileDialog.FileName));
-                        MessageBox.Show("导入成功");
+                        _configManager.SaveTaskConfig(config);
+                        _taskManager.LoadTaskList();
+                        _logService.Info("任务配置已导入: " + dialog.FileName);
+                        ShowInfo("导入成功");
                     }
                     else
                     {
-                        MessageBox.Show("配置文件格式错误");
+                        ShowWarning("配置文件格式错误");
                     }
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show("导入失败：" + ex.Message);
+                    _logService.Error("导入失败: " + ex.Message);
+                    ShowError("导入失败：" + ex.Message);
                 }
             }
         }
 
-        private void OnCellContentClick(int rowIndex)
+        #endregion
+
+        #region 同步操作
+
+        /// <summary>
+        /// 开始执行同步任务
+        /// </summary>
+        private void StartSync()
         {
-            if (rowIndex < 0 || rowIndex >= tableConfigs.Count)
-                return;
+            if (_isSyncing) { ShowWarning("同步正在进行中"); return; }
+            if (string.IsNullOrEmpty(_currentTaskId)) { ShowWarning("请先创建或加载任务"); return; }
 
-            if (tableListGrid.Columns[tableListGrid.CurrentCell.ColumnIndex].Name == "SelectFields")
+            var config = _configManager.GetTaskConfig(_currentTaskId);
+            if (config == null) { ShowWarning("任务配置不存在"); return; }
+
+            var tableConfigs = _tableListManager.GetTableConfigs();
+            if (tableConfigs.Count == 0) { ShowWarning("没有配置同步表"); return; }
+
+            _isSyncing = true;
+            _progressBar.Visible = true;
+            _progressBar.Style = ProgressBarStyle.Continuous;
+            _progressBar.Value = 0;
+            _progressText.Text = "0/" + tableConfigs.Count;
+            _statusLabel.Text = "正在同步...";
+            _logService.Info("开始同步任务: " + _currentTaskId);
+
+            var baseOptions = new DataSyncOptions
             {
-                OpenFieldSelector(rowIndex);
-            }
-        }
-
-        private void OpenFieldSelector(int rowIndex)
-        {
-            var config = tableConfigs[rowIndex];
-            var provider = Convert.ToString(sourceProviderBox.SelectedItem);
-            var connectionString = sourceConnectionBox.Text;
-
-            if (string.IsNullOrWhiteSpace(connectionString))
-            {
-                MessageBox.Show("请先填写源库连接字符串");
-                return;
-            }
-
-            var form = new FieldSelectForm(provider, connectionString, config.TableName, config.SyncColumns);
-            if (form.ShowDialog(this) == DialogResult.OK)
-            {
-                config.SyncColumns = form.SelectedColumns;
-                var syncColumnsText = form.SelectedColumns.Count > 0
-                    ? string.Join(",", form.SelectedColumns)
-                    : "(所有字段)";
-                tableListGrid.Rows[rowIndex].Cells["SyncColumns"].Value = syncColumnsText;
-                Log(string.Format("已配置 {0} 表同步字段：{1}", config.TableName, syncColumnsText));
-            }
-        }
-
-        private void SaveTask()
-        {
-            if (string.IsNullOrWhiteSpace(taskIdBox.Text))
-            {
-                MessageBox.Show("请输入任务 ID");
-                return;
-            }
-
-            UpdateTableConfigsFromGrid();
-            ValidatePrimaryKeySelection();
-
-            var taskConfig = new SyncTaskConfig
-            {
-                TaskId = taskIdBox.Text,
-                TaskName = taskIdBox.Text,
-                SourceConnection = sourceConnectionBox.Text,
-                TargetConnection = targetConnectionBox.Text,
-                IntermediateConnection = intermediateConnectionBox.Text,
-                TableConfigs = tableConfigs
+                SourceProvider = _connectionPanel.SourceProvider,
+                SourceConnectionString = _connectionPanel.SourceConnectionString,
+                TargetProvider = _connectionPanel.TargetProvider,
+                TargetConnectionString = _connectionPanel.TargetConnectionString,
+                IntermediateProvider = _connectionPanel.IntermediateProvider,
+                IntermediateConnectionString = _connectionPanel.IntermediateConnectionString,
+                TaskId = _currentTaskId,
             };
+            _syncConfigPanel.ApplyToOptions(baseOptions);
 
-            configManager.SaveTaskConfig(taskConfig);
-
-            MessageBox.Show("任务配置已保存到 sync_tasks.json");
-        }
-
-        private void AddTable()
-        {
-            var tableForm = new TableSelectForm(sourceProviderBox.Text, sourceConnectionBox.Text);
-            if (tableForm.ShowDialog(this) == DialogResult.OK)
+            var batchResult = _syncService.ExecuteBatchSync(tableConfigs, baseOptions, (opts, tc) =>
             {
-                var selectedTables = tableForm.SelectedTables;
-                foreach (var tableName in selectedTables)
+                return new DataSyncOptions
                 {
-                    if (!TableExists(tableName))
-                    {
-                        int rowIndex = tableListGrid.Rows.Add(tableName, "Id", "", false, "", true, "待同步", "选择");
-                        tableConfigs.Add(new TableSyncConfig
-                        {
-                            TableName = tableName,
-                            PrimaryKeyColumns = "Id",
-                            IsAutoIncrementKey = true,
-                            EnableTimeRange = false,
-                            IsEnabled = true,
-                            SyncColumns = new List<string>(),
-                            Status = TableSyncStatus.Pending,
-                            DataType = SyncDataType.Static
-                        });
-                    }
-                }
-            }
-        }
+                    SourceProvider = opts.SourceProvider,
+                    SourceConnectionString = opts.SourceConnectionString,
+                    TargetProvider = opts.TargetProvider,
+                    TargetConnectionString = opts.TargetConnectionString,
+                    IntermediateProvider = opts.IntermediateProvider,
+                    IntermediateConnectionString = opts.IntermediateConnectionString,
+                    TaskId = opts.TaskId,
+                    SourceTable = tc.TableName,
+                    TargetTable = string.IsNullOrEmpty(tc.TargetTableName) ? tc.TableName : tc.TargetTableName,
+                    PrimaryKeyColumns = tc.PrimaryKeyColumns,
+                    IsAutoIncrementKey = tc.IsAutoIncrementKey,
+                    TimeColumn = tc.TimeColumn,
+                    EnableTimeRange = tc.EnableTimeRange,
+                    RangeDays = tc.RangeDays,
+                    SyncColumns = tc.SyncColumns,
+                    AlwaysDeduplicate = tc.AlwaysDeduplicate,
+                    EnableGlobalConfig = tc.EnableGlobalConfig,
+                    GlobalRangeDays = tc.GlobalRangeDays,
+                    BatchSize = opts.BatchSize,
+                    RetryCount = opts.RetryCount,
+                    CleanIntermediateData = opts.CleanIntermediateData,
+                    AutoCreateIntermediateSchema = opts.AutoCreateIntermediateSchema,
+                    ResumeFailedRecords = opts.ResumeFailedRecords,
+                };
+            });
 
-        private void RemoveTable()
-        {
-            for (int i = tableListGrid.SelectedRows.Count - 1; i >= 0; i--)
+            _isSyncing = false;
+            _progressBar.Visible = false;
+            _progressText.Text = "";
+
+            if (batchResult.Success)
             {
-                var row = tableListGrid.SelectedRows[i];
-                var tableName = Convert.ToString(row.Cells["TableName"].Value);
-                tableListGrid.Rows.Remove(row);
-                tableConfigs.RemoveAll(c => c.TableName == tableName);
-            }
-        }
-
-        private async System.Threading.Tasks.Task LoadTablesFromDatabase()
-        {
-            try
-            {
-                Log("正在加载表列表...");
-                var provider = Convert.ToString(sourceProviderBox.SelectedItem);
-                var connectionString = sourceConnectionBox.Text;
-
-                if (string.IsNullOrWhiteSpace(connectionString))
-                {
-                    MessageBox.Show("请先填写源库连接字符串");
-                    return;
-                }
-
-                using (var conn = DbProviderFactories.GetFactory(provider).CreateConnection())
-                {
-                    conn.ConnectionString = connectionString;
-                    await conn.OpenAsync();
-
-                    var tables = conn.GetSchema("Tables").Select();
-                    tableListGrid.Rows.Clear();
-                    tableConfigs.Clear();
-
-                    foreach (var row in tables)
-                    {
-                        var tableName = row["TABLE_NAME"].ToString();
-                        if (!tableName.StartsWith("fd_") && !tableName.StartsWith("sys"))
-                        {
-                            tableListGrid.Rows.Add(tableName, "Id", "", false, "", true, "待同步", "选择");
-                            tableConfigs.Add(new TableSyncConfig
-                            {
-                                TableName = tableName,
-                                PrimaryKeyColumns = "Id",
-                                IsAutoIncrementKey = true,
-                                EnableTimeRange = false,
-                                IsEnabled = true,
-                                SyncColumns = new List<string>(),
-                                Status = TableSyncStatus.Pending,
-                                DataType = SyncDataType.Static
-                            });
-                        }
-                    }
-
-                    Log(string.Format("已加载 {0} 个表", tables.Length));
-                }
-            }
-            catch (Exception ex)
-            {
-                Log("加载表失败：" + ex.Message);
-                MessageBox.Show(ex.Message);
-            }
-        }
-
-        private void MoveTable(int direction)
-        {
-            if (tableListGrid.SelectedRows.Count != 1)
-                return;
-
-            var row = tableListGrid.SelectedRows[0];
-            var index = row.Index;
-            var newIndex = index + direction;
-
-            if (newIndex < 0 || newIndex >= tableListGrid.Rows.Count)
-                return;
-
-            tableConfigs.Swap(index, newIndex);
-            tableListGrid.Rows.RemoveAt(index);
-            tableListGrid.Rows.Insert(newIndex, row);
-            row.Selected = true;
-        }
-
-        private bool TableExists(string tableName)
-        {
-            foreach (var config in tableConfigs)
-            {
-                if (config.TableName == tableName)
-                    return true;
-            }
-            return false;
-        }
-
-        private void OnTableSelectionChanged()
-        {
-            if (tableListGrid.SelectedRows.Count != 1)
-                return;
-
-            var row = tableListGrid.SelectedRows[0];
-            var index = row.Index;
-            if (index < 0 || index >= tableConfigs.Count)
-                return;
-
-            var config = tableConfigs[index];
-            timeColumnBox.Text = config.TimeColumn ?? "";
-            enableTimeRangeBox.Checked = config.EnableTimeRange;
-            primaryKeyColumnsBox.Text = config.PrimaryKeyColumns ?? "Id";
-            rangeDaysBox.Value = config.RangeDays;
-            enableGlobalConfigBox.Checked = config.EnableGlobalConfig;
-            globalRangeDaysBox.Value = config.GlobalRangeDays;
-            alwaysDeduplicateBox.Checked = config.AlwaysDeduplicate;
-
-            UpdateLastSyncTimeLabel(config);
-        }
-
-        private void OnTimeColumnChanged()
-        {
-            if (tableListGrid.SelectedRows.Count != 1)
-                return;
-
-            var index = tableListGrid.SelectedRows[0].Index;
-            if (index < 0 || index >= tableConfigs.Count)
-                return;
-
-            tableConfigs[index].TimeColumn = timeColumnBox.Text;
-            if (!string.IsNullOrEmpty(timeColumnBox.Text))
-            {
-                tableConfigs[index].DataType = SyncDataType.Dynamic;
-            }
-        }
-
-        private void OnEnableTimeRangeChanged()
-        {
-            if (tableListGrid.SelectedRows.Count != 1)
-                return;
-
-            var index = tableListGrid.SelectedRows[0].Index;
-            if (index < 0 || index >= tableConfigs.Count)
-                return;
-
-            tableConfigs[index].EnableTimeRange = enableTimeRangeBox.Checked;
-        }
-
-        private void OnGlobalConfigChanged()
-        {
-            if (tableListGrid.SelectedRows.Count != 1)
-                return;
-
-            var index = tableListGrid.SelectedRows[0].Index;
-            if (index < 0 || index >= tableConfigs.Count)
-                return;
-
-            tableConfigs[index].EnableGlobalConfig = enableGlobalConfigBox.Checked;
-            tableConfigs[index].GlobalRangeDays = (int)globalRangeDaysBox.Value;
-            tableConfigs[index].AlwaysDeduplicate = alwaysDeduplicateBox.Checked;
-        }
-
-        private void UpdateLastSyncTimeLabel(TableSyncConfig config)
-        {
-            lastSyncTimeLabel.Text = config.LastSyncTime.HasValue
-                ? "最后同步：" + config.LastSyncTime.Value.ToString("yyyy-MM-dd HH:mm:ss")
-                : "尚未同步";
-        }
-
-        private void UpdateTableConfigsFromGrid()
-        {
-            for (int i = 0; i < tableListGrid.Rows.Count; i++)
-            {
-                var row = tableListGrid.Rows[i];
-                tableConfigs[i].PrimaryKeyColumns = Convert.ToString(row.Cells["PrimaryKeyColumns"].Value);
-                tableConfigs[i].TimeColumn = Convert.ToString(row.Cells["TimeColumn"].Value);
-                tableConfigs[i].EnableTimeRange = Convert.ToBoolean(row.Cells["EnableTimeRange"].Value);
-                tableConfigs[i].IsEnabled = Convert.ToBoolean(row.Cells["IsEnabled"].Value);
-            }
-        }
-
-        private void ValidatePrimaryKeySelection()
-        {
-            foreach (var config in tableConfigs)
-            {
-                if (config.SyncColumns != null && config.SyncColumns.Count > 0)
-                {
-                    foreach (var pk in config.PrimaryKeyColumns.Split(','))
-                    {
-                        if (!config.SyncColumns.Contains(pk.Trim()))
-                        {
-                            MessageBox.Show(string.Format("表 {0} 的同步字段必须包含主键 {1}", config.TableName, pk));
-                            throw new InvalidOperationException("主键字段不在同步字段列表中");
-                        }
-                    }
-                }
-            }
-        }
-
-        private void OpenPkConfigDialog()
-        {
-            new PrimaryKeyConfigForm(pkConfigService).ShowDialog(this);
-        }
-
-        private async System.Threading.Tasks.Task ExportSchema()
-        {
-            MessageBox.Show("导出表结构功能开发中");
-        }
-
-        private void InitializeTimer()
-        {
-            syncTimer = new System.Timers.Timer();
-            syncTimer.Elapsed += OnTimerElapsed;
-            syncTimer.AutoReset = false;
-        }
-
-        private void OnTimerElapsed(object sender, ElapsedEventArgs e)
-        {
-            if (InvokeRequired)
-            {
-                Invoke(new Action(ExecuteSync));
+                _statusLabel.Text = string.Format("同步完成: {0} 表, 读取 {1}, 写入 {2}",
+                    batchResult.SuccessTables, batchResult.TotalRead, batchResult.TotalWrite);
+                _logService.Info(string.Format("同步完成: 成功 {0} 表, 读取 {1}, 写入 {2}, 耗时 {3}",
+                    batchResult.SuccessTables, batchResult.TotalRead, batchResult.TotalWrite, batchResult.TotalDuration));
             }
             else
             {
-                ExecuteSync();
+                _statusLabel.Text = string.Format("同步完成: 成功 {0}, 失败 {1}, 跳过 {2}",
+                    batchResult.SuccessTables, batchResult.FailedTables, batchResult.SkippedTables);
+                _logService.Error(string.Format("同步部分失败: 成功 {0}, 失败 {1}, 跳过 {2}",
+                    batchResult.SuccessTables, batchResult.FailedTables, batchResult.SkippedTables));
             }
+
+            ShowSyncResult(batchResult);
         }
 
-        private void UpdateSyncStatus()
+        /// <summary>
+        /// 停止正在进行的同步
+        /// </summary>
+        private void StopSync()
         {
-            syncStatusLabel.Text = isSyncing ? "同步中..." : "就绪";
-            syncStatusLabel.BackColor = isSyncing ? System.Drawing.Color.Yellow : System.Drawing.Color.LightGray;
+            if (!_isSyncing) return;
+            _syncService.CancelBatchSync();
+            _isSyncing = false;
+            _progressBar.Visible = false;
+            _progressText.Text = "";
+            _statusLabel.Text = "同步已停止";
+            _logService.Warn("同步被用户停止");
         }
 
-        private void ExecuteSync()
+        /// <summary>
+        /// 显示同步结果对话框
+        /// </summary>
+        private void ShowSyncResult(BatchSyncResult result)
         {
-            if (isSyncing)
-            {
-                Log("同步正在进行中，请稍候...");
-                return;
-            }
+            var msg = string.Format(
+                "同步完成!\n\n成功表数: {0}\n失败表数: {1}\n跳过表数: {2}\n\n总读取: {3}\n总写入: {4}\n总失败: {5}\n\n耗时: {6}",
+                result.SuccessTables, result.FailedTables, result.SkippedTables,
+                result.TotalRead, result.TotalWrite, result.TotalFailed,
+                result.TotalDuration);
 
-            if (tableListGrid.Rows.Count == 0)
+            if (result.FailedTables > 0 || result.SkippedTables > 0)
             {
-                MessageBox.Show("请至少添加一个要同步的表");
-                return;
-            }
-
-            try
-            {
-                isSyncing = true;
-                UpdateSyncStatus();
-
-                for (int i = 0; i < tableConfigs.Count; i++)
+                msg += "\n\n失败详情:";
+                foreach (var tableResult in result.TableResults)
                 {
-                    var config = tableConfigs[i];
-                    if (!config.IsEnabled)
-                        continue;
-
-                    var row = tableListGrid.Rows[i];
-                    row.Cells["Status"].Value = "同步中";
-
-                    var taskConfig = configManager.GetTaskConfig(taskIdBox.Text + "_" + config.TableName);
-
-                    var syncOptions = new DataSyncOptions
-                    {
-                        SourceProvider = Convert.ToString(sourceProviderBox.SelectedItem),
-                        SourceConnectionString = sourceConnectionBox.Text,
-                        TargetProvider = Convert.ToString(targetProviderBox.SelectedItem),
-                        TargetConnectionString = targetConnectionBox.Text,
-                        IntermediateProvider = Convert.ToString(intermediateProviderBox.SelectedItem),
-                        IntermediateConnectionString = intermediateConnectionBox.Text,
-                        TaskId = taskIdBox.Text + "_" + config.TableName,
-                        SourceTable = config.TableName,
-                        TargetTable = config.TargetTableName ?? config.TableName,
-                        PrimaryKeyColumns = config.PrimaryKeyColumns,
-                        IsAutoIncrementKey = config.IsAutoIncrementKey,
-                        TimeColumn = config.TimeColumn,
-                        EnableTimeRange = config.EnableTimeRange,
-                        IsFullSyncForFirstTime = true,
-                        BatchSize = Convert.ToInt32(batchSizeBox.Value),
-                        RetryCount = Convert.ToInt32(retryCountBox.Value),
-                        AutoCreateIntermediateSchema = autoCreateIntermediateBox.Checked,
-                        ResumeFailedRecords = resumeFailedRecordsBox.Checked,
-                        CleanIntermediateData = cleanIntermediateBox.Checked,
-                        RangeDays = config.RangeDays,
-                        PrimaryKeyConfigService = pkConfigService,
-                        ConfigManager = configManager
-                    };
-
-                    var syncService = serviceProvider.Resolve<DataSyncService>();
-                    var result = syncService.SyncTable(syncOptions);
-
-                    row.Cells["Status"].Value = result.FailedCount > 0 ? "部分失败" : "成功";
-                    row.Cells["Status"].Style.ForeColor = result.FailedCount > 0 ? System.Drawing.Color.Red : System.Drawing.Color.Green;
-
-                    var dataTypeText = config.DataType == SyncDataType.Dynamic ? "[动态数据]" : "[静态数据]";
-                    var timeRangeText = config.EnableTimeRange ? string.Format("最近{0}天", config.RangeDays) : "按主键增量";
-
-                    Log(string.Format("{4} {0} {1}，读取 {2} 条，写入 {3} 条，失败 {5} 条",
-                        config.TableName,
-                        dataTypeText + " " + timeRangeText,
-                        result.ReadCount,
-                        result.WriteCount,
-                        result.LastSyncTime?.ToString("yyyy-MM-dd HH:mm:ss") ?? "N/A",
-                        result.FailedCount));
-
-                    config.LastSyncTime = result.LastSyncTime;
-                    config.LastResultMessage = result.Message;
-                    UpdateLastSyncTimeLabel(config);
-
-                    configManager.UpdateLastSyncTime(taskIdBox.Text + "_" + config.TableName, result.LastSyncTime ?? DateTime.Now);
-                    configManager.UpdateTaskStatus(taskIdBox.Text + "_" + config.TableName,
-                        result.FailedCount > 0 ? "部分失败" : "成功",
-                        string.Format("读取 {0} 条，写入 {1} 条", result.ReadCount, result.WriteCount));
-                }
-
-                SaveTask();
-            }
-            catch (Exception ex)
-            {
-                Log("同步失败：" + ex.Message);
-                MessageBox.Show(ex.Message);
-            }
-            finally
-            {
-                isSyncing = false;
-                UpdateSyncStatus();
-            }
-        }
-
-        #region 数据库配置方法
-
-        private static DbConnection CreateDbConnection(string provider, string connectionString)
-        {
-            var factory = DbProviderFactories.GetFactory(provider);
-            var connection = factory.CreateConnection();
-            if (connection == null)
-                throw new InvalidOperationException("无法创建数据库连接");
-            connection.ConnectionString = connectionString;
-            return connection;
-        }
-
-        private async Task TestDatabaseConnection()
-        {
-            try
-            {
-                dbTestButton.Enabled = false;
-                dbTestButton.Text = "测试中...";
-                DbLog("正在连接数据库...");
-
-                var provider = dbProviderBox.Text;
-                var connectionString = dbConnectionStringBox.Text;
-
-                if (string.IsNullOrEmpty(connectionString))
-                {
-                    DbLog("错误：连接字符串为空");
-                    MessageBox.Show("请输入连接字符串");
-                    return;
-                }
-
-                using (var connection = CreateDbConnection(provider, connectionString))
-                {
-                    await connection.OpenAsync();
-                    var serverVersion = connection.ServerVersion;
-                    DbLog($"连接成功！服务器版本：{serverVersion}");
-                    DbLog("测试完成：可用");
-                }
-
-                MessageBox.Show("数据库连接测试成功！", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-            catch (Exception ex)
-            {
-                DbLog($"连接失败：{ex.Message}");
-                MessageBox.Show($"数据库连接失败：{ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-            finally
-            {
-                dbTestButton.Enabled = true;
-                dbTestButton.Text = "测试连接";
-            }
-        }
-
-        private void SaveDbConnection()
-        {
-            try
-            {
-                var name = dbConnectionNameBox.Text.Trim();
-                var provider = dbProviderBox.Text;
-                var connectionString = dbConnectionStringBox.Text;
-
-                if (string.IsNullOrEmpty(name))
-                {
-                    MessageBox.Show("请输入连接名称");
-                    return;
-                }
-
-                if (string.IsNullOrEmpty(connectionString))
-                {
-                    MessageBox.Show("请输入连接字符串");
-                    return;
-                }
-
-                // 保存到配置文件
-                var configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "db_connections.json");
-                var configs = LoadDbConnections();
-
-                var existing = configs.FirstOrDefault(c => c.Name == name);
-                if (existing != null)
-                {
-                    existing.Provider = provider;
-                    existing.ConnectionString = connectionString;
-                    existing.LastTestTime = DateTime.Now;
-                    DbLog($"更新连接：{name}");
-                }
-                else
-                {
-                    configs.Add(new DbConnectionConfig
-                    {
-                        Name = name,
-                        Provider = provider,
-                        ConnectionString = connectionString,
-                        CreatedTime = DateTime.Now,
-                        LastTestTime = DateTime.Now
-                    });
-                    DbLog($"新建连接：{name}");
-                }
-
-                SaveDbConnections(configs);
-                RefreshDbConnectionGrid();
-                DbLog("连接配置已保存");
-                MessageBox.Show($"连接 \"{name}\" 已保存", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-            catch (Exception ex)
-            {
-                DbLog($"保存失败：{ex.Message}");
-                MessageBox.Show($"保存失败：{ex.Message}");
-            }
-        }
-
-        private void DeleteDbConnection()
-        {
-            try
-            {
-                if (dbConnectionGrid.SelectedRows.Count == 0)
-                {
-                    MessageBox.Show("请先选择要删除的连接");
-                    return;
-                }
-
-                var row = dbConnectionGrid.SelectedRows[0];
-                var name = row.Cells["Name"].Value?.ToString();
-
-                if (string.IsNullOrEmpty(name))
-                    return;
-
-                var configs = LoadDbConnections();
-                var config = configs.FirstOrDefault(c => c.Name == name);
-                if (config != null)
-                {
-                    configs.Remove(config);
-                    SaveDbConnections(configs);
-                    RefreshDbConnectionGrid();
-                    DbLog($"删除连接：{name}");
-                    MessageBox.Show($"连接 \"{name}\" 已删除", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    if (!tableResult.Success)
+                        msg += string.Format("\n  {0} -> {1}: {2}",
+                            tableResult.SourceTable, tableResult.TargetTable,
+                            tableResult.ErrorMessage ?? "未知错误");
                 }
             }
-            catch (Exception ex)
-            {
-                DbLog($"删除失败：{ex.Message}");
-                MessageBox.Show($"删除失败：{ex.Message}");
-            }
-        }
 
-        private void OnDbConnectionSelected()
-        {
-            if (dbConnectionGrid.SelectedRows.Count == 0)
-                return;
-
-            var row = dbConnectionGrid.SelectedRows[0];
-            var name = row.Cells["Name"].Value?.ToString();
-
-            if (string.IsNullOrEmpty(name))
-                return;
-
-            var configs = LoadDbConnections();
-            var config = configs.FirstOrDefault(c => c.Name == name);
-            if (config != null)
-            {
-                dbConnectionNameBox.Text = config.Name;
-                dbProviderBox.Text = config.Provider;
-                dbConnectionStringBox.Text = config.ConnectionString;
-                DbLog($"加载连接配置：{name}");
-            }
-        }
-
-        private List<DbConnectionConfig> LoadDbConnections()
-        {
-            try
-            {
-                var configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "db_connections.json");
-                if (File.Exists(configPath))
-                {
-                    var content = File.ReadAllText(configPath);
-                    return JsonSerializer.Deserialize<List<DbConnectionConfig>>(content) ?? new List<DbConnectionConfig>();
-                }
-            }
-            catch (Exception)
-            {
-                // 忽略错误
-            }
-            return new List<DbConnectionConfig>();
-        }
-
-        private void SaveDbConnections(List<DbConnectionConfig> configs)
-        {
-            var configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "db_connections.json");
-            var json = JsonSerializer.Serialize(configs);
-            File.WriteAllText(configPath, json);
-        }
-
-        private void RefreshDbConnectionGrid()
-        {
-            dbConnectionGrid.Rows.Clear();
-            var configs = LoadDbConnections();
-            foreach (var config in configs)
-            {
-                dbConnectionGrid.Rows.Add(
-                    config.Name,
-                    config.Provider,
-                    config.ConnectionString.Length > 50 ? config.ConnectionString.Substring(0, 50) + "..." : config.ConnectionString,
-                    config.LastTestTime.ToString("yyyy-MM-dd HH:mm:ss")
-                );
-            }
-        }
-
-        private void DbLog(string message)
-        {
-            var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
-            var logLine = $"[{timestamp}] {message}{Environment.NewLine}";
-            dbLogBox.AppendText(logLine);
-            dbLogBox.ScrollToCaret();
+            var icon = result.Success ? MessageBoxIcon.Information : MessageBoxIcon.Warning;
+            MessageBox.Show(msg, "同步结果", MessageBoxButtons.OK, icon);
         }
 
         #endregion
 
-        #region 共享日志方法
+        #region 定时同步
 
-        private void Log(string message)
+        /// <summary>
+        /// 启用定时同步
+        /// </summary>
+        private void EnableScheduledSync()
         {
-            LogInternal("INFO", message);
-        }
-
-        private void LogInfo(string message)
-        {
-            LogInternal("INFO", message);
-        }
-
-        private void LogWarn(string message)
-        {
-            LogInternal("WARN", message);
-        }
-
-        private void LogError(string message)
-        {
-            LogInternal("ERROR", message);
-        }
-
-        private void LogInternal(string level, string message)
-        {
-            var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
-            var logLine = $"[{timestamp}] [{level}] {message}{Environment.NewLine}";
-            sharedLogBox.AppendText(logLine);
-            sharedLogBox.ScrollToCaret();
-        }
-
-        private void ReplayLog(string message)
-        {
-            var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
-            var logLine = $"[{timestamp}] [补录] {message}{Environment.NewLine}";
-            replayLogBox.AppendText(logLine);
-            replayLogBox.ScrollToCaret();
-        }
-
-        private void SharedLog(string message)
-        {
-            LogInternal("INFO", message);
-        }
-
-        private void ExportLog()
-        {
-            try
+            using (var form = new Form())
             {
-                var saveDialog = new SaveFileDialog
+                form.Text = "定时同步设置";
+                form.Size = new Size(300, 130);
+                form.StartPosition = FormStartPosition.CenterParent;
+                form.FormBorderStyle = FormBorderStyle.FixedDialog;
+
+                var label = new Label { Text = "同步间隔（秒）:", Location = new Point(20, 20), AutoSize = true };
+                var intervalBox = new NumericUpDown
                 {
-                    Filter = "日志文件 (*.txt)|*.txt|所有文件 (*.*)|*.*",
-                    FileName = $"sync_log_{DateTime.Now:yyyyMMdd_HHmmss}.txt"
+                    Location = new Point(150, 18),
+                    Width = 80,
+                    Minimum = 10,
+                    Maximum = 3600,
+                    Value = 60
                 };
+                var btnOk = new Button { Text = "确定", Location = new Point(80, 60), Width = 75, DialogResult = DialogResult.OK };
+                var btnCancel = new Button { Text = "取消", Location = new Point(170, 60), Width = 75, DialogResult = DialogResult.Cancel };
 
-                if (saveDialog.ShowDialog() == DialogResult.OK)
+                form.Controls.AddRange(new Control[] { label, intervalBox, btnOk, btnCancel });
+                form.AcceptButton = btnOk;
+
+                if (form.ShowDialog() == DialogResult.OK)
                 {
-                    File.WriteAllText(saveDialog.FileName, sharedLogBox.Text);
-                    MessageBox.Show($"日志已导出到：{saveDialog.FileName}", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    _syncTimer.Interval = (int)intervalBox.Value * 1000;
+                    _syncTimer.Start();
+                    _statusLabel.Text = string.Format("定时同步已启用，间隔 {0} 秒", (int)intervalBox.Value);
+                    _logService.Info(string.Format("启用定时同步，间隔 {0} 秒", (int)intervalBox.Value));
                 }
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"导出日志失败：{ex.Message}");
-            }
+        }
+
+        /// <summary>
+        /// 禁用定时同步
+        /// </summary>
+        private void DisableScheduledSync()
+        {
+            _syncTimer.Stop();
+            _statusLabel.Text = "定时同步已禁用";
+            _logService.Info("定时同步已禁用");
         }
 
         #endregion
 
-        private void OnReplayTimeRangeChanged()
+        #region 工具方法
+
+        /// <summary>
+        /// 打开主键配置对话框
+        /// </summary>
+        private void OpenPrimaryKeyConfig()
         {
-            replayStartTimeBox.Enabled = replayEnableTimeRangeBox.Checked;
-            replayEndTimeBox.Enabled = replayEnableTimeRangeBox.Checked;
+            var dialog = new PrimaryKeyConfigDialog(_pkConfigService);
+            dialog.ShowDialog();
         }
 
-        private async Task ReplayLoadTables()
+        /// <summary>
+        /// 打开定时任务管理器
+        /// </summary>
+        private void OpenSchedulerManager()
         {
-            try
+            var tasks = _configManager.GetAllConfigs();
+            if (tasks.Count == 0)
             {
-                var provider = replaySourceProviderBox.SelectedValue?.ToString() ?? replaySourceProviderBox.Text;
-                var connectionString = replaySourceConnectionBox.Text;
+                ShowInfo("没有已配置的任务，请先创建任务");
+                return;
+            }
 
-                if (string.IsNullOrEmpty(connectionString))
+            using (var form = new Form())
+            {
+                form.Text = "定时任务管理";
+                form.Size = new Size(600, 400);
+                form.StartPosition = FormStartPosition.CenterParent;
+
+                var grid = new DataGridView
                 {
-                    MessageBox.Show("请先输入源库连接字符串");
-                    return;
+                    Dock = DockStyle.Fill,
+                    AllowUserToAddRows = false,
+                    ReadOnly = true,
+                    SelectionMode = DataGridViewSelectionMode.FullRowSelect
+                };
+                grid.Columns.AddRange(new DataGridViewColumn[]
+                {
+                    new DataGridViewTextBoxColumn { Name = "TaskId", HeaderText = "任务ID", Width = 120 },
+                    new DataGridViewTextBoxColumn { Name = "Enabled", HeaderText = "启用", Width = 50 },
+                    new DataGridViewTextBoxColumn { Name = "Interval", HeaderText = "间隔", Width = 80 },
+                    new DataGridViewTextBoxColumn { Name = "RunCount", HeaderText = "执行次数", Width = 80 },
+                    new DataGridViewTextBoxColumn { Name = "LastRun", HeaderText = "上次执行", Width = 150 },
+                    new DataGridViewTextBoxColumn { Name = "Status", HeaderText = "状态", Width = 80 },
+                });
+
+                foreach (var task in _schedulerService.GetAllTasks())
+                {
+                    grid.Rows.Add(task.TaskId, task.Enabled, task.Interval.ToString(), task.RunCount,
+                        task.LastRunTime.HasValue ? task.LastRunTime.Value.ToString("yyyy-MM-dd HH:mm:ss") : "",
+                        task.LastStatus ?? "");
                 }
 
-                ReplayLog("正在连接源库...");
-                using (var connection = CreateDbConnection(provider, connectionString))
-                {
-                    await connection.OpenAsync();
-                    ReplayLog("连接成功，正在加载表列表...");
+                var btnPanel = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 40 };
+                var btnStart = new Button { Text = "启动调度", Width = 80 };
+                var btnStop = new Button { Text = "停止调度", Width = 80 };
+                var btnClose = new Button { Text = "关闭", Width = 80 };
+                btnPanel.Controls.AddRange(new Control[] { btnStart, btnStop, btnClose });
+                form.Controls.Add(grid);
+                form.Controls.Add(btnPanel);
 
-                    var tables = connection.GetSchema("Tables");
-                    ReplayLog($"加载到 {tables.Rows.Count} 个表");
+                btnStart.Click += (s, e) => { _schedulerService.StartAll(); ShowInfo("定时调度已启动"); };
+                btnStop.Click += (s, e) => { _schedulerService.StopAll(); ShowInfo("定时调度已停止"); };
+                btnClose.Click += (s, e) => form.Close();
 
-                    if (tables.Rows.Count > 0)
-                    {
-                        var tableNames = new List<string>();
-                        foreach (System.Data.DataRow row in tables.Rows)
-                        {
-                            var tableName = row["TABLE_NAME"].ToString();
-                            if (!string.IsNullOrEmpty(tableName))
-                                tableNames.Add(tableName);
-                        }
-
-                        if (tableNames.Count > 0)
-                        {
-                            replayTableNameBox.AutoCompleteCustomSource.Clear();
-                            replayTableNameBox.AutoCompleteCustomSource.AddRange(tableNames.ToArray());
-                            replayTableNameBox.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
-                            replayTableNameBox.AutoCompleteSource = AutoCompleteSource.CustomSource;
-                            ReplayLog($"已加载 {tableNames.Count} 个表名到自动完成");
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                ReplayLog("加载失败：" + ex.Message);
-                MessageBox.Show("加载表列表失败：" + ex.Message);
-            }
-        }
-
-        private async Task ExecuteReplay()
-        {
-            try
-            {
-                replayStartButton.Enabled = false;
-                replayStatusLabel.Text = "正在补录...";
-
-                var sourceProvider = replaySourceProviderBox.SelectedValue?.ToString() ?? replaySourceProviderBox.Text;
-                var targetProvider = replayTargetProviderBox.SelectedValue?.ToString() ?? replayTargetProviderBox.Text;
-                var sourceConnection = replaySourceConnectionBox.Text;
-                var targetConnection = replayTargetConnectionBox.Text;
-                var tableName = replayTableNameBox.Text;
-                var primaryKey = replayPrimaryKeyBox.Text;
-                var enableTimeRange = replayEnableTimeRangeBox.Checked;
-                var startTime = replayStartTimeBox.Value;
-                var endTime = replayEndTimeBox.Value;
-
-                if (string.IsNullOrEmpty(tableName))
-                {
-                    MessageBox.Show("请输入表名");
-                    return;
-                }
-
-                ReplayLog($"开始补录表：{tableName}");
-                ReplayLog($"源库：{sourceProvider}");
-                ReplayLog($"目标库：{targetProvider}");
-
-                var retryCount = 0;
-                var maxRetries = 3;
-                var retryDelay = TimeSpan.FromSeconds(5);
-
-                while (retryCount < maxRetries)
-                {
-                    try
-                    {
-                        using (var sourceConn = CreateDbConnection(sourceProvider, sourceConnection))
-                        using (var targetConn = CreateDbConnection(targetProvider, targetConnection))
-                        {
-                            ReplayLog("正在连接数据库...");
-                            await sourceConn.OpenAsync();
-                            await targetConn.OpenAsync();
-                            ReplayLog("数据库连接成功");
-
-                            var replayService = new ReplayService(sourceConn, targetConn, sourceProvider, targetProvider);
-                            
-                            var result = await replayService.ReplayTableAsync(
-                                tableName,
-                                primaryKey,
-                                enableTimeRange,
-                                enableTimeRange ? startTime : (DateTime?)null,
-                                enableTimeRange ? endTime : (DateTime?)null,
-                                (msg) => ReplayLog(msg)
-                            );
-
-                            ReplayLog($"补录完成：读取 {result.ReadCount} 条，更新 {result.UpdateCount} 条，插入 {result.InsertCount} 条，跳过 {result.SkipCount} 条");
-                            replayStatusLabel.Text = "补录完成";
-                            MessageBox.Show($"补录完成！\n读取：{result.ReadCount} 条\n更新：{result.UpdateCount} 条\n插入：{result.InsertCount} 条\n跳过：{result.SkipCount} 条");
-                        }
-                        break;
-                    }
-                    catch (System.Data.Common.DbException dbEx)
-                    {
-                        retryCount++;
-                        ReplayLog($"数据库错误 (重试 {retryCount}/{maxRetries})：{dbEx.Message}");
-                        
-                        if (retryCount >= maxRetries)
-                            throw;
-
-                        ReplayLog($"等待 {retryDelay.TotalSeconds} 秒后重试...");
-                        await Task.Delay(retryDelay);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                ReplayLog("补录失败：" + ex.Message);
-                replayStatusLabel.Text = "补录失败";
-                MessageBox.Show("补录失败：" + ex.Message);
-            }
-            finally
-            {
-                replayStartButton.Enabled = true;
-                replayStatusLabel.Text = "就绪";
+                form.ShowDialog();
             }
         }
 
+        /// <summary>
+        /// 关于对话框
+        /// </summary>
+        private void ShowAbout()
+        {
+            MessageBox.Show(
+                "FastData 数据同步工具 v2.0\n\n" +
+                "支持 SQL Server / MySQL / PostgreSQL\n" +
+                "异构成对 + 去重 + 增量同步\n" +
+                "定时任务调度\n" +
+                "日志过滤与导出\n" +
+                "数据补录与分表同步",
+                "关于", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        private void ShowWarning(string message) { MessageBox.Show(message, "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning); }
+        private void ShowInfo(string message) { MessageBox.Show(message, "提示", MessageBoxButtons.OK, MessageBoxIcon.Information); }
+        private void ShowError(string message) { MessageBox.Show(message, "错误", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+
+        #endregion
+
+        #region 窗体生命周期
+
+        /// <summary>
+        /// 窗体关闭时的清理逻辑
+        /// </summary>
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
-            syncTimer?.Stop();
-            syncTimer?.Dispose();
+            if (_isSyncing)
+            {
+                if (MessageBox.Show("同步正在进行中，确定退出吗？", "确认",
+                    MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.No)
+                {
+                    e.Cancel = true;
+                    return;
+                }
+                _syncService.CancelBatchSync();
+            }
+
+            _syncTimer?.Stop();
+            _syncTimer?.Dispose();
+            _schedulerService.Dispose();
+            _syncService.Dispose();
+            _logService.Dispose();
+
             base.OnFormClosing(e);
         }
+
+        #endregion
     }
 
+    /// <summary>
+    /// 自定义菜单渲染器，提供蓝色主题样式
+    /// </summary>
+    internal class CustomMenuRenderer : ToolStripProfessionalRenderer
+    {
+        private readonly Color _backColor;
+        private readonly Color _hoverColor;
+
+        public CustomMenuRenderer(Color backColor, Color hoverColor)
+            : base(new ProfessionalColorTable())
+        {
+            _backColor = backColor;
+            _hoverColor = hoverColor;
+        }
+
+        protected override void OnRenderMenuItemBackground(ToolStripItemRenderEventArgs e)
+        {
+            if (!e.Item.Selected)
+            {
+                // 正常状态下透明
+                return;
+            }
+
+            // 悬停态使用浅色背景
+            var rc = new Rectangle(Point.Empty, e.Item.Size);
+            using (var brush = new SolidBrush(_hoverColor))
+            {
+                e.Graphics.FillRectangle(brush, rc);
+            }
+        }
+
+        protected override void OnRenderToolStripBackground(ToolStripRenderEventArgs e)
+        {
+            using (var brush = new SolidBrush(_backColor))
+            {
+                e.Graphics.FillRectangle(brush, e.AffectedBounds);
+            }
+        }
+
+        protected override void OnRenderSeparator(ToolStripSeparatorRenderEventArgs e)
+        {
+            using (var pen = new Pen(Color.FromArgb(100, 255, 255, 255)))
+            {
+                var y = e.Item.ContentRectangle.Top + e.Item.ContentRectangle.Height / 2;
+                e.Graphics.DrawLine(pen, e.Item.ContentRectangle.Left + 8, y, e.Item.ContentRectangle.Right - 8, y);
+            }
+        }
     }
+}

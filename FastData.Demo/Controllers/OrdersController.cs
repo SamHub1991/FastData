@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using FastData.Demo.Models;
 using FastData.Demo.Repositories;
-using FastRedis.Services;
+using FastData.Demo.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FastData.Demo.Controllers

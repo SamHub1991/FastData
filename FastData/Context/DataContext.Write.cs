@@ -25,8 +25,9 @@ namespace FastData.Context
         /// 删除(Lambda表达式)
         /// </summary>
         /// <typeparam name="T">泛型</typeparam>
-        /// <param name="predicate">表达式</param>
-        /// <returns></returns>
+        /// <param name="predicate">查询条件表达式</param>
+        /// <param name="isTrans">是否使用事务</param>
+        /// <returns>数据操作结果</returns>
         public DataReturn<T> Delete<T>(Expression<Func<T, bool>> predicate, bool isTrans = false) where T : class, new()
         {
             var result = new DataReturn<T>();
@@ -46,7 +47,7 @@ namespace FastData.Context
 
                 result.Sql = ParameterToSql.ObjectParamToSql(visitModel.Param, sql.ToString(), config);
 
-                Dispose(cmd);
+                DisposeCommand(cmd);
 
                 if (visitModel.Param.Count != 0)
                     cmd.Parameters.AddRange(visitModel.Param.ToArray());
@@ -95,7 +96,9 @@ namespace FastData.Context
         /// 删除
         /// </summary>
         /// <typeparam name="T">泛型</typeparam>
-        /// <returns></returns>
+        /// <param name="model">实体对象</param>
+        /// <param name="isTrans">是否使用事务</param>
+        /// <returns>数据操作结果</returns>
         public DataReturn<T> Delete<T>(T model, bool isTrans = false) where T : class, new()
         {
             var result = new DataReturn<T>();
@@ -111,7 +114,7 @@ namespace FastData.Context
 
                 result.Sql = ParameterToSql.ObjectParamToSql(optionModel.Param, optionModel.Sql, config);
 
-                Dispose(cmd);
+                DisposeCommand(cmd);
 
                 if (optionModel.Param.Count != 0)
                     cmd.Parameters.AddRange(optionModel.Param.ToArray());
@@ -163,9 +166,11 @@ namespace FastData.Context
         /// 修改(Lambda表达式)
         /// </summary>
         /// <typeparam name="T">泛型</typeparam>
-        /// <param name="model">实体</param>
-        /// <param name="predicate">表达式</param>
-        /// <returns></returns>
+        /// <param name="model">实体对象</param>
+        /// <param name="predicate">查询条件表达式</param>
+        /// <param name="field">更新字段表达式</param>
+        /// <param name="isTrans">是否使用事务</param>
+        /// <returns>数据操作结果</returns>
         public DataReturn<T> Update<T>(T model, Expression<Func<T, bool>> predicate, Expression<Func<T, object>> field = null, bool isTrans = false) where T : class, new()
         {
             string sql = "";
@@ -187,7 +192,7 @@ namespace FastData.Context
 
                     sql = string.Format("{0} {1}", update.Sql, string.IsNullOrEmpty(visitModel.Where) ? "" : string.Format("where {0}", visitModel.Where.Replace(string.Format("{0}.", predicate.Parameters[0].Name), "")));
 
-                    Dispose(cmd);
+                    DisposeCommand(cmd);
 
                     if (update.Param.Count != 0)
                         cmd.Parameters.AddRange(update.Param.ToArray());
@@ -245,11 +250,11 @@ namespace FastData.Context
         /// <summary>
         /// 修改
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="model"></param>
-        /// <param name="field"></param>
-        /// <param name="isTrans"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">泛型</typeparam>
+        /// <param name="model">实体对象</param>
+        /// <param name="field">更新字段表达式</param>
+        /// <param name="isTrans">是否使用事务</param>
+        /// <returns>数据操作结果</returns>
         public DataReturn<T> Update<T>(T model, Expression<Func<T, object>> field = null, bool isTrans = false) where T : class, new()
         {
             var result = new DataReturn<T>();
@@ -263,7 +268,7 @@ namespace FastData.Context
                     BeginTrans();
                 if (update.IsSuccess)
                 {
-                    Dispose(cmd);
+                    DisposeCommand(cmd);
 
                     if (update.Param.Count != 0)
                         cmd.Parameters.AddRange(update.Param.ToArray());
@@ -314,11 +319,10 @@ namespace FastData.Context
         /// <summary>
         /// 修改list
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="model"></param>
-        /// <param name="field"></param>
-        /// <param name="isTrans"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">泛型</typeparam>
+        /// <param name="list">实体集合</param>
+        /// <param name="field">更新字段表达式</param>
+        /// <returns>数据操作结果</returns>
         public DataReturn<T> UpdateList<T>(List<T> list, Expression<Func<T, object>> field = null) where T : class, new()
         {
             var result = new DataReturn<T>();
@@ -340,7 +344,7 @@ namespace FastData.Context
                     using (var adapter = DbProviderFactories.GetFactory(config.ProviderName).CreateDataAdapter())
                     {
                         BeginTrans();
-                        Dispose(cmd);
+                        DisposeCommand(cmd);
                         adapter.InsertCommand = cmd;
                         adapter.InsertCommand.CommandText = update.Sql;
                         adapter.InsertCommand.UpdatedRowSource = UpdateRowSource.None;
@@ -390,8 +394,10 @@ namespace FastData.Context
         /// 增加
         /// </summary>
         /// <typeparam name="T">泛型</typeparam>
-        /// <param name="model">实体</param>
-        /// <returns></returns>
+        /// <param name="model">实体对象</param>
+        /// <param name="isTrans">是否使用事务</param>
+        /// <param name="notAddField">不添加的字段</param>
+        /// <returns>数据操作结果</returns>
         public DataReturn<T> Add<T>(T model, bool isTrans = false, Expression<Func<T, object>> notAddField = null) where T : class, new()
         {
             var result = new DataReturn<T>();
@@ -413,7 +419,7 @@ namespace FastData.Context
                 {
                     result.Sql = ParameterToSql.ObjectParamToSql(insert.Param, insert.Sql, config);
 
-                    Dispose(cmd);
+                    DisposeCommand(cmd);
 
                     if (insert.Param.Count != 0)
                         cmd.Parameters.AddRange(insert.Param.ToArray());
@@ -460,11 +466,11 @@ namespace FastData.Context
         /// <summary>
         /// 批量增加
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="list"></param>
-        /// <param name="IsTrans"></param>
-        /// <param name="IsAsync"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">泛型</typeparam>
+        /// <param name="list">实体集合</param>
+        /// <param name="IsTrans">是否使用事务</param>
+        /// <param name="isLog">是否记录日志</param>
+        /// <returns>数据操作结果</returns>
         public DataReturn<T> AddList<T>(List<T> list, bool IsTrans = false, bool isLog = true) where T : class, new()
         {
             var result = new DataReturn<T>();
@@ -480,7 +486,7 @@ namespace FastData.Context
                 if (config.DbType == DataDbType.Oracle)
                 {
                     #region oracle
-                    Dispose(cmd);
+                    DisposeCommand(cmd);
                     if (!isLog)
                     {
                         cmd.CommandText = string.Format("alter table {0} nologging", TableNameHelper.GetTableName<T>());
@@ -551,7 +557,7 @@ namespace FastData.Context
                 if (config.DbType == DataDbType.SqlServer)
                 {
                     #region sqlserver
-                    Dispose(cmd);
+                    DisposeCommand(cmd);
                     
                     // 打开连接以支持 InitTvps 和 GetTable 中的 ExecuteReader
                     if (conn.State == ConnectionState.Closed)
@@ -600,7 +606,7 @@ namespace FastData.Context
                 if (config.DbType == DataDbType.MySql)
                 {
                     #region mysql
-                    Dispose(cmd);
+                    DisposeCommand(cmd);
                     
                     // 获取属性信息，排除 Identity 列
                     var mysqlProperties = PropertyCache.GetPropertyInfo<T>();
@@ -643,7 +649,7 @@ namespace FastData.Context
                 if (config.DbType == DataDbType.PostgreSql)
                 {
                     #region postgresql
-                    Dispose(cmd);
+                    DisposeCommand(cmd);
                     
                     var pgTableName = TableNameHelper.GetTableName<T>();
                     var pgProperties = PropertyCache.GetPropertyInfo<T>();
@@ -705,7 +711,7 @@ namespace FastData.Context
                 if (config.DbType == DataDbType.SQLite)
                 {
                     #region sqlite
-                    Dispose(cmd);
+                    DisposeCommand(cmd);
                     
                     var sqliteTableName = TableNameHelper.GetTableName<T>();
                     var properties = PropertyCache.GetPropertyInfo<T>();
@@ -798,7 +804,7 @@ namespace FastData.Context
 
                 DbLog.LogSql(isLog, result.Sql, config.DbType, 0);
 
-                Dispose(cmd);
+                DisposeCommand(cmd);
 
                 if (param != null)
                     cmd.Parameters.AddRange(param);
@@ -854,24 +860,42 @@ namespace FastData.Context
             {
                 BeginTrans();
                 var tableName = TableNameHelper.GetTableName<T>();
-                var properties = typeof(T).GetProperties().Where(p => p.CanRead && p.CanWrite).ToList();
+                var allProperties = PropertyCache.GetPropertiesCached<T>().Where(p => p.CanRead && p.CanWrite).ToList();
+                // 排除自增标识列（如 Id），避免 INSERT 时出现 "IDENTITY_INSERT is set to OFF" 错误
+                var properties = allProperties.Where(p =>
+                {
+                    var propInfo = typeof(T).GetProperty(p.Name);
+                    if (propInfo == null) return true;
+                    var colAttr = propInfo.GetCustomAttributes(typeof(Property.ColumnAttribute), false)
+                        .FirstOrDefault() as Property.ColumnAttribute;
+                    return colAttr == null || !colAttr.IsIdentity;
+                }).ToList();
                 var columnNames = string.Join(", ", properties.Select(p => p.Name));
 
-                Dispose(cmd);
+                // 重置命令对象，避免引用已释放的旧命令
+                if (_command != null)
+                {
+                    _command.Parameters.Clear();
+                    _command.Dispose();
+                }
+                _command = _connection.CreateCommand();
+                if (_transaction != null)
+                    _command.Transaction = _transaction;
 
                 var paramNames = string.Join(", ", properties.Select((_, i) => $"@p{i}"));
                 var insertSql = $"INSERT INTO {tableName} ({columnNames}) VALUES ({paramNames})";
+                _command.CommandText = insertSql;
 
                 foreach (var item in list)
                 {
-                    cmd.Parameters.Clear();
+                    _command.Parameters.Clear();
                     for (int i = 0; i < properties.Count; i++)
                     {
                         var value = properties[i].GetValue(item);
-                        var param = cmd.CreateParameter();
+                        var param = _command.CreateParameter();
                         param.ParameterName = $"@p{i}";
                         param.Value = value ?? DBNull.Value;
-                        cmd.Parameters.Add(param);
+                        _command.Parameters.Add(param);
                     }
 
                     if (conn.State == ConnectionState.Closed)
@@ -927,7 +951,7 @@ namespace FastData.Context
                 BeginTrans();
 
                 var tableName = TableNameHelper.GetTableName<T>();
-                var properties = typeof(T).GetProperties()
+                var properties = PropertyCache.GetPropertiesCached<T>()
                     .Where(p => p.CanRead && p.CanWrite && p.Name != "Id")
                     .ToList();
 

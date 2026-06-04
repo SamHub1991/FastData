@@ -1,4 +1,4 @@
-﻿using FastData.Base;
+using FastData.Base;
 using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
@@ -17,13 +17,7 @@ namespace FastData.Property
         public DynamicSet()
         {
             var key = string.Format("DynamicSet<T>.{0}.{1}", typeof(T)?.Namespace, typeof(T).Name);
-            if (!DbCache.Exists(CacheType.Web, key))
-            {
-                SetValueDelegate = GenerateSetValue();
-                DbCache.Set<object>(CacheType.Web, key, SetValueDelegate);
-            }
-            else
-                SetValueDelegate = DbCache.Get<object>(CacheType.Web, key) as Action<object, string, object>;
+            SetValueDelegate = PropertyCache.GetOrAddDynamicSetDelegate(key, GenerateSetValue);
         }
 
         #region 动态setvalue
@@ -87,13 +81,7 @@ namespace FastData.Property
             Instance = model;
 
             var key = string.Format("DynamicSet.{0}.{1}", model.GetType()?.Namespace, model.GetType().Name);
-            if (!DbCache.Exists(CacheType.Web, key))
-            {
-                SetValueDelegate = GenerateSetValue();
-                DbCache.Set<object>(CacheType.Web, key, SetValueDelegate);
-            }
-            else
-                SetValueDelegate = DbCache.Get<object>(CacheType.Web, key) as Action<object, string, object>;
+            SetValueDelegate = PropertyCache.GetOrAddDynamicSetDelegate(key, GenerateSetValue);
         }
 
         #region 动态setvalue

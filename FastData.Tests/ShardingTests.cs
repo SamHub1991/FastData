@@ -52,6 +52,7 @@ namespace FastData.Tests
     /// <summary>
     /// 分表功能完整测试（合并自 ShardingTests + ShardingCrudTests）
     /// </summary>
+    [Collection("Sharding")]
     public class ShardingTests : IDisposable
     {
         public ShardingTests()

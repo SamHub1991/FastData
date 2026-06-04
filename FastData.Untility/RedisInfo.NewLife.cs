@@ -19,6 +19,13 @@ namespace FastRedis
         private static readonly Lazy<FullRedis> _redisLazy = new Lazy<FullRedis>(() =>
         {
             var config = RedisConfig.GetConfig();
+            
+            // 验证配置
+            if (string.IsNullOrEmpty(config.WriteServerList))
+            {
+                throw new InvalidOperationException("Redis 配置无效：WriteServerList 不能为空，请在 db.config 中配置 Redis 服务器地址");
+            }
+            
             var redis = new FullRedis();
             redis.Init(config.WriteServerList);
             return redis;
@@ -28,6 +35,24 @@ namespace FastRedis
         /// 获取 Redis 单例实例
         /// </summary>
         public static FullRedis Redis => _redisLazy.Value;
+
+        /// <summary>
+        /// 切换到指定的 Redis 数据库索引
+        /// </summary>
+        /// <param name="db">数据库索引</param>
+        /// <returns>切换前的数据库索引</returns>
+        private static int SwitchDatabase(int db)
+        {
+            if (db < 0 || db > 15)
+                throw new ArgumentException("Redis 数据库索引必须在 0-15 之间", nameof(db));
+            
+            var previousDb = Redis.Db;
+            if (previousDb != db)
+            {
+                Redis.Db = db;
+            }
+            return previousDb;
+        }
 
         /// <summary>
         /// 资源文件初始化
@@ -48,7 +73,16 @@ namespace FastRedis
             {
                 if (string.IsNullOrEmpty(key))
                     return false;
-                return Redis.ContainsKey(key);
+                
+                var previousDb = SwitchDatabase(db);
+                try
+                {
+                    return Redis.ContainsKey(key);
+                }
+                finally
+                {
+                    SwitchDatabase(previousDb);
+                }
             }
             catch (Exception ex)
             {
@@ -60,9 +94,20 @@ namespace FastRedis
         /// <summary>
         /// 是否存在 asy
         /// </summary>
-        public static Task<bool> ExistsAsync(string key, int db = 0)
+        public static async Task<bool> ExistsAsync(string key, int db = 0)
         {
-            return Task.FromResult(Exists(key, db));
+            try
+            {
+                if (string.IsNullOrEmpty(key))
+                    return false;
+                
+                return await Task.Run(() => Exists(key, db));
+            }
+            catch (Exception ex)
+            {
+                SaveLog(ex, "ExistsAsync", key);
+                return false;
+            }
         }
 
         /// <summary>
@@ -74,8 +119,17 @@ namespace FastRedis
             {
                 if (string.IsNullOrEmpty(key))
                     return false;
-                Redis.Set(key, model, TimeSpan.FromHours(hours));
-                return true;
+                
+                var previousDb = SwitchDatabase(db);
+                try
+                {
+                    Redis.Set(key, model, TimeSpan.FromHours(hours));
+                    return true;
+                }
+                finally
+                {
+                    SwitchDatabase(previousDb);
+                }
             }
             catch (Exception ex)
             {
@@ -87,9 +141,17 @@ namespace FastRedis
         /// <summary>
         /// 设置值 item asy
         /// </summary>
-        public static Task<bool> SetAsync<T>(string key, T model, int hours = 24 * 30 * 12, int db = 0)
+        public static async Task<bool> SetAsync<T>(string key, T model, int hours = 24 * 30 * 12, int db = 0)
         {
-            return Task.FromResult(Set(key, model, hours, db));
+            try
+            {
+                return await Task.Run(() => Set(key, model, hours, db));
+            }
+            catch (Exception ex)
+            {
+                SaveLog(ex, "SetAsync<T>", key);
+                return false;
+            }
         }
 
         /// <summary>
@@ -101,8 +163,17 @@ namespace FastRedis
             {
                 if (string.IsNullOrEmpty(key))
                     return false;
-                Redis.Set(key, model, TimeSpan.FromHours(hours));
-                return true;
+                
+                var previousDb = SwitchDatabase(db);
+                try
+                {
+                    Redis.Set(key, model, TimeSpan.FromHours(hours));
+                    return true;
+                }
+                finally
+                {
+                    SwitchDatabase(previousDb);
+                }
             }
             catch (Exception ex)
             {
@@ -114,9 +185,17 @@ namespace FastRedis
         /// <summary>
         /// 设置值 item asy (string)
         /// </summary>
-        public static Task<bool> SetAsync(string key, string model, int hours = 24 * 30 * 12, int db = 0)
+        public static async Task<bool> SetAsync(string key, string model, int hours = 24 * 30 * 12, int db = 0)
         {
-            return Task.FromResult(Set(key, model, hours, db));
+            try
+            {
+                return await Task.Run(() => Set(key, model, hours, db));
+            }
+            catch (Exception ex)
+            {
+                SaveLog(ex, "SetAsync", key);
+                return false;
+            }
         }
 
         /// <summary>
@@ -128,8 +207,17 @@ namespace FastRedis
             {
                 if (string.IsNullOrEmpty(key))
                     return false;
-                Redis.Set(key, model, TimeSpan.FromMinutes(Minutes));
-                return true;
+                
+                var previousDb = SwitchDatabase(db);
+                try
+                {
+                    Redis.Set(key, model, TimeSpan.FromMinutes(Minutes));
+                    return true;
+                }
+                finally
+                {
+                    SwitchDatabase(previousDb);
+                }
             }
             catch (Exception ex)
             {
@@ -147,7 +235,16 @@ namespace FastRedis
             {
                 if (string.IsNullOrEmpty(key))
                     return "";
-                return Redis.Get<string>(key);
+                
+                var previousDb = SwitchDatabase(db);
+                try
+                {
+                    return Redis.Get<string>(key);
+                }
+                finally
+                {
+                    SwitchDatabase(previousDb);
+                }
             }
             catch (Exception ex)
             {
@@ -159,9 +256,17 @@ namespace FastRedis
         /// <summary>
         /// 获取值 item asy
         /// </summary>
-        public static Task<string> GetAsync(string key, int db = 0)
+        public static async Task<string> GetAsync(string key, int db = 0)
         {
-            return Task.FromResult(Get(key, db));
+            try
+            {
+                return await Task.Run(() => Get(key, db));
+            }
+            catch (Exception ex)
+            {
+                SaveLog(ex, "GetAsync", key);
+                return "";
+            }
         }
 
         /// <summary>
@@ -173,14 +278,39 @@ namespace FastRedis
             {
                 if (string.IsNullOrEmpty(key))
                     return null;
-                var json = Redis.Get<string>(key);
-                if (string.IsNullOrEmpty(json))
-                    return null;
-                return JsonConvert.DeserializeObject<T>(json);
+                
+                var previousDb = SwitchDatabase(db);
+                try
+                {
+                    var json = Redis.Get<string>(key);
+                    if (string.IsNullOrEmpty(json))
+                        return null;
+                    return JsonConvert.DeserializeObject<T>(json);
+                }
+                finally
+                {
+                    SwitchDatabase(previousDb);
+                }
             }
             catch (Exception ex)
             {
                 SaveLog(ex, "Get<T>", key);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// 获取值 item asy (泛型)
+        /// </summary>
+        public static async Task<T> GetAsync<T>(string key, int db = 0) where T : class, new()
+        {
+            try
+            {
+                return await Task.Run(() => Get<T>(key, db));
+            }
+            catch (Exception ex)
+            {
+                SaveLog(ex, "GetAsync<T>", key);
                 return null;
             }
         }
@@ -194,8 +324,17 @@ namespace FastRedis
             {
                 if (string.IsNullOrEmpty(key))
                     return false;
-                Redis.Remove(key);
-                return true;
+                
+                var previousDb = SwitchDatabase(db);
+                try
+                {
+                    Redis.Remove(key);
+                    return true;
+                }
+                finally
+                {
+                    SwitchDatabase(previousDb);
+                }
             }
             catch (Exception ex)
             {
@@ -207,9 +346,17 @@ namespace FastRedis
         /// <summary>
         /// 删除值 item asy
         /// </summary>
-        public static Task<bool> RemoveAsync(string key, int db = 0)
+        public static async Task<bool> RemoveAsync(string key, int db = 0)
         {
-            return Task.FromResult(Remove(key, db));
+            try
+            {
+                return await Task.Run(() => Remove(key, db));
+            }
+            catch (Exception ex)
+            {
+                SaveLog(ex, "RemoveAsync", key);
+                return false;
+            }
         }
 
         /// <summary>
@@ -219,12 +366,36 @@ namespace FastRedis
         {
             try
             {
-                Redis.SetAll(dic);
-                return true;
+                var previousDb = SwitchDatabase(db);
+                try
+                {
+                    Redis.SetAll(dic);
+                    return true;
+                }
+                finally
+                {
+                    SwitchDatabase(previousDb);
+                }
             }
             catch (Exception ex)
             {
                 SaveLog(ex, "SetDic<T>", "");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 设置值 Dic asy（批量）
+        /// </summary>
+        public static async Task<bool> SetDicAsync<T>(Dictionary<string, T> dic, int db = 0)
+        {
+            try
+            {
+                return await Task.Run(() => SetDic(dic, db));
+            }
+            catch (Exception ex)
+            {
+                SaveLog(ex, "SetDicAsync<T>", "");
                 return false;
             }
         }
@@ -236,12 +407,35 @@ namespace FastRedis
         {
             try
             {
-                var result = Redis.GetAll<T>(keys);
-                return result;
+                var previousDb = SwitchDatabase(db);
+                try
+                {
+                    return Redis.GetAll<T>(keys);
+                }
+                finally
+                {
+                    SwitchDatabase(previousDb);
+                }
             }
             catch (Exception ex)
             {
                 SaveLog(ex, "GetDic<T>", "");
+                return new Dictionary<string, T>();
+            }
+        }
+
+        /// <summary>
+        /// 获取值 dic asy（批量）
+        /// </summary>
+        public static async Task<IDictionary<string, T>> GetDicAsync<T>(string[] keys, int db = 0) where T : class, new()
+        {
+            try
+            {
+                return await Task.Run(() => GetDic<T>(keys, db));
+            }
+            catch (Exception ex)
+            {
+                SaveLog(ex, "GetDicAsync<T>", "");
                 return new Dictionary<string, T>();
             }
         }
@@ -253,8 +447,16 @@ namespace FastRedis
         {
             try
             {
-                Redis.Remove(keys);
-                return true;
+                var previousDb = SwitchDatabase(db);
+                try
+                {
+                    Redis.Remove(keys);
+                    return true;
+                }
+                finally
+                {
+                    SwitchDatabase(previousDb);
+                }
             }
             catch (Exception ex)
             {
@@ -264,18 +466,42 @@ namespace FastRedis
         }
 
         /// <summary>
-        /// 获取或添加（缓存不存在时添加）
+        /// 删除值 dic asy（批量）
         /// </summary>
-        public static T GetOrAdd<T>(string key, Func<T> factory, int hours = 24 * 30 * 12) where T : class, new()
+        public static async Task<bool> RemoveDicAsync(string[] keys, int db = 0)
         {
             try
             {
-                if (Redis.ContainsKey(key))
-                    return Get<T>(key);
+                return await Task.Run(() => RemoveDic(keys, db));
+            }
+            catch (Exception ex)
+            {
+                SaveLog(ex, "RemoveDicAsync", "");
+                return false;
+            }
+        }
 
-                var value = factory();
-                Set(key, value, hours);
-                return value;
+        /// <summary>
+        /// 获取或添加（缓存不存在时添加）
+        /// </summary>
+        public static T GetOrAdd<T>(string key, Func<T> factory, int hours = 24 * 30 * 12, int db = 0) where T : class, new()
+        {
+            try
+            {
+                var previousDb = SwitchDatabase(db);
+                try
+                {
+                    if (Redis.ContainsKey(key))
+                        return Get<T>(key, db);
+
+                    var value = factory();
+                    Set(key, value, hours, db);
+                    return value;
+                }
+                finally
+                {
+                    SwitchDatabase(previousDb);
+                }
             }
             catch (Exception ex)
             {
@@ -285,13 +511,50 @@ namespace FastRedis
         }
 
         /// <summary>
-        /// 递增
+        /// 获取或添加 asy（缓存不存在时添加）
         /// </summary>
-        public static long Increment(string key, int value = 1)
+        public static async Task<T> GetOrAddAsync<T>(string key, Func<Task<T>> factory, int hours = 24 * 30 * 12, int db = 0) where T : class, new()
         {
             try
             {
-                return Redis.Increment(key, value);
+                var previousDb = SwitchDatabase(db);
+                try
+                {
+                    if (await Task.Run(() => Redis.ContainsKey(key)))
+                        return await GetAsync<T>(key, db);
+
+                    var value = await factory();
+                    await SetAsync(key, value, hours, db);
+                    return value;
+                }
+                finally
+                {
+                    SwitchDatabase(previousDb);
+                }
+            }
+            catch (Exception ex)
+            {
+                SaveLog(ex, "GetOrAddAsync<T>", key);
+                return new T();
+            }
+        }
+
+        /// <summary>
+        /// 递增
+        /// </summary>
+        public static long Increment(string key, int value = 1, int db = 0)
+        {
+            try
+            {
+                var previousDb = SwitchDatabase(db);
+                try
+                {
+                    return Redis.Increment(key, value);
+                }
+                finally
+                {
+                    SwitchDatabase(previousDb);
+                }
             }
             catch (Exception ex)
             {
@@ -301,13 +564,37 @@ namespace FastRedis
         }
 
         /// <summary>
-        /// 递减
+        /// 递增 asy
         /// </summary>
-        public static long Decrement(string key, int value = 1)
+        public static async Task<long> IncrementAsync(string key, int value = 1, int db = 0)
         {
             try
             {
-                return Redis.Decrement(key, value);
+                return await Task.Run(() => Increment(key, value, db));
+            }
+            catch (Exception ex)
+            {
+                SaveLog(ex, "IncrementAsync", key);
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// 递减
+        /// </summary>
+        public static long Decrement(string key, int value = 1, int db = 0)
+        {
+            try
+            {
+                var previousDb = SwitchDatabase(db);
+                try
+                {
+                    return Redis.Decrement(key, value);
+                }
+                finally
+                {
+                    SwitchDatabase(previousDb);
+                }
             }
             catch (Exception ex)
             {
@@ -317,14 +604,38 @@ namespace FastRedis
         }
 
         /// <summary>
-        /// 设置过期时间
+        /// 递减 asy
         /// </summary>
-        public static bool SetExpire(string key, TimeSpan expire)
+        public static async Task<long> DecrementAsync(string key, int value = 1, int db = 0)
         {
             try
             {
-                Redis.SetExpire(key, expire);
-                return true;
+                return await Task.Run(() => Decrement(key, value, db));
+            }
+            catch (Exception ex)
+            {
+                SaveLog(ex, "DecrementAsync", key);
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// 设置过期时间
+        /// </summary>
+        public static bool SetExpire(string key, TimeSpan expire, int db = 0)
+        {
+            try
+            {
+                var previousDb = SwitchDatabase(db);
+                try
+                {
+                    Redis.SetExpire(key, expire);
+                    return true;
+                }
+                finally
+                {
+                    SwitchDatabase(previousDb);
+                }
             }
             catch (Exception ex)
             {
@@ -334,13 +645,37 @@ namespace FastRedis
         }
 
         /// <summary>
-        /// 获取过期时间
+        /// 设置过期时间 asy
         /// </summary>
-        public static TimeSpan GetExpire(string key)
+        public static async Task<bool> SetExpireAsync(string key, TimeSpan expire, int db = 0)
         {
             try
             {
-                return Redis.GetExpire(key);
+                return await Task.Run(() => SetExpire(key, expire, db));
+            }
+            catch (Exception ex)
+            {
+                SaveLog(ex, "SetExpireAsync", key);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 获取过期时间
+        /// </summary>
+        public static TimeSpan GetExpire(string key, int db = 0)
+        {
+            try
+            {
+                var previousDb = SwitchDatabase(db);
+                try
+                {
+                    return Redis.GetExpire(key);
+                }
+                finally
+                {
+                    SwitchDatabase(previousDb);
+                }
             }
             catch (Exception ex)
             {
@@ -350,13 +685,37 @@ namespace FastRedis
         }
 
         /// <summary>
-        /// 获取列表集合
+        /// 获取过期时间 asy
         /// </summary>
-        public static IList<T> GetList<T>(string key) where T : class
+        public static async Task<TimeSpan> GetExpireAsync(string key, int db = 0)
         {
             try
             {
-                return Redis.GetList<T>(key);
+                return await Task.Run(() => GetExpire(key, db));
+            }
+            catch (Exception ex)
+            {
+                SaveLog(ex, "GetExpireAsync", key);
+                return TimeSpan.Zero;
+            }
+        }
+
+        /// <summary>
+        /// 获取列表集合
+        /// </summary>
+        public static IList<T> GetList<T>(string key, int db = 0) where T : class
+        {
+            try
+            {
+                var previousDb = SwitchDatabase(db);
+                try
+                {
+                    return Redis.GetList<T>(key);
+                }
+                finally
+                {
+                    SwitchDatabase(previousDb);
+                }
             }
             catch (Exception ex)
             {
@@ -366,13 +725,37 @@ namespace FastRedis
         }
 
         /// <summary>
-        /// 获取哈希集合
+        /// 获取列表集合 asy
         /// </summary>
-        public static IDictionary<string, T> GetDictionary<T>(string key) where T : class
+        public static async Task<IList<T>> GetListAsync<T>(string key, int db = 0) where T : class
         {
             try
             {
-                return Redis.GetDictionary<T>(key);
+                return await Task.Run(() => GetList<T>(key, db));
+            }
+            catch (Exception ex)
+            {
+                SaveLog(ex, "GetListAsync<T>", key);
+                return new List<T>();
+            }
+        }
+
+        /// <summary>
+        /// 获取哈希集合
+        /// </summary>
+        public static IDictionary<string, T> GetDictionary<T>(string key, int db = 0) where T : class
+        {
+            try
+            {
+                var previousDb = SwitchDatabase(db);
+                try
+                {
+                    return Redis.GetDictionary<T>(key);
+                }
+                finally
+                {
+                    SwitchDatabase(previousDb);
+                }
             }
             catch (Exception ex)
             {
@@ -382,17 +765,57 @@ namespace FastRedis
         }
 
         /// <summary>
-        /// 获取 Set 集合
+        /// 获取哈希集合 asy
         /// </summary>
-        public static ICollection<T> GetSet<T>(string key) where T : class
+        public static async Task<IDictionary<string, T>> GetDictionaryAsync<T>(string key, int db = 0) where T : class
         {
             try
             {
-                return Redis.GetSet<T>(key);
+                return await Task.Run(() => GetDictionary<T>(key, db));
+            }
+            catch (Exception ex)
+            {
+                SaveLog(ex, "GetDictionaryAsync<T>", key);
+                return new Dictionary<string, T>();
+            }
+        }
+
+        /// <summary>
+        /// 获取 Set 集合
+        /// </summary>
+        public static ICollection<T> GetSet<T>(string key, int db = 0) where T : class
+        {
+            try
+            {
+                var previousDb = SwitchDatabase(db);
+                try
+                {
+                    return Redis.GetSet<T>(key);
+                }
+                finally
+                {
+                    SwitchDatabase(previousDb);
+                }
             }
             catch (Exception ex)
             {
                 SaveLog(ex, "GetSet<T>", key);
+                return new HashSet<T>();
+            }
+        }
+
+        /// <summary>
+        /// 获取 Set 集合 asy
+        /// </summary>
+        public static async Task<ICollection<T>> GetSetAsync<T>(string key, int db = 0) where T : class
+        {
+            try
+            {
+                return await Task.Run(() => GetSet<T>(key, db));
+            }
+            catch (Exception ex)
+            {
+                SaveLog(ex, "GetSetAsync<T>", key);
                 return new HashSet<T>();
             }
         }

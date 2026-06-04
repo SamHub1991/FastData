@@ -23,7 +23,8 @@ namespace FastData.Context
         /// <summary>
         /// 获取列表
         /// </summary>
-        /// <returns></returns>
+        /// <param name="item">数据查询对象</param>
+        /// <returns>查询结果列表或单条记录</returns>
         public DataReturn<T> GetList<T>(DataQuery item) where T : class,new()
         {
             var param = new List<DbParameter>();
@@ -35,13 +36,24 @@ namespace FastData.Context
             {
                 // SQL Server TOP 特殊处理
                 if (item.Config.DbType == DataDbType.SqlServer && item.Take != 0)
-                    sql.AppendFormat("select top {2} {0} from {1}", string.Join(",", item.Field), item.Table[0], item.Take);
-                
-                BuildBaseSelectQuery(item, param, sql);
+                {
+                    sql.Append("select top ");
+                    sql.Append(item.Take);
+                    sql.Append(" ");
+                    for (int i = 0; i < item.Field.Count; i++)
+                    {
+                        if (i > 0) sql.Append(",");
+                        sql.Append(item.Field[i]);
+                    }
+                    sql.Append(" from ");
+                    sql.Append(item.Table[0]);
+                }
+                else
+                    BuildBaseSelectQuery(item, param, sql);
 
                 result.Sql = ParameterToSql.ObjectParamToSql(param, sql.ToString(), item.Config);
 
-                Dispose(cmd);
+                DisposeCommand(cmd);
 
                 if (param.Count != 0)
                     cmd.Parameters.AddRange(param.ToArray());
@@ -54,7 +66,7 @@ namespace FastData.Context
 
                 if (item.Take == 1)
                 {
-                    result.Item = BaseDataReader.ToList<T>(dr, item.Config, item.AsName).FirstOrDefault<T>() ?? new T();
+                    result.Item = BaseDataReader.ToList<T>(dr, item.Config, item.AsName).FirstOrDefault<T>();
                     data = result.Item;
                 }
                 else
@@ -87,7 +99,9 @@ namespace FastData.Context
         /// <summary>
         /// 获取分页
         /// </summary>
-        /// <returns></returns>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="pModel">分页模型</param>
+        /// <returns>分页查询结果</returns>
         public DataReturn<T> GetPage<T>(DataQuery item, PageModel pModel) where T : class,new()
         {
             var param = new List<DbParameter>();
@@ -98,7 +112,7 @@ namespace FastData.Context
             {
                 pModel.StarId = (pModel.PageId - 1) * pModel.PageSize + 1;
                 pModel.EndId = pModel.PageId * pModel.PageSize;
-                Dispose(cmd);
+                DisposeCommand(cmd);
                 if (conn.State == ConnectionState.Closed)
                     conn.Open();
                 pModel.TotalRecord = BaseExecute.ToPageCount(item, cmd, ref sql);
@@ -115,7 +129,7 @@ namespace FastData.Context
 
                     AopBefore(item.Table, sql.ToString(), param, config, true,AopType.Query_Page_Lambda_Model);
 
-                    Dispose(cmd);
+                    DisposeCommand(cmd);
                     var dr = BaseExecute.ToPageDataReader(item, cmd, pModel, ref sql);
                     result.PageResult.list = BaseDataReader.ToList<T>(dr, item.Config, item.AsName);
                     result.Sql = sql;
@@ -161,7 +175,7 @@ namespace FastData.Context
             {
                 pModel.StarId = (pModel.PageId - 1) * pModel.PageSize + 1;
                 pModel.EndId = pModel.PageId * pModel.PageSize;
-                Dispose(cmd);
+                DisposeCommand(cmd);
                 if (conn.State == ConnectionState.Closed)
                     conn.Open();
                 pModel.TotalRecord = BaseExecute.ToPageCount(item, cmd, ref sql);
@@ -178,7 +192,7 @@ namespace FastData.Context
 
                     AopBefore(item.Table, sql.ToString(), param, config, true,AopType.Query_Page_Lambda_Dic);
 
-                    Dispose(cmd);
+                    DisposeCommand(cmd);
                     var dr = BaseExecute.ToPageDataReader(item, cmd, pModel, ref sql);
                     result.PageResult.list = BaseJson.DataReaderToDic(dr, config.DbType == DataDbType.Oracle);
                     result.Sql = sql;
@@ -226,7 +240,7 @@ namespace FastData.Context
             {
                 pModel.StarId = (pModel.PageId - 1) * pModel.PageSize + 1;
                 pModel.EndId = pModel.PageId * pModel.PageSize;
-                Dispose(cmd);
+                DisposeCommand(cmd);
                 if (conn.State == ConnectionState.Closed)
                     conn.Open();
                 pModel.TotalRecord = BaseExecute.ToPageCountSql(param, cmd, sql, config, ref countSql);
@@ -244,7 +258,7 @@ namespace FastData.Context
                     if (isAop)
                         AopBefore(null, sql.ToString(), param?.ToList(), config, true,AopType.Query_Page_Lambda_Dic);
 
-                    Dispose(cmd);
+                    DisposeCommand(cmd);
                     var dr = BaseExecute.ToPageDataReaderSql(param, cmd, pModel, sql, config, ref pageSql);
 
                     result.PageResult.list = BaseJson.DataReaderToDic(dr, config.DbType == DataDbType.Oracle);
@@ -279,7 +293,11 @@ namespace FastData.Context
         /// <summary>
         /// 获取分页
         /// </summary>
-        /// <returns></returns>
+        /// <param name="pModel">分页模型</param>
+        /// <param name="sql">SQL语句</param>
+        /// <param name="param">SQL参数数组</param>
+        /// <param name="isAop">是否启用AOP</param>
+        /// <returns>分页查询结果</returns>
         public DataReturn<T> GetPageSql<T>(PageModel pModel, string sql, DbParameter[] param,bool isAop=true) where T : class, new()
         {
             var result = new DataReturn<T>();
@@ -290,7 +308,7 @@ namespace FastData.Context
             {
                 pModel.StarId = (pModel.PageId - 1) * pModel.PageSize + 1;
                 pModel.EndId = pModel.PageId * pModel.PageSize;
-                Dispose(cmd);
+                DisposeCommand(cmd);
                 if (conn.State == ConnectionState.Closed)
                     conn.Open();
                 pModel.TotalRecord = BaseExecute.ToPageCountSql(param, cmd, sql, config, ref countSql);
@@ -308,7 +326,7 @@ namespace FastData.Context
                     if (isAop)
                         AopBefore(null, sql.ToString(), param?.ToList(), config, true,AopType.Query_Page_Lambda_Model);
 
-                    Dispose(cmd);
+                    DisposeCommand(cmd);
                     var dr = BaseExecute.ToPageDataReaderSql(param, cmd, pModel, sql, config, ref pageSql);
 
                     result.PageResult.list = BaseDataReader.ToList<T>(dr, config, null);
@@ -341,7 +359,8 @@ namespace FastData.Context
         /// <summary>
         /// 获取json多表
         /// </summary>
-        /// <returns></returns>
+        /// <param name="item">数据查询对象</param>
+        /// <returns>JSON格式的查询结果</returns>
         public DataReturn GetJson(DataQuery item)
         {
             var param = new List<DbParameter>();
@@ -352,16 +371,27 @@ namespace FastData.Context
             {
                 // SQL Server TOP 特殊处理
                 if (item.Config.DbType == DataDbType.SqlServer && item.Take != 0)
-                    sql.AppendFormat("select top {2} {0} from {1}", string.Join(",", item.Field), item.Table[0], item.Take);
-                
-                BuildBaseSelectQuery(item, param, sql);
+                {
+                    sql.Append("select top ");
+                    sql.Append(item.Take);
+                    sql.Append(" ");
+                    for (int i = 0; i < item.Field.Count; i++)
+                    {
+                        if (i > 0) sql.Append(",");
+                        sql.Append(item.Field[i]);
+                    }
+                    sql.Append(" from ");
+                    sql.Append(item.Table[0]);
+                }
+                else
+                    BuildBaseSelectQuery(item, param, sql);
 
                 if (item.Predicate[0].Param.Count != 0)
                     param.AddRange(item.Predicate[0].Param);
 
                 result.Sql = ParameterToSql.ObjectParamToSql(param, sql.ToString(), item.Config);
 
-                Dispose(cmd);
+                DisposeCommand(cmd);
 
                 if (param.Count != 0)
                     cmd.Parameters.AddRange(param.ToArray());
@@ -398,7 +428,8 @@ namespace FastData.Context
         /// <summary>
         /// 获取条数
         /// </summary>
-        /// <returns></returns>
+        /// <param name="item">数据查询对象</param>
+        /// <returns>记录总数</returns>
         public DataReturn GetCount(DataQuery item)
         {
             var sql = new StringBuilder();
@@ -425,14 +456,23 @@ namespace FastData.Context
                 }
 
                 if (item.GroupBy.Count > 0)
-                    sql.AppendFormat(" group by {0}", string.Join(",", item.GroupBy));
+                {
+                    sql.Append(" group by ");
+                    sql.Append(string.Join(",", item.GroupBy));
+                }
 
                 if (item.OrderBy.Count > 0)
-                    sql.AppendFormat(" order by {0}", string.Join(",", item.OrderBy));
+                {
+                    sql.Append(" order by ");
+                    sql.Append(string.Join(",", item.OrderBy));
+                }
+
+                if (item.Predicate.Count > 0 && item.Predicate[0].Param.Count != 0)
+                    param.AddRange(item.Predicate[0].Param);
 
                 result.Sql = ParameterToSql.ObjectParamToSql(param, sql.ToString(), item.Config);
 
-                Dispose(cmd);
+                DisposeCommand(cmd);
 
                 if (param.Count != 0)
                     cmd.Parameters.AddRange(param.ToArray());
@@ -469,7 +509,9 @@ namespace FastData.Context
         /// <summary>
         /// 执行sql
         /// </summary>
-        /// <returns></returns>
+        /// <param name="sql">SQL语句</param>
+        /// <param name="param">SQL参数数组</param>
+        /// <returns>查询结果列表</returns>
         public DataReturn<T> ExecuteSql<T>(string sql, DbParameter[] param=null) where T : class,new()
         {
             var result = new DataReturn<T>();
@@ -480,7 +522,7 @@ namespace FastData.Context
                 else
                     result.Sql = sql;
 
-                Dispose(cmd);
+                DisposeCommand(cmd);
 
                 if (param != null)
                     cmd.Parameters.AddRange(param.ToArray());
@@ -533,7 +575,7 @@ namespace FastData.Context
 
                 DbLog.LogSql(isLog, result.Sql, config.DbType, 0);
 
-                Dispose(cmd);
+                DisposeCommand(cmd);
 
                 if (param != null)
                     cmd.Parameters.AddRange(param.ToArray());
@@ -575,7 +617,8 @@ namespace FastData.Context
         /// <summary>
         /// 获取dic
         /// </summary>
-        /// <returns></returns>
+        /// <param name="item">数据查询对象</param>
+        /// <returns>字典格式的查询结果</returns>
         public DataReturn GetDic(DataQuery item)
         {
             var param = new List<DbParameter>();
@@ -593,7 +636,7 @@ namespace FastData.Context
 
                 result.Sql = ParameterToSql.ObjectParamToSql(param, sql.ToString(), item.Config);
 
-                Dispose(cmd);
+                DisposeCommand(cmd);
 
                 if (param.Count != 0)
                     cmd.Parameters.AddRange(param.ToArray());
@@ -639,7 +682,8 @@ namespace FastData.Context
         /// <summary>
         /// 获取DataTable
         /// </summary>
-        /// <returns></returns>
+        /// <param name="item">数据查询对象</param>
+        /// <returns>DataTable对象</returns>
         public DataReturn GetDataTable(DataQuery item)
         {
             var param = new List<DbParameter>();
@@ -656,7 +700,7 @@ namespace FastData.Context
 
                 result.Sql = ParameterToSql.ObjectParamToSql(param, sql.ToString(), item.Config);
 
-                Dispose(cmd);
+                DisposeCommand(cmd);
 
                 if (param.Count != 0)
                     cmd.Parameters.AddRange(param.ToArray());
@@ -699,32 +743,45 @@ namespace FastData.Context
         /// <param name="sql">SQL构建器</param>
         private void BuildBaseSelectQuery(DataQuery item, List<DbParameter> param, StringBuilder sql)
         {
-            // SELECT 子句
-            sql.AppendFormat("select {0} from {1}", string.Join(",", item.Field), item.Table[0]);
+            sql.Append("select ");
+            for (int i = 0; i < item.Field.Count; i++)
+            {
+                if (i > 0) sql.Append(",");
+                sql.Append(item.Field[i]);
+            }
+            sql.Append(" from ");
+            sql.Append(item.Table[0]);
 
-            // JOIN 子句
             for (var i = 1; i < item.Predicate.Count; i++)
             {
-                sql.AppendFormat(" {0} on {1}", item.Table[i], item.Predicate[i].Where);
+                sql.Append(" ");
+                sql.Append(item.Table[i]);
+                sql.Append(" on ");
+                sql.Append(item.Predicate[i].Where);
                 if (item.Predicate[i].Param.Count != 0)
                     param.AddRange(item.Predicate[i].Param);
             }
 
-            // WHERE 子句
             var whereClause = WhereBuilder.BuildWhereClause(item, ref param);
             if (!string.IsNullOrEmpty(whereClause))
-                sql.AppendFormat(" where {0}", whereClause);
+            {
+                sql.Append(" where ");
+                sql.Append(whereClause);
+            }
 
-            // TAKE 子句（数据库特定语法）
             AppendTakeClause(item, sql);
 
-            // GROUP BY 子句
             if (item.GroupBy.Count > 0)
-                sql.AppendFormat(" group by {0}", string.Join(",", item.GroupBy));
+            {
+                sql.Append(" group by ");
+                sql.Append(string.Join(",", item.GroupBy));
+            }
 
-            // ORDER BY 子句
             if (item.OrderBy.Count > 0)
-                sql.AppendFormat(" order by {0}", string.Join(",", item.OrderBy));
+            {
+                sql.Append(" order by ");
+                sql.Append(string.Join(",", item.OrderBy));
+            }
         }
 
         /// <summary>

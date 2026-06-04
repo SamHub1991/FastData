@@ -1,7 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Data.Common;
 using FastUntility.Page;
 using FastUntility.Base;
@@ -9,38 +8,59 @@ using FastData.Base;
 using FastData.Model;
 using FastData.DbTypes;
 using FastData.Config;
-using System.Linq.Expressions;
 using System.Data;
 using FastData.Property;
 using FastData.Aop;
-using FastData.Core.Base;
 using FastData.ConnectionPool;
+using Microsoft.Data.Sqlite;
 
 namespace FastData.Context
 {
+    /// <summary>
+    /// 数据库上下文（轻量级 DbContext）
+    ///
+    /// 职责：
+    /// 1. 管理数据库连接（支持连接池）
+    /// 2. 管理 DbCommand 对象
+    /// 3. 管理事务（BeginTransaction / Commit / Rollback）
+    /// 4. AOP 拦截（Before / After / Error）
+    /// 5. 资源释放（实现 IDisposable，遵循 RAII 模式）
+    ///
+    /// 注意事项：
+    /// - 使用完毕后必须调用 Dispose() 释放资源
+    /// - 推荐使用 using 语句确保资源被正确释放
+    /// - 支持连接池：_usePool=true 时使用 PooledConnection
+    /// - 兼容旧 API：暴露小写别名（config/cmd/conn）以兼容历史代码
+    /// </summary>
     public partial class DataContext : IDisposable
     {
-        //变量
-        public ConfigModel config;
-        private DbConnection conn;
-        private DbCommand cmd;
-        private DbTransaction trans;
+        private bool _disposed;
+        private ConfigModel _config;
+        private DbConnection _connection;
+        private DbCommand _command;
+        private DbTransaction _transaction;
         private PooledConnection _pooledConnection;
         private bool _usePool;
 
-        private void Dispose(DbCommand cmd)
+        public ConfigModel Config => _config;
+        public ConfigModel config => _config;
+        public DbCommand cmd => _command;
+        public DbConnection conn => _connection;
+
+        public void DisposeCommand(DbCommand command)
         {
-            if (cmd == null) return;
-            if (cmd.Parameters != null && config.DbType == DataDbType.Oracle)
-                foreach (var param in cmd.Parameters)
+            if (command == null) return;
+
+            if (command.Parameters != null && _config != null && _config.DbType == DataDbType.Oracle)
+            {
+                foreach (var param in command.Parameters.Cast<DbParameter>())
                 {
-                    param.GetType().GetMethods().ToList().ForEach(m =>
-                    {
-                        if (m.Name == "Dispose")
-                            m.Invoke(param, null);
-                    });
+                    (param as IDisposable)?.Dispose();
                 }
-            cmd.Parameters.Clear();
+            }
+
+            command.Parameters.Clear();
+            command.Dispose();
         }
 
         /// <summary>
@@ -54,102 +74,107 @@ namespace FastData.Context
         {
             if (FastMap.fastAop != null)
             {
-                var context = new BeforeContext();
-
-                if (tableName != null)
-                    context.tableName = tableName;
-
-                context.sql = sql;
-
-                if (param != null)
-                    context.param = param;
-
-                context.dbType = config.DbType;
-                context.isRead = isRead;
-                context.isWrite = !isRead;
+                var context = new BeforeContext
+                {
+                    tableName = tableName,
+                    sql = sql,
+                    param = param,
+                    dbType = config.DbType,
+                    isRead = isRead,
+                    isWrite = !isRead
+                };
 
                 FastMap.fastAop.Before(context);
             }
         }
 
-        /// <summary>
-        /// Aop After
-        /// </summary>
-        /// <param name="tableName">表名列表</param>
-        /// <param name="sql">SQL语句</param>
-        /// <param name="param">数据库参数列表</param>
-        /// <param name="config">配置模型</param>
-        /// <param name="isRead">是否读操作</param>
-        /// <param name="type">AOP类型</param>
-        /// <param name="result">执行结果</param>
         private void AopAfter(List<string> tableName, string sql, List<DbParameter> param, ConfigModel config, bool isRead, AopType type, object result)
         {
             if (FastMap.fastAop != null)
             {
-                var context = new AfterContext();
-
-                if (tableName != null)
-                    context.tableName = tableName;
-
-                context.sql = sql;
-
-                if (param != null)
-                    context.param = param;
-
-                context.dbType = config.DbType;
-                context.isRead = isRead;
-                context.isWrite = !isRead;
-                context.result = result;
+                var context = new AfterContext
+                {
+                    tableName = tableName,
+                    sql = sql,
+                    param = param,
+                    dbType = config.DbType,
+                    isRead = isRead,
+                    isWrite = !isRead,
+                    result = result
+                };
 
                 FastMap.fastAop.After(context);
             }
         }
 
-        /// <summary>
-        /// aop Exception
-        /// </summary>
-        /// <param name="ex">异常对象</param>
-        /// <param name="name">操作名称</param>
-        /// <param name="config">配置模型</param>
-        /// <param name="type">AOP类型</param>
         private void AopException(Exception ex, string name, ConfigModel config, AopType type)
         {
             if (FastMap.fastAop != null)
             {
-                var context = new ExceptionContext();
-                context.dbType = config.DbType;
-                context.ex = ex;
-                context.name = name;
-                context.type = type;
+                var context = new ExceptionContext
+                {
+                    dbType = config.DbType,
+                    ex = ex,
+                    name = name,
+                    type = type
+                };
                 FastMap.fastAop.Exception(context);
             }
         }
 
+        ~DataContext()
+        {
+            Dispose(false);
+        }
 
-        #region 回收资源
-        /// <summary>
-        /// 回收资源
-        /// </summary>
         public void Dispose()
         {
-            Dispose(cmd);
-
-            if (_usePool && _pooledConnection != null)
-            {
-                // 使用连接池时，归还连接而不是关闭
-                _pooledConnection.Dispose();
-                _pooledConnection = null;
-            }
-            else
-            {
-                try { if (conn != null) conn.Close(); } catch { }
-                if (cmd != null) cmd.Dispose();
-                if (conn != null) conn.Dispose();
-            }
-
+            Dispose(true);
             GC.SuppressFinalize(this);
         }
-        #endregion
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed) return;
+
+            if (disposing)
+            {
+                DisposeCommand(_command);
+
+                if (_usePool && _pooledConnection != null)
+                {
+                    _pooledConnection.Dispose();
+                    _pooledConnection = null;
+                }
+                else
+                {
+                    if (_connection != null)
+                    {
+                        try { _connection.Close(); } catch { }
+                        _connection.Dispose();
+                    }
+                }
+            }
+
+            _command = null;
+            _connection = null;
+            _transaction = null;
+            _pooledConnection = null;
+            _config = null;
+            _disposed = true;
+        }
+
+        public void EnsureConnectionOpen()
+        {
+            if (_disposed)
+                throw new ObjectDisposedException(nameof(DataContext));
+
+            if (_connection == null)
+                throw new InvalidOperationException("Connection is null. DataContext was not initialized properly.");
+
+            if (_connection.State != ConnectionState.Open)
+                _connection.Open();
+        }
 
         #region 初始化
         /// <summary>
@@ -162,19 +187,14 @@ namespace FastData.Context
         {
             try
             {
-                this.config = DataConfig.GetConfig(key, projectName);
-                if (this.config == null)
-                    throw new Exception($"Config is null for key={key}, project={projectName}");
-                if (string.IsNullOrEmpty(this.config.ProviderName))
-                    throw new Exception($"ProviderName is null for key={key}, config.Key={this.config.Key}");
+                _config = DataConfig.GetConfig(key, projectName);
+                if (_config == null)
+                    throw new InvalidOperationException($"Config is null for key={key}, project={projectName}");
+                if (string.IsNullOrEmpty(_config.ProviderName))
+                    throw new InvalidOperationException($"ProviderName is null for key={key}, config.Key={_config.Key}");
                 
-                var factory = DbProviderFactories.GetFactory(this.config.ProviderName);
-                if (factory == null)
-                    throw new Exception($"DbProviderFactory not found for provider: {this.config.ProviderName}");
-                
-                // 支持连接字符串加密
-                var connStr = this.config.ConnStr;
-                if (this.config.IsEncrypt && !string.IsNullOrEmpty(connStr))
+                var connStr = _config.ConnStr;
+                if (_config.IsEncrypt && !string.IsNullOrEmpty(connStr))
                 {
                     try
                     {
@@ -182,88 +202,92 @@ namespace FastData.Context
                     }
                     catch
                     {
-                        DbLog.LogSql(true, "连接字符串解密失败，使用原始连接字符串", config.DbType, 0);
+                        DbLog.LogSql(true, "连接字符串解密失败，使用原始连接字符串", _config.DbType, 0);
                     }
                 }
 
-                // 使用连接池：优先使用传入参数，否则从配置文件读取
                 if (poolConfig == null)
                     poolConfig = DataConfig.GetConnectionPoolConfigPublic();
 
-                if (poolConfig != null)
+                // SQLite 连接非常轻量（本质是文件句柄），无需使用连接池
+                // 直接创建连接即可，避免连接池带来的序列化开销和语义问题
+                if (_config.ProviderName == Provider.MicrosoftDataSqlite)
                 {
-                    _usePool = true;
-                    var pool = ConnectionPoolFactory.Instance.GetOrCreatePool(
-                        key ?? "default",
-                        () =>
-                        {
-                            var c = factory.CreateConnection();
-                            c.ConnectionString = connStr;
-                            return c;
-                        },
-                        poolConfig);
-
-                    // 使用同步方法避免死锁
-                    _pooledConnection = pool.GetConnection();
-                    conn = _pooledConnection.Connection;
-                    cmd = conn.CreateCommand();
+                    _connection = new Microsoft.Data.Sqlite.SqliteConnection(connStr);
+                    _command = _connection.CreateCommand();
                 }
                 else
                 {
-                    conn = factory.CreateConnection();
-                    conn.ConnectionString = connStr;
-                    // 延迟打开连接，提高资源利用率
-                    cmd = conn.CreateCommand();
+                    var factory = DbProviderFactories.GetFactory(_config.ProviderName);
+                    if (factory == null)
+                        throw new InvalidOperationException($"DbProviderFactory not found for provider: {_config.ProviderName}");
+
+                    if (poolConfig != null)
+                    {
+                        _usePool = true;
+                        var pool = ConnectionPoolFactory.Instance.GetOrCreatePool(
+                            key ?? "default",
+                            () =>
+                            {
+                                var c = factory.CreateConnection();
+                                c.ConnectionString = connStr;
+                                return c;
+                            },
+                            poolConfig);
+
+                        _pooledConnection = pool.GetConnection();
+                        _connection = _pooledConnection.Connection;
+                        _command = _connection.CreateCommand();
+                    }
+                    else
+                    {
+                        _connection = factory.CreateConnection();
+                        _connection.ConnectionString = connStr;
+                        _command = _connection.CreateCommand();
+                    }
                 }
             }
             catch (Exception ex)
             {
-                AopException(ex, "DataContext :" + key, config ?? new ConfigModel(), AopType.DataContext);
+                AopException(ex, "DataContext :" + key, _config ?? new ConfigModel(), AopType.DataContext);
 
-                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
-                    DbLogTable.LogException(config, ex, "DataContext", "");
+                if (_config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                    DbLogTable.LogException(_config, ex, "DataContext", "");
                 else
-                    DbLog.LogException(true, config?.DbType ?? DataDbType.SqlServer, ex, "DataContext", "");
+                    DbLog.LogException(true, _config?.DbType ?? DataDbType.SqlServer, ex, "DataContext", "");
                 
-                // 重新抛出异常，避免创建无效的 DataContext 对象
                 throw;
             }
         }
-        #endregion
 
-        #region 开始事务
-        public void BeginTrans()
+        public void BeginTransaction()
         {
-            if (conn == null)
-                throw new InvalidOperationException("Connection is null. DataContext was not initialized properly.");
+            EnsureConnectionOpen();
 
-            if (conn.State != ConnectionState.Open)
-                conn.Open();
+            if (_command == null)
+                _command = _connection.CreateCommand();
 
-            if (cmd == null)
-                cmd = conn.CreateCommand();
+            if (_command.Connection == null)
+                _command.Connection = _connection;
 
-            if (cmd.Connection == null)
-                cmd.Connection = conn;
-
-            trans = conn.BeginTransaction();
-            if (trans != null)
-                cmd.Transaction = trans;
+            _transaction = _connection.BeginTransaction();
+            if (_transaction != null)
+                _command.Transaction = _transaction;
         }
-        #endregion
 
-        #region 提交事务
-        public void SubmitTrans()
+        public void CommitTransaction()
         {
-            this.trans.Commit();
+            _transaction?.Commit();
         }
-        #endregion
 
-        #region 回滚事务
-        public void RollbackTrans()
+        public void RollbackTransaction()
         {
-            this.trans.Rollback();
+            _transaction?.Rollback();
         }
+
+        public void BeginTrans() => BeginTransaction();
+        public void SubmitTrans() => CommitTransaction();
+        public void RollbackTrans() => RollbackTransaction();
         #endregion
     }
 }

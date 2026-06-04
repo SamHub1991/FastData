@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
+using FastUntility.Base;
 
 namespace FastUntility.Security
 {
@@ -143,7 +144,8 @@ namespace FastUntility.Security
         /// </summary>
         public static (string PublicKey, string PrivateKey) GenerateKeyPair(int keySize = 2048)
         {
-            using var rsa = RSA.Create(keySize);
+            using var rsa = RSA.Create();
+            rsa.KeySize = keySize;
             var publicKey = rsa.ToXmlString(false);
             var privateKey = rsa.ToXmlString(true);
             return (publicKey, privateKey);
@@ -162,7 +164,7 @@ namespace FastUntility.Security
             using var rsa = RSA.Create();
             rsa.FromXmlString(publicKey);
             var plainBytes = Encoding.UTF8.GetBytes(plainText);
-            var encryptedBytes = rsa.Encrypt(plainBytes, RSAEncryptionPadding.OaepSHA256);
+            var encryptedBytes = FrameworkCompat.RsaEncrypt(plainBytes, rsa);
             return Convert.ToBase64String(encryptedBytes);
         }
 
@@ -179,34 +181,31 @@ namespace FastUntility.Security
             using var rsa = RSA.Create();
             rsa.FromXmlString(privateKey);
             var cipherBytes = Convert.FromBase64String(cipherText);
-            var decryptedBytes = rsa.Decrypt(cipherBytes, RSAEncryptionPadding.OaepSHA256);
+            var decryptedBytes = FrameworkCompat.RsaDecrypt(cipherBytes, rsa);
             return Encoding.UTF8.GetString(decryptedBytes);
         }
 
         /// <summary>
         /// RSA 签名
         /// </summary>
-        public static string Sign(string data, string privateKey, HashAlgorithmName hashAlgorithm = default)
+        public static string Sign(string data, string privateKey, string hashAlgorithm = "SHA256")
         {
             if (string.IsNullOrEmpty(data))
                 throw new ArgumentNullException(nameof(data));
             if (string.IsNullOrEmpty(privateKey))
                 throw new ArgumentNullException(nameof(privateKey));
 
-            if (hashAlgorithm == default)
-                hashAlgorithm = HashAlgorithmName.SHA256;
-
             using var rsa = RSA.Create();
             rsa.FromXmlString(privateKey);
             var dataBytes = Encoding.UTF8.GetBytes(data);
-            var signatureBytes = rsa.SignData(dataBytes, hashAlgorithm, RSASignaturePadding.Pkcs1);
+            var signatureBytes = FrameworkCompat.RsaSignData(dataBytes, hashAlgorithm, rsa);
             return Convert.ToBase64String(signatureBytes);
         }
 
         /// <summary>
         /// RSA 验证签名
         /// </summary>
-        public static bool Verify(string data, string signature, string publicKey, HashAlgorithmName hashAlgorithm = default)
+        public static bool Verify(string data, string signature, string publicKey, string hashAlgorithm = "SHA256")
         {
             if (string.IsNullOrEmpty(data))
                 throw new ArgumentNullException(nameof(data));
@@ -215,14 +214,11 @@ namespace FastUntility.Security
             if (string.IsNullOrEmpty(publicKey))
                 throw new ArgumentNullException(nameof(publicKey));
 
-            if (hashAlgorithm == default)
-                hashAlgorithm = HashAlgorithmName.SHA256;
-
             using var rsa = RSA.Create();
             rsa.FromXmlString(publicKey);
             var dataBytes = Encoding.UTF8.GetBytes(data);
             var signatureBytes = Convert.FromBase64String(signature);
-            return rsa.VerifyData(dataBytes, signatureBytes, hashAlgorithm, RSASignaturePadding.Pkcs1);
+            return FrameworkCompat.RsaVerifyData(dataBytes, signatureBytes, hashAlgorithm, rsa);
         }
     }
 
@@ -238,7 +234,7 @@ namespace FastUntility.Security
         {
             using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(key));
             var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(data));
-            return Convert.ToHexString(hash).ToLower();
+            return FrameworkCompat.ToHexString(hash);
         }
 
         /// <summary>
@@ -248,7 +244,7 @@ namespace FastUntility.Security
         {
             using var hmac = new HMACSHA384(Encoding.UTF8.GetBytes(key));
             var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(data));
-            return Convert.ToHexString(hash).ToLower();
+            return FrameworkCompat.ToHexString(hash);
         }
 
         /// <summary>
@@ -258,7 +254,7 @@ namespace FastUntility.Security
         {
             using var hmac = new HMACSHA512(Encoding.UTF8.GetBytes(key));
             var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(data));
-            return Convert.ToHexString(hash).ToLower();
+            return FrameworkCompat.ToHexString(hash);
         }
 
         /// <summary>
@@ -268,7 +264,7 @@ namespace FastUntility.Security
         {
             using var hmac = new HMACMD5(Encoding.UTF8.GetBytes(key));
             var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(data));
-            return Convert.ToHexString(hash).ToLower();
+            return FrameworkCompat.ToHexString(hash);
         }
 
         /// <summary>

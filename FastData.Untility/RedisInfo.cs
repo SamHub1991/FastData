@@ -1,9 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using NServiceKit.Redis;
 using System.IO;
 using FastRedis.Config;
+using FastUntility.Base;
 using System.Reflection;
 
 namespace FastRedis

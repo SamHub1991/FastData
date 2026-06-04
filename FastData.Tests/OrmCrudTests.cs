@@ -5,6 +5,7 @@ using FastData.Queue;
 using FastUntility.Page;
 using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Linq;
 using Xunit;
 
@@ -18,6 +19,17 @@ namespace FastData.Tests
     {
         private readonly string _key = "SqlServer";
         private bool _dbAvailable = true;
+
+        /// <summary>
+        /// 静态构造函数：注册数据库提供程序工厂
+        /// 解决 .NET 6+ 中 DbProviderFactories.GetFactory 找不到提供程序的问题
+        /// </summary>
+        static OrmCrudTests()
+        {
+            try { DbProviderFactories.RegisterFactory("Microsoft.Data.SqlClient", Microsoft.Data.SqlClient.SqlClientFactory.Instance); } catch { }
+            try { DbProviderFactories.RegisterFactory("MySql.Data.MySqlClient", MySql.Data.MySqlClient.MySqlClientFactory.Instance); } catch { }
+            try { DbProviderFactories.RegisterFactory("Npgsql", Npgsql.NpgsqlFactory.Instance); } catch { }
+        }
 
         public OrmCrudTests()
         {
@@ -662,7 +674,7 @@ namespace FastData.Tests
 
             var results = FastRead.Query<PerfUser>(u => u.UserName.Contains($"orm_test_{tag}"), key: _key)
                 .Where(u => u.Age > 23)
-                .OrderByDescending<PerfUser>(u => u.Age)
+                .OrderByDescending(u => u.Age)
                 .Take(5)
                 .ToList<PerfUser>();
 

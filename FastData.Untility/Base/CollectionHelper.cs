@@ -71,7 +71,7 @@ namespace FastUntility.Base
         /// </summary>
         public static T[] ToArraySafe<T>(this IEnumerable<T> source)
         {
-            return source?.ToArray() ?? Array.Empty<T>();
+            return source?.ToArray() ?? FrameworkCompat.EmptyArray<T>();
         }
         #endregion
 

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -17,7 +17,8 @@ namespace FastUntility.Base
         ///  dic to T
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        /// <param name="item"></param>
+        /// <param name="dic">字典数据</param>
+        /// <param name="isCache">是否使用缓存</param>
         /// <returns></returns>
         public static T DicToModel<T>(Dictionary<string, object> dic, bool isCache=true) where T : class, new()
         {
@@ -55,7 +56,8 @@ namespace FastUntility.Base
         ///  dic to T
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        /// <param name="item"></param>
+        /// <param name="dic">字典列表</param>
+        /// <param name="isCache">是否使用缓存</param>
         /// <returns></returns>
         public static List<T> DicToModel<T>(List<Dictionary<string, object>> dic, bool isCache=true) where T : class, new()
         {
@@ -127,6 +129,7 @@ namespace FastUntility.Base
         /// <param name="instance">类型</param>
         /// <param name="memberName">成员</param>
         /// <param name="newValue">值</param>
+        /// <param name="IsCache">是否使用缓存</param>
         public void SetValue(T instance, string memberName, object newValue, bool IsCache)
         {
             IsSetCache = IsCache;
@@ -192,6 +195,7 @@ namespace FastUntility.Base
         /// </summary>
         /// <param name="instance">类型</param>
         /// <param name="memberName">成员</param>
+        /// <param name="IsCache">是否使用缓存</param>
         /// <returns></returns>
         public object GetValue(object instance, string memberName, bool IsCache)
         {

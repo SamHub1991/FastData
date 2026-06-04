@@ -2,7 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Text;
+#if NET452
+using Newtonsoft.Json;
+#else
 using System.Text.Json;
+#endif
 using System.Threading.Tasks;
 using FastUntility.Base;
 
@@ -82,7 +86,7 @@ namespace FastUntility.Monitor
         private void SendRequest(string action, object payload)
         {
             var url = $"{_config.ApiUrl.TrimEnd('/')}/{action}";
-            var json = JsonSerializer.Serialize(payload);
+            var json = JsonSerialize(payload);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
             // 添加认证头
@@ -106,6 +110,18 @@ namespace FastUntility.Monitor
         public void Dispose()
         {
             _httpClient?.Dispose();
+        }
+
+        /// <summary>
+        /// 跨框架 JSON 序列化：net452 用 Newtonsoft，其他用 System.Text.Json
+        /// </summary>
+        private static string JsonSerialize(object value)
+        {
+#if NET452
+            return JsonConvert.SerializeObject(value);
+#else
+            return JsonSerializer.Serialize(value);
+#endif
         }
     }
 

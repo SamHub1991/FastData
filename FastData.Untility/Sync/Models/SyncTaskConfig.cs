@@ -117,5 +117,57 @@ namespace FastData.Tooling.Sync
         /// 表配置列表
         /// </summary>
         public IList<TableSyncConfig> TableConfigs { get; set; } = new List<TableSyncConfig>();
+
+        // ===== 高级配置 =====
+
+        /// <summary>
+        /// 是否启用全局配置模式
+        /// </summary>
+        public bool EnableGlobalConfig { get; set; }
+
+        /// <summary>
+        /// 全局同步范围天数（0 = 使用任务级别配置）
+        /// </summary>
+        public int GlobalRangeDays { get; set; }
+
+        /// <summary>
+        /// 是否始终去重
+        /// </summary>
+        public bool AlwaysDeduplicate { get; set; } = true;
+
+        /// <summary>
+        /// 批次大小
+        /// </summary>
+        public int BatchSize { get; set; } = 1000;
+
+        /// <summary>
+        /// 重试次数
+        /// </summary>
+        public int RetryCount { get; set; } = 3;
+
+        /// <summary>
+        /// 自动创建中间库表结构
+        /// </summary>
+        public bool AutoCreateIntermediateSchema { get; set; } = true;
+
+        /// <summary>
+        /// 失败记录续传
+        /// </summary>
+        public bool ResumeFailedRecords { get; set; }
+
+        /// <summary>
+        /// 同步后清理中间库
+        /// </summary>
+        public bool CleanIntermediateData { get; set; }
+
+        /// <summary>
+        /// 启用定时同步
+        /// </summary>
+        public bool EnableTimer { get; set; }
+
+        /// <summary>
+        /// 定时同步间隔（秒）
+        /// </summary>
+        public int TimerInterval { get; set; } = 60;
     }
 }

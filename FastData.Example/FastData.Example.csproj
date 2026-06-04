@@ -3,13 +3,13 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>FastData.Example</RootNamespace>
     <AssemblyName>FastData.Example</AssemblyName>
-    <TargetFrameworks>net452;net6.0;net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks>net452;net8.0;net10.0</TargetFrameworks>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
   </PropertyGroup>
   <PropertyGroup Condition="'$(TargetFramework)' == 'net452'">
     <DefineConstants>NETFRAMEWORK</DefineConstants>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net6.0' Or '$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0'">
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0'">
     <DefineConstants>NET6_0_OR_GREATER</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
@@ -19,10 +19,10 @@
   <ItemGroup Condition="'$(TargetFramework)' == 'net452'">
     <Reference Include="System.Configuration" />
   </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)' == 'net6.0' Or '$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0'">
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.0" />
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0'">
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" />
+    <PackageReference Include="Microsoft.Data.SqlClient" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net452'">
     <Reference Include="System.Data.SqlClient" />
@@ -33,9 +33,6 @@
     </EmbeddedResource>
     <EmbeddedResource Include="db.dev.config">
       <LogicalName>FastData.Example.db.dev.config</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="db.pro.config">
-      <LogicalName>FastData.Example.db.pro.config</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
 

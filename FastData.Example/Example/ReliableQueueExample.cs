@@ -206,7 +206,7 @@ namespace FastData.Example.Example
             {
                 try
                 {
-                    return await Task.Run(() =>
+                    return await Task.Factory.StartNew(() =>
                     {
                         var list = new List<T> { data };
                         return _batchWriter(list);
@@ -330,7 +330,7 @@ namespace FastData.Example.Example
                 try
                 {
                     var dataList = batch.Select(b => b.Data).ToList();
-                    var result = await Task.Run(() => _batchWriter(dataList));
+                    var result = await Task.Factory.StartNew(() => _batchWriter(dataList));
                     if (result)
                     {
                         _lastSuccessTime = DateTime.Now;
@@ -364,7 +364,7 @@ namespace FastData.Example.Example
                     var testData = new T();
                     var testList = new List<T> { testData };
 
-                    var testResult = await Task.Run(() => _batchWriter(testList));
+                    var testResult = await Task.Factory.StartNew(() => _batchWriter(testList));
                     if (testResult)
                     {
                         SwitchToNormalMode();

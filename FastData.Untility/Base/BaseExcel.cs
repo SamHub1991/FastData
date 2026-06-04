@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;
@@ -57,7 +57,8 @@ namespace FastUntility.Base
         /// 初始化excel
         /// </summary>
         /// <param name="headerText">标题</param>
-        /// <param name="title">表头</param>
+        /// <param name="title1">表头列定义</param>
+        /// <param name="title2">表头列集合</param>
         /// <returns></returns>
         public static ExcelModel Init(string headerText, List<Dictionary<string, object>> title1, Dictionary<string, object> title2)
         {
@@ -123,7 +124,8 @@ namespace FastUntility.Base
         /// 初始化excel
         /// </summary>
         /// <param name="headerText">标题</param>
-        /// <param name="title">表头</param>
+        /// <param name="title1">表头列集合</param>
+        /// <param name="title2">子表头列定义（可选）</param>
         /// <returns></returns>
         public static ExcelModel Init(string headerText, Dictionary<string, object> title1, List<Dictionary<string, object>> title2 = null)
         {

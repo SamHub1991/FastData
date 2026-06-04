@@ -1,4 +1,4 @@
-﻿using System;
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -163,13 +163,15 @@ namespace FastData
         /// 批量增加
         /// </summary>
         /// <typeparam name="T">泛型</typeparam>
-        /// <param name="model">实体</param>
-        /// <param name="IsTrans">是否事务</param>
-        /// <returns></returns>
+        /// <param name="list">实体集合</param>
+        /// <param name="key">数据库连接键</param>
+        /// <param name="IsTrans">是否使用事务</param>
+        /// <param name="isLog">是否记录日志</param>
+        /// <returns>写入操作结果</returns>
         public static WriteReturn AddList<T>(List<T> list, string key = null, bool IsTrans = false, bool isLog = true) where T : class, new()
         {
             key = key ?? FastDb.CurrentKey;
-            var projectName = Assembly.GetCallingAssembly().GetName().Name;
+            var projectName = FastDb.GetProjectName();
             ConfigModel config = null;
             var result = new DataReturn<T>();
             var stopwatch = new Stopwatch();
@@ -190,14 +192,16 @@ namespace FastData
         }
         #endregion
 
-        #region 批量增加 asy
+        #region 批量增加 异步
         /// <summary>
-        /// 批量增加 asy
+        /// 批量增加（异步）
         /// </summary>
         /// <typeparam name="T">泛型</typeparam>
-        /// <param name="model">实体</param>
-        /// <param name="IsTrans">是否事务</param>
-        /// <returns></returns>
+        /// <param name="list">实体集合</param>
+        /// <param name="key">数据库连接键</param>
+        /// <param name="IsTrans">是否使用事务</param>
+        /// <param name="isLog">是否记录日志</param>
+        /// <returns>写入操作结果任务</returns>
         public static Task<WriteReturn> AddListAsy<T>(List<T> list, string key = null, bool IsTrans = false, bool isLog = true) where T : class, new()
         {
             return AsyncHelper.RunAsync(() => AddList<T>(list, key, IsTrans, isLog));
@@ -207,17 +211,18 @@ namespace FastData
 
         #region 增加
         /// <summary>
-        /// 增加
+        /// 增加单条记录
         /// </summary>
         /// <typeparam name="T">泛型</typeparam>
-        /// <param name="model">实体</param>
-        /// <param name="IsTrans">是否事务</param>
-        /// <param name="notAddField">不需要增加的字段</param>
-        /// <returns></returns>
+        /// <param name="model">实体对象</param>
+        /// <param name="db">数据上下文（可选）</param>
+        /// <param name="key">数据库连接键</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>写入操作结果</returns>
         public static WriteReturn Add<T>(T model, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
             key = key ?? FastDb.CurrentKey;
-            var projectName = Assembly.GetCallingAssembly().GetName().Name;
+            var projectName = FastDb.GetProjectName();
             ConfigModel config = null;
             var result = new DataReturn<T>();
             var stopwatch = new Stopwatch();
@@ -256,15 +261,16 @@ namespace FastData
         }
         #endregion
 
-        #region 增加 asy
+        #region 增加 异步
         /// <summary>
-        /// 增加 asy
+        /// 增加单条记录（异步）
         /// </summary>
         /// <typeparam name="T">泛型</typeparam>
-        /// <param name="model">实体</param>
-        /// <param name="IsTrans">是否事务</param>
-        /// <param name="notAddField">不需要增加的字段</param>
-        /// <returns></returns>
+        /// <param name="model">实体对象</param>
+        /// <param name="db">数据上下文（可选）</param>
+        /// <param name="key">数据库连接键</param>
+        /// <param name="isOutSql">是否输出SQL</param>
+        /// <returns>写入操作结果任务</returns>
         public static Task<WriteReturn> AddAsy<T>(T model, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
             return AsyncHelper.RunAsync(() => Add<T>(model, db, key, isOutSql));
@@ -274,12 +280,14 @@ namespace FastData
 
         #region 删除(Lambda表达式)
         /// <summary>
-        /// 删除(Lambda表达式)
+        /// 根据Lambda表达式条件删除记录
         /// </summary>
-        /// <typeparam name="T">泛型</typeparam>
-        /// <param name="predicate">表达式</param>
-        /// <param name="IsTrans">是否事务</param>
-        /// <returns></returns>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="predicate">Lambda条件表达式</param>
+        /// <param name="db">数据上下文（可选）</param>
+        /// <param name="key">数据库连接键（可选）</param>
+        /// <param name="isOutSql">是否输出SQL语句</param>
+        /// <returns>删除操作结果</returns>
         public static WriteReturn Delete<T>(Expression<Func<T, bool>> predicate, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
             // 软删除支持
@@ -289,7 +297,7 @@ namespace FastData
             }
 
             key = key ?? FastDb.CurrentKey;
-            var projectName = Assembly.GetCallingAssembly().GetName().Name;
+            var projectName = FastDb.GetProjectName();
             ConfigModel config = null;
             var result = new DataReturn<T>();
             var stopwatch = new Stopwatch();
@@ -337,7 +345,7 @@ namespace FastData
                 var example = new T();
                 if (db == null)
                 {
-                    using (var tempDb = new DataContext(key, Assembly.GetCallingAssembly().GetName().Name))
+                    using (var tempDb = new DataContext(key, FastDb.GetProjectName()))
                     {
                         var result = tempDb.Update(example, predicate, updateField);
                         return result.WriteReturn;
@@ -356,14 +364,16 @@ namespace FastData
         }
         #endregion
 
-        #region 删除(Lambda表达式)asy
+        #region 删除(Lambda表达式)异步
         /// <summary>
-        /// 删除(Lambda表达式)asy
+        /// 根据Lambda表达式条件删除记录（异步）
         /// </summary>
-        /// <typeparam name="T">泛型</typeparam>
-        /// <param name="predicate">表达式</param>
-        /// <param name="IsTrans">是否事务</param>
-        /// <returns></returns>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="predicate">Lambda条件表达式</param>
+        /// <param name="db">数据上下文（可选）</param>
+        /// <param name="key">数据库连接键（可选）</param>
+        /// <param name="isOutSql">是否输出SQL语句</param>
+        /// <returns>删除操作结果任务</returns>
         public static Task<WriteReturn> DeleteAsy<T>(Expression<Func<T, bool>> predicate, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
             return AsyncHelper.RunAsync(() => Delete<T>(predicate, db, key, isOutSql));
@@ -373,14 +383,19 @@ namespace FastData
 
         #region 删除
         /// <summary>
-        /// 删除
+        /// 根据实体对象删除记录
         /// </summary>
-        /// <param name="model"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="model">要删除的实体对象</param>
+        /// <param name="db">数据上下文（可选）</param>
+        /// <param name="key">数据库连接键（可选）</param>
+        /// <param name="isTrans">是否使用事务</param>
+        /// <param name="isOutSql">是否输出SQL语句</param>
+        /// <returns>删除操作结果</returns>
         public static WriteReturn Delete<T>(T model, DataContext db = null, string key = null, bool isTrans = false, bool isOutSql = false) where T : class, new()
         {
             key = key ?? FastDb.CurrentKey;
-            var projectName = Assembly.GetCallingAssembly().GetName().Name;
+            var projectName = FastDb.GetProjectName();
             ConfigModel config = null;
             var result = new DataReturn<T>();
             var stopwatch = new Stopwatch();
@@ -410,12 +425,18 @@ namespace FastData
         }
         #endregion
 
-        #region 删除asy
+        #region 删除 异步
         /// <summary>
-        /// 删除asy
+        /// 根据实体对象删除记录（异步）
         /// </summary>
-        /// <returns></returns>
-        public static Task<WriteReturn> UpdateAsy<T>(T model, DataContext db = null, string key = null, bool isTrans = false, bool isOutSql = false) where T : class, new()
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="model">要删除的实体对象</param>
+        /// <param name="db">数据上下文（可选）</param>
+        /// <param name="key">数据库连接键（可选）</param>
+        /// <param name="isTrans">是否使用事务</param>
+        /// <param name="isOutSql">是否输出SQL语句</param>
+        /// <returns>删除操作结果任务</returns>
+        public static Task<WriteReturn> DeleteAsy<T>(T model, DataContext db = null, string key = null, bool isTrans = false, bool isOutSql = false) where T : class, new()
         {
             return AsyncHelper.RunAsync(() => Delete<T>(model, db, key, isTrans, isOutSql));
         }
@@ -424,18 +445,20 @@ namespace FastData
 
         #region 修改(Lambda表达式)
         /// <summary>
-        /// 修改(Lambda表达式)
+        /// 根据Lambda表达式条件更新记录
         /// </summary>
-        /// <typeparam name="T">泛型</typeparam>
-        /// <param name="model">实体</param>
-        /// <param name="predicate">表达式</param>
-        /// <param name="IsTrans">是否事务</param>
-        /// <param name="field">需要修改的字段</param>
-        /// <returns></returns>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="model">包含更新数据的实体对象</param>
+        /// <param name="predicate">Lambda条件表达式</param>
+        /// <param name="field">需要更新的字段表达式（可选）</param>
+        /// <param name="db">数据上下文（可选）</param>
+        /// <param name="key">数据库连接键（可选）</param>
+        /// <param name="isOutSql">是否输出SQL语句</param>
+        /// <returns>更新操作结果</returns>
         public static WriteReturn Update<T>(T model, Expression<Func<T, bool>> predicate, Expression<Func<T, object>> field = null, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
             key = key ?? FastDb.CurrentKey;
-            var projectName = Assembly.GetCallingAssembly().GetName().Name;
+            var projectName = FastDb.GetProjectName();
             ConfigModel config = null;
             var result = new DataReturn<T>();
             var stopwatch = new Stopwatch();
@@ -471,16 +494,18 @@ namespace FastData
         }
         #endregion
 
-        #region 修改(Lambda表达式)asy
+        #region 修改(Lambda表达式)异步
         /// <summary>
-        /// 修改(Lambda表达式)asy
+        /// 根据Lambda表达式条件更新记录（异步）
         /// </summary>
-        /// <typeparam name="T">泛型</typeparam>
-        /// <param name="model">实体</param>
-        /// <param name="predicate">表达式</param>
-        /// <param name="IsTrans">是否事务</param>
-        /// <param name="field">需要修改的字段</param>
-        /// <returns></returns>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="model">包含更新数据的实体对象</param>
+        /// <param name="predicate">Lambda条件表达式</param>
+        /// <param name="field">需要更新的字段表达式（可选）</param>
+        /// <param name="db">数据上下文（可选）</param>
+        /// <param name="key">数据库连接键（可选）</param>
+        /// <param name="isOutSql">是否输出SQL语句</param>
+        /// <returns>更新操作结果任务</returns>
         public static Task<WriteReturn> UpdateAsy<T>(T model, Expression<Func<T, bool>> predicate, Expression<Func<T, object>> field = null, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
             return AsyncHelper.RunAsync(() => Update<T>(model, predicate, field, db, key, isOutSql));
@@ -490,14 +515,19 @@ namespace FastData
 
         #region 修改
         /// <summary>
-        /// 修改
+        /// 根据实体主键更新记录
         /// </summary>
-        /// <param name="model"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="model">包含更新数据的实体对象</param>
+        /// <param name="field">需要更新的字段表达式（可选）</param>
+        /// <param name="db">数据上下文（可选）</param>
+        /// <param name="key">数据库连接键（可选）</param>
+        /// <param name="isOutSql">是否输出SQL语句</param>
+        /// <returns>更新操作结果</returns>
         public static WriteReturn Update<T>(T model, Expression<Func<T, object>> field = null, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
             key = key ?? FastDb.CurrentKey;
-            var projectName = Assembly.GetCallingAssembly().GetName().Name;
+            var projectName = FastDb.GetProjectName();
             ConfigModel config = null;
             var result = new DataReturn<T>();
             var stopwatch = new Stopwatch();
@@ -527,11 +557,17 @@ namespace FastData
         }
         #endregion
 
-        #region 修改asy
+        #region 修改 异步
         /// <summary>
-        /// 修改asy
+        /// 根据实体主键更新记录（异步）
         /// </summary>
-        /// <returns></returns>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="model">包含更新数据的实体对象</param>
+        /// <param name="field">需要更新的字段表达式（可选）</param>
+        /// <param name="db">数据上下文（可选）</param>
+        /// <param name="key">数据库连接键（可选）</param>
+        /// <param name="isOutSql">是否输出SQL语句</param>
+        /// <returns>更新操作结果任务</returns>
         public static Task<WriteReturn> UpdateAsy<T>(T model, Expression<Func<T, object>> field = null, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
             return AsyncHelper.RunAsync(() => Update<T>(model, field, db, key, isOutSql));
@@ -539,16 +575,21 @@ namespace FastData
         #endregion
 
 
-        #region 修改list
+        #region 修改列表
         /// <summary>
-        /// 修改list
+        /// 批量更新实体列表
         /// </summary>
-        /// <param name="model"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="list">要更新的实体列表</param>
+        /// <param name="field">需要更新的字段表达式（可选）</param>
+        /// <param name="db">数据上下文（可选）</param>
+        /// <param name="key">数据库连接键（可选）</param>
+        /// <param name="isOutSql">是否输出SQL语句</param>
+        /// <returns>批量更新操作结果</returns>
         public static WriteReturn UpdateList<T>(List<T> list, Expression<Func<T, object>> field = null, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
             key = key ?? FastDb.CurrentKey;
-            var projectName = Assembly.GetCallingAssembly().GetName().Name;
+            var projectName = FastDb.GetProjectName();
             ConfigModel config = null;
             var result = new DataReturn<T>();
             var stopwatch = new Stopwatch();
@@ -578,11 +619,17 @@ namespace FastData
         }
         #endregion
 
-        #region 修改list asy
+        #region 修改列表 异步
         /// <summary>
-        /// 修改list asy
+        /// 批量更新实体列表（异步）
         /// </summary>
-        /// <returns></returns>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="list">要更新的实体列表</param>
+        /// <param name="field">需要更新的字段表达式（可选）</param>
+        /// <param name="db">数据上下文（可选）</param>
+        /// <param name="key">数据库连接键（可选）</param>
+        /// <param name="isOutSql">是否输出SQL语句</param>
+        /// <returns>批量更新操作结果任务</returns>
         public static Task<WriteReturn> UpdateListAsy<T>(List<T> list, Expression<Func<T, object>> field = null, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
             return AsyncHelper.RunAsync(() => UpdateList<T>(list, field, db, key, isOutSql));
@@ -603,7 +650,7 @@ namespace FastData
         public static WriteReturn ExecuteSql(string sql, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
             key = key ?? FastDb.CurrentKey;
-            var projectName = Assembly.GetCallingAssembly().GetName().Name;
+            var projectName = FastDb.GetProjectName();
             ConfigModel config = null;
             var result = new DataReturn();
             var stopwatch = new Stopwatch();
@@ -633,9 +680,9 @@ namespace FastData
         }
         #endregion
 
-        #region 执行sql asy
+        #region 执行sql 异步
         /// <summary>
-        /// 执行sql asy
+        /// 执行SQL语句（异步）
         /// </summary>
         /// <param name="sql">SQL语句</param>
         /// <param name="param">数据库参数数组</param>
@@ -664,7 +711,7 @@ namespace FastData
                 return new WriteReturn { IsSuccess = true };
 
             key = key ?? FastDb.CurrentKey;
-            var projectName = Assembly.GetCallingAssembly().GetName().Name;
+            var projectName = FastDb.GetProjectName();
             ConfigModel config = null;
             var result = new DataReturn();
             var stopwatch = new Stopwatch();
@@ -912,7 +959,7 @@ namespace FastData
                 return new WriteReturn { IsSuccess = true };
 
             key = key ?? FastDb.CurrentKey;
-            var projectName = Assembly.GetCallingAssembly().GetName().Name;
+            var projectName = FastDb.GetProjectName();
             ConfigModel config = null;
             var result = new DataReturn();
             var stopwatch = new Stopwatch();
@@ -961,7 +1008,7 @@ namespace FastData
                 throw new ArgumentNullException(nameof(predicate), "删除条件不能为空");
 
             key = key ?? FastDb.CurrentKey;
-            var projectName = Assembly.GetCallingAssembly().GetName().Name;
+            var projectName = FastDb.GetProjectName();
             ConfigModel config = null;
             var result = new DataReturn();
             var stopwatch = new Stopwatch();

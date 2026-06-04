@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using FastData.Config;
 using FastData.Queue;
 using FastRedis.Messaging;
 using FastRedis.Services;
@@ -32,10 +33,11 @@ namespace FastData.Demo.Controllers
                 {
                     if (_mqService == null)
                     {
+                        var redisConfig = FastDataConfig.GetRedisConfig();
                         var redis = new FullRedis
                         {
-                            Server = "127.0.0.1:6379",
-                            Db = 7,
+                            Server = redisConfig?.Server ?? "127.0.0.1:6379",
+                            Db = redisConfig?.Db ?? 7,
                             Timeout = 15000
                         };
                         _mqService = new MessageQueueIntegrationService(redis);

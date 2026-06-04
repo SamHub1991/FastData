@@ -1,4 +1,4 @@
-﻿using FastData.Model;
+using FastData.Model;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -32,7 +32,7 @@ namespace FastData.Check
         {
             try
             {
-                if (item.Config.DesignModel == FastData.Base.Config.CodeFirst)
+                if (item.Config.DesignModel == FastData.Base.DesignPatterns.CodeFirst)
                 {
                     var table = new TableModel();
 

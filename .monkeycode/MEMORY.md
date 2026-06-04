@@ -32,17 +32,24 @@
   - 工作完成后先汇报结果，等待用户确认是否提交
 
 **文档维护**
-- Date: 2026-06-01
-- Context: 项目文档最终整理完成
+- Date: 2026-06-02
+- Context: 用户明确要求极简且不重复
 - Instructions:
+  - **极简且不重复原则**：文档结构必须精简，避免内容重复
   - 每个子项目只保留一个 README.md
-  - 需求/设计/任务文档位于 .monkeycode/specs/
+  - 需求/设计/任务文档位于 .monkeycode/specs/（任务完成后删除）
   - 项目主文档为根目录 README.md，CHANGELOG.md 记录版本变更
   - MEMORY.md 只记录行为指令和项目知识（运维/构建/排错/协作/环境）
-  - 文档目录结构：
-    - docs/ - 技术文档（QUICK_START.md、FUTURE_IMPROVEMENTS.md等）
-    - FastData/DevTools/README.md - DevTools 工具文档
-    - .monkeycode/docs/ - 报告文档（IMPROVEMENTS_SUMMARY.md、FINAL_REPORT.md等）
+  - 禁止创建 .trae/specs/、.trae/documents/ 等冗余目录
+  - 禁止创建与 README.md 内容重复的快速开始/使用指南文档
+  - 禁止创建基于旧版本的审查报告（版本迭代后失效）
+  - 禁止创建临时性计划文档（问题修复后删除）
+  - 当前文档结构：
+    - README.md - 项目主文档
+    - CHANGELOG.md - 版本变更记录
+    - .monkeycode/MEMORY.md - 行为指令和项目知识
+    - 各子项目 README.md（FastData、FastData.Untility、FastData.Tests、FastData.Demo、FastData.Example、FastData.ModelGenerator.WinForms、FastData.SyncTool.WinForms）
+    - FastData/MODERN_ORM_FEATURES.md - 现代 ORM 特性详解
   - 中文输出，所有回复使用简体中文
 
 **git 提交排除项**
@@ -451,3 +458,31 @@
    - 代码审查时检查是否可以使用现有工具替代重复实现
    - 使用工具类可以提高代码一致性、健壮性和可维护性
    - 如果工具不满足需求，应该扩展现有工具而非重新实现
+
+**项目目标框架**
+- Date: 2026-06-02
+- Context: 用户明确要求 net452 兼容性，重构时未遵守导致使用了不兼容的包
+- Instructions:
+  - 项目支持多目标框架：net452;net6.0;net8.0;net10.0
+  - 任何修改都必须保持 net452 兼容性（这是最低要求）
+  - **禁止使用以下不兼容 net452 的 NuGet 包**：
+    - ❌ Microsoft.Data.SqlClient（要求 net46+）
+    - ❌ MySqlConnector 2.x（要求 net461+）
+    - ❌ Microsoft.Data.Sqlite（要求 net461+）
+  - **推荐使用以下 net452 兼容包**：
+    - ✅ System.Data.SqlClient（.NET Framework 内置）
+    - ✅ MySql.Data.MySqlClient（Oracle 官方）
+    - ✅ System.Data.SQLite（官方）
+    - ✅ Npgsql 4.0.x（4.x 最后一个支持 net45 的版本）
+  - 任何引入新 NuGet 包前必须查阅官方 NuGet 页面确认最低框架要求
+  - 禁止凭印象或习惯做决定，必须先验证
+
+**变更谨慎**
+- Date: 2026-06-02
+- Context: 重构时擅自替换了 SqlServer 驱动名称导致 net452 不兼容
+- Instructions:
+  - 对于已实现且运行正确的功能，重构前必须确认变更不会破坏 net452 兼容性
+  - 替换 API、包名、配置名称时必须查阅官方文档
+  - 用户已明确的项目结构（如 TargetFrameworks）不得擅改
+  - 不确定时先问用户，不要自作主张
+  - 重构后必须实际在最低目标框架（net452）上构建验证

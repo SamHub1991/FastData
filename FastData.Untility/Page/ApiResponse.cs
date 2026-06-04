@@ -1,4 +1,5 @@
 using System;
+using FastUntility.Base;
 
 namespace FastUntility.Page
 {
@@ -26,7 +27,7 @@ namespace FastUntility.Page
         /// <summary>
         /// 时间戳
         /// </summary>
-        public long Timestamp { get; set; } = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        public long Timestamp { get; set; } = FrameworkCompat.ToUnixTimeMilliseconds(DateTimeOffset.UtcNow);
 
         /// <summary>
         /// 请求 ID

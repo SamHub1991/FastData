@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net452;net6.0;net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks>net452;net8.0;net10.0</TargetFrameworks>
     <AssemblyName>FastData.Untility</AssemblyName>
     <RootNamespace>FastData.Untility</RootNamespace>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -39,27 +39,33 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Xml" />
     <!-- net452 专用 NuGet 包 -->
-    <PackageReference Include="RestSharp" Version="106.15.0" />
-    <PackageReference Include="NPOI" Version="2.5.6" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="Microsoft.AspNet.WebApi.Client" Version="5.2.9" />
-    <PackageReference Include="Microsoft.AspNet.WebApi.Core" Version="5.2.9" />
-    <PackageReference Include="Microsoft.AspNet.WebApi.SelfHost" Version="5.2.9" />
-    <PackageReference Include="Microsoft.Win32Ex" Version="1.2.0.0" />
-    <PackageReference Include="NServiceKit.Redis" Version="1.0.17" />
-    <PackageReference Include="NServiceKit.Common" Version="1.0.31" />
-    <PackageReference Include="NServiceKit.Text" Version="1.0.10" />
+    <PackageReference Include="RestSharp">
+      <VersionOverride>106.15.0</VersionOverride>
+    </PackageReference>
+    <PackageReference Include="NPOI">
+      <VersionOverride>2.5.6</VersionOverride>
+    </PackageReference>
+    <PackageReference Include="Newtonsoft.Json" />
+    <PackageReference Include="Microsoft.AspNet.WebApi.Client" />
+    <PackageReference Include="Microsoft.AspNet.WebApi.Core" />
+    <PackageReference Include="Microsoft.AspNet.WebApi.SelfHost" />
+    <PackageReference Include="Microsoft.Win32Ex" />
+    <PackageReference Include="NServiceKit.Redis" />
+    <PackageReference Include="NServiceKit.Common" />
+    <PackageReference Include="NServiceKit.Text" />
+    <!-- 元组语法支持（net452 缺失） -->
+    <PackageReference Include="System.ValueTuple" />
   </ItemGroup>
 
-  <!-- .NET 6/8/10 专用包引用 -->
+  <!-- .NET 8/10 专用包引用 -->
   <ItemGroup Condition="'$(TargetFramework)' != 'net452'">
-    <PackageReference Include="RestSharp" Version="108.0.0" />
-    <PackageReference Include="System.Text.Json" Version="8.0.0" />
-    <PackageReference Include="NPOI" Version="2.7.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.0" />
-    <PackageReference Include="System.Configuration.ConfigurationManager" Version="8.0.0" />
-    <PackageReference Include="NewLife.Redis" Version="6.0.2024.1006" />
+    <PackageReference Include="RestSharp" />
+    <PackageReference Include="System.Text.Json" />
+    <PackageReference Include="NPOI" />
+    <PackageReference Include="Newtonsoft.Json" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" />
+    <PackageReference Include="NewLife.Redis" />
   </ItemGroup>
 
   <!-- BasePdf.cs 依赖 SelectPdf，暂不包含 -->

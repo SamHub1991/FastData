@@ -1,4 +1,4 @@
-﻿using FastData.Context;
+using FastData.Context;
 using FastData.Model;
 using FastUntility.Base;
 using System;
@@ -51,8 +51,8 @@ namespace FastData.Base
 
             if (db != null)
             {
-                flag = db.config.Flag;
-                cacheType = db.config.CacheType;
+                flag = db.Config.Flag;
+                cacheType = db.Config.CacheType;
             }
             else if (key != null)
             {
@@ -981,7 +981,7 @@ namespace FastData.Base
         {
             if (query.Config.SqlErrorType.ToLower() == SqlErrorType.Db)
             {
-                query.Config.DesignModel = FastData.Base.Config.CodeFirst;
+                query.Config.DesignModel = FastData.Base.DesignPatterns.CodeFirst;
                 if (query.Config.DbType == DataDbType.Oracle)
                 {
                     var listInfo = typeof(FastData.DataModel.Oracle.Data_LogError).GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly).ToList();

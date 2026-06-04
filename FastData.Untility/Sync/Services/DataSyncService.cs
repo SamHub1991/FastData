@@ -7,50 +7,151 @@ using System.Xml;
 
 namespace FastData.Tooling.Sync
 {
+    /// <summary>
+    /// 数据同步日志级别
+    /// </summary>
+    public enum SyncLogLevel
+    {
+        Info,
+        Warn,
+        Error,
+        Debug
+    }
+
+    /// <summary>
+    /// 数据同步日志回调
+    /// </summary>
     public class DataSyncService
     {
+        /// <summary>
+        /// 日志回调函数，外部可注入自定义日志处理逻辑
+        /// </summary>
+        public Action<SyncLogLevel, string> LogCallback { get; set; }
+
+        /// <summary>
+        /// 写入日志
+        /// </summary>
+        private void Log(SyncLogLevel level, string message)
+        {
+            var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
+            var fullMessage = string.Format("[{0}] [{1}] {2}", timestamp, level.ToString().ToUpperInvariant(), message);
+            
+            // 调用外部回调
+            LogCallback?.Invoke(level, fullMessage);
+            
+            // 同时输出到 Debug 输出窗口
+            System.Diagnostics.Debug.WriteLine(fullMessage);
+        }
+
+        /// <summary>
+        /// 同步单个表的数据
+        /// </summary>
+        /// <param name="options">同步选项</param>
+        /// <returns>同步结果</returns>
         public DataSyncResult SyncTable(DataSyncOptions options)
         {
             if (options == null)
                 throw new ArgumentNullException("options");
 
+            Log(SyncLogLevel.Info, string.Format("========== 开始同步任务 =========="));
+            Log(SyncLogLevel.Info, string.Format("任务ID: {0}", string.IsNullOrWhiteSpace(options.TaskId) ? options.SourceTable + "_to_" + options.TargetTable : options.TaskId));
+            Log(SyncLogLevel.Info, string.Format("源表: {0} -> 目标表: {1}", options.SourceTable, options.TargetTable));
+            Log(SyncLogLevel.Info, string.Format("同步模式: {0}", options.EnableTimeRange ? "时间范围增量" : (options.IsAutoIncrementKey ? "主键增量" : "全量同步")));
+            Log(SyncLogLevel.Info, string.Format("去重模式: {0}", options.AlwaysDeduplicate ? "是（逐行插入/更新）" : "否（批量插入）"));
+            Log(SyncLogLevel.Info, string.Format("批次大小: {0}", options.BatchSize <= 0 ? 500 : options.BatchSize));
+            Log(SyncLogLevel.Info, string.Format("最大重试次数: {0}", options.RetryCount < 0 ? 0 : options.RetryCount));
+
+            var syncStartTime = DateTime.Now;
             ValidateOptions(options);
             var batchSize = options.BatchSize <= 0 ? 500 : options.BatchSize;
             var maxRetryCount = options.RetryCount < 0 ? 0 : options.RetryCount;
             var taskId = string.IsNullOrWhiteSpace(options.TaskId) ? options.SourceTable + "_to_" + options.TargetTable : options.TaskId;
+
+            // 步骤 1: 创建中间库表结构
             if (options.AutoCreateIntermediateSchema)
+            {
+                Log(SyncLogLevel.Info, "[步骤 1/7] 正在创建中间库表结构...");
                 CreateIntermediateSchema(options);
+                Log(SyncLogLevel.Info, "[步骤 1/7] 中间库表结构创建完成");
+            }
+            else
+            {
+                Log(SyncLogLevel.Debug, "[步骤 1/7] 跳过中间库表结构创建");
+            }
 
-            // 应用全局配置
+            // 步骤 2: 应用全局配置
+            Log(SyncLogLevel.Info, "[步骤 2/7] 应用同步配置...");
             ApplyGlobalConfig(options);
+            Log(SyncLogLevel.Info, string.Format("[步骤 2/7] 配置应用完成 - 时间范围: {0}天, 去重: {1}", options.RangeDays, options.AlwaysDeduplicate ? "是" : "否"));
 
+            // 步骤 3: 从源库读取数据
             var table = new DataTable();
+            var sourceSql = string.Empty;
+            Log(SyncLogLevel.Info, "[步骤 3/7] 正在连接源数据库并读取数据...");
             using (var source = CreateConnection(options.SourceProvider, options.SourceConnectionString))
             using (var command = source.CreateCommand())
             {
+                Log(SyncLogLevel.Debug, string.Format("源库Provider: {0}", options.SourceProvider));
+                Log(SyncLogLevel.Debug, string.Format("源库连接状态: 准备连接"));
+                
                 source.Open();
-                command.CommandText = BuildSourceSql(options, command);
+                Log(SyncLogLevel.Debug, "源库连接成功");
+
+                sourceSql = BuildSourceSql(options, command);
+                command.CommandText = sourceSql;
+                Log(SyncLogLevel.Info, string.Format("执行查询SQL: {0}", sourceSql));
+                if (command.Parameters.Count > 0)
+                {
+                    foreach (DbParameter param in command.Parameters)
+                    {
+                        Log(SyncLogLevel.Debug, string.Format("SQL参数: {0} = {1}", param.ParameterName, param.Value));
+                    }
+                }
+
                 using (var reader = command.ExecuteReader())
                 {
                     table.Load(reader);
                 }
+                Log(SyncLogLevel.Info, string.Format("[步骤 3/7] 数据读取完成，共 {0} 行", table.Rows.Count));
             }
 
+            // 步骤 4: 连接目标库并执行同步
             var writeCount = 0;
             var failedCount = 0;
             var retryCount = 0;
             var recoveredCount = 0;
+            
+            Log(SyncLogLevel.Info, "[步骤 4/7] 正在连接目标数据库...");
             using (var target = CreateConnection(options.TargetProvider, options.TargetConnectionString))
             {
+                Log(SyncLogLevel.Debug, string.Format("目标库Provider: {0}", options.TargetProvider));
                 target.Open();
+                Log(SyncLogLevel.Info, "[步骤 4/7] 目标库连接成功");
 
+                // 步骤 5: 恢复失败记录
                 if (options.ResumeFailedRecords)
+                {
+                    Log(SyncLogLevel.Info, "[步骤 5/7] 正在恢复历史失败记录...");
                     recoveredCount = ResumeFailedRecords(options, target, maxRetryCount);
+                    Log(SyncLogLevel.Info, string.Format("[步骤 5/7] 失败记录恢复完成，成功恢复 {0} 条", recoveredCount));
+                }
+                else
+                {
+                    Log(SyncLogLevel.Debug, "[步骤 5/7] 跳过失败记录恢复");
+                }
 
+                // 步骤 6: 同步数据行
+                Log(SyncLogLevel.Info, "[步骤 6/7] 开始同步数据行...");
                 var batchRows = new List<DataRow>();
+                var processedRows = 0;
+                var batchIndex = 0;
+
                 foreach (DataRow row in table.Rows)
                 {
+                    processedRows++;
                     int rowRetryCount = 0;
+                    
+                    // 去重模式：逐行插入
                     if (options.AlwaysDeduplicate && !string.IsNullOrEmpty(options.PrimaryKeyColumns))
                     {
                         if (TryInsertRowWithDedup(target, options.TargetTable, table, row, maxRetryCount, out rowRetryCount, options.PrimaryKeyColumns))
@@ -58,6 +159,7 @@ namespace FastData.Tooling.Sync
                         else
                         {
                             failedCount++;
+                            Log(SyncLogLevel.Warn, string.Format("行插入失败 (行 {0}/{1})，已保存到失败记录", processedRows, table.Rows.Count));
                             SaveFailedRecord(options, taskId, table, row);
                         }
                     }
@@ -67,70 +169,105 @@ namespace FastData.Tooling.Sync
                         batchRows.Add(row);
                         if (batchRows.Count >= batchSize)
                         {
+                            batchIndex++;
+                            Log(SyncLogLevel.Debug, string.Format("执行批量插入 批次 #{0}，共 {1} 行", batchIndex, batchRows.Count));
                             try
                             {
                                 InsertRowBatch(target, options.TargetTable, table, batchRows);
                                 writeCount += batchRows.Count;
+                                Log(SyncLogLevel.Debug, string.Format("批量插入 批次 #{0} 成功", batchIndex));
                             }
                             catch (Exception ex)
                             {
-                                System.Diagnostics.Debug.WriteLine(string.Format("Batch insert failed, falling back to row-by-row: {0}", ex.Message));
+                                Log(SyncLogLevel.Warn, string.Format("批量插入 批次 #{0} 失败，降级为逐行插入: {1}", batchIndex, ex.Message));
                                 // 批量失败则逐行重试
+                                var rowSuccessCount = 0;
+                                var rowFailedCount = 0;
                                 foreach (var batchRow in batchRows)
                                 {
                                     try
                                     {
                                         InsertRow(target, options.TargetTable, table, batchRow);
                                         writeCount++;
+                                        rowSuccessCount++;
                                     }
                                     catch (Exception rowEx)
                                     {
-                                        System.Diagnostics.Debug.WriteLine(string.Format("Row insert failed: {0}", rowEx.Message));
+                                        Log(SyncLogLevel.Error, string.Format("逐行插入失败: {0}", rowEx.Message));
                                         failedCount++;
+                                        rowFailedCount++;
                                         SaveFailedRecord(options, taskId, table, batchRow);
                                     }
                                 }
+                                Log(SyncLogLevel.Info, string.Format("逐行降级完成: 成功 {0} 行，失败 {1} 行", rowSuccessCount, rowFailedCount));
                             }
                             batchRows.Clear();
                         }
                     }
 
                     retryCount += rowRetryCount;
+
+                    // 每处理 1000 行打印一次进度
+                    if (processedRows % 1000 == 0)
+                    {
+                        Log(SyncLogLevel.Info, string.Format("同步进度: 已处理 {0}/{1} 行，已写入 {2} 行，失败 {3} 行", 
+                            processedRows, table.Rows.Count, writeCount, failedCount));
+                    }
                 }
 
                 // 处理剩余批次
+                Log(SyncLogLevel.Info, string.Format("[步骤 6/7] 数据处理完成，正在处理剩余 {0} 行...", batchRows.Count));
                 if (batchRows.Count > 0 && !options.AlwaysDeduplicate)
                 {
+                    batchIndex++;
+                    Log(SyncLogLevel.Debug, string.Format("执行最终批量插入 批次 #{0}，共 {1} 行", batchIndex, batchRows.Count));
                     try
                     {
                         InsertRowBatch(target, options.TargetTable, table, batchRows);
                         writeCount += batchRows.Count;
+                        Log(SyncLogLevel.Debug, string.Format("最终批量插入 批次 #{0} 成功", batchIndex));
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine(string.Format("Final batch insert failed, falling back to row-by-row: {0}", ex.Message));
+                        Log(SyncLogLevel.Warn, string.Format("最终批量插入 批次 #{0} 失败，降级为逐行插入: {1}", batchIndex, ex.Message));
                         // 批量失败则逐行重试
+                        var rowSuccessCount = 0;
+                        var rowFailedCount = 0;
                         foreach (var batchRow in batchRows)
                         {
                             try
                             {
                                 InsertRow(target, options.TargetTable, table, batchRow);
                                 writeCount++;
+                                rowSuccessCount++;
                             }
                             catch (Exception rowEx)
                             {
-                                System.Diagnostics.Debug.WriteLine(string.Format("Final row insert failed: {0}", rowEx.Message));
+                                Log(SyncLogLevel.Error, string.Format("最终逐行插入失败: {0}", rowEx.Message));
                                 failedCount++;
+                                rowFailedCount++;
                                 SaveFailedRecord(options, taskId, table, batchRow);
                             }
                         }
+                        Log(SyncLogLevel.Info, string.Format("最终逐行降级完成: 成功 {0} 行，失败 {1} 行", rowSuccessCount, rowFailedCount));
                     }
                 }
 
+                // 步骤 7: 清理中间库数据
                 if (options.CleanIntermediateData)
+                {
+                    Log(SyncLogLevel.Info, "[步骤 7/7] 正在清理中间库成功记录...");
                     CleanIntermediateData(options);
+                    Log(SyncLogLevel.Info, "[步骤 7/7] 中间库清理完成");
+                }
+                else
+                {
+                    Log(SyncLogLevel.Debug, "[步骤 7/7] 跳过中间库清理");
+                }
             }
 
+            // 计算同步结果
+            var syncDuration = DateTime.Now - syncStartTime;
             var result = new DataSyncResult
             {
                 ReadCount = table.Rows.Count,
@@ -138,24 +275,34 @@ namespace FastData.Tooling.Sync
                 FailedCount = failedCount,
                 RetryCount = retryCount,
                 RecoveredCount = recoveredCount,
-                Message = string.Format("同步完成 [去重模式：{0}]", options.AlwaysDeduplicate ? "是" : "否"),
+                Message = string.Format("同步完成 [读取 {0} 行，写入 {1} 行，失败 {2} 行，重试 {3} 次，恢复 {4} 条] [耗时 {5:F1}秒] [去重模式：{6}]",
+                    table.Rows.Count, writeCount, failedCount, retryCount, recoveredCount, syncDuration.TotalSeconds, options.AlwaysDeduplicate ? "是" : "否"),
                 MaxPkValue = GetMaxPrimaryKeyValueFromDb(options.SourceProvider, options.SourceConnectionString, options.SourceTable, options.PrimaryKeyColumns)
                     ?? GetMaxPrimaryKeyValue(table, options.PrimaryKeyColumns)
             };
 
+            // 更新同步时间
             var syncTime = DateTime.Now;
             if (options.ConfigManager != null && !string.IsNullOrEmpty(options.TaskId))
             {
                 if (options.EnableTimeRange && result.ReadCount > 0)
                 {
                     options.ConfigManager.UpdateLastSyncTime(options.TaskId, syncTime);
+                    Log(SyncLogLevel.Debug, string.Format("已更新任务同步时间 (时间范围模式): {0}", syncTime.ToString("yyyy-MM-dd HH:mm:ss")));
                 }
                 else if (!options.EnableTimeRange && result.MaxPkValue.HasValue)
                 {
                     var dt = DateTime.MinValue.AddTicks(result.MaxPkValue.Value);
                     options.ConfigManager.UpdateLastSyncTime(options.TaskId, dt);
+                    Log(SyncLogLevel.Debug, string.Format("已更新任务同步时间 (主键增量模式): {0} (Ticks: {1})", dt.ToString("yyyy-MM-dd HH:mm:ss"), result.MaxPkValue.Value));
                 }
             }
+
+            Log(SyncLogLevel.Info, string.Format("========== 同步任务完成 =========="));
+            Log(SyncLogLevel.Info, string.Format("最终统计: 读取 {0} 行，成功写入 {1} 行，失败 {2} 行", result.ReadCount, result.WriteCount, result.FailedCount));
+            Log(SyncLogLevel.Info, string.Format("重试统计: 重试 {0} 次，恢复 {1} 条失败记录", result.RetryCount, result.RecoveredCount));
+            Log(SyncLogLevel.Info, string.Format("耗时统计: {0:F1} 秒", syncDuration.TotalSeconds));
+            Log(SyncLogLevel.Info, string.Format("源SQL: {0}", sourceSql));
 
             return result;
         }

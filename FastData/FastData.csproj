@@ -1,7 +1,7 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net452;net6.0;net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks>net452;net8.0;net10.0</TargetFrameworks>
     <AssemblyName>FastData</AssemblyName>
     <RootNamespace>FastData</RootNamespace>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -30,13 +30,14 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
 
-  <!-- .NET 6/8/10 专用包引用 -->
+  <!-- .NET 8/10 专用包引用 -->
   <ItemGroup Condition="'$(TargetFramework)' != 'net452'">
-    <PackageReference Include="System.Configuration.ConfigurationManager" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.0" />
-    <PackageReference Include="System.CodeDom" Version="8.0.0" />
-    <PackageReference Include="System.Runtime.Caching" Version="8.0.0" />
-    <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
+    <PackageReference Include="System.CodeDom" />
+    <PackageReference Include="System.Runtime.Caching" />
+    <PackageReference Include="System.ComponentModel.Annotations" />
+    <PackageReference Include="Microsoft.Data.Sqlite" />
   </ItemGroup>
 
   <!-- 项目引用 -->
@@ -44,9 +45,10 @@
     <ProjectReference Include="..\FastData.Untility\FastData.Untility.csproj" />
   </ItemGroup>
 
-  <!-- 排除 DevTools 目录（临时） -->
+  <!-- 排除 DevTools 目录（临时，排除有编译错误的文件），保留 PerformanceProfiler -->
   <ItemGroup>
     <Compile Remove="DevTools\**" />
+    <Compile Include="DevTools\PerformanceProfiler.cs" />
   </ItemGroup>
 
   <!-- 排除 net452 的 Queue 目录 -->

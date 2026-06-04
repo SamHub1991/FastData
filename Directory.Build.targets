@@ -9,6 +9,6 @@
       dotnet build -p:BuildPlatform=windows  # Windows 全目标构建
   -->
   <PropertyGroup Condition="'$(BuildPlatform)' == 'cross' And '$(TargetFrameworks)' != '' And '$(UseWindowsForms)' != 'true' And '$(UseWPF)' != 'true'">
-    <TargetFrameworks>net6.0;net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
   </PropertyGroup>
 </Project>

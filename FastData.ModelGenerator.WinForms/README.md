@@ -6,7 +6,6 @@
 
 | 框架 | 说明 |
 |------|------|
-| net6.0-windows | .NET 6 Windows Desktop |
 | net8.0-windows | .NET 8 Windows Desktop |
 | net10.0-windows | .NET 10 Windows Desktop |
 

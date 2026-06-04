@@ -103,7 +103,7 @@ namespace FastData
         public static void InstanceProperties(string nameSpace, string dbFile = "db.config", IFastAop aop = null)
         {
             fastAop = aop;
-            var projectName = Assembly.GetCallingAssembly().GetName().Name;
+            var projectName = FastDb.GetProjectName();
             FastRedis.RedisInfo.Init(dbFile, projectName);
             var config = DataConfig.GetConfig(null, projectName, dbFile);
             var assembly = AppDomain.CurrentDomain.GetAssemblies().ToList().Find(a => a.FullName.Split(',')[0] == projectName);
@@ -141,7 +141,7 @@ namespace FastData
         public static void InstanceTable(string nameSpace, string dbKey = null, string dbFile = "db.config", IFastAop aop = null)
         {
             fastAop = aop;
-            var projectName = Assembly.GetCallingAssembly().GetName().Name;
+            var projectName = FastDb.GetProjectName();
             FastRedis.RedisInfo.Init(dbFile, projectName);
             var query = new DataQuery();
             query.Config = DataConfig.GetConfig(dbKey, projectName, dbFile);
@@ -166,7 +166,7 @@ namespace FastData
         public static void InstanceMapResource(string dbKey = null, string dbFile = "db.config", string mapFile = "SqlMap.config", IFastAop aop =null)
         {
             fastAop = aop;
-            var projectName = Assembly.GetCallingAssembly().GetName().Name;
+            var projectName = FastDb.GetProjectName();
             FastRedis.RedisInfo.Init(dbFile, projectName);
             var config = DataConfig.GetConfig(dbKey, projectName, dbFile);
             using (var db = new DataContext(dbKey))
@@ -253,7 +253,7 @@ namespace FastData
 
                 if (config.IsMapSave)
                 {
-                    query.Config.DesignModel = FastData.Base.Config.CodeFirst;
+                    query.Config.DesignModel = FastData.Base.DesignPatterns.CodeFirst;
                     if (query.Config.DbType == DataDbType.Oracle)
                     {
                         var listInfo = typeof(FastData.DataModel.Oracle.Data_MapFile).GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly).ToList();

@@ -100,8 +100,8 @@ namespace FastData.Example.Example
                 // 应用条件查询
                 var users = FastRead.Query<User>(u => u.Id > 0)
                     .Where(where)
-                    .OrderBy<User>(u => u.CreateTime)
-                    .ToPage<User>(new PageModel { PageId = 1, PageSize = 10 });
+                    .OrderBy(u => u.CreateTime)
+                    .ToPage(new PageModel { PageId = 1, PageSize = 10 });
 
                 Console.WriteLine($"  搜索条件: 姓名含'{searchName}', 年龄>={minAge}, 状态=活跃");
                 Console.WriteLine($"  结果: {users.list.Count} 条, 总计 {users.pModel.TotalRecord} 条");
@@ -114,8 +114,8 @@ namespace FastData.Example.Example
 
                 var vipUsers = FastRead.Query<User>(u => u.Id > 0)
                     .Where(vipWhere)
-                    .OrderByDescending<User>(u => u.Salary)
-                    .ToList<User>();
+                    .OrderByDescending(u => u.Salary)
+                    .ToList();
 
                 Console.WriteLine($"  VIP用户数: {vipUsers.Count}");
             }
@@ -187,7 +187,7 @@ namespace FastData.Example.Example
             {
                 // 1. FirstOrDefault - 获取最新用户（可能无数据）
                 var latestUser = FastRead.Query<User>(u => u.IsActive)
-                    .OrderByDescending<User>(u => u.CreateTime)
+                    .OrderByDescending(u => u.CreateTime)
                     .FirstOrDefault();
 
                 if (latestUser != null)
@@ -203,7 +203,7 @@ namespace FastData.Example.Example
                 try
                 {
                     var firstUser = FastRead.Query<User>(u => u.IsActive)
-                        .OrderBy<User>(u => u.Id)
+                        .OrderBy(u => u.Id)
                         .First();
                     Console.WriteLine($"  第一个活跃用户: {firstUser.UserName}");
                 }
@@ -225,7 +225,7 @@ namespace FastData.Example.Example
 
                 // 4. 查询指定用户的订单
                 var userOrders = FastRead.Query<Order>(o => o.UserId == 1)
-                    .OrderByDescending<Order>(o => o.CreateTime)
+                    .OrderByDescending(o => o.CreateTime)
                     .Take(3)
                     .ToList<Order>();
 
@@ -262,14 +262,14 @@ namespace FastData.Example.Example
             {
                 // 1. ToList - 获取活跃用户列表
                 var activeUsers = FastRead.Query<User>(u => u.IsActive)
-                    .ToList<User>();
+                    .ToList();
                 var activeUserIds = activeUsers.Select(u => u.Id).ToArray();
 
                 Console.WriteLine($"  活跃用户ID数组: [{string.Join(", ", activeUserIds.Take(5))}...]");
 
                 // 2. 批量处理场景：获取待处理订单ID数组
                 var pendingOrders = FastRead.Query<Order>(o => o.Status == 0)
-                    .ToList<User>();
+                    .ToList();
                 var pendingOrderIds = pendingOrders.Select(o => o.Id).ToArray();
 
                 Console.WriteLine($"  待处理订单ID数组: [{string.Join(", ", pendingOrderIds.Take(5))}...]");

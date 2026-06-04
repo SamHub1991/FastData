@@ -125,7 +125,7 @@ namespace FastData.Example.Example
             {
                 // 1. 导出活跃用户为 JSON
                 var userJson = FastRead.Query<User>(u => u.IsActive)
-                    .OrderBy<User>(u => u.Id)
+                    .OrderBy(u => u.Id)
                     .Take(10)
                     .ToJson();
 
@@ -133,7 +133,7 @@ namespace FastData.Example.Example
 
                 // 2. 导出订单统计为 JSON
                 var orderJson = FastRead.Query<Order>(o => o.Status == 1)
-                    .OrderBy<User>(o => o.CreateTime)
+                    .OrderBy(o => o.CreateTime)
                     .Take(5)
                     .ToJson();
 
@@ -175,7 +175,7 @@ namespace FastData.Example.Example
             {
                 // 1. 导出为字典列表（适合动态列场景）
                 var userDics = FastRead.Query<User>(u => u.IsActive)
-                    .OrderBy<User>(u => u.Id)
+                    .OrderBy(u => u.Id)
                     .Take(5)
                     .ToDics();
 
@@ -220,7 +220,7 @@ namespace FastData.Example.Example
             {
                 // 1. 导出为 DataTable（适合 Excel 导出）
                 var dt = FastRead.Query<User>(u => u.IsActive)
-                    .OrderBy<User>(u => u.Id)
+                    .OrderBy(u => u.Id)
                     .Take(10)
                     .ToDataTable();
 

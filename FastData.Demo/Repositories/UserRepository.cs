@@ -32,7 +32,7 @@ namespace FastData.Demo.Repositories
 
         public async Task<List<AppUser>> GetAllAsync()
         {
-            return await Task.Run(() =>
+            return await Task.Factory.StartNew(() =>
                 FastRead.Query<AppUser>(u => u.Id > 0, key: _key)
                     .OrderBy(u => u.Id)
                     .ToList<AppUser>());
@@ -40,21 +40,21 @@ namespace FastData.Demo.Repositories
 
         public async Task<AppUser> GetByIdAsync(int id)
         {
-            return await Task.Run(() =>
+            return await Task.Factory.StartNew(() =>
                 FastRead.Query<AppUser>(u => u.Id == id, key: _key)
                     .ToItem<AppUser>());
         }
 
         public async Task<List<AppUser>> GetByDepartmentAsync(string department)
         {
-            return await Task.Run(() =>
+            return await Task.Factory.StartNew(() =>
                 FastRead.Query<AppUser>(u => u.Department == department, key: _key)
                     .ToList<AppUser>());
         }
 
         public async Task<List<AppUser>> GetActiveUsersAsync()
         {
-            return await Task.Run(() =>
+            return await Task.Factory.StartNew(() =>
                 FastRead.Query<AppUser>(u => u.IsActive == true, key: _key)
                     .ToList<AppUser>());
         }
@@ -63,28 +63,28 @@ namespace FastData.Demo.Repositories
         {
             user.CreateTime = DateTime.Now;
             user.IsActive = true;
-            var result = await Task.Run(() => FastWrite.Add(user, key: _key));
+            var result = await Task.Factory.StartNew(() => FastWrite.Add(user, key: _key));
             return (result.IsSuccess, result.Message);
         }
 
         public async Task<(bool Success, string Message)> UpdateAsync(AppUser user)
         {
             user.UpdateTime = DateTime.Now;
-            var result = await Task.Run(() =>
+            var result = await Task.Factory.StartNew(() =>
                 FastWrite.Update(user, a => new { a.UserName, a.Email, a.Phone, a.Age, a.Department, a.Salary, a.UpdateTime }, key: _key));
             return (result.IsSuccess, result.Message);
         }
 
         public async Task<(bool Success, string Message)> DeleteAsync(int id)
         {
-            var result = await Task.Run(() =>
+            var result = await Task.Factory.StartNew(() =>
                 FastWrite.Delete<AppUser>(a => a.Id == id, key: _key));
             return (result.IsSuccess, result.Message);
         }
 
         public async Task<PageResult<AppUser>> GetPagedAsync(int pageIndex, int pageSize)
         {
-            return await Task.Run(() =>
+            return await Task.Factory.StartNew(() =>
                 FastRead.Query<AppUser>(u => u.Id > 0, key: _key)
                     .OrderBy(u => u.Id)
                     .ToPage<AppUser>(new PageModel { PageId = pageIndex, PageSize = pageSize }));
@@ -113,7 +113,7 @@ namespace FastData.Demo.Repositories
 
         public async Task<List<AppOrder>> GetAllAsync()
         {
-            return await Task.Run(() =>
+            return await Task.Factory.StartNew(() =>
                 FastRead.Query<AppOrder>(o => o.Id > 0, key: _key)
                     .OrderByDescending(o => o.Id)
                     .ToList<AppOrder>());
@@ -121,14 +121,14 @@ namespace FastData.Demo.Repositories
 
         public async Task<AppOrder> GetByIdAsync(int id)
         {
-            return await Task.Run(() =>
+            return await Task.Factory.StartNew(() =>
                 FastRead.Query<AppOrder>(o => o.Id == id, key: _key)
                     .ToItem<AppOrder>());
         }
 
         public async Task<List<AppOrder>> GetByUserIdAsync(int userId)
         {
-            return await Task.Run(() =>
+            return await Task.Factory.StartNew(() =>
                 FastRead.Query<AppOrder>(o => o.UserId == userId, key: _key)
                     .OrderByDescending(o => o.CreateTime)
                     .ToList<AppOrder>());
@@ -136,7 +136,7 @@ namespace FastData.Demo.Repositories
 
         public async Task<List<AppOrder>> GetByStatusAsync(int status)
         {
-            return await Task.Run(() =>
+            return await Task.Factory.StartNew(() =>
                 FastRead.Query<AppOrder>(o => o.Status == status, key: _key)
                     .ToList<AppOrder>());
         }
@@ -146,7 +146,7 @@ namespace FastData.Demo.Repositories
             order.CreateTime = DateTime.Now;
             order.Status = 0;
             order.OrderNo = $"ORD{DateHelper.GetTimestamp()}{_random.Next(1000, 9999)}";
-            var result = await Task.Run(() => FastWrite.Add(order, key: _key));
+            var result = await Task.Factory.StartNew(() => FastWrite.Add(order, key: _key));
             return (result.IsSuccess, result.Message, order.OrderNo);
         }
 
@@ -157,7 +157,7 @@ namespace FastData.Demo.Repositories
 
             order.Status = status;
             if (status == 1) order.PayTime = DateTime.Now;
-            var result = await Task.Run(() =>
+            var result = await Task.Factory.StartNew(() =>
                 FastWrite.Update(order, a => new { a.Status, a.PayTime }, key: _key));
             return (result.IsSuccess, result.Message);
         }

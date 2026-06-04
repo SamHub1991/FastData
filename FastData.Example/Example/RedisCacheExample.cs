@@ -326,7 +326,7 @@ namespace FastData.Example.Example
     {
         // 加载热门商品到缓存
         var hotProducts = FastRead.Query<Product>(p => p.Stock > 0)
-            .OrderBy<Product>(p => p.UpdateTime)
+            .OrderBy(p => p.UpdateTime)
             .Take(100)
             .ToList();
 

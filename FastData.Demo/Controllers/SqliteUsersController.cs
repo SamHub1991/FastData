@@ -26,7 +26,7 @@ namespace FastData.Demo.Controllers
         {
             try
             {
-                var users = await Task.Run(() =>
+                var users = await Task.Factory.StartNew(() =>
                     FastRead.Query<AppUser>(u => u.Id > 0, key: DbKey).ToList());
                 return Ok(users);
             }
@@ -44,7 +44,7 @@ namespace FastData.Demo.Controllers
         {
             try
             {
-                var user = await Task.Run(() =>
+                var user = await Task.Factory.StartNew(() =>
                     FastRead.Query<AppUser>(u => u.Id == id, key: DbKey).ToItem());
                 if (user == null || user.Id == 0)
                     return NotFound();
@@ -66,7 +66,7 @@ namespace FastData.Demo.Controllers
             {
                 user.CreateTime = DateTime.Now;
                 user.IsActive = true;
-                var result = await Task.Run(() =>
+                var result = await Task.Factory.StartNew(() =>
                     FastWrite.Add(user, key: DbKey));
                 return Ok(result);
             }
@@ -86,7 +86,7 @@ namespace FastData.Demo.Controllers
             {
                 user.Id = id;
                 user.UpdateTime = DateTime.Now;
-                var result = await Task.Run(() =>
+                var result = await Task.Factory.StartNew(() =>
                     FastWrite.Update(user, key: DbKey));
                 return Ok(result);
             }
@@ -104,7 +104,7 @@ namespace FastData.Demo.Controllers
         {
             try
             {
-                var result = await Task.Run(() =>
+                var result = await Task.Factory.StartNew(() =>
                     FastWrite.Delete<AppUser>(u => u.Id == id, key: DbKey));
                 return Ok(result);
             }

@@ -362,7 +362,7 @@ namespace FastData.Tests.Integration
             {
                 var users = FastRead.Query<PerfUser>(u => u.IsActive)
                     .Where(u => u.Age > 25)
-                    .OrderByDescending<PerfUser>(u => u.CreatedAt)
+                    .OrderByDescending(u => u.CreatedAt)
                     .Take(10)
                     .ToList<PerfUser>();
 

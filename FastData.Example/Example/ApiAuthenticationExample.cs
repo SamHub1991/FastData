@@ -146,7 +146,7 @@ namespace FastData.Example.Example
 
                 // 4. 分页响应
                 var pageData = FastRead.Query<User>(u => u.IsActive)
-                    .ToPage<User>(new PageModel { PageId = 1, PageSize = 10 });
+                    .ToPage(new PageModel { PageId = 1, PageSize = 10 });
 
                 var pageResponse = ApiResponse<object>.Success(new
                 {

@@ -1,6 +1,6 @@
 using FastData.Demo.Models;
-using FastRedis;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -11,171 +11,102 @@ namespace FastData.Demo.Services
     /// </summary>
     public interface ICacheService
     {
-        /// <summary>
-        /// 获取或设置缓存
-        /// </summary>
-        /// <typeparam name="T">数据类型</typeparam>
-        /// <param name="key">缓存键</param>
-        /// <param name="factory">数据工厂方法</param>
-        /// <param name="hours">过期时间（小时）</param>
-        /// <returns>数据</returns>
         Task<T> GetOrSetAsync<T>(string key, Func<Task<T>> factory, int hours = 24) where T : class, new();
-
-        /// <summary>
-        /// 设置缓存
-        /// </summary>
-        /// <typeparam name="T">数据类型</typeparam>
-        /// <param name="key">缓存键</param>
-        /// <param name="value">数据</param>
-        /// <param name="hours">过期时间（小时）</param>
-        /// <returns>是否成功</returns>
         Task<bool> SetAsync<T>(string key, T value, int hours = 24) where T : class;
-
-        /// <summary>
-        /// 获取缓存
-        /// </summary>
-        /// <typeparam name="T">数据类型</typeparam>
-        /// <param name="key">缓存键</param>
-        /// <returns>数据</returns>
         Task<T> GetAsync<T>(string key) where T : class, new();
-
-        /// <summary>
-        /// 删除缓存
-        /// </summary>
-        /// <param name="key">缓存键</param>
-        /// <returns>是否成功</returns>
         Task<bool> RemoveAsync(string key);
-
-        /// <summary>
-        /// 检查缓存是否存在
-        /// </summary>
-        /// <param name="key">缓存键</param>
-        /// <returns>是否存在</returns>
         Task<bool> ExistsAsync(string key);
-
-        /// <summary>
-        /// 递增缓存值
-        /// </summary>
-        /// <param name="key">缓存键</param>
-        /// <param name="value">递增值</param>
-        /// <returns>递增后的值</returns>
         Task<long> IncrementAsync(string key, int value = 1);
-
-        /// <summary>
-        /// 设置缓存过期时间
-        /// </summary>
-        /// <param name="key">缓存键</param>
-        /// <param name="expire">过期时间</param>
-        /// <returns>是否成功</returns>
         Task<bool> SetExpireAsync(string key, TimeSpan expire);
     }
 
     /// <summary>
-    /// 缓存服务实现（使用 NewLife.Redis）
+    /// 内存缓存服务实现（Demo 用途，无外部依赖）
     /// </summary>
-    public class CacheService : ICacheService
+    public class InMemoryCacheService : ICacheService, IDisposable
     {
-        public async Task<T> GetOrSetAsync<T>(string key, Func<Task<T>> factory, int hours = 24) where T : class, new()
-        {
-            // 尝试从缓存获取
-            try
-            {
-                var cached = RedisInfo.Get<T>(key);
-                if (cached != null && !EqualityComparer<T>.Default.Equals(cached, default))
-                    return cached;
-            }
-            catch
-            {
-                // Redis not available, fall through to factory
-            }
+        private readonly ConcurrentDictionary<string, (object Value, DateTime ExpiresAt)> _store
+            = new ConcurrentDictionary<string, (object, DateTime)>();
 
-            // 从工厂方法获取
+        private static readonly ConcurrentDictionary<string, long> _counters
+            = new ConcurrentDictionary<string, long>();
+
+        public Task<T> GetOrSetAsync<T>(string key, Func<Task<T>> factory, int hours = 24) where T : class, new()
+        {
+            if (_store.TryGetValue(key, out var entry) && entry.ExpiresAt > DateTime.UtcNow)
+                return Task.FromResult((T)entry.Value);
+
+            return SetAndReturnAsync(key, factory, hours);
+        }
+
+        private async Task<T> SetAndReturnAsync<T>(string key, Func<Task<T>> factory, int hours) where T : class, new()
+        {
             var value = await factory();
             if (value != null)
             {
-                try
-                {
-                    RedisInfo.Set(key, value, hours);
-                }
-                catch
-                {
-                    // Redis not available, skip caching
-                }
+                var expiredAt = DateTime.UtcNow.AddHours(Math.Max(1, hours));
+                _store[key] = (value, expiredAt);
             }
-
             return value;
         }
 
-        public async Task<bool> SetAsync<T>(string key, T value, int hours = 24) where T : class
+        public Task<bool> SetAsync<T>(string key, T value, int hours = 24) where T : class
         {
-            return await Task.FromResult(RedisInfo.Set(key, value, hours));
+            var expiredAt = DateTime.UtcNow.AddHours(Math.Max(1, hours));
+            _store[key] = (value, expiredAt);
+            return Task.FromResult(true);
         }
 
-        public async Task<T> GetAsync<T>(string key) where T : class, new()
+        public Task<T> GetAsync<T>(string key) where T : class, new()
         {
-            return await Task.FromResult(RedisInfo.Get<T>(key));
+            if (_store.TryGetValue(key, out var entry) && entry.ExpiresAt > DateTime.UtcNow)
+                return Task.FromResult((T)entry.Value);
+            return Task.FromResult(default(T));
         }
 
-        public async Task<bool> RemoveAsync(string key)
+        public Task<bool> RemoveAsync(string key)
         {
-            return await Task.FromResult(RedisInfo.Remove(key));
+            return Task.FromResult(_store.TryRemove(key, out var _));
         }
 
-        public async Task<bool> ExistsAsync(string key)
+        public Task<bool> ExistsAsync(string key)
         {
-            return await Task.FromResult(RedisInfo.Exists(key));
+            if (_store.TryGetValue(key, out var entry))
+                return Task.FromResult(entry.ExpiresAt > DateTime.UtcNow);
+            return Task.FromResult(false);
         }
 
-        public async Task<long> IncrementAsync(string key, int value = 1)
+        public Task<long> IncrementAsync(string key, int value = 1)
         {
-            try
+            var newValue = _counters.AddOrUpdate(key, value, (existingKey, existingValue) => existingValue + value);
+            return Task.FromResult(newValue);
+        }
+
+        public Task<bool> SetExpireAsync(string key, TimeSpan expire)
+        {
+            if (_store.TryGetValue(key, out var entry))
             {
-                return await Task.FromResult(RedisInfo.Increment(key, value));
+                _store[key] = (entry.Value, DateTime.UtcNow.Add(expire));
+                return Task.FromResult(true);
             }
-            catch
-            {
-                return await Task.FromResult(0L);
-            }
+            return Task.FromResult(false);
         }
 
-        public async Task<bool> SetExpireAsync(string key, TimeSpan expire)
+        public void Dispose()
         {
-            return await Task.FromResult(RedisInfo.SetExpire(key, expire));
+            _store.Clear();
+            _counters.Clear();
         }
     }
 
     /// <summary>
-    /// 用户缓存服务
+    /// 用户缓存服务接口
     /// </summary>
     public interface IUserCacheService
     {
-        /// <summary>
-        /// 获取用户缓存
-        /// </summary>
-        /// <param name="userId">用户 ID</param>
-        /// <param name="factory">数据工厂方法</param>
-        /// <returns>用户信息</returns>
         Task<AppUser> GetUserAsync(int userId, Func<Task<AppUser>> factory);
-
-        /// <summary>
-        /// 获取活跃用户缓存
-        /// </summary>
-        /// <param name="factory">数据工厂方法</param>
-        /// <returns>用户列表</returns>
         Task<List<AppUser>> GetActiveUsersAsync(Func<Task<List<AppUser>>> factory);
-
-        /// <summary>
-        /// 删除用户缓存
-        /// </summary>
-        /// <param name="userId">用户 ID</param>
-        /// <returns>任务</returns>
         Task RemoveUserAsync(int userId);
-
-        /// <summary>
-        /// 递增用户查看次数
-        /// </summary>
-        /// <param name="userId">用户 ID</param>
-        /// <returns>任务</returns>
         Task IncrementViewCountAsync(int userId);
     }
 

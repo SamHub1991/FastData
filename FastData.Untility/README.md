@@ -13,7 +13,7 @@ FastData.Untility 是 FastData 生态系统的通用工具库，提供日志、�
 | 框架 | 说明 |
 |------|------|
 | `net45` | .NET Framework 4.5 |
-| `net6.0` / `net8.0` / `net10.0` | Modern .NET |
+| `net8.0` / `net10.0` | Modern .NET |
 
 ## 安装
 

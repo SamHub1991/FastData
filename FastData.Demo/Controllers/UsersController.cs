@@ -6,9 +6,6 @@ using FastData.Model;
 using FastData.Demo.Models;
 using FastData.Demo.Repositories;
 using FastData.Demo.Services;
-// using FastData.DevTools;
-using FastRedis.Repository;
-using FastRedis.Services;
 using FastUntility.Page;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -146,7 +143,7 @@ namespace FastData.Demo.Controllers
                 // 直接调用 FastWrite.Add 诊断
                 user.CreateTime = DateTime.Now;
                 user.IsActive = true;
-                var writeResult = await Task.Run(() => FastWrite.Add(user));
+                var writeResult = await Task.Factory.StartNew(() => FastWrite.Add(user));
 
                 return Ok(new
                 {

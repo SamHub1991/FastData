@@ -2,7 +2,15 @@ using System;
 using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
+using FastUntility.Base;
+#if NET452
+using JsonProperty = Newtonsoft.Json.JsonPropertyAttribute;
+using JsonExtensionData = Newtonsoft.Json.JsonExtensionDataAttribute;
+#else
 using System.Text.Json;
+using JsonProperty = System.Text.Json.Serialization.JsonPropertyNameAttribute;
+using JsonExtensionData = System.Text.Json.Serialization.JsonExtensionDataAttribute;
+#endif
 
 namespace FastUntility.Security
 {
@@ -22,8 +30,8 @@ namespace FastUntility.Security
                 { "typ", "JWT" }
             };
 
-            var headerJson = JsonSerializer.Serialize(header);
-            var payloadJson = JsonSerializer.Serialize(payload);
+            var headerJson = JsonSerialize(header);
+            var payloadJson = JsonSerialize(payload);
 
             var headerBase64 = Base64UrlEncode(Encoding.UTF8.GetBytes(headerJson));
             var payloadBase64 = Base64UrlEncode(Encoding.UTF8.GetBytes(payloadJson));
@@ -54,7 +62,7 @@ namespace FastUntility.Security
 
             // 解析 header 获取算法
             var headerJson = Encoding.UTF8.GetString(Base64UrlDecode(headerBase64));
-            var header = JsonSerializer.Deserialize<Dictionary<string, object>>(headerJson);
+            var header = JsonDeserialize<Dictionary<string, object>>(headerJson);
             var algorithm = header.ContainsKey("alg") ? header["alg"].ToString() : "HS256";
 
             // 验证签名
@@ -71,12 +79,12 @@ namespace FastUntility.Security
 
             // 解析 payload
             var payloadJson = Encoding.UTF8.GetString(Base64UrlDecode(payloadBase64));
-            var payload = JsonSerializer.Deserialize<JwtPayload>(payloadJson);
+            var payload = JsonDeserialize<JwtPayload>(payloadJson);
 
             // 验证过期时间
             if (validateExpiry && payload.Exp.HasValue)
             {
-                var expiry = DateTimeOffset.FromUnixTimeSeconds(payload.Exp.Value);
+                var expiry = FrameworkCompat.FromUnixTimeSeconds(payload.Exp.Value);
                 if (expiry < DateTimeOffset.UtcNow)
                     throw new UnauthorizedAccessException("JWT Token 已过期");
             }
@@ -95,7 +103,7 @@ namespace FastUntility.Security
 
             var payloadBase64 = parts[1];
             var payloadJson = Encoding.UTF8.GetString(Base64UrlDecode(payloadBase64));
-            return JsonSerializer.Deserialize<JwtPayload>(payloadJson);
+            return JsonDeserialize<JwtPayload>(payloadJson);
         }
 
         /// <summary>
@@ -150,6 +158,30 @@ namespace FastUntility.Security
             }
             return Convert.FromBase64String(base64);
         }
+
+        /// <summary>
+        /// 跨框架 JSON 序列化：net452 用 Newtonsoft，其他用 System.Text.Json
+        /// </summary>
+        private static string JsonSerialize<T>(T value)
+        {
+#if NET452
+            return Newtonsoft.Json.JsonConvert.SerializeObject(value);
+#else
+            return JsonSerializer.Serialize(value);
+#endif
+        }
+
+        /// <summary>
+        /// 跨框架 JSON 反序列化：net452 用 Newtonsoft，其他用 System.Text.Json
+        /// </summary>
+        private static T JsonDeserialize<T>(string json)
+        {
+#if NET452
+            return Newtonsoft.Json.JsonConvert.DeserializeObject<T>(json);
+#else
+            return JsonSerializer.Deserialize<T>(json);
+#endif
+        }
     }
 
     /// <summary>
@@ -160,55 +192,55 @@ namespace FastUntility.Security
         /// <summary>
         /// 发行者
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("iss")]
+        [JsonProperty("iss")]
         public string Iss { get; set; }
 
         /// <summary>
         /// 主题
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("sub")]
+        [JsonProperty("sub")]
         public string Sub { get; set; }
 
         /// <summary>
         /// 受众
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("aud")]
+        [JsonProperty("aud")]
         public string Aud { get; set; }
 
         /// <summary>
         /// 过期时间（Unix 时间戳）
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("exp")]
+        [JsonProperty("exp")]
         public long? Exp { get; set; }
 
         /// <summary>
         /// 生效时间（Unix 时间戳）
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("nbf")]
+        [JsonProperty("nbf")]
         public long? Nbf { get; set; }
 
         /// <summary>
         /// 签发时间（Unix 时间戳）
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("iat")]
+        [JsonProperty("iat")]
         public long? Iat { get; set; }
 
         /// <summary>
         /// JWT ID
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("jti")]
+        [JsonProperty("jti")]
         public string Jti { get; set; }
 
         /// <summary>
         /// 自定义声明
         /// </summary>
-        [System.Text.Json.Serialization.JsonExtensionData]
+        [JsonExtensionData]
         public Dictionary<string, object> Claims { get; set; } = new Dictionary<string, object>();
 
         /// <summary>
         /// 创建默认 Payload
         /// </summary>
-        public static JwtPayload Create(string subject, string issuer = null, string audience = null, 
+        public static JwtPayload Create(string subject, string issuer = null, string audience = null,
             TimeSpan? expiry = null, Dictionary<string, object> claims = null)
         {
             var payload = new JwtPayload
@@ -216,12 +248,12 @@ namespace FastUntility.Security
                 Sub = subject,
                 Iss = issuer,
                 Aud = audience,
-                Iat = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+                Iat = FrameworkCompat.ToUnixTimeSeconds(DateTimeOffset.UtcNow),
                 Jti = Guid.NewGuid().ToString()
             };
 
             if (expiry.HasValue)
-                payload.Exp = DateTimeOffset.UtcNow.Add(expiry.Value).ToUnixTimeSeconds();
+                payload.Exp = FrameworkCompat.ToUnixTimeSeconds(DateTimeOffset.UtcNow.Add(expiry.Value));
 
             if (claims != null)
                 payload.Claims = claims;

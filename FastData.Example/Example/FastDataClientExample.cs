@@ -150,13 +150,13 @@ namespace FastData.Example.Example
 
     // 带条件查询
     var recentUsers = client.Query<User>(u => u.CreateTime > DateTime.Now.AddDays(-7))
-        .OrderBy<User>(u => u.CreateTime, isDesc: true)
+        .OrderBy(u => u.CreateTime, isDesc: true)
         .Take(10)
         .ToList();
 
     // 分页查询
     var page = client.Query<User>(u => u.IsActive)
-        .OrderBy<User>(u => u.Id)
+        .OrderBy(u => u.Id)
         .ToPage(new PageModel { PageIndex = 1, PageSize = 10 });
 
     // 单条查询
@@ -292,7 +292,7 @@ namespace FastData.Example.Example
     public void WarmUpCache(FastDataClient client)
     {
         var hotUsers = client.Query<User>(u => u.IsActive)
-            .OrderBy<User>(u => u.CreateTime)
+            .OrderBy(u => u.CreateTime)
             .Take(100)
             .ToList();
 

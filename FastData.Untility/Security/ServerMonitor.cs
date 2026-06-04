@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Net.NetworkInformation;
+#if !NET452
 using System.Runtime.InteropServices;
+#endif
 using FastUntility.Base;
 
 namespace FastUntility.Security
@@ -67,7 +69,7 @@ namespace FastUntility.Security
             var info = new ServerMonitorInfo
             {
                 MachineName = Environment.MachineName,
-                OsVersion = RuntimeInformation.OSDescription,
+                OsVersion = FrameworkCompat.OSDescription(),
                 ProcessorCount = Environment.ProcessorCount,
                 Timestamp = DateTime.UtcNow
             };
@@ -82,7 +84,7 @@ namespace FastUntility.Security
                 info.MemoryUsage = memoryInfo.UsagePercentage;
                 info.Disks = GetDiskInfo();
                 info.Networks = GetNetworkInfo();
-                info.Uptime = TimeSpan.FromMilliseconds(Environment.TickCount64);
+                info.Uptime = TimeSpan.FromMilliseconds(FrameworkCompat.TickCount64());
             }
             catch (Exception ex)
             {
@@ -99,11 +101,11 @@ namespace FastUntility.Security
         {
             try
             {
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                if (FrameworkCompat.IsLinux())
                 {
                     return GetCpuUsageLinux();
                 }
-                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                else if (FrameworkCompat.IsWindows())
                 {
                     return GetCpuUsageWindows();
                 }
@@ -123,7 +125,8 @@ namespace FastUntility.Security
             try
             {
                 var process = Process.GetCurrentProcess();
-                var cpuUsage = process.TotalProcessorTime.TotalMilliseconds / Environment.TickCount64 * 100;
+                var tickCount = FrameworkCompat.TickCount64();
+                var cpuUsage = process.TotalProcessorTime.TotalMilliseconds / tickCount * 100;
                 return Math.Min(100, cpuUsage / Environment.ProcessorCount);
             }
             catch
@@ -171,11 +174,11 @@ namespace FastUntility.Security
         {
             try
             {
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                if (FrameworkCompat.IsWindows())
                 {
                     return GetMemoryInfoWindows();
                 }
-                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                else if (FrameworkCompat.IsLinux())
                 {
                     return GetMemoryInfoLinux();
                 }
@@ -298,7 +301,7 @@ namespace FastUntility.Security
         /// </summary>
         public static TimeSpan GetUptime()
         {
-            return TimeSpan.FromMilliseconds(Environment.TickCount64);
+            return TimeSpan.FromMilliseconds(FrameworkCompat.TickCount64());
         }
     }
 }

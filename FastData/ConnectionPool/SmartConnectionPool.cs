@@ -455,8 +455,8 @@ namespace FastData.ConnectionPool
                 {
                     _semaphore.Release();
                     Interlocked.Increment(ref _failedRequests);
-                    // 连接创建失败也视为连接池耗尽
-                    throw new ConnectionPoolExhaustedException(_name, _config.ConnectionTimeout);
+                    throw new ConnectionPoolExhaustedException(_name,
+                        $"连接池 '{_name}' 无法创建新连接，数据库可能不可达或认证失败");
                 }
 
                 connection.MarkUsed();
@@ -535,8 +535,8 @@ namespace FastData.ConnectionPool
                 {
                     _semaphore.Release();
                     Interlocked.Increment(ref _failedRequests);
-                    // 连接创建失败也视为连接池耗尽
-                    throw new ConnectionPoolExhaustedException(_name, _config.ConnectionTimeout);
+                    throw new ConnectionPoolExhaustedException(_name,
+                        $"连接池 '{_name}' 无法创建新连接，数据库可能不可达或认证失败");
                 }
 
                 connection.MarkUsed();
@@ -717,23 +717,22 @@ namespace FastData.ConnectionPool
         {
             try
             {
-                var expiredConnections = new List<PooledConnection>();
-
-                // 检查空闲连接
-                foreach (var connection in _availableConnections)
+                // 清空空闲连接袋，逐个检查并重新添加健康的连接
+                var allIdleConnections = new List<PooledConnection>();
+                while (_availableConnections.TryTake(out var conn))
                 {
-                    if (IsConnectionExpired(connection) || !ValidateConnection(connection))
-                    {
-                        expiredConnections.Add(connection);
-                    }
+                    allIdleConnections.Add(conn);
                 }
 
-                // 移除过期连接
-                foreach (var expired in expiredConnections)
+                foreach (var conn in allIdleConnections)
                 {
-                    if (_availableConnections.TryTake(out var removed))
+                    if (IsConnectionExpired(conn) || !ValidateConnection(conn))
                     {
-                        DestroyConnection(removed);
+                        DestroyConnection(conn);
+                    }
+                    else
+                    {
+                        _availableConnections.Add(conn);
                     }
                 }
 
@@ -1136,6 +1135,12 @@ namespace FastData.ConnectionPool
         {
             PoolName = poolName;
             WaitTimeoutSeconds = waitTimeoutSeconds;
+        }
+
+        public ConnectionPoolExhaustedException(string poolName, string message)
+            : base(message)
+        {
+            PoolName = poolName;
         }
     }
 }

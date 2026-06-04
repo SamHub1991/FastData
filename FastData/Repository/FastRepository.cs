@@ -1,4 +1,4 @@
-﻿using FastData.Base;
+using FastData.Base;
 using FastData.Context;
 using FastData.Model;
 using FastUntility.Base;
@@ -20,6 +20,23 @@ using FastData.Aop;
 
 namespace FastData.Repository
 {
+    /// <summary>
+    /// FastRepository - 仓储模式实现
+    ///
+    /// 职责：实现 IFastRepository 接口，提供读写分离、Lambda 查询、XML 映射等统一访问入口。
+    ///
+    /// 主要功能：
+    /// 1. 读取操作（Query/QueryAsync）：LINQ 查询、原生 SQL、XML 映射查询
+    /// 2. 写入操作（Add/Update/Delete）：单条和批量
+    /// 3. 异步支持：所有方法都有对应的 Async 版本
+    /// 4. 事务支持：通过 DataContext 统一管理
+    /// 5. 缓存支持：自动集成 DbCache
+    ///
+    /// 注意事项：
+    /// - 推荐通过依赖注入（AddFastData）使用此类型
+    /// - 读写操作共用同一个 DataContext，便于事务管理
+    /// - key 参数用于多数据库场景，未指定时使用默认配置
+    /// </summary>
     public class FastRepository : IFastRepository
     {
         internal Query query { get; set; } = new Query();
@@ -287,7 +304,7 @@ namespace FastData.Repository
 
                 if (config.IsMapSave)
                 {
-                    query.Config.DesignModel = FastData.Base.Config.CodeFirst;
+                    query.Config.DesignModel = FastData.Base.DesignPatterns.CodeFirst;
                     if (query.Config.DbType == DataDbType.Oracle)
                     {
                         var listInfo = typeof(FastData.DataModel.Oracle.Data_MapFile).GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly).ToList();

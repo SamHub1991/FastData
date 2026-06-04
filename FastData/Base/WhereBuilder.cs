@@ -35,7 +35,7 @@ namespace FastData.Base
                     }
                     else
                     {
-                        sb.AppendFormat(" {0} {1}", condition.Operator, condition.Where);
+                        sb.Append(" ").Append(condition.Operator).Append(" ").Append(condition.Where);
                     }
 
                     if (condition.Param.Count > 0)
@@ -55,7 +55,7 @@ namespace FastData.Base
             // 追加链式条件
             foreach (var condition in query.ChainedConditions)
             {
-                result.AppendFormat(" {0} {1}", condition.Operator, condition.Where);
+                result.Append(" ").Append(condition.Operator).Append(" ").Append(condition.Where);
 
                 if (condition.Param.Count > 0)
                     param.AddRange(condition.Param);
