@@ -230,7 +230,7 @@ namespace FastData.Base
                 if (memberExp.Expression is ParameterExpression)
                 {
                     var memberName = memberExp.Member.Name;
-                    
+
                     // Special handling for bool properties used as predicates
                     if (memberExp.Type == typeof(bool))
                     {
@@ -248,7 +248,7 @@ namespace FastData.Base
                     {
                         return $"{innerMember.Member.Name} IS NOT NULL";
                     }
-                    
+
                     // For other nested properties, attempt to evaluate
                     return TryEvaluateExpression(exp, typeList);
                 }
@@ -432,7 +432,7 @@ namespace FastData.Base
 
         #region 拆分表达式树
         /// <summary>
-        /// 拆分表达式树 
+        /// 拆分表达式树
         /// </summary>
         /// <param name="config">配置模型</param>
         /// <param name="left">左侧表达式</param>
@@ -478,22 +478,22 @@ namespace FastData.Base
 
             // Special handling for boolean member == true/false
             // Simplify "u.IsActive == true" to "IsActive=1"
-            if (expType == ExpressionType.Equal && 
-                left is MemberExpression leftMember && 
+            if (expType == ExpressionType.Equal &&
+                left is MemberExpression leftMember &&
                 leftMember.Type == typeof(bool) &&
-                right is ConstantExpression rightConst && 
+                right is ConstantExpression rightConst &&
                 rightConst.Value is bool)
             {
                 // For "u.IsActive == true", generate "IsActive=1"
                 // For "u.IsActive == false", generate "IsActive=0"
                 var memberName = leftMember.Member.Name;
                 var boolValue = (bool)rightConst.Value;
-                
+
                 if (config.DbType == DataDbType.PostgreSql)
                     sb.AppendFormat("{0}={1}", memberName, boolValue ? "true" : "false");
                 else
                     sb.AppendFormat("{0}={1}", memberName, boolValue ? "1" : "0");
-                
+
                 return sb.ToString();
             }
 
