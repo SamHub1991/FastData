@@ -175,14 +175,13 @@ namespace FastData.Base
                 return sqlBuilder.ToString();
             }
 
-            var leftSql = ParseExpression(config, left, ref leftList, ref rightList, ref typeList, ref sqlBuilder, ref parameterIndex, isRightOperand);
+            var leftSql = ParseExpression(config, left, ref leftList, ref rightList, ref typeList, ref sqlBuilder, ref parameterIndex, isRightOperand: false);
             var operatorSymbol = GetOperatorSymbol(operatorType);
             var needsParameter = "=,>,<,>=,<=,<>".Contains(operatorSymbol);
 
             if (!needsParameter)
             {
                 sqlBuilder.Append(string.Format(" {0} ", operatorSymbol));
-                isRightOperand = false;
             }
 
             var rightSql = ParseExpression(config, right, ref leftList, ref rightList, ref typeList, ref sqlBuilder, ref parameterIndex, needsParameter);
@@ -197,7 +196,7 @@ namespace FastData.Base
                     sqlBuilder.Append(string.Format("{0}.{1} {2} ", paramName, leftSql, nullSql));
                 }
             }
-            else if (isRightOperand)
+            else if (needsParameter)
             {
                 // 构建带参数的比较表达式
                 if (left is MemberExpression leftField && right is MemberExpression rightField && rightField.Expression is ParameterExpression)
