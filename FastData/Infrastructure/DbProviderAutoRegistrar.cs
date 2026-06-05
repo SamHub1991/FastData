@@ -36,11 +36,19 @@ public static class DbProviderAutoRegistrar
             try
             {
                 var registeredCount = 0;
-                var assemblies = AppDomain.CurrentDomain.GetAssemblies();
 
+                // 第一遍：扫描已加载的程序集
+                var assemblies = AppDomain.CurrentDomain.GetAssemblies();
                 foreach (var (assemblyKeyword, factoryTypeName, invariantName) in KnownProviders)
                 {
-                    if (TryRegisterProvider(assemblies, assemblyKeyword, factoryTypeName, invariantName))
+                    if (TryRegisterFromAssemblies(assemblies, assemblyKeyword, factoryTypeName, invariantName))
+                        registeredCount++;
+                }
+
+                // 第二遍：对未注册的提供程序，显式加载程序集
+                foreach (var (assemblyKeyword, factoryTypeName, invariantName) in KnownProviders)
+                {
+                    if (TryRegisterByAssemblyLoad(assemblyKeyword, factoryTypeName, invariantName))
                         registeredCount++;
                 }
 
@@ -56,7 +64,7 @@ public static class DbProviderAutoRegistrar
         }
     }
 
-    private static bool TryRegisterProvider(IEnumerable<Assembly> assemblies, string assemblyKeyword, string factoryTypeName, string invariantName)
+    private static bool TryRegisterFromAssemblies(IEnumerable<Assembly> assemblies, string assemblyKeyword, string factoryTypeName, string invariantName)
     {
         try
         {
@@ -65,47 +73,93 @@ public static class DbProviderAutoRegistrar
                 if (!assembly.GetName().Name?.Contains(assemblyKeyword, StringComparison.OrdinalIgnoreCase) == true)
                     continue;
 
-                var factoryType = assembly.GetType(factoryTypeName);
-                if (factoryType == null) continue;
-
-                var instanceProperty = factoryType.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static);
-                if (instanceProperty == null) continue;
-
-                var factoryInstance = instanceProperty.GetValue(null) as DbProviderFactory;
-                if (factoryInstance == null) continue;
-
-                try
-                {
-                    var existingFactory = DbProviderFactories.GetFactory(invariantName);
-                    if (existingFactory != null) return true;
-                }
-                catch { }
-
-                DbProviderFactories.RegisterFactory(invariantName, factoryInstance);
-                return true;
-            }
-
-            foreach (var asmKeyword in new[] { assemblyKeyword, "Microsoft.Data.SqlClient", "Npgsql", "MySql.Data" })
-            {
-                try
-                {
-                    var loadedAssembly = Assembly.Load(asmKeyword);
-                    var factoryType = loadedAssembly.GetType(factoryTypeName);
-                    if (factoryType == null) continue;
-
-                    var instanceProperty = factoryType.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static);
-                    var factoryInstance = instanceProperty?.GetValue(null) as DbProviderFactory;
-                    if (factoryInstance != null)
-                    {
-                        DbProviderFactories.RegisterFactory(invariantName, factoryInstance);
-                        return true;
-                    }
-                }
-                catch { }
+                return TryRegisterFromAssembly(assembly, factoryTypeName, invariantName);
             }
         }
         catch { }
 
         return false;
+    }
+
+    private static bool TryRegisterByAssemblyLoad(string assemblyKeyword, string factoryTypeName, string invariantName)
+    {
+        try
+        {
+            // 先检查是否已注册
+            try
+            {
+                var existing = DbProviderFactories.GetFactory(invariantName);
+                if (existing != null) return true;
+            }
+            catch { }
+
+            // 尝试按关键词加载程序集
+            Assembly assembly = null;
+            try { assembly = Assembly.Load(assemblyKeyword); }
+            catch { }
+
+            // 如果关键词加载失败，尝试按完整程序集名加载
+            if (assembly == null)
+            {
+                var fallbackNames = GetFallbackAssemblyNames(assemblyKeyword);
+                foreach (var name in fallbackNames)
+                {
+                    try { assembly = Assembly.Load(name); if (assembly != null) break; }
+                    catch { }
+                }
+            }
+
+            if (assembly == null) return false;
+
+            return TryRegisterFromAssembly(assembly, factoryTypeName, invariantName);
+        }
+        catch { }
+
+        return false;
+    }
+
+    private static bool TryRegisterFromAssembly(Assembly assembly, string factoryTypeName, string invariantName)
+    {
+        try
+        {
+            var factoryType = assembly.GetType(factoryTypeName);
+            if (factoryType == null) return false;
+
+            var instanceProperty = factoryType.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static);
+            if (instanceProperty == null) return false;
+
+            var factoryInstance = instanceProperty.GetValue(null) as DbProviderFactory;
+            if (factoryInstance == null) return false;
+
+            // 检查是否已注册
+            try
+            {
+                var existingFactory = DbProviderFactories.GetFactory(invariantName);
+                if (existingFactory != null) return true;
+            }
+            catch { }
+
+            DbProviderFactories.RegisterFactory(invariantName, factoryInstance);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static string[] GetFallbackAssemblyNames(string keyword)
+    {
+        return keyword switch
+        {
+            "Microsoft.Data.SqlClient" => new[] { "Microsoft.Data.SqlClient" },
+            "MySql.Data" => new[] { "MySql.Data", "MySqlConnector" },
+            "Pomelo" => new[] { "MySqlConnector", "MySql.Data" },
+            "Npgsql" => new[] { "Npgsql" },
+            "Microsoft.Data.Sqlite" => new[] { "Microsoft.Data.Sqlite" },
+            "System.Data.SQLite" => new[] { "System.Data.SQLite", "System.Data.SQLite.Core" },
+            "Oracle.ManagedDataAccess" => new[] { "Oracle.ManagedDataAccess", "Oracle.ManagedDataAccess.Core" },
+            _ => new[] { keyword }
+        };
     }
 }
