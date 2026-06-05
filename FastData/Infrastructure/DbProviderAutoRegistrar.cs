@@ -141,10 +141,26 @@ public static class DbProviderAutoRegistrar
             var factoryType = assembly.GetType(factoryTypeName);
             if (factoryType == null) return false;
 
+            // Try to get factory instance - some providers use property, others use field
+            DbProviderFactory factoryInstance = null;
+            
+            // Try property first (MySql, Npgsql, etc.)
             var instanceProperty = factoryType.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static);
-            if (instanceProperty == null) return false;
-
-            var factoryInstance = instanceProperty.GetValue(null) as DbProviderFactory;
+            if (instanceProperty != null)
+            {
+                factoryInstance = instanceProperty.GetValue(null) as DbProviderFactory;
+            }
+            
+            // Try field if property not found (Microsoft.Data.SqlClient uses field)
+            if (factoryInstance == null)
+            {
+                var instanceField = factoryType.GetField("Instance", BindingFlags.Public | BindingFlags.Static);
+                if (instanceField != null)
+                {
+                    factoryInstance = instanceField.GetValue(null) as DbProviderFactory;
+                }
+            }
+            
             if (factoryInstance == null) return false;
 
             // 检查是否已注册
