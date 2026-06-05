@@ -29,7 +29,7 @@ namespace FastData.DevTools
             var activeEnv = GetActiveEnvironment();
             if (!string.IsNullOrEmpty(activeEnv))
             {
-                var envConfigPath = Path.Combine(baseDir, $"db.{activeEnv}.config");
+                var envConfigPath = Path.Combine(baseDir, string.Format("db.{0}.config", activeEnv));
                 if (File.Exists(envConfigPath))
                 {
                     _configFilePath = envConfigPath;
@@ -87,7 +87,7 @@ namespace FastData.DevTools
 
             if (!File.Exists(filePath))
             {
-                LogAggregator.Warning($"配置文件不存在: {filePath}", "ConfigurationManager");
+                LogAggregator.Warning(string.Format("配置文件不存在: {0}", filePath), "ConfigurationManager");
                 return;
             }
 
@@ -104,11 +104,11 @@ namespace FastData.DevTools
                     }
                 }
 
-                LogAggregator.Info($"配置加载成功: {filePath}", "ConfigurationManager");
+                LogAggregator.Info(string.Format("配置加载成功: {0}", filePath), "ConfigurationManager");
             }
             catch (Exception ex)
             {
-                LogAggregator.Exception(ex, $"配置加载失败: {filePath}", "ConfigurationManager");
+                LogAggregator.Exception(ex, string.Format("配置加载失败: {0}", filePath), "ConfigurationManager");
                 throw;
             }
         }
@@ -133,11 +133,11 @@ namespace FastData.DevTools
 
                 File.WriteAllText(filePath, json);
 
-                LogAggregator.Info($"配置保存成功: {filePath}", "ConfigurationManager");
+                LogAggregator.Info(string.Format("配置保存成功: {0}", filePath), "ConfigurationManager");
             }
             catch (Exception ex)
             {
-                LogAggregator.Exception(ex, $"配置保存失败: {filePath}", "ConfigurationManager");
+                LogAggregator.Exception(ex, string.Format("配置保存失败: {0}", filePath), "ConfigurationManager");
                 throw;
             }
         }
@@ -322,7 +322,7 @@ namespace FastData.DevTools
                         }
                         catch (Exception ex)
                         {
-                            LogAggregator.Exception(ex, $"配置变化监听器执行失败: {_key}", "ConfigurationManager");
+                            LogAggregator.Exception(ex, string.Format("配置变化监听器执行失败: {0}", _key), "ConfigurationManager");
                         }
                     }
                 }, null, 1000, 1000);
@@ -410,7 +410,7 @@ namespace FastData.DevTools
                 {
                     IsHealthy = false,
                     Status = "NotFound",
-                    Message = $"健康检查 '{name}' 不存在"
+                    Message = string.Format("健康检查 '{0}' 不存在", name)
                 };
             }
 
@@ -575,7 +575,7 @@ namespace FastData.DevTools
                     {
                         IsHealthy = response.IsSuccessStatusCode,
                         Status = response.IsSuccessStatusCode ? "Healthy" : "Unhealthy",
-                        Message = $"HTTP 状态码: {(int)response.StatusCode}",
+                        Message = string.Format("HTTP 状态码: {0}", (int)response.StatusCode),
                         Data = new Dictionary<string, object>
                         {
                             ["StatusCode"] = (int)response.StatusCode,
@@ -605,7 +605,7 @@ namespace FastData.DevTools
                     {
                         IsHealthy = response.IsSuccessStatusCode,
                         Status = response.IsSuccessStatusCode ? "Healthy" : "Unhealthy",
-                        Message = $"HTTP 状态码: {(int)response.StatusCode}",
+                        Message = string.Format("HTTP 状态码: {0}", (int)response.StatusCode),
                         Data = new Dictionary<string, object>
                         {
                             ["StatusCode"] = (int)response.StatusCode

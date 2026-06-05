@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Linq.Expressions;
@@ -10,18 +10,22 @@ using System.Linq;
 namespace FastData.Base
 {
     /// <summary>
-    /// lambda field
+    /// lambda 表达式字段解析
+    /// 将 LINQ 表达式中的查询字段、分组字段、排序字段转换为 SQL 列名
     /// </summary>
     internal static class BaseField
     {
-        #region query field 1个表
+        #region query field 单表查询
         /// <summary>
-        /// query field 1个表
+        /// 单表查询字段解析
+        /// 将 LINQ 表达式中的字段转换为 SQL 查询列
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="field"></param>
-        /// <returns></returns>
-        public static FieldModel QueryField<T>(Expression<Func<T, bool>> predicate,Expression<Func<T, object>> field, ConfigModel config)
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="predicate">查询条件表达式</param>
+        /// <param name="field">返回字段表达式，为 null 时返回所有字段</param>
+        /// <param name="config">数据库配置模型</param>
+        /// <returns>字段模型（包含字段列表和别名列表）</returns>
+        public static FieldModel QueryField<T>(Expression<Func<T, bool>> predicate, Expression<Func<T, object>> field, ConfigModel config)
         {
             try
             {
@@ -116,9 +120,10 @@ namespace FastData.Base
         }
         #endregion
         
-        #region query field 2个表
+        #region query field 多表联查
         /// <summary>
-        /// query field 2个表
+        /// 多表联查字段解析
+        /// 将 JOIN 查询中的 LINQ 表达式字段转换为 SQL 查询列
         /// </summary>
         /// <typeparam name="T">第一个表类型</typeparam>
         /// <typeparam name="T1">第二个表类型</typeparam>
@@ -214,14 +219,16 @@ namespace FastData.Base
         }
         #endregion
 
-        #region group by 1个表
+        #region group by 
         /// <summary>
-        /// group by 1个表
+        /// GROUP BY 分组字段解析
+        /// 将 LINQ 表达式中的分组字段转换为 SQL GROUP BY 列名
         /// </summary>
-        /// <param name="field"></param>
-        /// <param name="isDesc"></param>
-        /// <returns></returns>
-        public static List<string> GroupBy<T>(Expression<Func<T, object>> field,ConfigModel config)
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="field">分组字段表达式</param>
+        /// <param name="config">数据库配置模型</param>
+        /// <returns>分组字段列表</returns>
+        public static List<string> GroupBy<T>(Expression<Func<T, object>> field, ConfigModel config)
         {
             try
             {
@@ -246,15 +253,16 @@ namespace FastData.Base
         }
         #endregion
         
-        #region order by 1个表
+        #region order by
         /// <summary>
-        /// order by 1个表
+        /// ORDER BY 排序字段解析
+        /// 将 LINQ 表达式中的排序字段转换为 SQL ORDER BY 列名
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="field"></param>
-        /// <param name="config"></param>
-        /// <param name="isDesc"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="field">排序字段表达式</param>
+        /// <param name="config">数据库配置模型</param>
+        /// <param name="isDesc">是否降序排列，默认 true（降序）</param>
+        /// <returns>排序字段列表</returns>
         public static List<string> OrderBy<T>(Expression<Func<T, object>> field, ConfigModel config, bool isDesc = true)
         {
             try

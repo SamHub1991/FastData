@@ -20,10 +20,19 @@ using Xunit;
 
 namespace FastData.Tests
 {
+    /// <summary>
+    /// 连接池功能测试
+    /// 
+    /// 覆盖核心连接池操作、智能调整、消息队列集成、
+    /// 弹性写入故障转移、稳定性测试等场景。
+    /// </summary>
     public class ConnectionPoolTests
     {
         private readonly string _connStr;
 
+        /// <summary>
+        /// 初始化测试实例，从配置文件获取数据库连接字符串
+        /// </summary>
         public ConnectionPoolTests()
         {
             // 从配置文件获取连接字符串，避免硬编码
@@ -33,6 +42,9 @@ namespace FastData.Tests
 
         #region Basic Pool
 
+        /// <summary>
+        /// 测试连接池创建和归还连接：验证连接池可正常创建并返回打开的数据库连接
+        /// </summary>
         [Fact]
         public void Pool_Should_Create_And_Return_Connection()
         {
@@ -50,7 +62,7 @@ namespace FastData.Tests
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"无法创建连接池，跳过测试: {ex.Message}");
+                Console.WriteLine(string.Format("无法创建连接池，跳过测试: {0}", ex.Message));
                 return;
             }
 
@@ -71,6 +83,9 @@ namespace FastData.Tests
             }
         }
 
+        /// <summary>
+        /// 测试连接池复用连接：验证归还连接后续获取可重用同一连接实例
+        /// </summary>
         [Fact]
         public async Task Pool_Should_Reuse_Connections()
         {
@@ -88,7 +103,7 @@ namespace FastData.Tests
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"无法创建连接池，跳过测试: {ex.Message}");
+                Console.WriteLine(string.Format("无法创建连接池，跳过测试: {0}", ex.Message));
                 return;
             }
 
@@ -113,6 +128,9 @@ namespace FastData.Tests
             }
         }
 
+        /// <summary>
+        /// 测试连接池最大连接数限制：验证超过 MaxPoolSize 时抛出 ConnectionPoolExhaustedException
+        /// </summary>
         [Fact]
         public async Task Pool_Should_Respect_MaxPoolSize()
         {
@@ -130,7 +148,7 @@ namespace FastData.Tests
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"无法创建连接池，跳过测试: {ex.Message}");
+                Console.WriteLine(string.Format("无法创建连接池，跳过测试: {0}", ex.Message));
                 return;
             }
 
@@ -153,6 +171,9 @@ namespace FastData.Tests
             }
         }
 
+        /// <summary>
+        /// 测试连接池返回指标：验证 GetMetrics 返回非空的池状态信息
+        /// </summary>
         [Fact]
         public void Pool_Should_Return_Metrics()
         {
@@ -176,6 +197,9 @@ namespace FastData.Tests
 
         #region Smart Adjustment
 
+        /// <summary>
+        /// 测试智能错误缩容：连续数据库错误后连接池应自动缩容减少连接数
+        /// </summary>
         [Fact]
         public void SmartPool_ErrorShrink()
         {
@@ -202,7 +226,7 @@ namespace FastData.Tests
 
             for (int i = 0; i < 5; i++)
             {
-                pool.RecordDatabaseError(new Exception($"Simulated error {i}"));
+                pool.RecordDatabaseError(new Exception(string.Format("Simulated error {0}", i)));
             }
 
             Thread.Sleep(2000);
@@ -212,6 +236,9 @@ namespace FastData.Tests
                 "Pool should shrink after errors");
         }
 
+        /// <summary>
+        /// 测试智能负载扩容：高负载下连接池应自动扩容增加连接数
+        /// </summary>
         [Fact]
         public void SmartPool_LoadExpand()
         {
@@ -264,6 +291,9 @@ namespace FastData.Tests
 
         #region MQ Integration
 
+        /// <summary>
+        /// 测试 FastDataClient 消息队列集成：验证 Redis 可用时客户端可正常写入数据
+        /// </summary>
         [Fact]
         public void FastDataClient_MessageQueueIntegration()
         {
@@ -292,11 +322,11 @@ namespace FastData.Tests
             try
             {
                 var result = client.Add(user);
-                Console.WriteLine($"FastDataClient write result: IsSuccess={result.IsSuccess}");
+                Console.WriteLine(string.Format("FastDataClient write result: IsSuccess={0}", result.IsSuccess));
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"FastDataClient write exception (may have degraded to queue): {ex.Message}");
+                Console.WriteLine(string.Format("FastDataClient write exception (may have degraded to queue): {0}", ex.Message));
             }
 
             var users = new List<PerfUser>();
@@ -304,8 +334,8 @@ namespace FastData.Tests
             {
                 users.Add(new PerfUser
                 {
-                    UserName = $"BatchTest_{i}",
-                    Email = $"batch_{i}@test.com",
+                    UserName = string.Format("BatchTest_{0}", i),
+                    Email = string.Format("batch_{0}@test.com", i),
                     Age = 20 + i,
                     IsActive = true,
                     CreatedAt = DateTime.Now
@@ -315,14 +345,17 @@ namespace FastData.Tests
             try
             {
                 var result = client.AddList(users);
-                Console.WriteLine($"FastDataClient batch write result: IsSuccess={result.IsSuccess}");
+                Console.WriteLine(string.Format("FastDataClient batch write result: IsSuccess={0}", result.IsSuccess));
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"FastDataClient batch write exception: {ex.Message}");
+                Console.WriteLine(string.Format("FastDataClient batch write exception: {0}", ex.Message));
             }
         }
 
+        /// <summary>
+        /// 测试 FastRead 查询操作：验证通过连接池可正常执行数据查询
+        /// </summary>
         [Fact]
         public void FastRead_QueryOperation()
         {
@@ -339,11 +372,11 @@ namespace FastData.Tests
                     .Take(5);
 
                 var users = FastRead.ToList<PerfUser>(query);
-                Console.WriteLine($"FastRead query result: {users.Count} records");
+                Console.WriteLine(string.Format("FastRead query result: {0} records", users.Count));
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"FastRead query exception: {ex.Message}");
+                Console.WriteLine(string.Format("FastRead query exception: {0}", ex.Message));
             }
         }
 
@@ -351,6 +384,9 @@ namespace FastData.Tests
 
         #region Resilient Write
 
+        /// <summary>
+        /// 测试连接池耗尽时回退到消息队列：验证弹性写入器在连接池耗尽时正确使用队列兜底
+        /// </summary>
         [Fact]
         public void ConnectionPoolExhausted_ShouldFallbackToQueue()
         {
@@ -391,7 +427,7 @@ namespace FastData.Tests
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Cannot get DB connection, skipping: {ex.Message}");
+                Console.WriteLine(string.Format("Cannot get DB connection, skipping: {0}", ex.Message));
                 return;
             }
 
@@ -419,6 +455,9 @@ namespace FastData.Tests
             blockingConn?.Dispose();
         }
 
+        /// <summary>
+        /// 测试批量写入部分回退：验证批量操作在连接池不足时正确将部分写入回退到队列
+        /// </summary>
         [Fact]
         public void BatchWrite_PartialFallback()
         {
@@ -459,7 +498,7 @@ namespace FastData.Tests
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Cannot get DB connection, skipping: {ex.Message}");
+                Console.WriteLine(string.Format("Cannot get DB connection, skipping: {0}", ex.Message));
                 return;
             }
 
@@ -473,8 +512,8 @@ namespace FastData.Tests
                     TableName = "perf_users",
                     Data = Newtonsoft.Json.JsonConvert.SerializeObject(new PerfUser
                     {
-                        UserName = $"BatchTest_{i}",
-                        Email = $"batch_{i}@test.com",
+                        UserName = string.Format("BatchTest_{0}", i),
+                        Email = string.Format("batch_{0}@test.com", i),
                         Age = 20 + i,
                         IsActive = true,
                         CreatedAt = DateTime.Now
@@ -491,6 +530,9 @@ namespace FastData.Tests
             blockingConn?.Dispose();
         }
 
+        /// <summary>
+        /// 测试正常写入使用直连：验证连接池可用时写入直接通过数据库连接执行
+        /// </summary>
         [Fact]
         public void NormalWrite_ShouldUseDirectWrite()
         {
@@ -521,9 +563,12 @@ namespace FastData.Tests
             };
 
             var result = executor.ExecuteWrite(operation);
-            Console.WriteLine($"Result: Success={result.Success}, DirectWrite={result.UsedDirectWrite}, QueueFallback={result.UsedQueueFallback}");
+            Console.WriteLine(string.Format("Result: Success={0}, DirectWrite={1}, QueueFallback={2}", result.Success, result.UsedDirectWrite, result.UsedQueueFallback));
         }
 
+        /// <summary>
+        /// 测试弹性写入统计信息：验证统计数据正确跟踪直写、队列回退和失败计数
+        /// </summary>
         [Fact]
         public void Stats_ShouldTrackCorrectly()
         {
@@ -547,8 +592,8 @@ namespace FastData.Tests
                     TableName = "perf_users",
                     Data = Newtonsoft.Json.JsonConvert.SerializeObject(new PerfUser
                     {
-                        UserName = $"StatsTest_{i}",
-                        Email = $"stats_{i}@test.com",
+                        UserName = string.Format("StatsTest_{0}", i),
+                        Email = string.Format("stats_{0}@test.com", i),
                         Age = 20 + i,
                         IsActive = true,
                         CreatedAt = DateTime.Now
@@ -559,14 +604,16 @@ namespace FastData.Tests
             }
 
             var stats = executor.GetStats();
-            Console.WriteLine($"Stats: DirectWrites={stats.DirectWriteCount}, QueueFallback={stats.QueueFallbackCount}, " +
-                $"Failures={stats.TotalFailureCount}, FallbackRate={stats.QueueFallbackRate:F2}%");
+            Console.WriteLine(string.Format("Stats: DirectWrites={0}, QueueFallback={1}, Failures={2}, FallbackRate={3:F2}%", stats.DirectWriteCount, stats.QueueFallbackCount, stats.TotalFailureCount, stats.QueueFallbackRate));
         }
 
         #endregion
 
         #region Stability
 
+        /// <summary>
+        /// 连接池压力测试：在 PostgreSql 上循环执行查询验证连接池稳定性
+        /// </summary>
         [Fact]
         public void ConnectionPool_Stress_Test()
         {
@@ -590,15 +637,18 @@ namespace FastData.Tests
                 {
                     Interlocked.Increment(ref errorCount);
                     if (errors.Count < 10)
-                        errors.Add($"Iteration {i}: {ex.Message}");
+                        errors.Add(string.Format("Iteration {0}: {1}", i, ex.Message));
                 }
             }
 
             var successRate = (double)successCount / iterations;
-            Assert.True(successRate > 0.7, $"Stress test failed: rate={successRate:P0}, ok={successCount}, err={errorCount}");
-            Console.WriteLine($"Stress test: rate={successRate:P0}, ok={successCount}, err={errorCount}");
+            Assert.True(successRate > 0.7, string.Format("Stress test failed: rate={0:P0}, ok={1}, err={2}", successRate, successCount, errorCount));
+            Console.WriteLine(string.Format("Stress test: rate={0:P0}, ok={1}, err={2}", successRate, successCount, errorCount));
         }
 
+        /// <summary>
+        /// 长时间运行稳定性测试：在 PostgreSql 上持续运行 3 秒验证长期稳定性
+        /// </summary>
         [Fact]
         public void LongRunning_Test()
         {
@@ -623,7 +673,7 @@ namespace FastData.Tests
                 {
                     Interlocked.Increment(ref errorCount);
                     if (errors.Count < 10)
-                        errors.Add($"LongRunning: {ex.Message}");
+                        errors.Add(string.Format("LongRunning: {0}", ex.Message));
                 }
             }
 
@@ -632,10 +682,13 @@ namespace FastData.Tests
             var successRate = (double)successCount / totalOps;
             var opsPerSecond = totalOps * 1000.0 / stopwatch.ElapsedMilliseconds;
 
-            Assert.True(successRate > 0.5, $"Long-running test failed: rate={successRate:P0}, ok={successCount}, err={errorCount}");
-            Console.WriteLine($"Long-running test: rate={successRate:P0}, ok={successCount}, err={errorCount}, throughput={opsPerSecond:F0} ops/s");
+            Assert.True(successRate > 0.5, string.Format("Long-running test failed: rate={0:P0}, ok={1}, err={2}", successRate, successCount, errorCount));
+            Console.WriteLine(string.Format("Long-running test: rate={0:P0}, ok={1}, err={2}, throughput={3:F0} ops/s", successRate, successCount, errorCount, opsPerSecond));
         }
 
+        /// <summary>
+        /// 连接泄漏检测测试：模拟未释放连接并验证泄漏检测机制
+        /// </summary>
         [Fact]
         public void ConnectionLeak_Detection_Test()
         {
@@ -658,15 +711,18 @@ namespace FastData.Tests
                 {
                     Interlocked.Increment(ref errorCount);
                     if (errors.Count < 10)
-                        errors.Add($"Leak Detection: {ex.Message}");
+                        errors.Add(string.Format("Leak Detection: {0}", ex.Message));
                 }
             }
 
             var successRate = (double)successCount / iterations;
-            Assert.True(successRate > 0.95, $"Leak detection test failed: rate={successRate:P0}, ok={successCount}, err={errorCount}");
-            Console.WriteLine($"Leak detection test: rate={successRate:P0}, ok={successCount}, err={errorCount}");
+            Assert.True(successRate > 0.95, string.Format("Leak detection test failed: rate={0:P0}, ok={1}, err={2}", successRate, successCount, errorCount));
+            Console.WriteLine(string.Format("Leak detection test: rate={0:P0}, ok={1}, err={2}", successRate, successCount, errorCount));
         }
 
+        /// <summary>
+        /// 并发连接池压力测试：20 线程并发查询 PostgreSql 验证线程安全性
+        /// </summary>
         [Fact]
         public void Concurrent_ConnectionPool_Stress_Test()
         {
@@ -699,7 +755,7 @@ namespace FastData.Tests
                             lock (lockObj)
                             {
                                 if (errors.Count < 10)
-                                    errors.Add($"Thread {threadId}: {ex.Message}");
+                                    errors.Add(string.Format("Thread {0}: {1}", threadId, ex.Message));
                             }
                         }
                     }
@@ -713,14 +769,18 @@ namespace FastData.Tests
             var successRate = (double)successCount / totalOps;
             var opsPerSecond = totalOps * 1000.0 / stopwatch.ElapsedMilliseconds;
 
-            Assert.True(successRate > 0.7, $"Concurrent stress test failed: rate={successRate:P0}, ok={successCount}, err={errorCount}");
-            Console.WriteLine($"Concurrent stress test: rate={successRate:P0}, ok={successCount}, err={errorCount}, throughput={opsPerSecond:F0} ops/s");
+            Assert.True(successRate > 0.7, string.Format("Concurrent stress test failed: rate={0:P0}, ok={1}, err={2}", successRate, successCount, errorCount));
+            Console.WriteLine(string.Format("Concurrent stress test: rate={0:P0}, ok={1}, err={2}, throughput={3:F0} ops/s", successRate, successCount, errorCount, opsPerSecond));
         }
 
         #endregion
 
         #region Helpers
 
+        /// <summary>
+        /// 创建数据库连接工厂方法
+        /// </summary>
+        /// <returns>已打开的 SqlConnection 实例</returns>
         private DbConnection CreateConnectionFactory()
         {
             var connection = new SqlConnection(_connStr);
@@ -728,6 +788,10 @@ namespace FastData.Tests
             return connection;
         }
 
+        /// <summary>
+        /// 检查 Redis 是否可用
+        /// </summary>
+        /// <returns>Redis 可用时返回 true，否则返回 false</returns>
         private static bool IsRedisAvailable()
         {
             try

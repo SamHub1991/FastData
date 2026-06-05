@@ -50,13 +50,15 @@
     <!-- ===== 序列化包（升级到 13.0.4） ===== -->
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
     
-    <!-- ===== HTTP/Web API 包（升级 RestSharp 到 114.0.0） ===== -->
+    <!-- ===== HTTP/Web API 包 ===== -->
+    <!-- RestSharp 114.0.0 支持 net471+，net452 项目使用 VersionOverride -->
     <PackageVersion Include="RestSharp" Version="114.0.0" />
     <PackageVersion Include="Microsoft.AspNet.WebApi.Client" Version="5.2.9" />
     <PackageVersion Include="Microsoft.AspNet.WebApi.Core" Version="5.2.9" />
     <PackageVersion Include="Microsoft.AspNet.WebApi.SelfHost" Version="5.2.9" />
     
-    <!-- ===== Office 处理包（升级 NPOI 到 2.8.0） ===== -->
+    <!-- ===== Office 处理包 ===== -->
+    <!-- NPOI 2.8+ 需要 .NET 6+，net452 项目使用 VersionOverride -->
     <PackageVersion Include="NPOI" Version="2.8.0" />
     
     <!-- ===== Redis 包（升级 NewLife.Redis 到 6.5.2026.601） ===== -->

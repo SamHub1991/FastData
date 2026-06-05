@@ -115,7 +115,7 @@ namespace FastData.Tooling.CodeGeneration
             b.AppendLine("        /// <summary>");
             b.AppendLine("        /// " + endpoint + " - " + method);
             b.AppendLine("        /// </summary>");
-            b.AppendLine($"        public async Task<{returnType}> {method.ToLower()}Async(");
+            b.AppendLine(string.Format("        public async Task<{0}> {1}Async(", returnType, method.ToLower()));
             
             if (method == "POST" || method == "PUT")
             {
@@ -141,7 +141,7 @@ namespace FastData.Tooling.CodeGeneration
             b.AppendLine();
             b.AppendLine("            if (!response.IsSuccessful)");
             b.AppendLine("            {");
-            b.AppendLine("                throw new Exception($\"API 调用失败：{response.ErrorMessage}\");");
+            b.AppendLine("                throw new Exception(string.Format(\"API 调用失败：{0}\", response.ErrorMessage));");
             b.AppendLine("            }");
             b.AppendLine();
             
@@ -214,7 +214,7 @@ namespace FastData.Tooling.CodeGeneration
             b.AppendLine();
             b.AppendLine("        public async Task<dynamic> CallApiAsync(object parameters = null)");
             b.AppendLine("        {");
-            b.AppendLine("            Console.WriteLine($\"Calling API: {_endpoint}\");");
+            b.AppendLine("            Console.WriteLine(\"Calling API: \" + _endpoint);");
             b.AppendLine("            // TODO: Implement actual API call");
             b.AppendLine("            return await Task.FromResult<dynamic>(null);");
             b.AppendLine("        }");

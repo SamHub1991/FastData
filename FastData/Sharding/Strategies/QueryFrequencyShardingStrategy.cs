@@ -53,7 +53,7 @@ namespace FastData.Sharding.Strategies
 
             if (isHot)
             {
-                return $"{config.BaseTableName}{freqConfig.HotSuffix}";
+                return string.Format("{0}{1}", config.BaseTableName, freqConfig.HotSuffix);
             }
             else
             {
@@ -64,16 +64,16 @@ namespace FastData.Sharding.Strategies
                     if (timeValue is DateTime time)
                     {
                         var timeGranularity = freqConfig.TimeGranularity ?? TimeGranularity.Month;
-                        return $"{config.BaseTableName}{GetTimeSuffix(time, timeGranularity)}";
+                        return string.Format("{0}{1}", config.BaseTableName, GetTimeSuffix(time, timeGranularity));
                     }
                 }
                 else if (freqConfig.ColdShardingType == ColdShardingType.ByHash)
                 {
                     var hash = Math.Abs(fieldValueStr.GetHashCode()) % (freqConfig.ColdShardCount ?? 4);
-                    return $"{config.BaseTableName}_cold_{hash:D4}";
+                    return string.Format("{0}_cold_{1:D4}", config.BaseTableName, hash);
                 }
 
-                return $"{config.BaseTableName}{freqConfig.ColdSuffix}";
+                return string.Format("{0}{1}", config.BaseTableName, freqConfig.ColdSuffix);
             }
         }
 
@@ -101,7 +101,7 @@ namespace FastData.Sharding.Strategies
 
                 if (isHot)
                 {
-                    tableNames.Add($"{config.BaseTableName}{freqConfig.HotSuffix}");
+                    tableNames.Add(string.Format("{0}{1}", config.BaseTableName, freqConfig.HotSuffix));
                 }
                 else
                 {
@@ -113,36 +113,36 @@ namespace FastData.Sharding.Strategies
                         if (timeValue is DateTime time)
                         {
                             var timeGranularity = freqConfig.TimeGranularity ?? TimeGranularity.Month;
-                            tableNames.Add($"{config.BaseTableName}{GetTimeSuffix(time, timeGranularity)}");
+                            tableNames.Add(string.Format("{0}{1}", config.BaseTableName, GetTimeSuffix(time, timeGranularity)));
                         }
                     }
                     else if (freqConfig.ColdShardingType == ColdShardingType.ByHash)
                     {
                         var hash = Math.Abs(fieldValue.GetHashCode()) % (freqConfig.ColdShardCount ?? 4);
-                        tableNames.Add($"{config.BaseTableName}_cold_{hash:D4}");
+                        tableNames.Add(string.Format("{0}_cold_{1:D4}", config.BaseTableName, hash));
                     }
                     else
                     {
-                        tableNames.Add($"{config.BaseTableName}{freqConfig.ColdSuffix}");
+                        tableNames.Add(string.Format("{0}{1}", config.BaseTableName, freqConfig.ColdSuffix));
                     }
                 }
             }
             else
             {
                 // 没有指定频率字段，返回所有相关表
-                tableNames.Add($"{config.BaseTableName}{freqConfig.HotSuffix}");
+                tableNames.Add(string.Format("{0}{1}", config.BaseTableName, freqConfig.HotSuffix));
 
                 if (freqConfig.ColdShardingType == ColdShardingType.ByHash)
                 {
                     var shardCount = freqConfig.ColdShardCount ?? 4;
                     for (int i = 0; i < shardCount; i++)
                     {
-                        tableNames.Add($"{config.BaseTableName}_cold_{i:D4}");
+                        tableNames.Add(string.Format("{0}_cold_{1:D4}", config.BaseTableName, i));
                     }
                 }
                 else
                 {
-                    tableNames.Add($"{config.BaseTableName}{freqConfig.ColdSuffix}");
+                    tableNames.Add(string.Format("{0}{1}", config.BaseTableName, freqConfig.ColdSuffix));
                 }
             }
 
@@ -162,7 +162,7 @@ namespace FastData.Sharding.Strategies
             var freqConfig = config.FrequencyConfig;
             var tableNames = new List<string>
             {
-                $"{config.BaseTableName}{freqConfig.HotSuffix}"
+                string.Format("{0}{1}", config.BaseTableName, freqConfig.HotSuffix)
             };
 
             if (freqConfig.ColdShardingType == ColdShardingType.ByHash)
@@ -170,12 +170,12 @@ namespace FastData.Sharding.Strategies
                 var shardCount = freqConfig.ColdShardCount ?? 4;
                 for (int i = 0; i < shardCount; i++)
                 {
-                    tableNames.Add($"{config.BaseTableName}_cold_{i:D4}");
+                    tableNames.Add(string.Format("{0}_cold_{1:D4}", config.BaseTableName, i));
                 }
             }
             else
             {
-                tableNames.Add($"{config.BaseTableName}{freqConfig.ColdSuffix}");
+                tableNames.Add(string.Format("{0}{1}", config.BaseTableName, freqConfig.ColdSuffix));
             }
 
             return tableNames;
@@ -293,19 +293,19 @@ namespace FastData.Sharding.Strategies
             switch (granularity)
             {
                 case TimeGranularity.Day:
-                    return $"_{time:yyyyMMdd}";
+                    return string.Format("_{0:yyyyMMdd}", time);
                 case TimeGranularity.Week:
                     var weekStart = time.AddDays(-(int)time.DayOfWeek);
-                    return $"_{weekStart:yyyyMMdd}";
+                    return string.Format("_{0:yyyyMMdd}", weekStart);
                 case TimeGranularity.Month:
-                    return $"_{time:yyyyMM}";
+                    return string.Format("_{0:yyyyMM}", time);
                 case TimeGranularity.Quarter:
                     var quarter = (time.Month - 1) / 3 + 1;
-                    return $"_{time:yyyy}Q{quarter}";
+                    return string.Format("_{0:yyyy}Q{1}", time, quarter);
                 case TimeGranularity.Year:
-                    return $"_{time:yyyy}";
+                    return string.Format("_{0:yyyy}", time);
                 default:
-                    return $"_{time:yyyyMM}";
+                    return string.Format("_{0:yyyyMM}", time);
             }
         }
     }

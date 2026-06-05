@@ -161,7 +161,7 @@ namespace FastData.Tests
         public void BaseCache_List_ShouldWork()
         {
             // Arrange
-            var key = $"test:memory:list:{Guid.NewGuid()}";
+            var key = string.Format("test:memory:list:{0}", Guid.NewGuid());
             var users = new List<TestUser>
             {
                 new TestUser { Id = 1, UserName = "user1", Age = 20 },
@@ -315,7 +315,7 @@ namespace FastData.Tests
         public void RedisInfo_List_ShouldWork()
         {
             // Arrange
-            var key = $"test:redis:list:{Guid.NewGuid()}";
+            var key = string.Format("test:redis:list:{0}", Guid.NewGuid());
             var users = new List<TestUser>
             {
                 new TestUser { Id = 1, UserName = "user1", Age = 20 },
@@ -389,7 +389,7 @@ namespace FastData.Tests
         public void RedisInfo_SetExpire_ShouldWork()
         {
             // Arrange
-            var key = $"test:redis:expire:{Guid.NewGuid()}";
+            var key = string.Format("test:redis:expire:{0}", Guid.NewGuid());
 
             try
             {
@@ -524,7 +524,7 @@ namespace FastData.Tests
                 var dict = new Dictionary<string, TestUser>();
                 foreach (var user in users)
                 {
-                    dict[$"test:batch:{user.Id}"] = user;
+                    dict[string.Format("test:batch:{0}", user.Id)] = user;
                 }
                 RedisInfo.SetDic(dict, db: 0);
 
@@ -589,9 +589,9 @@ namespace FastData.Tests
             var isActive = true;
 
             // Act - 生成缓存键
-            var entityKey = $"user:{userId}";
-            var listKey = $"users:age_gt_{age}:active_{isActive}";
-            var countKey = $"users:count:active_{isActive}";
+            var entityKey = string.Format("user:{0}", userId);
+            var listKey = string.Format("users:age_gt_{0}:active_{1}", age, isActive);
+            var countKey = string.Format("users:count:active_{0}", isActive);
 
             // Assert - 键格式正确
             Assert.Equal("user:123", entityKey);
@@ -610,7 +610,7 @@ namespace FastData.Tests
         public void CacheExpiration_ShouldWork()
         {
             // Arrange
-            var key = $"test:expiration:{Guid.NewGuid()}";
+            var key = string.Format("test:expiration:{0}", Guid.NewGuid());
 
             // Act - 设置1秒过期
             BaseCache.Set(key, "value", 0); // 0小时 = 立即过期

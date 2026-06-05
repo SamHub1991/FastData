@@ -255,7 +255,7 @@ namespace FastData.DevTools
         {
             var color = Console.ForegroundColor;
             Console.ForegroundColor = GetColor(entry.Level);
-            Console.WriteLine($"[{entry.Timestamp:yyyy-MM-dd HH:mm:ss}] [{entry.Level}] {entry.Category}: {entry.Message}");
+            Console.WriteLine(string.Format("[{0:yyyy-MM-dd HH:mm:ss}] [{1}] {2}: {3}", entry.Timestamp, entry.Level, entry.Category, entry.Message));
             Console.ForegroundColor = color;
             return Task.CompletedTask;
         }
@@ -304,17 +304,17 @@ namespace FastData.DevTools
         private string FormatLogLine(LogEntry entry)
         {
             var sb = new StringBuilder();
-            sb.Append($"[{entry.Timestamp:yyyy-MM-dd HH:mm:ss.fff}]");
-            sb.Append($" [{entry.Level}]");
+            sb.Append(string.Format("[{0:yyyy-MM-dd HH:mm:ss.fff}]", entry.Timestamp));
+            sb.Append(string.Format(" [{0}]", entry.Level));
             if (!string.IsNullOrEmpty(entry.Category))
             {
-                sb.Append($" [{entry.Category}]");
+                sb.Append(string.Format(" [{0}]", entry.Category));
             }
-            sb.Append($" {entry.Message}");
+            sb.Append(string.Format(" {0}", entry.Message));
 
             if (entry.Properties != null && entry.Properties.Any())
             {
-                sb.Append($" | Properties: {string.Join(", ", entry.Properties.Select(p => $"{p.Key}={p.Value}"))}");
+                sb.Append(string.Format(" | Properties: {0}", string.Join(", ", entry.Properties.Select(p => string.Format("{0}={1}", p.Key, p.Value)))));
             }
 
             return sb.ToString();

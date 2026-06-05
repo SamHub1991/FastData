@@ -113,12 +113,12 @@ namespace FastData.Model
             if (valueList.Count == 0)
                 return this;
 
-            var inClause = string.Join(",", valueList.Select(v => $"'{v}'"));
+            var inClause = string.Join(",", valueList.Select(v => string.Format("'{0}'", v)));
 
             ChainedConditions.Add(new ChainedCondition
             {
                 Operator = "AND",
-                Where = $"{fieldName} IN ({inClause})"
+                Where = string.Format("{0} IN ({1})", fieldName, inClause)
             });
 
             return this;
@@ -141,7 +141,7 @@ namespace FastData.Model
             ChainedConditions.Add(new ChainedCondition
             {
                 Operator = "AND",
-                Where = $"{fieldName} BETWEEN '{start}' AND '{end}'"
+                Where = string.Format("{0} BETWEEN '{1}' AND '{2}'", fieldName, start, end)
             });
 
             return this;
@@ -156,7 +156,7 @@ namespace FastData.Model
                 return this;
 
             var fieldName = GetMemberName(field);
-            base.OrderBy.Add($"{fieldName} ASC");
+            base.OrderBy.Add(string.Format("{0} ASC", fieldName));
 
             return this;
         }
@@ -170,7 +170,7 @@ namespace FastData.Model
                 return this;
 
             var fieldName = GetMemberName(field);
-            base.OrderBy.Add($"{fieldName} DESC");
+            base.OrderBy.Add(string.Format("{0} DESC", fieldName));
 
             return this;
         }
@@ -240,8 +240,8 @@ namespace FastData.Model
         public DataQuery<T> WithTimeRange(string timeField, DateTime startTime, DateTime endTime)
         {
             EnableSharding = true;
-            ShardingQueryParams[$"{timeField}_Start"] = startTime;
-            ShardingQueryParams[$"{timeField}_End"] = endTime;
+            ShardingQueryParams[string.Format("{0}_Start", timeField)] = startTime;
+            ShardingQueryParams[string.Format("{0}_End", timeField)] = endTime;
             return this;
         }
 

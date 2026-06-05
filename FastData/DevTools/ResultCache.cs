@@ -373,25 +373,25 @@ namespace FastData.DevTools
         public static T WithMultiLevelCache<T>(string key, Func<T> factory, TimeSpan? l1Expiration = null, TimeSpan? l2Expiration = null)
         {
             // L1 缓存
-            var l1Cached = ResultCache.Get<T>($"L1_{key}");
+            var l1Cached = ResultCache.Get<T>(string.Format("L1_{0}", key));
             if (l1Cached != null)
             {
                 return l1Cached;
             }
 
             // L2 缓存
-            var l2Cached = ResultCache.Get<T>($"L2_{key}");
+            var l2Cached = ResultCache.Get<T>(string.Format("L2_{0}", key));
             if (l2Cached != null)
             {
                 // 提升 L2 到 L1
-                ResultCache.Set($"L1_{key}", l2Cached, l1Expiration ?? TimeSpan.FromMinutes(5));
+                ResultCache.Set(string.Format("L1_{0}", key), l2Cached, l1Expiration ?? TimeSpan.FromMinutes(5));
                 return l2Cached;
             }
 
             // 从数据源获取
             var value = factory();
-            ResultCache.Set($"L1_{key}", value, l1Expiration ?? TimeSpan.FromMinutes(5));
-            ResultCache.Set($"L2_{key}", value, l2Expiration ?? TimeSpan.FromHours(1));
+            ResultCache.Set(string.Format("L1_{0}", key), value, l1Expiration ?? TimeSpan.FromMinutes(5));
+            ResultCache.Set(string.Format("L2_{0}", key), value, l2Expiration ?? TimeSpan.FromHours(1));
             return value;
         }
     }
@@ -449,7 +449,7 @@ namespace FastData.DevTools
         /// </summary>
         public static void InvalidateByDependency(string dependentKey)
         {
-            var pattern = $"{dependentKey}_*";
+            var pattern = string.Format("{0}_*", dependentKey);
             ResultCache.ClearByPrefix(pattern);
         }
     }

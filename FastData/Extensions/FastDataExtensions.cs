@@ -42,7 +42,7 @@ namespace FastData.Extensions
         {
             if (result == null || !result.IsSuccess)
             {
-                throw new FastDataException($"{operation}失败: {result?.GetErrorMessage()}");
+                throw new FastDataException(string.Format("{0}失败: {1}", operation, result?.GetErrorMessage()));
             }
             return result;
         }
@@ -190,7 +190,7 @@ namespace FastData.Extensions
                 }
             }
 
-            throw new FastDataException($"操作失败，已重试 {maxRetries} 次", lastException);
+            throw new FastDataException(string.Format("操作失败，已重试 {0} 次", maxRetries), lastException);
         }
 
         /// <summary>
@@ -219,7 +219,7 @@ namespace FastData.Extensions
                 }
             }
 
-            throw new FastDataException($"操作失败，已重试 {maxRetries} 次", lastException);
+            throw new FastDataException(string.Format("操作失败，已重试 {0} 次", maxRetries), lastException);
         }
 
         /// <summary>
@@ -236,7 +236,7 @@ namespace FastData.Extensions
             }
             catch (System.OperationCanceledException)
             {
-                throw new TimeoutException($"操作超时：{timeout.TotalSeconds}秒");
+                throw new TimeoutException(string.Format("操作超时：{0}秒", timeout.TotalSeconds));
             }
         }
 

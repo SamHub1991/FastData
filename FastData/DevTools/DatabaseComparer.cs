@@ -58,7 +58,7 @@ namespace FastData.DevTools
             var sql = new StringBuilder();
 
             sql.AppendLine("-- 数据库同步脚本");
-            sql.AppendLine($"-- 生成时间: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+            sql.AppendLine(string.Format("-- 生成时间: {0:yyyy-MM-dd HH:mm:ss}", DateTime.Now));
             sql.AppendLine("-- 请在执行前仔细检查！");
             sql.AppendLine();
 
@@ -68,14 +68,14 @@ namespace FastData.DevTools
                 sql.AppendLine("-- 表差异同步");
                 foreach (var tableDiff in diff.TableDifferences.Where(d => d.Action == DiffAction.Create))
                 {
-                    sql.AppendLine($"-- 创建表: {tableDiff.TableName}");
-                    // sql.AppendLine($"CREATE TABLE {tableDiff.TableName} (/* 列定义 */);");
+                    sql.AppendLine(string.Format("-- 创建表: {0}", tableDiff.TableName));
+                    // sql.AppendLine(string.Format("CREATE TABLE {0} (/* 列定义 */);", tableDiff.TableName));
                 }
 
                 foreach (var tableDiff in diff.TableDifferences.Where(d => d.Action == DiffAction.Drop))
                 {
-                    sql.AppendLine($"-- 删除表: {tableDiff.TableName}");
-                    sql.AppendLine($"DROP TABLE {tableDiff.TableName};");
+                    sql.AppendLine(string.Format("-- 删除表: {0}", tableDiff.TableName));
+                    sql.AppendLine(string.Format("DROP TABLE {0};", tableDiff.TableName));
                 }
 
                 sql.AppendLine();
@@ -87,14 +87,14 @@ namespace FastData.DevTools
                 sql.AppendLine("-- 列差异同步");
                 foreach (var colDiff in diff.ColumnDifferences.Where(d => d.Action == DiffAction.Add))
                 {
-                    sql.AppendLine($"-- 添加列: {colDiff.TableName}.{colDiff.ColumnName}");
-                    // sql.AppendLine($"ALTER TABLE {colDiff.TableName} ADD {colDiff.ColumnName} {colDiff.DataType};");
+                    sql.AppendLine(string.Format("-- 添加列: {0}.{1}", colDiff.TableName, colDiff.ColumnName));
+                    // sql.AppendLine(string.Format("ALTER TABLE {0} ADD {1} {2};", colDiff.TableName, colDiff.ColumnName, colDiff.DataType));
                 }
 
                 foreach (var colDiff in diff.ColumnDifferences.Where(d => d.Action == DiffAction.Drop))
                 {
-                    sql.AppendLine($"-- 删除列: {colDiff.TableName}.{colDiff.ColumnName}");
-                    sql.AppendLine($"ALTER TABLE {colDiff.TableName} DROP COLUMN {colDiff.ColumnName};");
+                    sql.AppendLine(string.Format("-- 删除列: {0}.{1}", colDiff.TableName, colDiff.ColumnName));
+                    sql.AppendLine(string.Format("ALTER TABLE {0} DROP COLUMN {1};", colDiff.TableName, colDiff.ColumnName));
                 }
 
                 sql.AppendLine();
@@ -289,11 +289,11 @@ namespace FastData.DevTools
 
             var sql = config.DbType switch
             {
-                DataDbType.SqlServer => $"SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '{tableName}'",
-                DataDbType.MySql => $"SELECT column_name FROM information_schema.columns WHERE table_name = '{tableName}'",
-                DataDbType.PostgreSql => $"SELECT column_name FROM information_schema.columns WHERE table_name = '{tableName}'",
-                DataDbType.Oracle => $"SELECT column_name FROM user_tab_columns WHERE table_name = UPPER('{tableName}')",
-                DataDbType.SQLite => $"PRAGMA table_info({tableName})",
+                DataDbType.SqlServer => string.Format("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '{0}'", tableName),
+                DataDbType.MySql => string.Format("SELECT column_name FROM information_schema.columns WHERE table_name = '{0}'", tableName),
+                DataDbType.PostgreSql => string.Format("SELECT column_name FROM information_schema.columns WHERE table_name = '{0}'", tableName),
+                DataDbType.Oracle => string.Format("SELECT column_name FROM user_tab_columns WHERE table_name = UPPER('{0}')", tableName),
+                DataDbType.SQLite => string.Format("PRAGMA table_info({0})", tableName),
                 _ => null
             };
 
@@ -336,7 +336,7 @@ namespace FastData.DevTools
         {
             try
             {
-                var sql = $"SELECT COUNT(*) FROM {tableName}";
+                var sql = string.Format("SELECT COUNT(*) FROM {0}", tableName);
                 using var db = new DataContext(key);
                 db.cmd.CommandText = sql;
                 return Convert.ToInt32(db.cmd.ExecuteScalar());

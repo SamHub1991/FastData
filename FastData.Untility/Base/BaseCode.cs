@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 
 #if NETFRAMEWORK
@@ -8,6 +8,10 @@ using System.Drawing.Imaging;
 
 namespace FastUntility.Base
 {
+    /// <summary>
+    /// 验证码工具类
+    /// 提供图形验证码生成功能（.NET Framework 下生成图片，跨平台下生成纯文本）
+    /// </summary>
     public static class BaseCode
     {
 #if NETFRAMEWORK

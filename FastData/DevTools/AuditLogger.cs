@@ -24,12 +24,12 @@ namespace FastData.DevTools
     {
         public void Log(AuditEntry entry)
         {
-            Console.WriteLine($"[{entry.Timestamp}] {entry.Action} - {entry.EntityType}");
-            Console.WriteLine($"  操作人: {entry.User}");
-            Console.WriteLine($"  主键: {entry.PrimaryKey}");
+            Console.WriteLine(string.Format("[{0}] {1} - {2}", entry.Timestamp, entry.Action, entry.EntityType));
+            Console.WriteLine(string.Format("  操作人: {0}", entry.User));
+            Console.WriteLine(string.Format("  主键: {0}", entry.PrimaryKey));
             if (!string.IsNullOrEmpty(entry.Changes))
             {
-                Console.WriteLine($"  变更: {entry.Changes}");
+                Console.WriteLine(string.Format("  变更: {0}", entry.Changes));
             }
         }
 
@@ -75,7 +75,7 @@ namespace FastData.DevTools
         private string GetEntityChanges<T>(T entity) where T : class, new()
         {
             var props = typeof(T).GetProperties();
-            var changes = props.Select(p => $"{p.Name}={p.GetValue(entity)}");
+            var changes = props.Select(p => string.Format("{0}={1}", p.Name, p.GetValue(entity)));
             return string.Join(", ", changes);
         }
 
@@ -91,7 +91,7 @@ namespace FastData.DevTools
 
                 if (!Equals(oldValue, newValue))
                 {
-                    changes.Add($"{prop.Name}: {oldValue} -> {newValue}");
+                    changes.Add(string.Format("{0}: {1} -> {2}", prop.Name, oldValue, newValue));
                 }
             }
 
@@ -131,7 +131,7 @@ namespace FastData.DevTools
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"审计日志记录失败: {ex.Message}");
+                Console.WriteLine(string.Format("审计日志记录失败: {0}", ex.Message));
             }
         }
 
@@ -177,7 +177,7 @@ namespace FastData.DevTools
         private string GetEntityChanges<T>(T entity) where T : class, new()
         {
             var props = typeof(T).GetProperties();
-            var changes = props.Select(p => $"{p.Name}={p.GetValue(entity)}");
+            var changes = props.Select(p => string.Format("{0}={1}", p.Name, p.GetValue(entity)));
             return string.Join(", ", changes);
         }
 
@@ -193,7 +193,7 @@ namespace FastData.DevTools
 
                 if (!Equals(oldValue, newValue))
                 {
-                    changes.Add($"{prop.Name}: {oldValue} -> {newValue}");
+                    changes.Add(string.Format("{0}: {1} -> {2}", prop.Name, oldValue, newValue));
                 }
             }
 
@@ -348,7 +348,7 @@ namespace FastData.DevTools
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"查询审计日志失败: {ex.Message}");
+                Console.WriteLine(string.Format("查询审计日志失败: {0}", ex.Message));
             }
 
             return logs;
@@ -378,7 +378,7 @@ namespace FastData.DevTools
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"初始化审计日志表失败: {ex.Message}");
+                Console.WriteLine(string.Format("初始化审计日志表失败: {0}", ex.Message));
             }
         }
     }

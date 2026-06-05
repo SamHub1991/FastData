@@ -455,7 +455,7 @@ namespace FastData.Context
                 else if (isTrans && result.WriteReturn.IsSuccess == false)
                     RollbackTrans();
 
-                result.WriteReturn.Message = $"{ex.GetType().Name}: {ex.Message}";
+                result.WriteReturn.Message = string.Format("{0}: {1}", ex.GetType().Name, ex.Message);
                 result.WriteReturn.IsSuccess = false;
                 return result;
             }
@@ -585,7 +585,7 @@ namespace FastData.Context
                                 {
                                     param = new object[1];
                                     // 使用新的 TVP 类型名称（排除 Identity 列）
-                                    param[0] = $"{typeof(T).Name}_TVP";
+                                    param[0] = string.Format("{0}_TVP", typeof(T).Name);
                                     a.Invoke(sqlParam, param);
                                 }
                             });
@@ -624,18 +624,18 @@ namespace FastData.Context
                     var mysqlTableName = TableNameHelper.GetTableName<T>();
                     var mysqlColumns = string.Join(", ", nonIdentityProperties.Select(p => p.Name));
                     var mysqlValues = string.Join(", ", list.Select(item => 
-                        $"({string.Join(", ", nonIdentityProperties.Select(p => {
+                        string.Format("({0})", string.Join(", ", nonIdentityProperties.Select(p => {
                             var value = dyn.GetValue(item, p.Name, true);
                             if (value is bool boolVal)
                                 return boolVal ? "1" : "0";
                             else if (value == null)
                                 return "NULL";
                             else if (value is DateTime dtVal)
-                                return $"'{dtVal:yyyy-MM-dd HH:mm:ss}'";
+                                return string.Format("'{0:yyyy-MM-dd HH:mm:ss}'", dtVal);
                             else
-                                return $"'{value}'";
-                        }))})"));
-                    cmd.CommandText = $"INSERT INTO {mysqlTableName} ({mysqlColumns}) VALUES {mysqlValues}";
+                                return string.Format("'{0}'", value);
+                        })))));
+                    cmd.CommandText = string.Format("INSERT INTO {0} ({1}) VALUES {2}", mysqlTableName, mysqlColumns, mysqlValues);
 
                     tableName.Add(TableNameHelper.GetTableName<T>());
                     AopBefore(tableName, cmd.CommandText, null, config, false, AopType.AddList);
@@ -666,8 +666,8 @@ namespace FastData.Context
                     }).ToList();
                     
                     var pgColumns = string.Join(", ", pgNonIdentityProperties.Select(p => p.Name));
-                    var pgPlaceholders = string.Join(", ", pgNonIdentityProperties.Select((p, i) => $"{config.Flag}{p.Name}"));
-                    var insertSql = $"INSERT INTO {pgTableName} ({pgColumns}) VALUES ({pgPlaceholders})";
+                    var pgPlaceholders = string.Join(", ", pgNonIdentityProperties.Select((p, i) => string.Format("{0}{1}", config.Flag, p.Name)));
+                    var insertSql = string.Format("INSERT INTO {0} ({1}) VALUES ({2})", pgTableName, pgColumns, pgPlaceholders);
                     
                     AopBefore(new List<string> { pgTableName }, insertSql, null, config, false, AopType.AddList);
                     
@@ -683,7 +683,7 @@ namespace FastData.Context
                         foreach (var prop in pgNonIdentityProperties)
                         {
                             var param = cmd.CreateParameter();
-                            param.ParameterName = $"{config.Flag}{prop.Name}";
+                            param.ParameterName = string.Format("{0}{1}", config.Flag, prop.Name);
                             var value = dyn.GetValue(item, prop.Name, true);
                             // 处理布尔值，PostgreSql 使用 true/false
                             if (value is bool pgBoolVal)
@@ -702,7 +702,7 @@ namespace FastData.Context
                         SubmitTrans();
                     
                     result.WriteReturn.IsSuccess = true;
-                    result.Sql = $"{insertSql} (x{list.Count})";
+                    result.Sql = string.Format("{0} (x{1})", insertSql, list.Count);
                     
                     AopAfter(new List<string> { pgTableName }, result.Sql, null, config, false, AopType.AddList, result.WriteReturn.IsSuccess);
                     #endregion
@@ -716,8 +716,8 @@ namespace FastData.Context
                     var sqliteTableName = TableNameHelper.GetTableName<T>();
                     var properties = PropertyCache.GetPropertyInfo<T>();
                     var columns = string.Join(", ", properties.Select(p => p.Name));
-                    var placeholders = string.Join(", ", properties.Select(p => $"{config.Flag}{p.Name}"));
-                    var insertSql = $"INSERT INTO {sqliteTableName} ({columns}) VALUES ({placeholders})";
+                    var placeholders = string.Join(", ", properties.Select(p => string.Format("{0}{1}", config.Flag, p.Name)));
+                    var insertSql = string.Format("INSERT INTO {0} ({1}) VALUES ({2})", sqliteTableName, columns, placeholders);
                     
                     AopBefore(new List<string> { sqliteTableName }, insertSql, null, config, false, AopType.AddList);
                     
@@ -733,7 +733,7 @@ namespace FastData.Context
                         foreach (var prop in properties)
                         {
                             var param = cmd.CreateParameter();
-                            param.ParameterName = $"{config.Flag}{prop.Name}";
+                            param.ParameterName = string.Format("{0}{1}", config.Flag, prop.Name);
                             var value = dyn.GetValue(item, prop.Name, true);
                             param.Value = value ?? DBNull.Value;
                             cmd.Parameters.Add(param);
@@ -745,7 +745,7 @@ namespace FastData.Context
                         SubmitTrans();
                     
                     result.WriteReturn.IsSuccess = true;
-                    result.Sql = $"{insertSql} (x{list.Count})";
+                    result.Sql = string.Format("{0} (x{1})", insertSql, list.Count);
                     
                     AopAfter(new List<string> { sqliteTableName }, result.Sql, null, config, false, AopType.AddList, result.WriteReturn.IsSuccess);
                     #endregion
@@ -882,8 +882,8 @@ namespace FastData.Context
                 if (_transaction != null)
                     _command.Transaction = _transaction;
 
-                var paramNames = string.Join(", ", properties.Select((_, i) => $"@p{i}"));
-                var insertSql = $"INSERT INTO {tableName} ({columnNames}) VALUES ({paramNames})";
+                var paramNames = string.Join(", ", properties.Select((_, i) => string.Format("@p{0}", i)));
+                var insertSql = string.Format("INSERT INTO {0} ({1}) VALUES ({2})", tableName, columnNames, paramNames);
                 _command.CommandText = insertSql;
 
                 foreach (var item in list)
@@ -893,7 +893,7 @@ namespace FastData.Context
                     {
                         var value = properties[i].GetValue(item);
                         var param = _command.CreateParameter();
-                        param.ParameterName = $"@p{i}";
+                        param.ParameterName = string.Format("@p{0}", i);
                         param.Value = value ?? DBNull.Value;
                         _command.Parameters.Add(param);
                     }
@@ -903,7 +903,7 @@ namespace FastData.Context
                     cmd.ExecuteNonQuery();
                 }
 
-                result.Sql = $"{insertSql} (x{list.Count})";
+                result.Sql = string.Format("{0} (x{1})", insertSql, list.Count);
                 if (isLog)
                     DbLog.LogSql(true, result.Sql, config.DbType, 0);
 
@@ -955,8 +955,8 @@ namespace FastData.Context
                     .Where(p => p.CanRead && p.CanWrite && p.Name != "Id")
                     .ToList();
 
-                var setClause = string.Join(", ", properties.Select(p => $"{p.Name} = @{p.Name}"));
-                var paramNames = string.Join(", ", properties.Select(p => $"@{p.Name}"));
+                var setClause = string.Join(", ", properties.Select(p => string.Format("{0} = @{0}", p.Name)));
+                var paramNames = string.Join(", ", properties.Select(p => string.Format("@{0}", p.Name)));
 
                 var visitModel = VisitExpression.LambdaWhere<T>(predicate, config);
                 if (!visitModel.IsSuccess)
@@ -974,7 +974,7 @@ namespace FastData.Context
                     {
                         var value = prop.GetValue(item);
                         var param = cmd.CreateParameter();
-                        param.ParameterName = $"@{prop.Name}";
+                        param.ParameterName = string.Format("@{0}", prop.Name);
                         param.Value = value ?? DBNull.Value;
                         cmd.Parameters.Add(param);
                     }
@@ -982,12 +982,12 @@ namespace FastData.Context
                     if (conn.State == ConnectionState.Closed)
                         conn.Open();
 
-                    var updateSql = $"UPDATE {tableName} SET {setClause} WHERE {whereClause}";
+                    var updateSql = string.Format("UPDATE {0} SET {1} WHERE {2}", tableName, setClause, whereClause);
                     cmd.CommandText = updateSql;
                     cmd.ExecuteNonQuery();
                 }
 
-                result.Sql = $"UPDATE {tableName} SET {setClause} WHERE {whereClause} (x{list.Count})";
+                result.Sql = string.Format("UPDATE {0} SET {1} WHERE {2} (x{3})", tableName, setClause, whereClause, list.Count);
                 if (isLog)
                     DbLog.LogSql(true, result.Sql, config.DbType, 0);
 
@@ -1043,7 +1043,7 @@ namespace FastData.Context
                 if (conn.State == ConnectionState.Closed)
                     conn.Open();
 
-                var deleteSql = $"DELETE FROM {tableName} WHERE {whereClause}";
+                var deleteSql = string.Format("DELETE FROM {0} WHERE {1}", tableName, whereClause);
                 cmd.CommandText = deleteSql;
 
                 foreach (var param in paramList)
@@ -1052,13 +1052,13 @@ namespace FastData.Context
                 }
 
                 int affectedRows = cmd.ExecuteNonQuery();
-                result.Sql = $"DELETE FROM {tableName} WHERE {whereClause} (x{affectedRows})";
+                result.Sql = string.Format("DELETE FROM {0} WHERE {1} (x{2})", tableName, whereClause, affectedRows);
                 if (isLog)
                     DbLog.LogSql(true, result.Sql, config.DbType, 0);
 
                 AopBefore(new List<string> { tableName }, result.Sql, paramList, config, false, AopType.Delete_Lambda);
                 result.WriteReturn.IsSuccess = true;
-                result.WriteReturn.Message = $"删除 {affectedRows} 条记录";
+                result.WriteReturn.Message = string.Format("删除 {0} 条记录", affectedRows);
                 SubmitTrans();
                 AopAfter(new List<string> { tableName }, result.Sql, paramList, config, false, AopType.Delete_Lambda, affectedRows);
             }

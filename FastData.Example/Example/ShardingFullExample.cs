@@ -78,7 +78,7 @@ namespace FastData.Example.Example
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"错误: {ex.Message}");
+                Console.WriteLine(string.Format("错误: {0}", ex.Message));
                 Console.WriteLine(ex.StackTrace);
             }
         }
@@ -153,7 +153,7 @@ namespace FastData.Example.Example
 
                     var random = new Random();
                     var levels = new[] { "Info", "Warning", "Error", "Debug" };
-                    var users = Enumerable.Range(1, 100).Select(i => $"User{i:D3}").ToArray();
+                    var users = Enumerable.Range(1, 100).Select(i => string.Format("User{0:D3}", i)).ToArray();
 
                     for (int i = 0; i < 10000; i++)
                     {

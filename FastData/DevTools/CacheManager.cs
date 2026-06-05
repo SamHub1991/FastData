@@ -187,7 +187,7 @@ namespace FastData.DevTools
             string dbKey = null,
             string cacheKey = null) where T : class, new()
         {
-            var key = cacheKey ?? $"List_{typeof(T).Name}_{dbKey ?? "default"}";
+            var key = cacheKey ?? string.Format("List_{0}_{1}", typeof(T).Name, dbKey ?? "default");
 
             var cached = CacheManager.Get<List<T>>(key);
             if (cached != null)
@@ -235,7 +235,7 @@ namespace FastData.DevTools
         private static string GenerateCacheKey<T>(System.Linq.Expressions.Expression<Func<T, bool>> expression, string dbKey)
         {
             var exprStr = expression?.ToString() ?? "all";
-            return $"Query_{typeof(T).Name}_{exprStr.GetHashCode()}_{dbKey ?? "default"}";
+            return string.Format("Query_{0}_{1}_{2}", typeof(T).Name, exprStr.GetHashCode(), dbKey ?? "default");
         }
     }
 

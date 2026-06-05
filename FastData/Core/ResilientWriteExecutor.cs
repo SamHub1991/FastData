@@ -140,7 +140,7 @@ namespace FastData.Core
                     // 重试次数用完，降级到队列
                     if (_enableQueueFallback)
                     {
-                        return FallbackToQueue(operation, $"数据库异常: {ex.Message}");
+                        return FallbackToQueue(operation, string.Format("数据库异常: {0}", ex.Message));
                     }
 
                     result.Success = false;
@@ -215,7 +215,7 @@ namespace FastData.Core
 
                     if (_enableQueueFallback)
                     {
-                        return FallbackToQueue(operation, $"数据库异常: {ex.Message}");
+                        return FallbackToQueue(operation, string.Format("数据库异常: {0}", ex.Message));
                     }
 
                     result.Success = false;
@@ -294,14 +294,14 @@ namespace FastData.Core
                 else
                 {
                     result.Success = false;
-                    result.ErrorMessage = $"队列写入失败，原始原因: {reason}";
+                    result.ErrorMessage = string.Format("队列写入失败，原始原因: {0}", reason);
                     Interlocked.Increment(ref _totalFailureCount);
                 }
             }
             catch (Exception ex)
             {
                 result.Success = false;
-                result.ErrorMessage = $"队列降级失败: {ex.Message}，原始原因: {reason}";
+                result.ErrorMessage = string.Format("队列降级失败: {0}，原始原因: {1}", ex.Message, reason);
                 Interlocked.Increment(ref _totalFailureCount);
             }
 
@@ -334,7 +334,7 @@ namespace FastData.Core
                     return deleteResult.WriteReturn;
 
                 default:
-                    return new WriteReturn { IsSuccess = false, Message = $"不支持的操作类型: {operation.OperationType}" };
+                    return new WriteReturn { IsSuccess = false, Message = string.Format("不支持的操作类型: {0}", operation.OperationType) };
             }
         }
 

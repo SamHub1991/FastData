@@ -268,7 +268,7 @@ namespace FastData.Tests
             var pageData = new List<TestEntity>();
             for (int i = 10; i < 20; i++)
             {
-                pageData.Add(new TestEntity { Id = i + 1, Name = $"User{i + 1}" });
+                pageData.Add(new TestEntity { Id = i + 1, Name = string.Format("User{0}", i + 1) });
             }
 
             // Act
@@ -305,7 +305,7 @@ namespace FastData.Tests
             var pageData = new List<TestEntity>();
             for (int i = 20; i < 25; i++)
             {
-                pageData.Add(new TestEntity { Id = i + 1, Name = $"User{i + 1}" });
+                pageData.Add(new TestEntity { Id = i + 1, Name = string.Format("User{0}", i + 1) });
             }
 
             // Act
@@ -361,7 +361,7 @@ namespace FastData.Tests
             var allData = new List<TestEntity>();
             for (int i = 1; i <= 25; i++)
             {
-                allData.Add(new TestEntity { Id = i, Name = $"User{i}", Email = $"user{i}@test.com", Age = 20 + i });
+                allData.Add(new TestEntity { Id = i, Name = string.Format("User{0}", i), Email = string.Format("user{0}@test.com", i), Age = 20 + i });
             }
 
             // 模拟过滤：Age > 30

@@ -440,7 +440,7 @@ namespace FastData
                 case WriteOperationType.Add:
                     return FastWrite.Add<T>(model, null, _key, _enableSqlLog);
                 default:
-                    throw new NotSupportedException($"不支持的操作类型: {operationType}");
+                    throw new NotSupportedException(string.Format("不支持的操作类型: {0}", operationType));
             }
         }
 #endif

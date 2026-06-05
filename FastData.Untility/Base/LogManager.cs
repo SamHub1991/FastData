@@ -112,7 +112,7 @@ namespace FastUntility.Base
             if (string.IsNullOrEmpty(fileName))
                 fileName = "app";
 
-            var baseFileName = $"{fileName}.txt";
+            var baseFileName = string.Format("{0}.txt", fileName);
             var filePath = Path.Combine(logDir, baseFileName);
 
             // 检查文件大小，超过限制则创建新文件
@@ -134,7 +134,7 @@ namespace FastUntility.Base
         private static string GetNextRotationFilePath(string logDir, string fileName)
         {
             // 查找当前最大的轮转序号
-            var existingFiles = Directory.GetFiles(logDir, $"{fileName}_*.txt");
+            var existingFiles = Directory.GetFiles(logDir, string.Format("{0}_*.txt", fileName));
             var maxIndex = 0;
 
             foreach (var file in existingFiles)
@@ -148,7 +148,7 @@ namespace FastUntility.Base
                 }
             }
 
-            return Path.Combine(logDir, $"{fileName}_{maxIndex + 1}.txt");
+            return Path.Combine(logDir, string.Format("{0}_{1}.txt", fileName, maxIndex + 1));
         }
 
         /// <summary>
@@ -156,7 +156,7 @@ namespace FastUntility.Base
         /// </summary>
         private static string FormatLogLine(string logContent, DateTime now)
         {
-            return $"[{now:yyyy-MM-dd HH:mm:ss.fff}] {logContent}";
+            return string.Format("[{0:yyyy-MM-dd HH:mm:ss.fff}] {1}", now, logContent);
         }
 
         /// <summary>
@@ -165,7 +165,7 @@ namespace FastUntility.Base
         private static void WriteToFile(string filePath, string logLine)
         {
             // 使用文件锁确保线程安全
-            using (var mutex = new Mutex(false, $"Global\\LogManager_{filePath.GetHashCode()}"))
+            using (var mutex = new Mutex(false, string.Format("Global\\LogManager_{0}", filePath.GetHashCode())))
             {
                 try
                 {

@@ -250,7 +250,7 @@ namespace FastUntility.Monitor
             }
             catch (Exception ex)
             {
-                BaseLog.SaveLog($"解析 IM 平台配置失败: {ex.Message}", "MonitorConfig_Error");
+                BaseLog.SaveLog(string.Format("解析 IM 平台配置失败: {0}", ex.Message), "MonitorConfig_Error");
             }
 
             return (botConfig, notifyConfig);

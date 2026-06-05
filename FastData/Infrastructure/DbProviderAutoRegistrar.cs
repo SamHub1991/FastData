@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System;
+#if NETFRAMEWORK
+using FastData.Base;
+#endif
 
 namespace FastData.Infrastructure;
 
@@ -13,6 +16,19 @@ public static class DbProviderAutoRegistrar
 {
     private static bool _isRegistered = false;
     private static readonly object _lockObj = new();
+
+    /// <summary>
+    /// 对字符串执行不区分大小写的包含检查（兼容 .NET 4.5.2）
+    /// </summary>
+    private static bool ContainsIgnoreCase(string source, string value)
+    {
+        if (source == null) return false;
+#if NETFRAMEWORK
+        return source.IndexOf(value, StringComparison.OrdinalIgnoreCase) >= 0;
+#else
+        return source.Contains(value, StringComparison.OrdinalIgnoreCase);
+#endif
+    }
 
     private static readonly List<(string AssemblyKeyword, string FactoryTypeName, string InvariantName)> KnownProviders = new()
     {
@@ -55,11 +71,11 @@ public static class DbProviderAutoRegistrar
                 _isRegistered = true;
 
                 if (Environment.GetEnvironmentVariable("FASTDATA_DEBUG") == "true")
-                    Console.WriteLine($"[FastData] Auto-registered {registeredCount} database provider(s)");
+                    Console.WriteLine(string.Format("[FastData] Auto-registered {0} database provider(s)", registeredCount));
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[FastData] Auto-registration warning: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine(string.Format("[FastData] Auto-registration warning: {0}", ex.Message));
             }
         }
     }
@@ -70,7 +86,7 @@ public static class DbProviderAutoRegistrar
         {
             foreach (var assembly in assemblies)
             {
-                if (!assembly.GetName().Name?.Contains(assemblyKeyword, StringComparison.OrdinalIgnoreCase) == true)
+                if (!ContainsIgnoreCase(assembly.GetName().Name, assemblyKeyword))
                     continue;
 
                 return TryRegisterFromAssembly(assembly, factoryTypeName, invariantName);
@@ -139,7 +155,14 @@ public static class DbProviderAutoRegistrar
             }
             catch { }
 
+#if !NETFRAMEWORK
+            // .NET Core/5+ 支持运行时注册
             DbProviderFactories.RegisterFactory(invariantName, factoryInstance);
+#else
+            // .NET Framework 需在 app.config 中配置 provider，
+            // 或通过反射注册到私有字段
+            RegisterFactoryNetFramework(invariantName, factoryInstance);
+#endif
             return true;
         }
         catch
@@ -162,4 +185,33 @@ public static class DbProviderAutoRegistrar
             _ => new[] { keyword }
         };
     }
+
+#if NETFRAMEWORK
+    /// <summary>
+    /// .NET Framework 下通过反射注册 DbProviderFactory
+    /// </summary>
+    private static void RegisterFactoryNetFramework(string invariantName, DbProviderFactory factory)
+    {
+        try
+        {
+            var factoriesField = typeof(DbProviderFactories)
+                .GetField("_configTable", BindingFlags.Static | BindingFlags.NonPublic);
+            if (factoriesField == null)
+            {
+                // 部分实现使用不同字段名
+                factoriesField = typeof(DbProviderFactories)
+                    .GetField("_registeredProviders", BindingFlags.Static | BindingFlags.NonPublic);
+            }
+            if (factoriesField != null)
+            {
+                var table = factoriesField.GetValue(null) as System.Collections.Hashtable;
+                if (table != null)
+                {
+                    table[invariantName] = factory;
+                }
+            }
+        }
+        catch { }
+    }
+#endif
 }

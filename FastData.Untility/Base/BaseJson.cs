@@ -1,145 +1,152 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Data.Common;
+using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using NPOI.SS.Formula.Functions;
-using System.Linq;
 
 namespace FastUntility.Base
 {
     /// <summary>
-    /// 标签：2015.7.13，魏中针
-    /// 说明：json操作类   
+    /// JSON 操作类
+    /// 提供 JSON 序列化、反序列化和转换功能
     /// </summary>
     public static class BaseJson
     {
-        #region json键是否存在或空值
+        #region JSON 键值操作
+
         /// <summary>
-        /// 标签：2015.7.13，魏中针
-        /// 说明：json键是否存在或空值
+        /// 检查 JSON 键是否存在或为空值
         /// </summary>
-        /// <param name="key">json键</param>
-        /// <param name="jo">json对象</param>
-        /// <returns>是否为空</returns>
-        public static bool JsonIsNull(string key, JObject jo)
+        /// <param name="key">JSON 键名</param>
+        /// <param name="jo">JSON 对象</param>
+        /// <returns>键不存在或值为空时返回 true</returns>
+        public static bool IsJsonKeyNull(string key, JObject jo)
         {
-            if (jo.Property(key) == null || jo[key].ToString() == "")
+            if (jo == null || key == null)
                 return true;
-            else
-                return false;
+
+            var property = jo.Property(key);
+            if (property == null)
+                return true;
+
+            var value = jo[key];
+            return value == null || string.IsNullOrEmpty(value.ToString());
         }
+
+        /// <summary>
+        /// 获取 JSON 键对应的值
+        /// </summary>
+        /// <param name="key">JSON 键名</param>
+        /// <param name="defaultValue">键不存在时的默认值</param>
+        /// <param name="jo">JSON 对象</param>
+        /// <returns>JSON 键的值，不存在时返回 defaultValue</returns>
+        public static string GetJsonValue(string key, string defaultValue, JObject jo)
+        {
+            if (jo == null || key == null)
+                return defaultValue;
+
+            var property = jo.Property(key);
+            if (property == null)
+                return defaultValue;
+
+            var value = jo[key];
+            if (value == null || string.IsNullOrEmpty(value.ToString()))
+                return defaultValue;
+
+            return value.ToString();
+        }
+
         #endregion
 
-        #region 获取json键值
-        /// <summary>
-        /// 标签：2015.7.13，魏中针
-        /// 说明：获取json键值
-        /// </summary>
-        /// <param name="key">json键</param>
-        /// <param name="returnValue">json键为空时,默认值</param>
-        /// <param name="item">json 对象</param>
-        /// <returns>json值</returns>
-        public static string JsonValue(string key, string returnValue, JObject item)
-        {
-            if (item.Property(key) == null || item[key].ToString() == "")
-                return returnValue;
-            else
-                return item[key].ToString();
-        }
-        #endregion
+        #region 对象与 JSON 转换
 
-        #region list 转json
         /// <summary>
-        /// list 转json
+        /// 将实体对象转换为 JSON 字符串
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="list"></param>
-        /// <returns></returns>
-        public static string ListToJson<T>(List<T> list)
+        /// <param name="obj">待序列化的对象</param>
+        /// <returns>JSON 字符串，序列化失败时返回空字符串</returns>
+        public static string ObjectToJson(object obj)
         {
-            StringBuilder sb = new StringBuilder();
+            if (obj == null)
+                return string.Empty;
 
-            sb.Append("[");
             try
             {
-                list.ForEach(a => { sb.Append(ModelToJson(a) + ","); });
-
-                sb.Append("]").Replace(",]", "]");
-
-                return sb.ToString();
+                return JsonConvert.SerializeObject(obj);
             }
             catch
             {
-                return "[]";
+                return string.Empty;
             }
         }
-        #endregion
 
-        #region model转json
         /// <summary>
-        /// 标签：2015.7.13，魏中针
-        /// 说明：model转json
+        /// 将 JSON 字符串转换为实体对象
         /// </summary>
-        /// <param name="model">实体</param>
-        /// <returns>JSON字符串</returns>
-        public static string ModelToJson(object model)
+        /// <typeparam name="T">目标类型</typeparam>
+        /// <param name="jsonString">JSON 字符串</param>
+        /// <returns>反序列化后的对象，失败时返回 new T()</returns>
+        public static T JsonToObject<T>(string jsonString) where T : class, new()
         {
+            if (string.IsNullOrEmpty(jsonString))
+                return new T();
+
             try
             {
-                return JsonConvert.SerializeObject(model).ToString();
-            }
-            catch
-            {
-                return "";
-            }
-        }
-        #endregion
-
-        #region Json转model
-        /// <summary>
-        /// 标签：2015.7.13，魏中针
-        /// 说明：Json转model
-        /// </summary>
-        /// <typeparam name="T">实体类型</typeparam>
-        /// <param name="jsonValue">json字符串</param>
-        /// <returns>实体对象</returns>
-        public static T JsonToModel<T>(string jsonValue) where T : class,new()
-        {
-            try
-            {
-                return JsonConvert.DeserializeObject<T>(jsonValue);
+                var result = JsonConvert.DeserializeObject<T>(jsonString);
+                return result ?? new T();
             }
             catch
             {
                 return new T();
             }
         }
-        #endregion
 
-        #region json转list
         /// <summary>
-        /// json转list
+        /// 将 List 转换为 JSON 数组字符串
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="jsonValue"></param>
-        /// <returns></returns>
-        public static List<T> JsonToList<T>(string jsonValue) where T : class,new()
+        /// <typeparam name="T">列表元素类型</typeparam>
+        /// <param name="list">待转换的列表</param>
+        /// <returns>JSON 数组字符串，失败时返回 "[]"</returns>
+        public static string ListToJson<T>(List<T> list)
         {
+            if (list == null)
+                return "[]";
+
             try
             {
-                var list = new List<T>(); ;
+                return JsonConvert.SerializeObject(list);
+            }
+            catch
+            {
+                return "[]";
+            }
+        }
 
-                if (string.IsNullOrEmpty(jsonValue))
-                    return list;
+        /// <summary>
+        /// 将 JSON 数组字符串转换为 List
+        /// </summary>
+        /// <typeparam name="T">列表元素类型</typeparam>
+        /// <param name="jsonString">JSON 数组字符串</param>
+        /// <returns>反序列化后的列表，失败时返回空列表</returns>
+        public static List<T> JsonToList<T>(string jsonString) where T : class, new()
+        {
+            if (string.IsNullOrEmpty(jsonString))
+                return new List<T>();
 
-                var ja = JArray.Parse(jsonValue);
+            try
+            {
+                var array = JArray.Parse(jsonString);
+                var list = new List<T>(array.Count);
 
-                foreach (var jo in ja)
+                foreach (var item in array)
                 {
-                    list.Add(JsonToModel<T>(jo.ToString()));
+                    var obj = JsonToObject<T>(item.ToString());
+                    if (obj != null)
+                        list.Add(obj);
                 }
+
                 return list;
             }
             catch
@@ -147,252 +154,300 @@ namespace FastUntility.Base
                 return new List<T>();
             }
         }
+
         #endregion
-        
-        #region json转dic
+
+        #region JSON 与 Dictionary 转换
+
         /// <summary>
-        /// json转dic
+        /// 将 JSON 对象字符串转换为 Dictionary
         /// </summary>
-        /// <param name="jsonValue">JSON字符串</param>
-        /// <returns></returns>
-        public static Dictionary<string,object> JsonToDic(string jsonValue)
+        /// <param name="jsonString">JSON 对象字符串</param>
+        /// <returns>字典对象，解析失败时返回空字典</returns>
+        public static Dictionary<string, object> JsonToDictionary(string jsonString)
         {
+            if (string.IsNullOrEmpty(jsonString))
+                return new Dictionary<string, object>();
+
             try
             {
-                var item = new Dictionary<string, object>();
+                var jo = JObject.Parse(jsonString);
+                var dict = new Dictionary<string, object>(jo.Count);
 
-                if (string.IsNullOrEmpty(jsonValue))
-                    return item;
-
-                var jo = JObject.Parse(jsonValue);
-
-                foreach (var temp in jo)
+                foreach (var property in jo.Properties())
                 {
-                    item.Add(temp.Key, temp.Value);
+                    dict.Add(property.Name, property.Value);
                 }
-                return item;
+
+                return dict;
             }
             catch
             {
                 return new Dictionary<string, object>();
             }
         }
-        #endregion
 
-        #region json转dics
         /// <summary>
-        /// json转dics
+        /// 将 JSON 数组字符串转换为 Dictionary 列表
         /// </summary>
-        /// <param name="jsonValue">JSON字符串</param>
-        /// <returns></returns>
-        public static List<Dictionary<string, object>> JsonToDics(string jsonValue)
+        /// <param name="jsonString">JSON 数组字符串</param>
+        /// <returns>字典列表，解析失败时返回空列表</returns>
+        public static List<Dictionary<string, object>> JsonToDictionaryList(string jsonString)
         {
+            if (string.IsNullOrEmpty(jsonString))
+                return new List<Dictionary<string, object>>();
+
             try
             {
-                var item = new List<Dictionary<string, object>>();
+                var array = JArray.Parse(jsonString);
+                var list = new List<Dictionary<string, object>>(array.Count);
 
-                if (string.IsNullOrEmpty(jsonValue))
-                    return item;
-
-                var ja = JArray.Parse(jsonValue);
-
-                foreach (var jo in ja)
+                foreach (var item in array)
                 {
-                    item.Add(JsonToDic(jo.ToString()));
+                    list.Add(JsonToDictionary(item.ToString()));
                 }
 
-                return item;
+                return list;
             }
             catch
             {
                 return new List<Dictionary<string, object>>();
             }
         }
+
         #endregion
 
-        #region datareader to json
+        #region DataReader 转换
+
         /// <summary>
-        /// datareader to json
+        /// 将 DbDataReader 转换为 JSON 字符串
         /// </summary>
-        /// <param name="reader">数据读取器</param>
-        /// <param name="isOracle">是否Oracle数据库</param>
-        /// <returns>JSON字符串</returns>
+        /// <param name="reader">数据库读取器</param>
+        /// <param name="isOracle">是否为 Oracle 数据库（处理特殊类型）</param>
+        /// <returns>JSON 数组字符串</returns>
         public static string DataReaderToJson(DbDataReader reader, bool isOracle = false)
         {
-            var result = new List<Dictionary<string, object>>();
-            var cols = new List<string>();
+            if (reader == null)
+                return "[]";
 
-            //列名
+            var result = new List<Dictionary<string, object>>();
+            var columnNames = new List<string>(reader.FieldCount);
+
+            // 获取列名
             for (var i = 0; i < reader.FieldCount; i++)
-                cols.Add(reader.GetName(i));
+            {
+                columnNames.Add(reader.GetName(i));
+            }
 
             while (reader.Read())
             {
-                var dic = new Dictionary<string, object>();
-              
-                cols.ForEach(a => {
-                    if (reader[a] is DBNull)
-                        dic.Add(a.ToLower(), "");
+                var row = new Dictionary<string, object>(columnNames.Count);
+
+                foreach (var columnName in columnNames)
+                {
+                    var value = reader[columnName];
+
+                    if (value is DBNull)
+                    {
+                        row.Add(columnName.ToLower(), string.Empty);
+                    }
                     else if (isOracle)
                     {
-                        var id = reader.GetOrdinal(a.ToUpper());
-                        var typeName = reader.GetDataTypeName(id).ToLower();
-                        if (typeName == "clob" || typeName == "nclob")
-                        {
-                            reader.GetType().GetMethods().ToList().ForEach(m => {
-                                if (m.Name == "GetOracleClob")
-                                {
-                                    var param = new object[1];
-                                    param[0] = id;
-                                    var temp = m.Invoke(reader, param);
-                                    temp.GetType().GetMethods().ToList().ForEach(v => {
-                                        if (v.Name == "get_Value" && !reader.IsDBNull(id))
-                                            dic.Add(a.ToLower(), v.Invoke(temp, null));
-                                    });
-                                    temp.GetType().GetMethods().ToList().ForEach(v =>
-                                    {
-                                        if (v.Name == "Close")
-                                            v.Invoke(temp, null);
-                                    });
-                                    temp.GetType().GetMethods().ToList().ForEach(v =>
-                                    {
-                                        if (v.Name == "Dispose")
-                                            v.Invoke(temp, null);
-                                    });
-                                }
-                            });
-                        }
-                        else if (typeName == "blob")
-                        {
-                            reader.GetType().GetMethods().ToList().ForEach(m => {
-                                if (m.Name == "GetOracleBlob")
-                                {
-                                    var param = new object[1];
-                                    param[0] = id;
-                                    var temp = m.Invoke(reader, param);
-                                    temp.GetType().GetMethods().ToList().ForEach(v => {
-                                        if (v.Name == "get_Value" && !reader.IsDBNull(id))
-                                            dic.Add(a.ToLower(), v.Invoke(temp, null));
-                                    });
-                                    temp.GetType().GetMethods().ToList().ForEach(v =>
-                                    {
-                                        if (v.Name == "Close")
-                                            v.Invoke(temp, null);
-                                    });
-                                    temp.GetType().GetMethods().ToList().ForEach(v =>
-                                    {
-                                        if (v.Name == "Dispose")
-                                            v.Invoke(temp, null);
-                                    });
-                                }
-                            });
-                        }
-                        else
-                            dic.Add(a.ToLower(), reader[a]);
+                        var oracleValue = HandleOracleValue(reader, columnName, value);
+                        row.Add(columnName.ToLower(), oracleValue);
                     }
                     else
-                        dic.Add(a.ToLower(), reader[a]);
-                });
+                    {
+                        row.Add(columnName.ToLower(), value);
+                    }
+                }
 
-                result.Add(dic);
+                result.Add(row);
             }
 
             return JsonConvert.SerializeObject(result, Formatting.None);
         }
-        #endregion
 
-        #region datareader to List<Dictionary<string, object>>
         /// <summary>
-        /// DataReader 转 List&lt;Dictionary&lt;string, object&gt;&gt;
+        /// 将 DbDataReader 转换为 Dictionary 列表
         /// </summary>
-        /// <param name="reader">数据库 DataReader</param>
-        /// <param name="isOracle">是否 Oracle（处理 Oracle 特殊类型）</param>
+        /// <param name="reader">数据库读取器</param>
+        /// <param name="isOracle">是否为 Oracle 数据库（处理特殊类型）</param>
         /// <returns>数据字典列表</returns>
-        public static List<Dictionary<string, object>> DataReaderToDic(DbDataReader reader, bool isOracle = false)
+        public static List<Dictionary<string, object>> DataReaderToDictionaryList(DbDataReader reader, bool isOracle = false)
         {
-            var result = new List<Dictionary<string, object>>();
-            var cols = new List<string>();
+            if (reader == null)
+                return new List<Dictionary<string, object>>();
 
-            //列名
+            var result = new List<Dictionary<string, object>>();
+            var columnNames = new List<string>(reader.FieldCount);
+
+            // 获取不重复的列名
             for (var i = 0; i < reader.FieldCount; i++)
             {
-                if (!cols.Exists(a => a.ToLower() == reader.GetName(i).ToLower()))
-                    cols.Add(reader.GetName(i));
+                var name = reader.GetName(i);
+                if (!columnNames.Exists(n => string.Equals(n, name, StringComparison.OrdinalIgnoreCase)))
+                {
+                    columnNames.Add(name);
+                }
             }
 
             while (reader.Read())
             {
-                var dic = new Dictionary<string, object>();
-                
-                cols.ForEach(a => {
-                    if (reader[a] is DBNull)
-                        dic.Add(a.ToLower(), "");
+                var row = new Dictionary<string, object>(columnNames.Count);
+
+                foreach (var columnName in columnNames)
+                {
+                    var value = reader[columnName];
+
+                    if (value is DBNull)
+                    {
+                        row.Add(columnName.ToLower(), string.Empty);
+                    }
                     else if (isOracle)
                     {
-                        var id = reader.GetOrdinal(a.ToUpper());
-                        var typeName = reader.GetDataTypeName(id).ToLower();
-                        if (typeName == "clob" || typeName == "nclob")
-                        {
-                            reader.GetType().GetMethods().ToList().ForEach(m => {
-                                if (m.Name == "GetOracleClob")
-                                {
-                                    var param = new object[1];
-                                    param[0] = id;
-                                    var temp = m.Invoke(reader, param);
-                                    temp.GetType().GetMethods().ToList().ForEach(v => {
-                                        if (v.Name == "get_Value")
-                                            dic.Add(a.ToLower(), v.Invoke(temp, null));
-                                    });
-                                    temp.GetType().GetMethods().ToList().ForEach(v =>
-                                    {
-                                        if (v.Name == "Close")
-                                            v.Invoke(temp, null);
-                                    });
-                                    temp.GetType().GetMethods().ToList().ForEach(v =>
-                                    {
-                                        if (v.Name == "Dispose")
-                                            v.Invoke(temp, null);
-                                    });
-                                }
-                            });
-                        }
-                        else if (typeName == "blob")
-                        {
-                            reader.GetType().GetMethods().ToList().ForEach(m => {
-                                if (m.Name == "GetOracleBlob")
-                                {
-                                    var param = new object[1];
-                                    param[0] = id;
-                                    var temp = m.Invoke(reader, param);
-                                    temp.GetType().GetMethods().ToList().ForEach(v => {
-                                        if (v.Name == "get_Value")
-                                            dic.Add(a.ToLower(), v.Invoke(temp, null));
-                                    });
-                                    temp.GetType().GetMethods().ToList().ForEach(v =>
-                                    {
-                                        if (v.Name == "Close")
-                                            v.Invoke(temp, null);
-                                    });
-                                    temp.GetType().GetMethods().ToList().ForEach(v =>
-                                    {
-                                        if (v.Name == "Dispose")
-                                            v.Invoke(temp, null);
-                                    });
-                                }
-                            });
-                        }
-                        else
-                            dic.Add(a.ToLower(), reader[a]);
+                        var oracleValue = HandleOracleValue(reader, columnName, value);
+                        row.Add(columnName.ToLower(), oracleValue);
                     }
                     else
-                        dic.Add(a.ToLower(), reader[a]);
-                });
+                    {
+                        row.Add(columnName.ToLower(), value);
+                    }
+                }
 
-                result.Add(dic);
+                result.Add(row);
             }
 
             return result;
         }
+
+        /// <summary>
+        /// 将 DbDataReader 转换为 Dictionary 列表（旧方法名，为了向后兼容）
+        /// </summary>
+        /// <param name="reader">数据库读取器</param>
+        /// <param name="isOracle">是否为 Oracle 数据库（处理特殊类型）</param>
+        /// <returns>数据字典列表</returns>
+        public static List<Dictionary<string, object>> DataReaderToDic(DbDataReader reader, bool isOracle = false)
+        {
+            return DataReaderToDictionaryList(reader, isOracle);
+        }
+
+        /// <summary>
+        /// 处理 Oracle 特殊数据类型（CLOB、BLOB）
+        /// </summary>
+        /// <param name="reader">数据库读取器</param>
+        /// <param name="columnName">列名</param>
+        /// <param name="value">原始值</param>
+        /// <returns>处理后的值</returns>
+        private static object HandleOracleValue(DbDataReader reader, string columnName, object value)
+        {
+            if (value == null)
+                return string.Empty;
+
+            var ordinal = reader.GetOrdinal(columnName.ToUpper());
+            var dataTypeName = reader.GetDataTypeName(ordinal).ToLower();
+
+            // 处理 CLOB 类型
+            if (dataTypeName == "clob" || dataTypeName == "nclob")
+            {
+                return GetOracleClobValue(reader, ordinal);
+            }
+
+            // 处理 BLOB 类型
+            if (dataTypeName == "blob")
+            {
+                return GetOracleBlobValue(reader, ordinal);
+            }
+
+            return value;
+        }
+
+        /// <summary>
+        /// 获取 Oracle CLOB 字段值
+        /// </summary>
+        private static object GetOracleClobValue(DbDataReader reader, int ordinal)
+        {
+            if (reader.IsDBNull(ordinal))
+                return string.Empty;
+
+            try
+            {
+                var methods = reader.GetType().GetMethods();
+
+                foreach (var method in methods)
+                {
+                    if (method.Name == "GetOracleClob")
+                    {
+                        var parameters = new object[] { ordinal };
+                        var clobObject = method.Invoke(reader, parameters);
+
+                        if (clobObject == null)
+                            return string.Empty;
+
+                        var clobType = clobObject.GetType();
+                        var clobMethods = clobType.GetMethods();
+
+                        foreach (var getMethod in clobMethods)
+                        {
+                            if (getMethod.Name == "get_Value")
+                            {
+                                return getMethod.Invoke(clobObject, null);
+                            }
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // 忽略反射异常
+            }
+
+            return string.Empty;
+        }
+
+        /// <summary>
+        /// 获取 Oracle BLOB 字段值
+        /// </summary>
+        private static object GetOracleBlobValue(DbDataReader reader, int ordinal)
+        {
+            if (reader.IsDBNull(ordinal))
+                return null;
+
+            try
+            {
+                var methods = reader.GetType().GetMethods();
+
+                foreach (var method in methods)
+                {
+                    if (method.Name == "GetOracleBlob")
+                    {
+                        var parameters = new object[] { ordinal };
+                        var blobObject = method.Invoke(reader, parameters);
+
+                        if (blobObject == null)
+                            return null;
+
+                        var blobType = blobObject.GetType();
+                        var blobMethods = blobType.GetMethods();
+
+                        foreach (var getMethod in blobMethods)
+                        {
+                            if (getMethod.Name == "get_Value")
+                            {
+                                return getMethod.Invoke(blobObject, null);
+                            }
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // 忽略反射异常
+            }
+
+            return null;
+        }
+
         #endregion
     }
 }

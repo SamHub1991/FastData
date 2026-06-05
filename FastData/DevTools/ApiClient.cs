@@ -245,7 +245,7 @@ namespace FastData.DevTools
                             result = await PatchAsync<T>(r.Url, r.Data, r.Headers);
                             break;
                         default:
-                            result = new ApiResponse<T> { IsSuccess = false, Error = $"不支持的 HTTP 方法: {r.Method}" };
+                            result = new ApiResponse<T> { IsSuccess = false, Error = string.Format("不支持的 HTTP 方法: {0}", r.Method) };
                             break;
                     }
                     results.Add(result);
@@ -477,35 +477,35 @@ namespace FastData.DevTools
 
         public async Task<ApiResponse<T>> GetAsync<T>(string path, Dictionary<string, string> headers = null)
         {
-            var url = $"{_baseUrl}/{path.TrimStart('/')}";
+            var url = string.Format("{0}/{1}", _baseUrl, path.TrimStart('/'));
             var mergedHeaders = MergeHeaders(_defaultHeaders, headers);
             return await ApiClient.GetAsync<T>(url, mergedHeaders);
         }
 
         public async Task<ApiResponse<T>> PostAsync<T>(string path, object data, Dictionary<string, string> headers = null)
         {
-            var url = $"{_baseUrl}/{path.TrimStart('/')}";
+            var url = string.Format("{0}/{1}", _baseUrl, path.TrimStart('/'));
             var mergedHeaders = MergeHeaders(_defaultHeaders, headers);
             return await ApiClient.PostAsync<T>(url, data, mergedHeaders);
         }
 
         public async Task<ApiResponse<T>> PutAsync<T>(string path, object data, Dictionary<string, string> headers = null)
         {
-            var url = $"{_baseUrl}/{path.TrimStart('/')}";
+            var url = string.Format("{0}/{1}", _baseUrl, path.TrimStart('/'));
             var mergedHeaders = MergeHeaders(_defaultHeaders, headers);
             return await ApiClient.PutAsync<T>(url, data, mergedHeaders);
         }
 
         public async Task<ApiResponse<T>> DeleteAsync<T>(string path, Dictionary<string, string> headers = null)
         {
-            var url = $"{_baseUrl}/{path.TrimStart('/')}";
+            var url = string.Format("{0}/{1}", _baseUrl, path.TrimStart('/'));
             var mergedHeaders = MergeHeaders(_defaultHeaders, headers);
             return await ApiClient.DeleteAsync<T>(url, mergedHeaders);
         }
 
         public async Task<ApiResponse<T>> PatchAsync<T>(string path, object data, Dictionary<string, string> headers = null)
         {
-            var url = $"{_baseUrl}/{path.TrimStart('/')}";
+            var url = string.Format("{0}/{1}", _baseUrl, path.TrimStart('/'));
             var mergedHeaders = MergeHeaders(_defaultHeaders, headers);
             return await ApiClient.PatchAsync<T>(url, data, mergedHeaders);
         }

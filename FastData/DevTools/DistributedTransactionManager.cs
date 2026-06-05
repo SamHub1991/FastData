@@ -36,7 +36,7 @@ namespace FastData.DevTools
                 if (config == null)
                 {
                     RollbackTransaction(transactionId);
-                    throw new ArgumentException($"找不到数据库配置: {dbKey}");
+                    throw new ArgumentException(string.Format("找不到数据库配置: {0}", dbKey));
                 }
 
                 var context = new TransactionContext
@@ -98,7 +98,7 @@ namespace FastData.DevTools
                     {
                         // 准备阶段失败，执行回滚
                         RollbackTransaction(transactionId);
-                        return Result.Error($"事务提交失败: {ex.Message}");
+                        return Result.Error(string.Format("事务提交失败: {0}", ex.Message));
                     }
                 }
 
@@ -116,7 +116,7 @@ namespace FastData.DevTools
             catch (Exception ex)
             {
                 RollbackTransaction(transactionId);
-                return Result.Error($"事务提交异常: {ex.Message}");
+                return Result.Error(string.Format("事务提交异常: {0}", ex.Message));
             }
         }
 
@@ -165,7 +165,7 @@ namespace FastData.DevTools
             }
             catch (Exception ex)
             {
-                return Result.Error($"事务回滚异常: {ex.Message}");
+                return Result.Error(string.Format("事务回滚异常: {0}", ex.Message));
             }
         }
 
@@ -275,7 +275,7 @@ namespace FastData.DevTools
             var context = Contexts.FirstOrDefault(c => c.DbKey == dbKey);
             if (context == null)
             {
-                throw new ArgumentException($"数据库连接不在事务中: {dbKey}");
+                throw new ArgumentException(string.Format("数据库连接不在事务中: {0}", dbKey));
             }
 
             var command = context.Connection.CreateCommand();

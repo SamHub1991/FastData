@@ -39,7 +39,7 @@ namespace FastData.DevTools
                 var config = DataConfig.GetConfig(dbKey);
                 if (config == null)
                 {
-                    throw new ArgumentException($"找不到数据库配置: {dbKey}");
+                    throw new ArgumentException(string.Format("找不到数据库配置: {0}", dbKey));
                 }
 
                 var pool = new ConnectionPool(dbKey, config, options);
@@ -181,7 +181,7 @@ namespace FastData.DevTools
             }
 
             // 等待空闲连接
-            throw new TimeoutException($"连接池已满，无法获取连接 (MaxPoolSize: {_options.MaxPoolSize})");
+            throw new TimeoutException(string.Format("连接池已满，无法获取连接 (MaxPoolSize: {0})", _options.MaxPoolSize));
         }
 
         public async Task<PooledConnection> GetConnectionAsync()
@@ -333,7 +333,7 @@ namespace FastData.DevTools
 
         public override string ToString()
         {
-            return $"DbKey: {DbKey}, Active: {ActiveConnections}, Idle: {IdleConnections}, Total: {TotalConnections}/{MaxPoolSize} ({UsagePercentage:F1}%)";
+            return string.Format("DbKey: {0}, Active: {1}, Idle: {2}, Total: {3}/{4} ({5:F1}%)", DbKey, ActiveConnections, IdleConnections, TotalConnections, MaxPoolSize, UsagePercentage);
         }
     }
 }

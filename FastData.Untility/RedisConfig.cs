@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Configuration;
 using System.IO;
 using System.Reflection;
@@ -45,7 +45,7 @@ namespace FastRedis.Config
                     // 尝试加载环境配置（如 db.dev.config）
                     if (!string.IsNullOrEmpty(activeEnv))
                     {
-                        var envDbFile = $"db.{activeEnv}.config";
+                        var envDbFile = string.Format("db.{0}.config", activeEnv);
                         var envConfigPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, envDbFile);
                         section = LoadRedisSectionFromFile(envConfigPath);
                     }

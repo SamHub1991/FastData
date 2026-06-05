@@ -342,7 +342,7 @@ namespace FastData.DevTools
                 {
                     Type = AnomalyType.SlowQuery,
                     Severity = AnomalySeverity.High,
-                    Description = $"检测到 {report.SlowQueries.Count} 个慢查询",
+                    Description = string.Format("检测到 {0} 个慢查询", report.SlowQueries.Count),
                     Details = report.SlowQueries.Select(q => q.Sql).ToList()
                 });
             }
@@ -354,8 +354,8 @@ namespace FastData.DevTools
                 {
                     Type = AnomalyType.HighLatency,
                     Severity = AnomalySeverity.Medium,
-                    Description = $"平均查询时间过长: {report.AverageQueryDuration:F2} ms",
-                    Details = new List<string> { $"阈值: 1000 ms" }
+                    Description = string.Format("平均查询时间过长: {0:F2} ms", report.AverageQueryDuration),
+                    Details = new List<string> { "阈值: 1000 ms" }
                 });
             }
 
@@ -366,8 +366,8 @@ namespace FastData.DevTools
                 {
                     Type = AnomalyType.HighFrequency,
                     Severity = AnomalySeverity.Medium,
-                    Description = $"查询频率过高: {report.QueriesPerSecond:F2} QPS",
-                    Details = new List<string> { $"阈值: 1000 QPS" }
+                    Description = string.Format("查询频率过高: {0:F2} QPS", report.QueriesPerSecond),
+                    Details = new List<string> { "阈值: 1000 QPS" }
                 });
             }
 
@@ -378,7 +378,7 @@ namespace FastData.DevTools
                 {
                     Type = AnomalyType.QueryError,
                     Severity = AnomalySeverity.Critical,
-                    Description = $"检测到 {report.ErrorQueries.Count} 个错误查询",
+                    Description = string.Format("检测到 {0} 个错误查询", report.ErrorQueries.Count),
                     Details = report.ErrorQueries.Select(q => q.Sql).ToList()
                 });
             }

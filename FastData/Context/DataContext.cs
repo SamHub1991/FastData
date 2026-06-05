@@ -12,7 +12,9 @@ using System.Data;
 using FastData.Property;
 using FastData.Aop;
 using FastData.ConnectionPool;
+#if !NETFRAMEWORK
 using Microsoft.Data.Sqlite;
+#endif
 
 namespace FastData.Context
 {
@@ -189,9 +191,9 @@ namespace FastData.Context
             {
                 _config = DataConfig.GetConfig(key, projectName);
                 if (_config == null)
-                    throw new InvalidOperationException($"Config is null for key={key}, project={projectName}");
+                    throw new InvalidOperationException(string.Format("Config is null for key={0}, project={1}", key, projectName));
                 if (string.IsNullOrEmpty(_config.ProviderName))
-                    throw new InvalidOperationException($"ProviderName is null for key={key}, config.Key={_config.Key}");
+                    throw new InvalidOperationException(string.Format("ProviderName is null for key={0}, config.Key={1}", key, _config.Key));
                 
                 var connStr = _config.ConnStr;
                 if (_config.IsEncrypt && !string.IsNullOrEmpty(connStr))
@@ -213,14 +215,18 @@ namespace FastData.Context
                 // 直接创建连接即可，避免连接池带来的序列化开销和语义问题
                 if (_config.ProviderName == Provider.MicrosoftDataSqlite)
                 {
+#if !NETFRAMEWORK
                     _connection = new Microsoft.Data.Sqlite.SqliteConnection(connStr);
                     _command = _connection.CreateCommand();
+#else
+                    throw new NotSupportedException("SQLite 在 .NET Framework 4.5.2 中不受支持");
+#endif
                 }
                 else
                 {
                     var factory = DbProviderFactories.GetFactory(_config.ProviderName);
                     if (factory == null)
-                        throw new InvalidOperationException($"DbProviderFactory not found for provider: {_config.ProviderName}");
+                        throw new InvalidOperationException(string.Format("DbProviderFactory not found for provider: {0}", _config.ProviderName));
 
                     if (poolConfig != null)
                     {

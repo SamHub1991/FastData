@@ -278,7 +278,7 @@ namespace FastUntility.Security
                 "SHA384" => HmacSha384(data, key),
                 "SHA512" => HmacSha512(data, key),
                 "MD5" => HmacMd5(data, key),
-                _ => throw new NotSupportedException($"不支持的算法: {algorithm}")
+                _ => throw new NotSupportedException(string.Format("不支持的算法: {0}", algorithm))
             };
             return string.Equals(actualHash, expectedHash, StringComparison.OrdinalIgnoreCase);
         }
@@ -306,7 +306,7 @@ namespace FastUntility.Security
         public static string GenerateApiKey(string prefix, int length = 32)
         {
             var key = GenerateApiKey(length);
-            return $"{prefix}_{key}";
+            return string.Format("{0}_{1}", prefix, key);
         }
 
         /// <summary>

@@ -1,9 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Linq.Expressions;
-using System.Threading.Tasks;
 using System.Data.Common;
+using System.Text;
 using FastUntility.Base;
 using FastData.DbTypes;
 using FastData.Model;
@@ -14,104 +13,48 @@ namespace FastData.Base
 {
     /// <summary>
     /// Lambda 表达式解析器
-    ///
-    /// 职责：将 LINQ 表达式树解析为 SQL WHERE 条件语句和参数集合。
-    ///
-    /// 主要功能：
-    /// 1. 支持二元运算（==、!=、&gt;、&lt;、&gt;=、&lt;=）
-    /// 2. 支持逻辑运算（And、Or、Not）
-    /// 3. 支持字符串方法（Contains、StartsWith、EndsWith）
-    /// 4. 支持集合运算（In、Not In）
-    /// 5. 支持范围查询（Between）
-    /// 6. 支持空值判断（null 检查）
-    /// 7. 支持多数据库适配（通过 ConfigModel.ProviderName 区分）
-    ///
-    /// 注意事项：
-    /// - 需要有效的 ConfigModel 才能正确处理数据库方言
-    /// - 解析结果包含 VisitModel（IsSuccess、Sql、Param）
+    /// 将 LINQ 表达式树解析为 SQL WHERE 条件语句和参数集合。
+    /// 
+    /// 注意：本类暂时声明为 public 以供测试项目访问，验证通过后应改回 internal。
+    /// 测试项目通过 InternalsVisibleTo 配置访问内部类型，当前为临时修改。
     /// </summary>
     public static class VisitExpression
     {
-        #region Lambda where
+        #region 解析 Lambda 表达式为 SQL WHERE 条件
         /// <summary>
-        /// 解析 Lambda 表达式为 SQL WHERE 条件
+        /// 将 Lambda 表达式解析为 SQL WHERE 条件
         /// </summary>
         /// <typeparam name="T">实体类型</typeparam>
-        /// <param name="item">Lambda 表达式（如 u =&gt; u.Age &gt; 18）</param>
+        /// <param name="expression">Lambda 表达式（如 u => u.Age > 18）</param>
         /// <param name="config">数据库配置（用于确定数据库方言）</param>
         /// <returns>VisitModel（包含 IsSuccess、解析后的 SQL、参数列表）</returns>
-        public static VisitModel LambdaWhere<T>(Expression<Func<T, bool>> item, ConfigModel config)
+        public static VisitModel LambdaWhere<T>(Expression<Func<T, bool>> expression, ConfigModel config)
         {
             var result = new VisitModel();
-            var strType = "";
-            int i = 0;
+
+            if (expression == null)
+                return result;
 
             var leftList = new List<string>();
             var rightList = new List<string>();
-            var typeList = new List<System.Type>();
-            var sb = new StringBuilder();
+            var typeList = new List<Type>();
+            var sqlBuilder = new StringBuilder();
+            int parameterIndex = 0;
 
             try
             {
-                if (item == null)
-                    return result;
+                var whereClause = ParseExpression(config, expression.Body, ref leftList, ref rightList, ref typeList, ref sqlBuilder, ref parameterIndex);
 
-                result.Where = RouteExpressionHandler(config, item.Body, ExpressionType.Goto, ref leftList, ref rightList, ref typeList, ref sb, ref strType, ref i);
+                whereClause = TrimTrailingOperators(whereClause);
+                result.Where = whereClause;
 
-                result.Where = Remove(result.Where);
-
-                for (i = 0; i < leftList.Count; i++)
+                // 构建参数列表
+                for (int i = 0; i < leftList.Count; i++)
                 {
-                    var temp = DbProviderFactories.GetFactory(config.ProviderName).CreateParameter();
-                    temp.ParameterName = leftList[i] + i.ToString();
-
-                    if (typeList.Count >= i + 1 && typeList[i].Name == "DateTime")
-                    {
-                        if (config.DbType == DataDbType.Oracle)
-                            temp.DbType = DbType.Date;
-                        else
-                            temp.DbType = DbType.DateTime;
-
-                        temp.Value = rightList[i].ToDate();
-                    }
-                    else if (typeList.Count >= i + 1)
-                    {
-                        if (typeList[i] == typeof(int) || typeList[i] == typeof(int?))
-                        {
-                            temp.DbType = DbType.Int32;
-                            temp.Value = int.Parse(rightList[i]);
-                        }
-                        else if (typeList[i] == typeof(long) || typeList[i] == typeof(long?))
-                        {
-                            temp.DbType = DbType.Int64;
-                            temp.Value = long.Parse(rightList[i]);
-                        }
-                        else if (typeList[i] == typeof(decimal) || typeList[i] == typeof(decimal?))
-                        {
-                            temp.DbType = DbType.Decimal;
-                            temp.Value = decimal.Parse(rightList[i]);
-                        }
-                        else if (typeList[i] == typeof(double) || typeList[i] == typeof(double?))
-                        {
-                            temp.DbType = DbType.Double;
-                            temp.Value = double.Parse(rightList[i]);
-                        }
-                        else if (typeList[i] == typeof(bool) || typeList[i] == typeof(bool?))
-                        {
-                            temp.DbType = DbType.Boolean;
-                            temp.Value = bool.Parse(rightList[i]);
-                        }
-                        else
-                        {
-                            temp.Value = rightList[i];
-                        }
-                    }
-                    else
-                    {
-                        temp.Value = rightList[i];
-                    }
-
-                    result.Param.Add(temp);
+                    var parameter = DbProviderFactories.GetFactory(config.ProviderName).CreateParameter();
+                    parameter.ParameterName = leftList[i] + i.ToString();
+                    parameter.Value = ConvertToTypedValue(rightList[i], typeList, i, config);
+                    result.Param.Add(parameter);
                 }
 
                 result.IsSuccess = true;
@@ -119,67 +62,50 @@ namespace FastData.Base
             }
             catch (Exception ex)
             {
-                Task.Factory.StartNew(() =>
-                {
-                    if (config.SqlErrorType.ToLower() == SqlErrorType.Db)
-                        DbLogTable.LogException<T>(config, ex, "LambdaWhere<T>", "");
-                    else
-                        DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "LambdaWhere<T>", "");
-                });
+                LogException(config, ex, "LambdaWhere<T>");
                 result.IsSuccess = false;
                 return result;
             }
         }
         #endregion
 
-        #region Lambda where 2个表
+        #region 解析双表 Lambda 表达式
         /// <summary>
-        /// Lambda where 2个表
+        /// 将双表 Lambda 表达式解析为 SQL WHERE 条件
         /// </summary>
         /// <typeparam name="T1">第一个表类型</typeparam>
         /// <typeparam name="T2">第二个表类型</typeparam>
-        /// <param name="item">条件表达式</param>
-        /// <param name="config">配置模型</param>
-        /// <param name="isPage">是否分页查询</param>
-        /// <returns>访问模型</returns>
-        public static VisitModel LambdaWhere<T1, T2>(Expression<Func<T1, T2, bool>> item, ConfigModel config, bool isPage = false)
+        /// <param name="expression">条件表达式</param>
+        /// <param name="config">数据库配置</param>
+        /// <param name="isPaging">是否为分页查询</param>
+        /// <returns>解析后的 VisitModel</returns>
+        public static VisitModel LambdaWhere<T1, T2>(Expression<Func<T1, T2, bool>> expression, ConfigModel config, bool isPaging = false)
         {
             var result = new VisitModel();
-            int i = 0;
-            string strType = "";
+
+            if (expression == null)
+                return result;
 
             var leftList = new List<string>();
             var rightList = new List<string>();
-            var fieldList = new List<string>();
-            var typeList = new List<System.Type>();
-            var sb = new StringBuilder();
+            var typeList = new List<Type>();
+            var sqlBuilder = new StringBuilder();
+            int parameterIndex = 0;
 
             try
             {
-                if (item == null)
-                    return result;
+                var whereClause = ParseExpression(config, expression.Body, ref leftList, ref rightList, ref typeList, ref sqlBuilder, ref parameterIndex);
 
-                result.Where = RouteExpressionHandler(config, item.Body, ExpressionType.Goto, ref leftList, ref rightList, ref typeList, ref sb, ref strType, ref i);
+                whereClause = TrimTrailingOperators(whereClause);
+                result.Where = whereClause;
 
-                result.Where = Remove(result.Where);
-
-                for (i = 0; i < leftList.Count; i++)
+                // 构建参数列表
+                for (int i = 0; i < leftList.Count; i++)
                 {
-                    var temp = DbProviderFactories.GetFactory(config.ProviderName).CreateParameter();
-                    temp.ParameterName = leftList[i] + i.ToString();
-                    temp.Value = rightList[i];
-
-                    if (typeList.Count >= i + 1 && typeList[i].Name == "DateTime")
-                    {
-                        if (config.DbType == DataDbType.Oracle)
-                            temp.DbType = DbType.Date;
-                        else
-                            temp.DbType = DbType.DateTime;
-
-                        temp.Value = rightList[i].ToDate();
-                    }
-
-                    result.Param.Add(temp);
+                    var parameter = DbProviderFactories.GetFactory(config.ProviderName).CreateParameter();
+                    parameter.ParameterName = leftList[i] + i.ToString();
+                    parameter.Value = ConvertToTypedValue(rightList[i], typeList, i, config);
+                    result.Param.Add(parameter);
                 }
 
                 result.IsSuccess = true;
@@ -187,407 +113,370 @@ namespace FastData.Base
             }
             catch (Exception ex)
             {
-                Task.Factory.StartNew(() =>
-                {
-                    if (config.SqlErrorType.ToLower() == SqlErrorType.Db)
-                        DbLogTable.LogException(config, ex, "LambdaWhere<T1, T2>", "");
-                    else
-                        DbLog.LogException(config.IsOutError, config.DbType, ex, "LambdaWhere<T1, T2>", "");
-                });
+                LogException(config, ex, "LambdaWhere<T1, T2>");
                 result.IsSuccess = false;
                 return result;
             }
         }
         #endregion
 
-        #region 解析表达式
+        #region 递归解析表达式
         /// <summary>
-        /// 解析表达式
+        /// 递归解析表达式为 SQL 片段
         /// </summary>
-        /// <param name="config">配置模型</param>
-        /// <param name="exp">表达式</param>
-        /// <param name="expType">表达式类型</param>
-        /// <param name="leftList">左侧列表</param>
-        /// <param name="rightList">右侧列表</param>
-        /// <param name="typeList">类型列表</param>
-        /// <param name="sb">字符串构建器</param>
-        /// <param name="strType">类型字符串</param>
-        /// <param name="i">计数器</param>
-        /// <param name="isRight">是否右侧</param>
-        /// <returns>解析结果</returns>
-        private static string RouteExpressionHandler(ConfigModel config, Expression exp, ExpressionType expType, ref List<string> leftList, ref List<string> rightList, ref List<System.Type> typeList, ref StringBuilder sb, ref string strType, ref int i, bool isRight = false)
+        /// <param name="config">数据库配置</param>
+        /// <param name="expression">待解析的表达式</param>
+        /// <param name="leftList">左侧字段列表（输出）</param>
+        /// <param name="rightList">右侧值列表（输出）</param>
+        /// <param name="typeList">类型列表（输出）</param>
+        /// <param name="sqlBuilder">SQL 拼接构建器（输出）</param>
+        /// <param name="parameterIndex">参数索引（输出）</param>
+        /// <param name="isRightOperand">是否为比较运算符的右操作数</param>
+        /// <returns>SQL 片段字符串</returns>
+        private static string ParseExpression(ConfigModel config, Expression expression, ref List<string> leftList, ref List<string> rightList, ref List<Type> typeList, ref StringBuilder sqlBuilder, ref int parameterIndex, bool isRightOperand = false)
         {
-            var isReturnNull = false;
-            if (exp is BinaryExpression)
-            {
-                BinaryExpression be = (BinaryExpression)exp;
+            if (expression is BinaryExpression binary)
+                return ParseBinaryExpression(config, binary.Left, binary.Right, binary.NodeType, ref leftList, ref rightList, ref typeList, ref sqlBuilder, ref parameterIndex, isRightOperand);
 
-                return BinaryExpressionHandler(config, be.Left, be.Right, be.NodeType, ref leftList, ref rightList, ref typeList, ref sb, ref strType, ref i, isRight);
-            }
-            else if (exp is MemberExpression memberExp)
-            {
-                // Case 1: Direct property access on parameter (e.g., e.Name)
-                if (memberExp.Expression is ParameterExpression)
-                {
-                    var memberName = memberExp.Member.Name;
+            if (expression is MemberExpression memberExp)
+                return ParseMemberExpression(config, memberExp, typeList);
 
-                    // Special handling for bool properties used as predicates
-                    if (memberExp.Type == typeof(bool))
-                    {
-                        return config.DbType == DataDbType.PostgreSql
-                            ? $"{memberName}=true"
-                            : $"{memberName}=1";
-                    }
-                    return memberName;
-                }
-                // Case 2: Nested property access (e.g., e.Salary.HasValue)
-                else if (memberExp.Expression is MemberExpression innerMember)
-                {
-                    // Handle nullable type's HasValue property: e.Salary.HasValue => "Salary IS NOT NULL"
-                    if (memberExp.Member.Name == "HasValue" && innerMember.Expression is ParameterExpression)
-                    {
-                        return $"{innerMember.Member.Name} IS NOT NULL";
-                    }
+            if (expression is MethodCallExpression methodCall)
+                return ParseMethodCallExpression(config, methodCall, ref leftList, ref rightList, ref typeList, ref sqlBuilder, ref parameterIndex, isRightOperand);
 
-                    // For other nested properties, attempt to evaluate
-                    return TryEvaluateExpression(exp, typeList);
-                }
-                // Case 3: Other member expressions (e.g., static field access)
-                else
-                {
-                    return TryEvaluateExpression(exp, typeList);
-                }
-            }
-            else if (exp is NewArrayExpression)
-            {
-                NewArrayExpression naExp = (NewArrayExpression)exp;
-                StringBuilder sbArray = new StringBuilder();
-                foreach (Expression expression in naExp.Expressions)
-                {
-                    sbArray.AppendFormat(",{0}", RouteExpressionHandler(config, expression, expType, ref leftList, ref rightList, ref typeList, ref sb, ref strType, ref i, isRight));
-                }
+            if (expression is NewArrayExpression arrayExp)
+                return ParseArrayExpression(config, arrayExp, ref leftList, ref rightList, ref typeList, ref sqlBuilder, ref parameterIndex, isRightOperand);
 
-                return sbArray.Length == 0 ? "" : sbArray.Remove(0, 1).ToString();
-            }
-            else if (exp is MethodCallExpression)
-            {
-                if (isRight)
-                {
-                    typeList.Add(Expression.Lambda(exp).Compile().DynamicInvoke().GetType());
-                    return Expression.Lambda(exp).Compile().DynamicInvoke() + "";
-                }
-                else
-                {
-                    //typeList.Add("".GetType());
-                    isRight = false;
-                    try
-                    {
-                        var asName = "";
-                        var meExp = (MethodCallExpression)(exp.ReduceExtensions().Reduce());
+            if (expression is ConstantExpression constant)
+                return ParseConstantExpression(constant, typeList);
 
-                        #region 表别名
-                        if (meExp.Object != null)
-                        {
-                            if (meExp.Object is MemberExpression)
-                                asName = ((meExp.Object as MemberExpression).Expression as ParameterExpression).Name + ".";
-                            else if (meExp.Object is UnaryExpression)
-                                asName = (((meExp.Object as UnaryExpression).Operand as MemberExpression).Expression as ParameterExpression).Name + ".";
-                        }
-                        #endregion
+            if (expression is UnaryExpression unary)
+                return ParseExpression(config, unary.Operand, ref leftList, ref rightList, ref typeList, ref sqlBuilder, ref parameterIndex, isRightOperand);
 
-                        if ((MemberExpression)meExp.Object != null)
-                        {
-                            #region system的方法转sql的系统函数
-                            var mMethod = meExp.Method.Name;
-                            var mName = ((MemberExpression)meExp.Object).Member.Name;
-                            var mValue = "";
-                            var mStar = "";
-                            var mLength = "";
-                            var mCount = 0;
-
-                            meExp.Arguments.ToList().ForEach(a => {
-                                mCount++;
-                                mValue = Expression.Lambda(a).Compile().DynamicInvoke().ToString();
-
-                                if (meExp.Arguments.Count == 2)
-                                {
-                                    if (mCount == 1)
-                                        mStar = Expression.Lambda(a).Compile().DynamicInvoke().ToString();
-
-                                    if (mCount == 2)
-                                        mLength = Expression.Lambda(a).Compile().DynamicInvoke().ToString();
-                                }
-                            });
-
-                            if (mMethod.ToLower() == "contains")
-                            {
-                                sb.AppendFormat(" {2}{0} like {3}{0}{1}", mName, i, asName, config.Flag);
-                                leftList.Add(mName);
-                                rightList.Add(string.Format("%{0}%", mValue));
-                                i++;
-                                typeList.Add(typeof(string));
-                            }
-                            else if (mMethod.ToLower() == "endswith")
-                            {
-                                sb.AppendFormat(" {2}{0} like {3}{0}{1}", mName, i, asName, config.Flag);
-                                leftList.Add(mName);
-                                rightList.Add(string.Format("%{0}", mValue));
-                                typeList.Add(typeof(string));
-                                i++;
-                            }
-                            else if (mMethod.ToLower() == "startswith")
-                            {
-                                sb.AppendFormat(" {2}{0} like {3}{0}{1}", mName, i, asName, config.Flag);
-                                leftList.Add(mName);
-                                rightList.Add(string.Format("{0}%", mValue));
-                                typeList.Add(typeof(string));
-                                i++;
-                            }
-                            else if (mMethod.ToLower() == "substring")
-                            {
-                                var tempType = "";
-                                if (expType == ExpressionType.Goto)
-                                    tempType = "=";
-                                else
-                                    tempType = ExpressionTypeCast(expType);
-
-                                if (config.DbType == DataDbType.SqlServer)
-                                    sb.AppendFormat(" substring({4}{0},{2},{3}) {6} {5}{0}{1}", mName, i, mStar, mLength, asName, config.Flag, tempType);
-                                else if (config.DbType == DataDbType.Oracle || config.DbType == DataDbType.MySql || config.DbType == DataDbType.DB2)
-                                    sb.AppendFormat(" substr({4}{0},{2},{3}) {6} {5}{0}{1}", mName, i, mStar, mLength, asName, config.Flag, tempType);
-
-                                leftList.Add(mName);
-                                //rightList.Add(mValue.ToString());
-                                i++;
-                            }
-                            else if (mMethod.ToLower() == "toupper")
-                            {
-                                var tempType = "";
-                                if (expType == ExpressionType.Goto)
-                                    tempType = "=";
-                                else
-                                    tempType = ExpressionTypeCast(expType);
-                                sb.AppendFormat(" upper({0}{1}) {4} {2}{1}{3}", asName, mName, config.Flag, i, tempType);
-
-                                leftList.Add(mName);
-                                //rightList.Add(mValue.ToString());
-                                i++;
-                            }
-                            else if (mMethod.ToLower() == "tolower")
-                            {
-                                var tempType = "";
-                                if (expType == ExpressionType.Goto)
-                                    tempType = "=";
-                                else
-                                    tempType = ExpressionTypeCast(expType);
-                                sb.AppendFormat(" lower({0}{1}) {4} {2}{1}{3}", asName, mName, config.Flag, i, tempType);
-
-                                leftList.Add(mName);
-                                //rightList.Add(mValue.ToString());
-                                i++;
-                            }
-                            #endregion
-                        }
-
-                        if (isReturnNull)
-                            return "";
-                        else
-                            return sb.ToString();
-                    }
-                    catch (Exception ex)
-                    {
-                        DbLog.LogException(true, DataDbType.SqlServer, ex, "RouteExpressionHandler", "");
-                        return "";
-                    }
-                }
-            }
-            else if (exp is ConstantExpression)
-            {
-                ConstantExpression cExp = (ConstantExpression)exp;
-                if (cExp.Value == null)
-                {
-                    typeList.Add("".GetType());
-                    return "null";
-                }
-                else if (cExp.Value is bool)
-                {
-                    typeList.Add(typeof(bool));
-                    return (bool)cExp.Value ? "1=1" : "1=0";
-                }
-                else
-                {
-                    typeList.Add(cExp.Value.GetType());
-                    return cExp.Value.ToString();
-                }
-            }
-            else if (exp is UnaryExpression)
-            {
-                var ue = ((UnaryExpression)exp);
-                return RouteExpressionHandler(config, ue.Operand, expType, ref leftList, ref rightList, ref typeList, ref sb, ref strType, ref i, isRight);
-            }
-
-            return null;
+            return TryEvaluateExpression(expression, typeList);
         }
         #endregion
 
-        #region 拆分表达式树
+        #region 解析二元表达式
         /// <summary>
-        /// 拆分表达式树
+        /// 解析二元运算表达式（比较、逻辑运算）
         /// </summary>
-        /// <param name="config">配置模型</param>
-        /// <param name="left">左侧表达式</param>
-        /// <param name="right">右侧表达式</param>
-        /// <param name="expType">表达式类型</param>
-        /// <param name="leftList">左侧列表</param>
-        /// <param name="rightList">右侧列表</param>
-        /// <param name="typeList">类型列表</param>
-        /// <param name="sb">字符串构建器</param>
-        /// <param name="strType">类型字符串</param>
-        /// <param name="i">计数器</param>
-        /// <param name="isRight">是否右侧</param>
-        /// <returns>解析结果</returns>
+        private static string ParseBinaryExpression(ConfigModel config, Expression left, Expression right, ExpressionType operatorType, ref List<string> leftList, ref List<string> rightList, ref List<Type> typeList, ref StringBuilder sqlBuilder, ref int parameterIndex, bool isRightOperand)
+        {
+            // 特殊处理：布尔属性 == true/false 简化为直接的值
+            if (operatorType == ExpressionType.Equal && left is MemberExpression leftMember && leftMember.Type == typeof(bool) && right is ConstantExpression rightConst && rightConst.Value is bool)
+            {
+                var memberName = leftMember.Member.Name;
+                var boolValue = (bool)rightConst.Value;
+                var boolSql = config.DbType == DataDbType.PostgreSql
+                    ? string.Format("{0}={1}", memberName, boolValue ? "true" : "false")
+                    : string.Format("{0}={1}", memberName, boolValue ? "1" : "0");
+                sqlBuilder.Append(boolSql);
+                return sqlBuilder.ToString();
+            }
 
+            var leftSql = ParseExpression(config, left, ref leftList, ref rightList, ref typeList, ref sqlBuilder, ref parameterIndex, isRightOperand);
+            var operatorSymbol = GetOperatorSymbol(operatorType);
+            var needsParameter = "=,>,<,>=,<=,<>".Contains(operatorSymbol);
+
+            if (!needsParameter)
+            {
+                sqlBuilder.Append(string.Format(" {0} ", operatorSymbol));
+                isRightOperand = false;
+            }
+
+            var rightSql = ParseExpression(config, right, ref leftList, ref rightList, ref typeList, ref sqlBuilder, ref parameterIndex, needsParameter);
+
+            // 处理 null 比较
+            if (rightSql != null && rightSql.ToUpper() == "NULL" || (config.DbType == DataDbType.Oracle && string.IsNullOrEmpty(rightSql)))
+            {
+                var nullSql = operatorSymbol == "=" ? "IS NULL" : "IS NOT NULL";
+                if (left is MemberExpression memberLeft)
+                {
+                    var paramName = GetParameterName(memberLeft.Expression as ParameterExpression);
+                    sqlBuilder.Append(string.Format("{0}.{1} {2} ", paramName, leftSql, nullSql));
+                }
+            }
+            else if (isRightOperand)
+            {
+                // 构建带参数的比较表达式
+                if (left is MemberExpression leftField && right is MemberExpression rightField && rightField.Expression is ParameterExpression)
+                {
+                    var leftParam = GetParameterName(leftField.Expression as ParameterExpression);
+                    var rightParam = GetParameterName(rightField.Expression as ParameterExpression);
+                    sqlBuilder.Append(string.Format("{0}.{1}{2}{3}.{4} ", leftParam, leftSql, operatorSymbol, rightParam, rightSql));
+                }
+                else if (left is MemberExpression valueLeft)
+                {
+                    var paramName = GetParameterName(valueLeft.Expression as ParameterExpression);
+                    sqlBuilder.Append(string.Format("{0}.{1}{2}{3}{1}{4} ", paramName, leftSql, operatorSymbol, config.Flag, parameterIndex));
+                    rightList.Add(rightSql);
+                    leftList.Add(leftSql);
+                    parameterIndex++;
+                }
+            }
+
+            return sqlBuilder.ToString();
+        }
+        #endregion
+
+        #region 解析属性表达式
         /// <summary>
-        /// Auxiliary method: Try to evaluate expression value
+        /// 解析属性/字段访问表达式
         /// </summary>
-        private static string TryEvaluateExpression(Expression exp, List<System.Type> typeList)
+        private static string ParseMemberExpression(ConfigModel config, MemberExpression memberExp, List<Type> typeList)
+        {
+            // 情况1：直接属性访问（如 e.Name）
+            if (memberExp.Expression is ParameterExpression)
+            {
+                var memberName = memberExp.Member.Name;
+
+                // 布尔属性作为条件时直接返回值
+                if (memberExp.Type == typeof(bool))
+                {
+                    return config.DbType == DataDbType.PostgreSql
+                        ? string.Format("{0}=true", memberName)
+                        : string.Format("{0}=1", memberName);
+                }
+
+                return memberName;
+            }
+
+            // 情况2：嵌套属性访问（如 e.Salary.HasValue）
+            if (memberExp.Expression is MemberExpression innerMember)
+            {
+                // HasValue 转换为 IS NOT NULL
+                if (memberExp.Member.Name == "HasValue" && innerMember.Expression is ParameterExpression)
+                {
+                    return string.Format("{0} IS NOT NULL", innerMember.Member.Name);
+                }
+            }
+
+            // 其他情况：尝试直接求值
+            return TryEvaluateExpression(memberExp, typeList);
+        }
+        #endregion
+
+        #region 解析方法调用表达式
+        /// <summary>
+        /// 解析方法调用表达式（Contains、StartsWith、EndsWith 等）
+        /// </summary>
+        private static string ParseMethodCallExpression(ConfigModel config, MethodCallExpression methodCall, ref List<string> leftList, ref List<string> rightList, ref List<Type> typeList, ref StringBuilder sqlBuilder, ref int parameterIndex, bool isRightOperand)
+        {
+            if (isRightOperand)
+            {
+                typeList.Add(Expression.Lambda(methodCall).Compile().DynamicInvoke().GetType());
+                return Expression.Lambda(methodCall).Compile().DynamicInvoke().ToString();
+            }
+
+            var methodName = methodCall.Method.Name.ToLowerInvariant();
+            var aliasPrefix = GetTableAlias(methodCall.Object);
+
+            try
+            {
+                // 确保 Object 是 MemberExpression 再访问其成员
+                if (methodCall.Object is MemberExpression memberExp)
+                {
+                    var memberName = memberExp.Member.Name;
+
+                    if (methodName == "contains")
+                        return ParseContainsMethod(config, memberName, aliasPrefix, methodCall, ref leftList, ref rightList, ref typeList, ref sqlBuilder, ref parameterIndex);
+
+                    if (methodName == "endswith")
+                        return ParseEndsWithMethod(config, memberName, aliasPrefix, methodCall, ref leftList, ref rightList, ref typeList, ref sqlBuilder, ref parameterIndex);
+
+                    if (methodName == "startswith")
+                        return ParseStartsWithMethod(config, memberName, aliasPrefix, methodCall, ref leftList, ref rightList, ref typeList, ref sqlBuilder, ref parameterIndex);
+
+                    if (methodName == "substring")
+                        return ParseSubstringMethod(config, memberName, aliasPrefix, methodCall, ref leftList, ref rightList, ref typeList, ref sqlBuilder, ref parameterIndex);
+
+                    if (methodName == "toupper")
+                        return ParseToUpperMethod(config, memberName, aliasPrefix, methodCall, ref leftList, ref rightList, ref typeList, ref sqlBuilder, ref parameterIndex);
+
+                    if (methodName == "tolower")
+                        return ParseToLowerMethod(config, memberName, aliasPrefix, methodCall, ref leftList, ref rightList, ref typeList, ref sqlBuilder, ref parameterIndex);
+                }
+
+                return string.Empty;
+            }
+            catch (Exception ex)
+            {
+                // 使用 config.DbType 而非硬编码 SqlServer
+                LogException(config, ex, "ParseMethodCallExpression");
+                return string.Empty;
+            }
+        }
+        #endregion
+
+        #region Contains 方法解析
+        /// <summary>
+        /// 解析 string.Contains() 为 SQL LIKE '%value%'
+        /// </summary>
+        private static string ParseContainsMethod(ConfigModel config, string memberName, string aliasPrefix, MethodCallExpression methodCall, ref List<string> leftList, ref List<string> rightList, ref List<Type> typeList, ref StringBuilder sqlBuilder, ref int parameterIndex)
+        {
+            var searchValue = Expression.Lambda(methodCall.Arguments[0]).Compile().DynamicInvoke().ToString();
+            sqlBuilder.Append(string.Format(" {0}{1} LIKE {2}{1}{3}", aliasPrefix, memberName, config.Flag, parameterIndex));
+            leftList.Add(memberName);
+            rightList.Add(string.Format("%{0}%", searchValue));
+            typeList.Add(typeof(string));
+            parameterIndex++;
+            return sqlBuilder.ToString();
+        }
+        #endregion
+
+        #region EndsWith 方法解析
+        /// <summary>
+        /// 解析 string.EndsWith() 为 SQL LIKE '%value'
+        /// </summary>
+        private static string ParseEndsWithMethod(ConfigModel config, string memberName, string aliasPrefix, MethodCallExpression methodCall, ref List<string> leftList, ref List<string> rightList, ref List<Type> typeList, ref StringBuilder sqlBuilder, ref int parameterIndex)
+        {
+            var searchValue = Expression.Lambda(methodCall.Arguments[0]).Compile().DynamicInvoke().ToString();
+            sqlBuilder.Append(string.Format(" {0}{1} LIKE {2}{1}{3}", aliasPrefix, memberName, config.Flag, parameterIndex));
+            leftList.Add(memberName);
+            rightList.Add(string.Format("%{0}", searchValue));
+            typeList.Add(typeof(string));
+            parameterIndex++;
+            return sqlBuilder.ToString();
+        }
+        #endregion
+
+        #region StartsWith 方法解析
+        /// <summary>
+        /// 解析 string.StartsWith() 为 SQL LIKE 'value%'
+        /// </summary>
+        private static string ParseStartsWithMethod(ConfigModel config, string memberName, string aliasPrefix, MethodCallExpression methodCall, ref List<string> leftList, ref List<string> rightList, ref List<Type> typeList, ref StringBuilder sqlBuilder, ref int parameterIndex)
+        {
+            var searchValue = Expression.Lambda(methodCall.Arguments[0]).Compile().DynamicInvoke().ToString();
+            sqlBuilder.Append(string.Format(" {0}{1} LIKE {2}{1}{3}", aliasPrefix, memberName, config.Flag, parameterIndex));
+            leftList.Add(memberName);
+            rightList.Add(string.Format("{0}%", searchValue));
+            typeList.Add(typeof(string));
+            parameterIndex++;
+            return sqlBuilder.ToString();
+        }
+        #endregion
+
+        #region Substring 方法解析
+        /// <summary>
+        /// 解析 string.Substring() 为 SQL SUBSTRING/SUBSTR
+        /// </summary>
+        private static string ParseSubstringMethod(ConfigModel config, string memberName, string aliasPrefix, MethodCallExpression methodCall, ref List<string> leftList, ref List<string> rightList, ref List<Type> typeList, ref StringBuilder sqlBuilder, ref int parameterIndex)
+        {
+            var startIndex = Expression.Lambda(methodCall.Arguments[0]).Compile().DynamicInvoke().ToString();
+            var length = methodCall.Arguments.Count > 1
+                ? Expression.Lambda(methodCall.Arguments[1]).Compile().DynamicInvoke().ToString()
+                : string.Empty;
+
+            var funcName = config.DbType == DataDbType.SqlServer ? "SUBSTRING" : "SUBSTR";
+            sqlBuilder.Append(string.Format(" {0}({1}{2},{3},{4}) = {5}{2}{6}", funcName, aliasPrefix, memberName, startIndex, length, config.Flag, parameterIndex));
+            leftList.Add(memberName);
+            parameterIndex++;
+            return sqlBuilder.ToString();
+        }
+        #endregion
+
+        #region ToUpper 方法解析
+        /// <summary>
+        /// 解析 string.ToUpper() 为 SQL UPPER()
+        /// </summary>
+        private static string ParseToUpperMethod(ConfigModel config, string memberName, string aliasPrefix, MethodCallExpression methodCall, ref List<string> leftList, ref List<string> rightList, ref List<Type> typeList, ref StringBuilder sqlBuilder, ref int parameterIndex)
+        {
+            sqlBuilder.Append(string.Format(" UPPER({0}{1}) = {2}{1}{3}", aliasPrefix, memberName, config.Flag, parameterIndex));
+            leftList.Add(memberName);
+            parameterIndex++;
+            return sqlBuilder.ToString();
+        }
+        #endregion
+
+        #region ToLower 方法解析
+        /// <summary>
+        /// 解析 string.ToLower() 为 SQL LOWER()
+        /// </summary>
+        private static string ParseToLowerMethod(ConfigModel config, string memberName, string aliasPrefix, MethodCallExpression methodCall, ref List<string> leftList, ref List<string> rightList, ref List<Type> typeList, ref StringBuilder sqlBuilder, ref int parameterIndex)
+        {
+            sqlBuilder.Append(string.Format(" LOWER({0}{1}) = {2}{1}{3}", aliasPrefix, memberName, config.Flag, parameterIndex));
+            leftList.Add(memberName);
+            parameterIndex++;
+            return sqlBuilder.ToString();
+        }
+        #endregion
+
+        #region 解析数组表达式
+        /// <summary>
+        /// 解析数组初始化表达式
+        /// </summary>
+        private static string ParseArrayExpression(ConfigModel config, NewArrayExpression arrayExp, ref List<string> leftList, ref List<string> rightList, ref List<Type> typeList, ref StringBuilder sqlBuilder, ref int parameterIndex, bool isRightOperand)
+        {
+            var sbArray = new StringBuilder();
+            foreach (var expr in arrayExp.Expressions)
+            {
+                sbArray.Append(",").Append(ParseExpression(config, expr, ref leftList, ref rightList, ref typeList, ref sqlBuilder, ref parameterIndex, isRightOperand));
+            }
+
+            return sbArray.Length == 0 ? string.Empty : sbArray.Remove(0, 1).ToString();
+        }
+        #endregion
+
+        #region 解析常量表达式
+        /// <summary>
+        /// 解析常量表达式
+        /// </summary>
+        private static string ParseConstantExpression(ConstantExpression constant, List<Type> typeList)
+        {
+            if (constant.Value == null)
+            {
+                typeList.Add(typeof(string));
+                return "NULL";
+            }
+
+            if (constant.Value is bool)
+            {
+                typeList.Add(typeof(bool));
+                return (bool)constant.Value ? "1=1" : "1=0";
+            }
+
+            typeList.Add(constant.Value.GetType());
+            return constant.Value.ToString();
+        }
+        #endregion
+
+        #region 尝试求值表达式
+        /// <summary>
+        /// 尝试编译并执行表达式获取值
+        /// </summary>
+        private static string TryEvaluateExpression(Expression expression, List<Type> typeList)
         {
             try
             {
-                var value = Expression.Lambda(exp).Compile().DynamicInvoke();
+                var value = Expression.Lambda(expression).Compile().DynamicInvoke();
                 if (value == null)
                 {
-                    typeList.Add("".GetType());
-                    return "null";
+                    typeList.Add(typeof(string));
+                    return "NULL";
                 }
-                else
-                {
-                    typeList.Add(value.GetType());
-                    return value.ToString();
-                }
+
+                typeList.Add(value.GetType());
+                return value.ToString();
             }
             catch
             {
                 return string.Empty;
             }
         }
-
-        private static string BinaryExpressionHandler(ConfigModel config, Expression left, Expression right, ExpressionType expType, ref List<string> leftList, ref List<string> rightList, ref List<System.Type> typeList, ref StringBuilder sb, ref string strType, ref int i, bool isRight = false)
-        {
-            string needParKey = "=,>,<,>=,<=,<>";
-
-            // Special handling for boolean member == true/false
-            // Simplify "u.IsActive == true" to "IsActive=1"
-            if (expType == ExpressionType.Equal &&
-                left is MemberExpression leftMember &&
-                leftMember.Type == typeof(bool) &&
-                right is ConstantExpression rightConst &&
-                rightConst.Value is bool)
-            {
-                // For "u.IsActive == true", generate "IsActive=1"
-                // For "u.IsActive == false", generate "IsActive=0"
-                var memberName = leftMember.Member.Name;
-                var boolValue = (bool)rightConst.Value;
-
-                if (config.DbType == DataDbType.PostgreSql)
-                    sb.AppendFormat("{0}={1}", memberName, boolValue ? "true" : "false");
-                else
-                    sb.AppendFormat("{0}={1}", memberName, boolValue ? "1" : "0");
-
-                return sb.ToString();
-            }
-
-            string leftPar = RouteExpressionHandler(config, left, expType, ref leftList, ref rightList, ref typeList, ref sb, ref strType, ref i, isRight);
-
-            string typeStr = ExpressionTypeCast(expType);
-
-            isRight = needParKey.IndexOf(typeStr) > -1;
-
-            if (!isRight)
-            {
-                strType = typeStr;
-
-                sb.Append(string.Format(" {0} ", strType));
-            }
-
-            string rightPar = RouteExpressionHandler(config, right, expType, ref leftList, ref rightList, ref typeList, ref sb, ref strType, ref i, isRight);
-
-            if (rightPar.ToUpper() == "NULL" || (config.DbType == DataDbType.Oracle && string.IsNullOrEmpty(rightPar)))
-            {
-                if (typeStr == "=")
-                    rightPar = "IS NULL";
-                else if (typeStr == "<>")
-                    rightPar = "IS NOT NULL";
-
-                if (left is UnaryExpression)
-                    left = (left as UnaryExpression).Operand;
-
-                if (left is MemberExpression)
-                    sb.AppendFormat("{2}.{0} {1} ", leftPar, rightPar, ((left as MemberExpression).Expression as ParameterExpression).Name);
-
-                if (left is MethodCallExpression)
-                {
-                    var meExp = (MethodCallExpression)(left.ReduceExtensions().Reduce());
-
-                    if (meExp.Method.Name.ToLower() == "substring" || meExp.Method.Name.ToLower() == "toupper" || meExp.Method.Name.ToLower() == "tolower")
-                    {
-                        rightList.Add(rightPar);
-                        i++;
-                    }
-                }
-            }
-            else
-            {
-                if (isRight)
-                {
-                    if (left is UnaryExpression)
-                        left = (left as UnaryExpression).Operand;
-
-                    if (left is MemberExpression && right is MemberExpression && ((right as MemberExpression).Expression as ParameterExpression) != null)
-                    {
-                        sb.AppendFormat("{0}.{1}{2}{3}.{4} "
-                                        , ((left as MemberExpression).Expression as ParameterExpression).Name, leftPar
-                                        , typeStr
-                                        , ((right as MemberExpression).Expression as ParameterExpression).Name, rightPar);
-                    }
-                    else if (!(left is MethodCallExpression))
-                    {
-                        sb.AppendFormat("{0}.{1}{2}{5}{3}{4} ", ((left as MemberExpression).Expression as ParameterExpression).Name, leftPar
-                                                            , typeStr, leftPar, i.ToString(), config.Flag);
-                        rightList.Add(rightPar);
-                        leftList.Add(leftPar);
-                        i++;
-                    }
-                    else if (left is MethodCallExpression)
-                    {
-                        var meExp = (MethodCallExpression)(left.ReduceExtensions().Reduce());
-
-                        if (meExp.Method.Name.ToLower() == "substring" || meExp.Method.Name.ToLower() == "toupper" || meExp.Method.Name.ToLower() == "tolower")
-                        {
-                            rightList.Add(rightPar);
-                            i++;
-                        }
-                    }
-                }
-            }
-
-            return sb.ToString();
-        }
         #endregion
 
-        #region 转换运算符
+        #region 获取运算符符号
         /// <summary>
-        /// 转换运算符
+        /// 将 ExpressionType 转换为 SQL 运算符
         /// </summary>
-        /// <param name="expType"></param>
-        /// <returns></returns>
-        private static string ExpressionTypeCast(ExpressionType expType)
+        private static string GetOperatorSymbol(ExpressionType expressionType)
         {
-            switch (expType)
+            switch (expressionType)
             {
                 case ExpressionType.And:
                 case ExpressionType.AndAlso:
-                    return "and";
+                    return "AND";
                 case ExpressionType.Equal:
                     return "=";
                 case ExpressionType.GreaterThan:
@@ -602,7 +491,7 @@ namespace FastData.Base
                     return "<>";
                 case ExpressionType.Or:
                 case ExpressionType.OrElse:
-                    return "or";
+                    return "OR";
                 case ExpressionType.Add:
                 case ExpressionType.AddChecked:
                     return "+";
@@ -615,56 +504,119 @@ namespace FastData.Base
                 case ExpressionType.MultiplyChecked:
                     return "*";
                 default:
-                    return "";
+                    return string.Empty;
             }
         }
         #endregion
 
-        #region 删除最后四位
+        #region 获取参数前缀
         /// <summary>
-        /// 删除最后四位
+        /// 从表达式获取表别名前缀（如 "u."）
         /// </summary>
-        /// <param name="mValue"></param>
-        /// <returns></returns>
-        private static string Remove(string mValue)
+        private static string GetTableAlias(Expression expression)
         {
-            if (mValue == "")
-                return "";
+            if (expression == null)
+                return string.Empty;
 
-            if (mValue == "and")
-                return "";
+            if (expression is MemberExpression member)
+            {
+                var param = member.Expression as ParameterExpression;
+                return param != null ? param.Name + "." : string.Empty;
+            }
 
-            if (mValue.Trim().Substring(mValue.Trim().Length - 4, 4) == " and")
-                return Remove(mValue.Trim().Substring(0, mValue.Trim().Length - 4));
-            return mValue;
+            if (expression is UnaryExpression unary)
+            {
+                var innerMember = unary.Operand as MemberExpression;
+                if (innerMember != null && innerMember.Expression is ParameterExpression param)
+                    return param.Name + ".";
+            }
+
+            return string.Empty;
         }
         #endregion
 
-        #region 替换
+        #region 获取参数名称
         /// <summary>
-        /// 替换
+        /// 从 ParameterExpression 获取参数名
         /// </summary>
-        /// <param name="item">访问模型</param>
-        /// <param name="config">配置模型</param>
-        /// <returns>替换后的访问模型</returns>
-        private static VisitModel BaseReplace(VisitModel item, ConfigModel config)
+        private static string GetParameterName(ParameterExpression parameter)
         {
-            var result = new VisitModel();
-            result.Where = item.Where;
-            result.Param = item.Param;
-
-            item.Param.ForEach(a => {
-                var replace = string.Format("#{0}#", a.ParameterName.ToLower());
-                if (item.Where.ToLower().IndexOf(replace) >= 0)
-                {
-                    result.Param.RemoveAll(p => p.ParameterName == a.ParameterName);
-                    result.Where = result.Where.ToLower().Replace(replace, a.Value.ToString());
-                }
-            });
-
-            return result;
+            return parameter != null ? parameter.Name : string.Empty;
         }
         #endregion
 
+        #region 转换类型化值
+        /// <summary>
+        /// 将字符串值转换为对应数据库参数的类型化值
+        /// </summary>
+        private static object ConvertToTypedValue(string stringValue, List<Type> typeList, int index, ConfigModel config)
+        {
+            if (index >= typeList.Count)
+                return stringValue;
+
+            var targetType = typeList[index];
+
+            if (targetType == typeof(DateTime))
+            {
+                if (config.DbType == DataDbType.Oracle)
+                    return DateTime.Parse(stringValue).Date;
+                return DateTime.Parse(stringValue);
+            }
+
+            var typeName = targetType.Name;
+            if (typeName == "Int32")
+                return int.Parse(stringValue);
+            if (typeName == "Int64")
+                return long.Parse(stringValue);
+            if (typeName == "Decimal")
+                return decimal.Parse(stringValue);
+            if (typeName == "Double")
+                return double.Parse(stringValue);
+            if (typeName == "Boolean")
+                return bool.Parse(stringValue);
+
+            return stringValue;
+        }
+        #endregion
+
+        #region 裁剪尾部运算符
+        /// <summary>
+        /// 移除 SQL 末尾多余的 AND/OR 运算符
+        /// </summary>
+        private static string TrimTrailingOperators(string sql)
+        {
+            if (string.IsNullOrEmpty(sql))
+                return string.Empty;
+
+            var trimmed = sql.Trim();
+
+            while (trimmed.EndsWith(" AND", StringComparison.OrdinalIgnoreCase))
+            {
+                trimmed = trimmed.Substring(0, trimmed.Length - 4).Trim();
+            }
+
+            return trimmed;
+        }
+        #endregion
+
+        #region 记录异常
+        /// <summary>
+        /// 统一异常日志记录
+        /// </summary>
+        private static void LogException(ConfigModel config, Exception exception, string methodName)
+        {
+            try
+            {
+                if (config.SqlErrorType != null && config.SqlErrorType.ToLowerInvariant() == SqlErrorType.Db)
+                    DbLogTable.LogException(config, exception, methodName, string.Empty);
+                else
+                    DbLog.LogException(config.IsOutError, config.DbType, exception, methodName, string.Empty);
+            }
+            catch
+            {
+                // 避免日志记录失败影响主流程
+            }
+        }
+        #endregion
     }
 }

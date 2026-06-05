@@ -1,119 +1,156 @@
-﻿using System;
+using System;
 using System.Text;
 using System.Web;
 
 namespace FastUntility.Cache
 {
     /// <summary>
-    /// 标签：2015.7.13，魏中针
-    /// 说明：cookies操作类
+    /// Cookie 操作类
+    /// 提供 Cookie 的读写删功能
     /// </summary>
     public static class BaseCookie
     {
-        #region 写cookie值
         /// <summary>
-        /// 写cookie值
+        /// 写入 Cookie
         /// </summary>
-        /// <param name="context">HTTP上下文</param>
-        /// <param name="strName">名称</param>
-        /// <param name="strValue">值</param>
-        /// <param name="days">过期天数</param>
-        /// <returns>是否成功</returns>
-        public static bool WriteAsync(HttpContextBase context,string strName, string strValue, int days = 1)
+        /// <param name="context">HTTP 上下文</param>
+        /// <param name="name">Cookie 名称</param>
+        /// <param name="value">Cookie 值</param>
+        /// <param name="expireDays">过期天数，默认 1 天</param>
+        /// <returns>写入是否成功</returns>
+        public static bool WriteAsync(HttpContextBase context, string name, string value, int expireDays = 1)
         {
-            if (string.IsNullOrEmpty(strName))
+            if (context == null || string.IsNullOrEmpty(name))
                 return false;
-            var cookie = new HttpCookie(strName);
-            cookie.HttpOnly = true;
-            cookie.Value = HttpUtility.UrlEncode(strValue, Encoding.UTF8);
-            cookie.Expires = DateTime.Now.AddDays(days);
+
+            var cookie = new HttpCookie(name)
+            {
+                HttpOnly = true,
+                Value = HttpUtility.UrlEncode(value, Encoding.UTF8),
+                Expires = DateTime.Now.AddDays(expireDays)
+            };
+
             context.Response.Cookies.Add(cookie);
             return true;
         }
-        #endregion
 
-        #region 写cookie值
         /// <summary>
-        /// 写cookie值
+        /// 写入 Cookie
         /// </summary>
-        /// <param name="strName">名称</param>
-        /// <param name="strValue">值</param>
-        /// <param name="days">过期天数</param>
-        /// <returns>是否成功</returns>
-        public static bool Write(string strName, string strValue, int days = 1)
+        /// <param name="name">Cookie 名称</param>
+        /// <param name="value">Cookie 值</param>
+        /// <param name="expireDays">过期天数，默认 1 天</param>
+        /// <returns>写入是否成功</returns>
+        public static bool Write(string name, string value, int expireDays = 1)
         {
-            if (string.IsNullOrEmpty(strName))
+            if (string.IsNullOrEmpty(name))
                 return false;
-            var cookie = new HttpCookie(strName);
-            cookie.HttpOnly = true;
-            cookie.Value = HttpUtility.UrlEncode(strValue, Encoding.UTF8); 
-            cookie.Expires = DateTime.Now.AddDays(days);
-            HttpContext.Current.Response.Cookies.Add(cookie);
+
+            var current = HttpContext.Current;
+            if (current == null || current.Response == null)
+                return false;
+
+            var cookie = new HttpCookie(name)
+            {
+                HttpOnly = true,
+                Value = HttpUtility.UrlEncode(value, Encoding.UTF8),
+                Expires = DateTime.Now.AddDays(expireDays)
+            };
+
+            current.Response.Cookies.Add(cookie);
             return true;
         }
-        #endregion
 
-        #region 读cookie值
         /// <summary>
-        /// 读cookie值
+        /// 读取 Cookie 值
         /// </summary>
-        /// <param name="strName">名称</param>
-        /// <returns>cookie值</returns>
-        public static string Read(string strName)
+        /// <param name="name">Cookie 名称</param>
+        /// <returns>Cookie 值，不存在时返回空字符串</returns>
+        public static string Read(string name)
         {
-            if (HttpContext.Current.Request.Cookies != null && HttpContext.Current.Request.Cookies[strName] != null)
-               return HttpUtility.UrlDecode(HttpContext.Current.Request.Cookies[strName].Value, System.Text.Encoding.UTF8);
-            else
-                return "";
-        }
-        #endregion
+            if (string.IsNullOrEmpty(name))
+                return string.Empty;
 
-        #region 读cookie值
+            var current = HttpContext.Current;
+            if (current == null || current.Request == null || current.Request.Cookies == null)
+                return string.Empty;
+
+            var cookie = current.Request.Cookies[name];
+            if (cookie == null)
+                return string.Empty;
+
+            return HttpUtility.UrlDecode(cookie.Value, Encoding.UTF8);
+        }
+
         /// <summary>
-        /// 读cookie值
+        /// 读取 Cookie 值（支持 HttpContextBase）
         /// </summary>
-        /// <param name="context">HTTP上下文</param>
-        /// <param name="strName">名称</param>
-        /// <returns>cookie值</returns>
-        public static string ReadAsync(HttpContextBase context,string strName)
+        /// <param name="context">HTTP 上下文</param>
+        /// <param name="name">Cookie 名称</param>
+        /// <returns>Cookie 值，不存在时返回空字符串</returns>
+        public static string ReadAsync(HttpContextBase context, string name)
         {
-            if (context.Request.Cookies != null && context.Request.Cookies[strName] != null)
-                return HttpUtility.UrlDecode(context.Request.Cookies[strName].Value, System.Text.Encoding.UTF8);
-            else
-                return "";
-        }
-        #endregion
+            if (context == null || string.IsNullOrEmpty(name))
+                return string.Empty;
 
-        #region Cookie 删除
+            var cookies = context.Request.Cookies;
+            if (cookies == null)
+                return string.Empty;
+
+            var cookie = cookies[name];
+            if (cookie == null)
+                return string.Empty;
+
+            return HttpUtility.UrlDecode(cookie.Value, Encoding.UTF8);
+        }
+
         /// <summary>
-        /// 删除
+        /// 删除 Cookie
+        /// 通过设置过期时间为过去时间来使浏览器删除 Cookie
         /// </summary>
-        /// <param name="name">名称</param>
+        /// <param name="name">Cookie 名称</param>
         public static void Remove(string name)
         {
-            if (HttpContext.Current.Request.Cookies != null && HttpContext.Current.Request.Cookies[name] != null)
-            {
-                var myCookie = new HttpCookie(name);
-                myCookie.Expires = DateTime.Now.AddMinutes(-1);
-                HttpContext.Current.Response.Cookies.Add(myCookie);
-            }
-        }
-        #endregion
+            if (string.IsNullOrEmpty(name))
+                return;
 
-        #region Cookie 删除
-        /// <summary>
-        /// 删除
-        /// </summary>
-        /// <param name="name">名称</param>
-        public static void RemoveAsync(HttpContextBase context,string name)
-        {
-            if (context.Request.Cookies != null && context.Request.Cookies[name] != null)
+            var current = HttpContext.Current;
+            if (current == null || current.Request == null || current.Response == null)
+                return;
+
+            var cookies = current.Request.Cookies;
+            if (cookies == null || cookies[name] == null)
+                return;
+
+            var cookie = new HttpCookie(name)
             {
-                var myCookie = new HttpCookie(name);
-                myCookie.Expires = DateTime.Now.AddMinutes(-1);
-                context.Response.Cookies.Add(myCookie);
-            }
+                Expires = DateTime.Now.AddMinutes(-1)
+            };
+
+            current.Response.Cookies.Add(cookie);
         }
-        #endregion
+
+        /// <summary>
+        /// 删除 Cookie（支持 HttpContextBase）
+        /// 通过设置过期时间为过去时间来使浏览器删除 Cookie
+        /// </summary>
+        /// <param name="context">HTTP 上下文</param>
+        /// <param name="name">Cookie 名称</param>
+        public static void RemoveAsync(HttpContextBase context, string name)
+        {
+            if (context == null || string.IsNullOrEmpty(name))
+                return;
+
+            var cookies = context.Request.Cookies;
+            if (cookies == null || cookies[name] == null)
+                return;
+
+            var cookie = new HttpCookie(name)
+            {
+                Expires = DateTime.Now.AddMinutes(-1)
+            };
+
+            context.Response.Cookies.Add(cookie);
+        }
     }
 }

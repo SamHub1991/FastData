@@ -76,8 +76,8 @@ namespace FastData.Tests
                     {
                         try
                         {
-                            var key = $"stress:cache:{threadId}:{i}";
-                            var value = $"value_{threadId}_{i}";
+                            var key = string.Format("stress:cache:{0}:{1}", threadId, i);
+                            var value = string.Format("value_{0}_{1}", threadId, i);
 
                             // 写入
                             RedisInfo.Set(key, value, 1);
@@ -96,7 +96,7 @@ namespace FastData.Tests
                             lock (_lockObj)
                             {
                                 if (_errors.Count < 10)
-                                    _errors.Add($"Cache Thread {threadId}: {ex.Message}");
+                                    _errors.Add(string.Format("Cache Thread {0}: {1}", threadId, ex.Message));
                             }
                         }
                     }
@@ -111,8 +111,8 @@ namespace FastData.Tests
             var successRate = (double)successCount / totalOps;
             var opsPerSecond = totalOps * 1000.0 / stopwatch.ElapsedMilliseconds;
 
-            Console.WriteLine($"[缓存并发] 成功={successCount}, 失败={errorCount}, 成功率={successRate:P2}, 吞吐量={opsPerSecond:F0} ops/s, 耗时={stopwatch.ElapsedMilliseconds}ms");
-            Assert.True(successRate > 0.95, $"缓存并发测试失败: 成功率过低 {successRate:P2}");
+            Console.WriteLine("[缓存并发] 成功={0}, 失败={1}, 成功率={2:P2}, 吞吐量={3:F0} ops/s, 耗时={4}ms", successCount, errorCount, successRate, opsPerSecond, stopwatch.ElapsedMilliseconds);
+            Assert.True(successRate > 0.95, string.Format("缓存并发测试失败: 成功率过低 {0:P2}", successRate));
         }
 
         /// <summary>
@@ -150,7 +150,7 @@ namespace FastData.Tests
             // Act - 批量写入
             for (int i = 0; i < batchSize; i++)
             {
-                RedisInfo.Set($"stress:batch:{i}", $"value_{i}", 1);
+                RedisInfo.Set(string.Format("stress:batch:{0}", i), string.Format("value_{0}", i), 1);
             }
             var writeTime = stopwatch.ElapsedMilliseconds;
 
@@ -158,7 +158,7 @@ namespace FastData.Tests
             stopwatch.Restart();
             for (int i = 0; i < batchSize; i++)
             {
-                var value = RedisInfo.Get($"stress:batch:{i}");
+                var value = RedisInfo.Get(string.Format("stress:batch:{0}", i));
             }
             var readTime = stopwatch.ElapsedMilliseconds;
 
@@ -166,15 +166,15 @@ namespace FastData.Tests
             stopwatch.Restart();
             for (int i = 0; i < batchSize; i++)
             {
-                RedisInfo.Remove($"stress:batch:{i}");
+                RedisInfo.Remove(string.Format("stress:batch:{0}", i));
             }
             var cleanupTime = stopwatch.ElapsedMilliseconds;
             stopwatch.Stop();
 
             // Assert
-            Console.WriteLine($"[缓存批量] 写入{batchSize}条={writeTime}ms, 读取{batchSize}条={readTime}ms, 清理={cleanupTime}ms");
-            Assert.True(writeTime < 5000, $"批量写入耗时过长: {writeTime}ms");
-            Assert.True(readTime < 5000, $"批量读取耗时过长: {readTime}ms");
+            Console.WriteLine("[缓存批量] 写入{0}条={1}ms, 读取{0}条={2}ms, 清理={3}ms", batchSize, writeTime, readTime, cleanupTime);
+            Assert.True(writeTime < 5000, string.Format("批量写入耗时过长: {0}ms", writeTime));
+            Assert.True(readTime < 5000, string.Format("批量读取耗时过长: {0}ms", readTime));
         }
 
         /// <summary>
@@ -215,7 +215,7 @@ namespace FastData.Tests
 
             // 先用 Increment 初始化 key（Redis INCR 需要 key 不存在或为整数）
             var initResult = RedisInfo.Increment(hotKey, 0);
-            Console.WriteLine($"[热点Key] 初始化: Increment(0) = {initResult}");
+            Console.WriteLine("[热点Key] 初始化: Increment(0) = {0}", initResult);
 
             var stopwatch = Stopwatch.StartNew();
 
@@ -234,7 +234,7 @@ namespace FastData.Tests
                             lock (_lockObj)
                             {
                                 if (_errors.Count < 10)
-                                    _errors.Add($"HotKey Thread {threadId}: {ex.Message}");
+                                    _errors.Add(string.Format("HotKey Thread {0}: {1}", threadId, ex.Message));
                             }
                         }
                     }
@@ -252,7 +252,7 @@ namespace FastData.Tests
             RedisInfo.Remove(hotKey);
 
             // Assert
-            Console.WriteLine($"[热点Key] 期望={expectedCount}, 实际={finalValue}, 耗时={stopwatch.ElapsedMilliseconds}ms");
+            Console.WriteLine("[热点Key] 期望={0}, 实际={1}, 耗时={2}ms", expectedCount, finalValue, stopwatch.ElapsedMilliseconds);
             Assert.Equal(expectedCount, finalValue);
         }
 
@@ -315,7 +315,7 @@ namespace FastData.Tests
                             lock (_lockObj)
                             {
                                 if (_errors.Count < 10)
-                                    _errors.Add($"MQ Thread {threadId}: {ex.Message}");
+                                    _errors.Add(string.Format("MQ Thread {0}: {1}", threadId, ex.Message));
                             }
                         }
                     }
@@ -330,8 +330,8 @@ namespace FastData.Tests
             var successRate = (double)successCount / totalOps;
             var opsPerSecond = totalOps * 1000.0 / stopwatch.ElapsedMilliseconds;
 
-            Console.WriteLine($"[MQ并发发布] 成功={successCount}, 失败={errorCount}, 成功率={successRate:P2}, 吞吐量={opsPerSecond:F0} ops/s, 耗时={stopwatch.ElapsedMilliseconds}ms");
-            Assert.True(successRate > 0.95, $"MQ并发发布测试失败: 成功率过低 {successRate:P2}");
+            Console.WriteLine("[MQ并发发布] 成功={0}, 失败={1}, 成功率={2:P2}, 吞吐量={3:F0} ops/s, 耗时={4}ms", successCount, errorCount, successRate, opsPerSecond, stopwatch.ElapsedMilliseconds);
+            Assert.True(successRate > 0.95, string.Format("MQ并发发布测试失败: 成功率过低 {0:P2}", successRate));
         }
 
         /// <summary>
@@ -366,7 +366,7 @@ namespace FastData.Tests
             var batchSize = 500;
 
             var dataList = Enumerable.Range(0, batchSize)
-                .Select(i => new { Index = i, Data = $"batch_data_{i}", Timestamp = DateTime.Now })
+                .Select(i => new { Index = i, Data = string.Format("batch_data_{0}", i), Timestamp = DateTime.Now })
                 .ToList();
 
             var stopwatch = Stopwatch.StartNew();
@@ -376,9 +376,9 @@ namespace FastData.Tests
             stopwatch.Stop();
 
             // Assert
-            Console.WriteLine($"[MQ批量发布] 发布={count}条, 耗时={stopwatch.ElapsedMilliseconds}ms");
+            Console.WriteLine("[MQ批量发布] 发布={0}条, 耗时={1}ms", count, stopwatch.ElapsedMilliseconds);
             Assert.Equal(batchSize, count);
-            Assert.True(stopwatch.ElapsedMilliseconds < 10000, $"批量发布耗时过长: {stopwatch.ElapsedMilliseconds}ms");
+            Assert.True(stopwatch.ElapsedMilliseconds < 10000, string.Format("批量发布耗时过长: {0}ms", stopwatch.ElapsedMilliseconds));
         }
 
         #endregion
@@ -409,13 +409,13 @@ namespace FastData.Tests
                     {
                         try
                         {
-                            var tableName = $"StressTable_{threadId}_{i}";
+                            var tableName = string.Format("StressTable_{0}_{1}", threadId, i);
 
                             // 注册
                             var config = new WriteBehindConfig
                             {
                                 QueueType = i % 2 == 0 ? WriteBehindQueueType.ReliableQueue : WriteBehindQueueType.Stream,
-                                Topic = $"stress:{tableName}",
+                                Topic = string.Format("stress:{0}", tableName),
                                 EnableFallback = true
                             };
                             WriteBehindRegistry.Register(tableName, config);
@@ -441,7 +441,7 @@ namespace FastData.Tests
                             lock (_lockObj)
                             {
                                 if (_errors.Count < 10)
-                                    _errors.Add($"Registry Thread {threadId}: {ex.Message}");
+                                    _errors.Add(string.Format("Registry Thread {0}: {1}", threadId, ex.Message));
                             }
                         }
                     }
@@ -456,8 +456,8 @@ namespace FastData.Tests
             var successRate = (double)successCount / totalOps;
             var opsPerSecond = totalOps * 1000.0 / stopwatch.ElapsedMilliseconds;
 
-            Console.WriteLine($"[注册表并发] 成功={successCount}, 失败={errorCount}, 成功率={successRate:P2}, 吞吐量={opsPerSecond:F0} ops/s, 耗时={stopwatch.ElapsedMilliseconds}ms");
-            Assert.True(successRate > 0.95, $"注册表并发测试失败: 成功率过低 {successRate:P2}");
+            Console.WriteLine("[注册表并发] 成功={0}, 失败={1}, 成功率={2:P2}, 吞吐量={3:F0} ops/s, 耗时={4}ms", successCount, errorCount, successRate, opsPerSecond, stopwatch.ElapsedMilliseconds);
+            Assert.True(successRate > 0.95, string.Format("注册表并发测试失败: 成功率过低 {0:P2}", successRate));
         }
 
         #endregion
@@ -488,7 +488,7 @@ namespace FastData.Tests
                     {
                         try
                         {
-                            var message = $"[Thread {threadId}] Stress test log message {i} at {DateTime.Now:HH:mm:ss.fff}";
+                            var message = string.Format("[Thread {0}] Stress test log message {1} at {2:HH:mm:ss.fff}", threadId, i, DateTime.Now);
                             FastUntility.Base.LogManager.SaveLog(message, "stress-test");
                             Interlocked.Increment(ref successCount);
                         }
@@ -498,7 +498,7 @@ namespace FastData.Tests
                             lock (_lockObj)
                             {
                                 if (_errors.Count < 10)
-                                    _errors.Add($"Log Thread {threadId}: {ex.Message}");
+                                    _errors.Add(string.Format("Log Thread {0}: {1}", threadId, ex.Message));
                             }
                         }
                     }
@@ -513,8 +513,8 @@ namespace FastData.Tests
             var successRate = (double)successCount / totalOps;
             var opsPerSecond = totalOps * 1000.0 / stopwatch.ElapsedMilliseconds;
 
-            Console.WriteLine($"[日志并发] 成功={successCount}, 失败={errorCount}, 成功率={successRate:P2}, 吞吐量={opsPerSecond:F0} ops/s, 耗时={stopwatch.ElapsedMilliseconds}ms");
-            Assert.True(successRate > 0.95, $"日志并发测试失败: 成功率过低 {successRate:P2}");
+            Console.WriteLine("[日志并发] 成功={0}, 失败={1}, 成功率={2:P2}, 吞吐量={3:F0} ops/s, 耗时={4}ms", successCount, errorCount, successRate, opsPerSecond, stopwatch.ElapsedMilliseconds);
+            Assert.True(successRate > 0.95, string.Format("日志并发测试失败: 成功率过低 {0:P2}", successRate));
         }
 
         #endregion
@@ -539,16 +539,16 @@ namespace FastData.Tests
                 var config = new WriteBehindConfig
                 {
                     QueueType = WriteBehindQueueType.ReliableQueue,
-                    Topic = $"stress:memory:{i}",
+                    Topic = string.Format("stress:memory:{0}", i),
                     EnableFallback = true
                 };
 
                 var operation = new WriteOperation
                 {
                     OperationType = WriteOperationType.Add,
-                    TableName = $"Table_{i}",
+                    TableName = string.Format("Table_{0}", i),
                     EntityType = "TestEntity",
-                    Data = $"{{\"Id\":{i},\"Name\":\"Test_{i}\"}}",
+                    Data = string.Format("{{\"Id\":{0},\"Name\":\"Test_{0}\"}}", i),
                     Metadata = new Dictionary<string, object> { {"key", "value"} }
                 };
 
@@ -570,9 +570,9 @@ namespace FastData.Tests
             var memoryIncrease = finalMemory - initialMemory;
 
             // Assert
-            Console.WriteLine($"[内存压力] 初始={initialMemory / 1024}KB, 最终={finalMemory / 1024}KB, 增加={memoryIncrease / 1024}KB");
+            Console.WriteLine("[内存压力] 初始={0}KB, 最终={1}KB, 增加={2}KB", initialMemory / 1024, finalMemory / 1024, memoryIncrease / 1024);
             // 允许一定范围的内存增长（对象缓存等）
-            Assert.True(memoryIncrease < 10 * 1024 * 1024, $"内存增长过大: {memoryIncrease / 1024 / 1024}MB");
+            Assert.True(memoryIncrease < 10 * 1024 * 1024, string.Format("内存增长过大: {0}MB", memoryIncrease / 1024 / 1024));
         }
 
         #endregion
@@ -632,8 +632,8 @@ namespace FastData.Tests
                                 case 0: // 缓存操作
                                     if (redisAvailable)
                                     {
-                                        var cacheKey = $"stress:mixed:cache:{threadId}:{i}";
-                                        RedisInfo.Set(cacheKey, $"value_{i}", 1);
+                                        var cacheKey = string.Format("stress:mixed:cache:{0}:{1}", threadId, i);
+                                        RedisInfo.Set(cacheKey, string.Format("value_{0}", i), 1);
                                         RedisInfo.Get(cacheKey);
                                         RedisInfo.Remove(cacheKey);
                                     }
@@ -648,18 +648,18 @@ namespace FastData.Tests
                                     break;
 
                                 case 2: // 注册表操作
-                                    var tableName = $"MixedTable_{threadId}_{i}";
+                                    var tableName = string.Format("MixedTable_{0}_{1}", threadId, i);
                                     WriteBehindRegistry.Register(tableName, new WriteBehindConfig
                                     {
                                         QueueType = WriteBehindQueueType.ReliableQueue,
-                                        Topic = $"stress:{tableName}"
+                                        Topic = string.Format("stress:{0}", tableName)
                                     });
                                     WriteBehindRegistry.GetConfig(tableName);
                                     WriteBehindRegistry.Unregister(tableName);
                                     break;
 
                                 case 3: // 日志操作
-                                    FastUntility.Base.LogManager.SaveLog($"[Mixed] Thread {threadId} Op {i}", "stress-mixed");
+                                    FastUntility.Base.LogManager.SaveLog(string.Format("[Mixed] Thread {0} Op {1}", threadId, i), "stress-mixed");
                                     break;
                             }
 
@@ -671,7 +671,7 @@ namespace FastData.Tests
                             lock (_lockObj)
                             {
                                 if (_errors.Count < 10)
-                                    _errors.Add($"Mixed Thread {threadId}: {ex.Message}");
+                                    _errors.Add(string.Format("Mixed Thread {0}: {1}", threadId, ex.Message));
                             }
                         }
                     }
@@ -686,8 +686,8 @@ namespace FastData.Tests
             var successRate = (double)successCount / totalOps;
             var opsPerSecond = totalOps * 1000.0 / stopwatch.ElapsedMilliseconds;
 
-            Console.WriteLine($"[混合场景] 成功={successCount}, 失败={errorCount}, 成功率={successRate:P2}, 吞吐量={opsPerSecond:F0} ops/s, 耗时={stopwatch.ElapsedMilliseconds}ms");
-            Assert.True(successRate > 0.90, $"混合场景测试失败: 成功率过低 {successRate:P2}");
+            Console.WriteLine("[混合场景] 成功={0}, 失败={1}, 成功率={2:P2}, 吞吐量={3:F0} ops/s, 耗时={4}ms", successCount, errorCount, successRate, opsPerSecond, stopwatch.ElapsedMilliseconds);
+            Assert.True(successRate > 0.90, string.Format("混合场景测试失败: 成功率过低 {0:P2}", successRate));
         }
 
         #endregion
@@ -735,7 +735,7 @@ namespace FastData.Tests
                 try
                 {
                     // 缓存操作
-                    var key = $"stress:longrun:{successCount}";
+                    var key = string.Format("stress:longrun:{0}", successCount);
                     RedisInfo.Set(key, "value", 1);
                     RedisInfo.Get(key);
                     RedisInfo.Remove(key);
@@ -748,7 +748,7 @@ namespace FastData.Tests
                     lock (_lockObj)
                     {
                         if (_errors.Count < 10)
-                            _errors.Add($"LongRun: {ex.Message}");
+                            _errors.Add(string.Format("LongRun: {0}", ex.Message));
                     }
                 }
             }
@@ -760,8 +760,8 @@ namespace FastData.Tests
             var successRate = (double)successCount / totalOps;
             var opsPerSecond = totalOps * 1000.0 / stopwatch.ElapsedMilliseconds;
 
-            Console.WriteLine($"[长时间运行] 成功={successCount}, 失败={errorCount}, 成功率={successRate:P2}, 吞吐量={opsPerSecond:F0} ops/s, 耗时={stopwatch.ElapsedMilliseconds}ms");
-            Assert.True(successRate > 0.95, $"长时间运行测试失败: 成功率过低 {successRate:P2}");
+            Console.WriteLine("[长时间运行] 成功={0}, 失败={1}, 成功率={2:P2}, 吞吐量={3:F0} ops/s, 耗时={4}ms", successCount, errorCount, successRate, opsPerSecond, stopwatch.ElapsedMilliseconds);
+            Assert.True(successRate > 0.95, string.Format("长时间运行测试失败: 成功率过低 {0:P2}", successRate));
         }
 
         #endregion
@@ -812,8 +812,8 @@ namespace FastData.Tests
                     {
                         try
                         {
-                            var key = $"stress:ultra:{threadId}:{i}";
-                            RedisInfo.Set(key, $"value_{i}", 1);
+                            var key = string.Format("stress:ultra:{0}:{1}", threadId, i);
+                            RedisInfo.Set(key, string.Format("value_{0}", i), 1);
                             RedisInfo.Get(key);
                             RedisInfo.Remove(key);
                             Interlocked.Increment(ref successCount);
@@ -824,7 +824,7 @@ namespace FastData.Tests
                             lock (_lockObj)
                             {
                                 if (_errors.Count < 10)
-                                    _errors.Add($"Ultra Thread {threadId}: {ex.Message}");
+                                    _errors.Add(string.Format("Ultra Thread {0}: {1}", threadId, ex.Message));
                             }
                         }
                     }
@@ -839,8 +839,8 @@ namespace FastData.Tests
             var successRate = (double)successCount / totalOps;
             var opsPerSecond = totalOps * 1000.0 / stopwatch.ElapsedMilliseconds;
 
-            Console.WriteLine($"[超高并发] 线程={threadCount}, 成功={successCount}, 失败={errorCount}, 成功率={successRate:P2}, 吞吐量={opsPerSecond:F0} ops/s, 耗时={stopwatch.ElapsedMilliseconds}ms");
-            Assert.True(successRate > 0.90, $"超高并发测试失败: 成功率过低 {successRate:P2}");
+            Console.WriteLine("[超高并发] 线程={0}, 成功={1}, 失败={2}, 成功率={3:P2}, 吞吐量={4:F0} ops/s, 耗时={5}ms", threadCount, successCount, errorCount, successRate, opsPerSecond, stopwatch.ElapsedMilliseconds);
+            Assert.True(successRate > 0.90, string.Format("超高并发测试失败: 成功率过低 {0:P2}", successRate));
         }
 
         #endregion
@@ -854,14 +854,14 @@ namespace FastData.Tests
         public void Concurrent30_SqlServer()
         {
             var result = TestConcurrentReadWrite("SqlServer", 30, 10);
-            Console.WriteLine($"SqlServer 30线程并发: {result.Details}");
+            Console.WriteLine("SqlServer 30线程并发: {0}", result.Details);
             if (_errors.Count > 0)
             {
                 Console.WriteLine("错误详情:");
                 foreach (var error in _errors.Take(5))
-                    Console.WriteLine($"  - {error}");
+                    Console.WriteLine("  - {0}", error);
             }
-            Assert.True(result.SuccessRate > 0.5, $"30线程并发测试失败: {result.Details}");
+            Assert.True(result.SuccessRate > 0.5, string.Format("30线程并发测试失败: {0}", result.Details));
         }
 
         /// <summary>
@@ -871,15 +871,15 @@ namespace FastData.Tests
         public void Concurrent30_MySql()
         {
             var result = TestConcurrentReadWrite("MySql", 30, 10);
-            Console.WriteLine($"MySql 30线程并发: {result.Details}");
+            Console.WriteLine("MySql 30线程并发: {0}", result.Details);
             if (_errors.Count > 0)
             {
                 Console.WriteLine("错误详情:");
                 foreach (var error in _errors.Take(5))
-                    Console.WriteLine($"  - {error}");
+                    Console.WriteLine("  - {0}", error);
             }
             // MySql 允许部分失败（连接池限制）
-            Assert.True(result.SuccessRate > 0.3, $"30线程并发测试失败: {result.Details}");
+            Assert.True(result.SuccessRate > 0.3, string.Format("30线程并发测试失败: {0}", result.Details));
         }
 
         /// <summary>
@@ -889,14 +889,14 @@ namespace FastData.Tests
         public void Concurrent30_PostgreSql()
         {
             var result = TestConcurrentReadWrite("PostgreSql", 30, 10);
-            Console.WriteLine($"PostgreSql 30线程并发: {result.Details}");
+            Console.WriteLine("PostgreSql 30线程并发: {0}", result.Details);
             if (_errors.Count > 0)
             {
                 Console.WriteLine("错误详情:");
                 foreach (var error in _errors.Take(5))
-                    Console.WriteLine($"  - {error}");
+                    Console.WriteLine("  - {0}", error);
             }
-            Assert.True(result.SuccessRate > 0.2, $"30线程并发测试失败: {result.Details}");
+            Assert.True(result.SuccessRate > 0.2, string.Format("30线程并发测试失败: {0}", result.Details));
         }
 
         /// <summary>
@@ -907,8 +907,8 @@ namespace FastData.Tests
         {
             var result = TestConcurrentReadWrite("SqlServer", 100, 5);
             // 100线程允许部分失败（连接池限制）
-            Assert.True(result.SuccessRate > 0.3, $"100线程并发测试失败: {result.Details}");
-            Console.WriteLine($"SqlServer 100线程并发: {result.Details}");
+            Assert.True(result.SuccessRate > 0.3, string.Format("100线程并发测试失败: {0}", result.Details));
+            Console.WriteLine("SqlServer 100线程并发: {0}", result.Details);
         }
 
         /// <summary>
@@ -919,8 +919,8 @@ namespace FastData.Tests
         {
             var result = TestConcurrentReadWrite("MySql", 100, 5);
             // 100线程允许部分失败（连接池限制）
-            Assert.True(result.SuccessRate > 0.3, $"100线程并发测试失败: {result.Details}");
-            Console.WriteLine($"MySql 100线程并发: {result.Details}");
+            Assert.True(result.SuccessRate > 0.3, string.Format("100线程并发测试失败: {0}", result.Details));
+            Console.WriteLine("MySql 100线程并发: {0}", result.Details);
         }
 
         /// <summary>
@@ -931,8 +931,8 @@ namespace FastData.Tests
         {
             var result = TestConcurrentReadWrite("PostgreSql", 100, 5);
             // 100线程允许部分失败（连接池限制）
-            Assert.True(result.SuccessRate > 0.3, $"100线程并发测试失败: {result.Details}");
-            Console.WriteLine($"PostgreSql 100线程并发: {result.Details}");
+            Assert.True(result.SuccessRate > 0.3, string.Format("100线程并发测试失败: {0}", result.Details));
+            Console.WriteLine("PostgreSql 100线程并发: {0}", result.Details);
         }
 
         /// <summary>
@@ -944,8 +944,8 @@ namespace FastData.Tests
             var dbName = "PostgreSql";
             var result = TestMixedOperations(dbName, 50, 10);
             // 混合操作允许部分失败
-            Assert.True(result.SuccessRate > 0.5, $"混合操作并发测试失败: {result.Details}");
-            Console.WriteLine($"{dbName} 混合操作并发: {result.Details}");
+            Assert.True(result.SuccessRate > 0.5, string.Format("混合操作并发测试失败: {0}", result.Details));
+            Console.WriteLine("{0} 混合操作并发: {1}", dbName, result.Details);
         }
 
         private TestResult TestConcurrentReadWrite(string dbName, int threadCount, int operationsPerThread)
@@ -967,8 +967,8 @@ namespace FastData.Tests
                             {
                                 var entity = new PerfUser
                                 {
-                                    UserName = $"Concurrent_{threadId}_{i}",
-                                    Email = $"concurrent_{threadId}_{i}@test.com",
+                                    UserName = string.Format("Concurrent_{0}_{1}", threadId, i),
+                                    Email = string.Format("concurrent_{0}_{1}@test.com", threadId, i),
                                     Age = 20 + (i % 50),
                                     IsActive = true,
                                     CreatedAt = DateTime.Now
@@ -984,7 +984,7 @@ namespace FastData.Tests
                                     lock (_lockObj)
                                     {
                                         if (_errors.Count < 10)
-                                            _errors.Add($"Thread {threadId} Add failed: {result.WriteReturn.Message}");
+                                            _errors.Add(string.Format("Thread {0} Add failed: {1}", threadId, result.WriteReturn.Message));
                                     }
                                 }
                             }
@@ -1003,7 +1003,7 @@ namespace FastData.Tests
                             lock (_lockObj)
                             {
                                 if (_errors.Count < 10)
-                                    _errors.Add($"Thread {threadId}: {ex.Message}");
+                                    _errors.Add(string.Format("Thread {0}: {1}", threadId, ex.Message));
                             }
                         }
                     }
@@ -1023,7 +1023,7 @@ namespace FastData.Tests
                 SuccessRate = successRate,
                 ElapsedMs = stopwatch.ElapsedMilliseconds,
                 OpsPerSecond = opsPerSecond,
-                Details = $"成功={_successCount}, 失败={_errorCount}, 成功率={successRate:P0}, 吞吐量={opsPerSecond:F0} ops/s"
+                Details = string.Format("成功={0}, 失败={1}, 成功率={2:P0}, 吞吐量={3:F0} ops/s", _successCount, _errorCount, successRate, opsPerSecond)
             };
         }
 
@@ -1048,8 +1048,8 @@ namespace FastData.Tests
                                 case 0: // 插入
                                     var entity = new PerfUser
                                     {
-                                        UserName = $"Mixed_{threadId}_{i}",
-                                        Email = $"mixed_{threadId}_{i}@test.com",
+                                        UserName = string.Format("Mixed_{0}_{1}", threadId, i),
+                                        Email = string.Format("mixed_{0}_{1}@test.com", threadId, i),
                                         Age = 20 + (i % 50),
                                         IsActive = true,
                                         CreatedAt = DateTime.Now
@@ -1103,7 +1103,7 @@ namespace FastData.Tests
                             lock (_lockObj)
                             {
                                 if (_errors.Count < 10)
-                                    _errors.Add($"Thread {threadId}: {ex.Message}");
+                                    _errors.Add(string.Format("Thread {0}: {1}", threadId, ex.Message));
                             }
                         }
                     }
@@ -1123,7 +1123,7 @@ namespace FastData.Tests
                 SuccessRate = successRate,
                 ElapsedMs = stopwatch.ElapsedMilliseconds,
                 OpsPerSecond = opsPerSecond,
-                Details = $"成功={_successCount}, 失败={_errorCount}, 成功率={successRate:P0}, 吞吐量={opsPerSecond:F0} ops/s"
+                Details = string.Format("成功={0}, 失败={1}, 成功率={2:P0}, 吞吐量={3:F0} ops/s", _successCount, _errorCount, successRate, opsPerSecond)
             };
         }
 

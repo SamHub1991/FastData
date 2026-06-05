@@ -44,11 +44,11 @@ namespace FastData.Example.Example
             {
                 Console.WriteLine("正在创建表 CodeFirst_Users...");
                 var result = FastWrite.CodeFirst<CodeFirstUser>();
-                Console.WriteLine($"  {result.IsSuccess} - {result.Message}");
+                Console.WriteLine(string.Format("  {0} - {1}", result.IsSuccess, result.Message));
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"  执行失败：{ex.Message}");
+                Console.WriteLine(string.Format("  执行失败：{0}", ex.Message));
             }
         }
     }

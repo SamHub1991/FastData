@@ -49,8 +49,8 @@ namespace FastData.Base
             var logLevel = elapsedMs > isSlowQueryThreshold ? LogLevel.Warning : LogLevel.Information;
             
             var message = new StringBuilder()
-                .AppendLine($"[{dbType}] {formattedSql}")
-                .AppendLine($"Execution Time: {elapsedMs:F2}ms")
+                .AppendLine(string.Format("[{0}] {1}", dbType, formattedSql))
+                .AppendLine(string.Format("Execution Time: {0:F2}ms", elapsedMs))
                 .ToString();
 
             _sqlLogger.Log(logLevel, message);
@@ -96,11 +96,11 @@ namespace FastData.Base
 
             return value switch
             {
-                string s => $"'{s.Replace("'", "''")}'",  // SQL 注入防护
-                DateTime dt => $"'{dt:yyyy-MM-dd HH:mm:ss.fff}'",
-                DateTimeOffset dto => $"'{dto:yyyy-MM-dd HH:mm:ss.fff}'",
+                string s => string.Format("'{0}'", s.Replace("'", "''")),  // SQL 注入防护
+                DateTime dt => string.Format("'{0:yyyy-MM-dd HH:mm:ss.fff}'", dt),
+                DateTimeOffset dto => string.Format("'{0:yyyy-MM-dd HH:mm:ss.fff}'", dto),
                 bool b => b ? "1" : "0",
-                byte[] bytes => $"0x{BitConverter.ToString(bytes).Replace("-", "")}",
+                byte[] bytes => string.Format("0x{0}", BitConverter.ToString(bytes).Replace("-", "")),
                 _ => value.ToString()
             };
         }
@@ -115,16 +115,16 @@ namespace FastData.Base
                 return;
 
             var message = new StringBuilder()
-                .AppendLine($"方法：{method}")
-                .AppendLine($"错误：{ex.GetType().Name} - {ex.Message}")
-                .AppendLine($"堆栈：{ex.StackTrace}");
+                .AppendLine(string.Format("方法：{0}", method))
+                .AppendLine(string.Format("错误：{0} - {1}", ex.GetType().Name, ex.Message))
+                .AppendLine(string.Format("堆栈：{0}", ex.StackTrace));
 
             if (!string.IsNullOrEmpty(sql))
             {
-                message.AppendLine($"SQL: {sql}");
+                message.AppendLine(string.Format("SQL: {0}", sql));
                 if (parameters != null && parameters.Any())
                 {
-                    message.AppendLine($"参数：{FormatSqlWithParameters(sql, parameters)}");
+                    message.AppendLine(string.Format("参数：{0}", FormatSqlWithParameters(sql, parameters)));
                 }
             }
 

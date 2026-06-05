@@ -52,7 +52,7 @@ namespace FastData.Migrations.Examples
         private void ExecuteSql(string sql)
         {
             // 在实际实现中，这里应该执行 SQL
-            System.Console.WriteLine($"Executing: {sql}");
+            System.Console.WriteLine(string.Format("Executing: {0}", sql));
         }
     }
 
@@ -88,7 +88,7 @@ namespace FastData.Migrations.Examples
 
         private void ExecuteSql(string sql)
         {
-            System.Console.WriteLine($"Executing: {sql}");
+            System.Console.WriteLine(string.Format("Executing: {0}", sql));
         }
     }
 
@@ -115,15 +115,15 @@ namespace FastData.Migrations.Examples
             var changes = tracker.GetChanges(user);
             foreach (var change in changes)
             {
-                System.Console.WriteLine($"变更: {change.PropertyName}");
-                System.Console.WriteLine($"  原始值: {change.OriginalValue}");
-                System.Console.WriteLine($"  当前值: {change.CurrentValue}");
-                System.Console.WriteLine($"  类型: {change.ChangeType}");
+                System.Console.WriteLine(string.Format("变更: {0}", change.PropertyName));
+                System.Console.WriteLine(string.Format("  原始值: {0}", change.OriginalValue));
+                System.Console.WriteLine(string.Format("  当前值: {0}", change.CurrentValue));
+                System.Console.WriteLine(string.Format("  类型: {0}", change.ChangeType));
             }
             
             // 生成 UPDATE SQL
             var updateSql = tracker.GetUpdateSql(user, "sys_user");
-            System.Console.WriteLine($"UPDATE SQL: {updateSql}");
+            System.Console.WriteLine(string.Format("UPDATE SQL: {0}", updateSql));
             
             // 更新快照
             tracker.UpdateSnapshot(user);
@@ -155,7 +155,7 @@ namespace FastData.Migrations.Examples
             System.Console.WriteLine("迁移历史:");
             foreach (var info in history)
             {
-                System.Console.WriteLine($"  {info.Version}: {info.Description} - {(info.AppliedAt.HasValue ? "已应用" : "未应用")}");
+                System.Console.WriteLine(string.Format("  {0}: {1} - {2}", info.Version, info.Description, info.AppliedAt.HasValue ? "已应用" : "未应用"));
             }
             
             // 回滚到指定版本

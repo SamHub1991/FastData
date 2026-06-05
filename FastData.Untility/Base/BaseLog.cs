@@ -1,11 +1,8 @@
-﻿using System;
-using System.Threading.Tasks;
-
 namespace FastUntility.Base
 {
     /// <summary>
-    /// 标签：2015.7.13，魏中针
-    /// 说明：日志操作类
+    /// 日志操作类
+    /// 封装 LogManager 的同步和异步写日志功能
     /// 
     /// 日志功能特性：
     /// 1. 按日期轮转：每天自动创建新的日志目录（格式：yyyy-MM-dd）
@@ -19,28 +16,30 @@ namespace FastUntility.Base
     /// </summary>
     public static class BaseLog
     {
-        #region 写日志
         /// <summary>
-        /// 写日志
+        /// 同步写日志
         /// </summary>
         /// <param name="logContent">日志内容</param>
-        /// <param name="fileName">文件名</param>
+        /// <param name="fileName">日志文件名（不含扩展名）</param>
         public static void SaveLog(string logContent, string fileName)
         {
+            if (string.IsNullOrEmpty(logContent) || string.IsNullOrEmpty(fileName))
+                return;
+
             LogManager.SaveLog(logContent, fileName);
         }
-        #endregion
 
-        #region 写日志 asy
         /// <summary>
         /// 异步写日志
         /// </summary>
         /// <param name="logContent">日志内容</param>
-        /// <param name="fileName">日志文件名</param>
+        /// <param name="fileName">日志文件名（不含扩展名）</param>
         public static void SaveLogAsync(string logContent, string fileName)
         {
+            if (string.IsNullOrEmpty(logContent) || string.IsNullOrEmpty(fileName))
+                return;
+
             LogManager.SaveLogAsync(logContent, fileName);
         }
-        #endregion
     }
 }

@@ -1,8 +1,11 @@
 using System;
 using System.Reflection;
+#if !NETFRAMEWORK
 using Microsoft.Extensions.Logging;
+#endif
 #if NETFRAMEWORK
 using System.Runtime.Remoting.Messaging;
+using System.Threading;
 #else
 using System.Threading;
 #endif
@@ -92,10 +95,12 @@ namespace FastData
         /// 配置 FastData 使用 Microsoft.Extensions.Logging
         /// </summary>
         /// <param name="loggerFactory">日志工厂</param>
+#if !NETFRAMEWORK
         public static void ConfigureLogging(ILoggerFactory loggerFactory)
         {
             EnhancedDbLog.Initialize(loggerFactory);
         }
+#endif
 
         /// <summary>
         /// 当前数据库Key

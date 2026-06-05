@@ -108,7 +108,7 @@ namespace FastData.Database
             var connection = factory.CreateConnection();
             
             if (connection == null)
-                throw new InvalidOperationException($"无法为提供程序 '{providerName}' 创建数据库连接");
+                throw new InvalidOperationException(string.Format("无法为提供程序 '{0}' 创建数据库连接", providerName));
             
             connection.ConnectionString = connectionString;
             return connection;

@@ -7,9 +7,16 @@ namespace FastData.Tests.Sync
 {
     /// <summary>
     /// DataRowSerializer 单元测试
+    /// 
+    /// 覆盖数据行序列化的所有核心功能，包括单行序列化与反序列化、空值处理、
+    /// 日期时间处理、批量序列化与反序列化、异常输入处理以及完整的往返测试，
+    /// 确保序列化后的 JSON 能正确还原原始 DataTable 结构和数据。
     /// </summary>
     public class DataRowSerializerTests
     {
+        /// <summary>
+        /// 验证空数据行序列化：序列化包含空值的新行，返回的 JSON 应包含 Columns 和 Values 结构
+        /// </summary>
         [Fact]
         public void Serialize_EmptyRow_ReturnsJsonWithEmptyValues()
         {
@@ -25,6 +32,9 @@ namespace FastData.Tests.Sync
             Assert.True(json.Contains("\"Values\""));
         }
 
+        /// <summary>
+        /// 验证带数据的数据行序列化：序列化包含 Id、Name、Email 的数据行，JSON 应包含所有字段值
+        /// </summary>
         [Fact]
         public void Serialize_RowWithData_ReturnsValidJson()
         {
@@ -46,6 +56,9 @@ namespace FastData.Tests.Sync
             Assert.True(json.Contains("zhangsan@test.com"));
         }
 
+        /// <summary>
+        /// 验证包含 DBNull 值的数据行序列化：序列化后 JSON 中 Name 字段应为 null
+        /// </summary>
         [Fact]
         public void Serialize_RowWithNullValue_HandlesNullCorrectly()
         {
@@ -64,6 +77,9 @@ namespace FastData.Tests.Sync
             Assert.True(json.Contains("\"Name\":null"));
         }
 
+        /// <summary>
+        /// 验证包含 DateTime 值的数据行序列化：序列化后 JSON 应正确包含 DateTime 字段
+        /// </summary>
         [Fact]
         public void Serialize_RowWithDateTime_HandlesDateTimeCorrectly()
         {
@@ -83,6 +99,9 @@ namespace FastData.Tests.Sync
             Assert.True(json.Contains("CreatedAt"));
         }
 
+        /// <summary>
+        /// 验证 JSON 反序列化为 DataTable：反序列化后的表结构与原始表结构一致（列名、列数相同）
+        /// </summary>
         [Fact]
         public void Deserialize_ValidJson_ReturnsDataTableWithSameSchema()
         {
@@ -107,6 +126,9 @@ namespace FastData.Tests.Sync
             Assert.True(deserializedTable.Columns.Contains("Email"));
         }
 
+        /// <summary>
+        /// 验证 JSON 反序列化可正确还原数据行内容：行数、各字段值与原始数据一致
+        /// </summary>
         [Fact]
         public void Deserialize_ValidJson_RestoresRowData()
         {
@@ -127,6 +149,9 @@ namespace FastData.Tests.Sync
             Assert.Equal("王五", deserializedTable.Rows[0]["Name"].ToString());
         }
 
+        /// <summary>
+        /// 验证反序列化空字符串和 null 时返回空的 DataTable（0 列、0 行），不会抛出异常
+        /// </summary>
         [Fact]
         public void Deserialize_EmptyJson_ReturnsEmptyDataTable()
         {
@@ -140,6 +165,9 @@ namespace FastData.Tests.Sync
             Assert.Equal(0, result.Columns.Count);
         }
 
+        /// <summary>
+        /// 验证反序列化非法 JSON 字符串时不会导致程序崩溃（捕获异常或返回空表）
+        /// </summary>
         [Fact]
         public void Deserialize_MalformedJson_HandlesGracefully()
         {
@@ -155,6 +183,9 @@ namespace FastData.Tests.Sync
             }
         }
 
+        /// <summary>
+        /// 验证批量序列化多行数据：返回的 JSON 应为数组格式，包含所有行的数据
+        /// </summary>
         [Fact]
         public void SerializeBatch_MultipleRows_ReturnsJsonArray()
         {
@@ -182,6 +213,9 @@ namespace FastData.Tests.Sync
             Assert.True(json.Contains("\"Id\":2"));
         }
 
+        /// <summary>
+        /// 验证批量反序列化 JSON 数组：反序列化后应正确恢复所有行的数据
+        /// </summary>
         [Fact]
         public void DeserializeBatch_ValidJsonArray_ReturnsDataTable()
         {
@@ -212,6 +246,9 @@ namespace FastData.Tests.Sync
             Assert.Equal("测试 200", deserializedTable.Rows[1]["Name"].ToString());
         }
 
+        /// <summary>
+        /// 验证批量反序列化空 JSON 数组：返回空的 DataTable，不会抛出异常
+        /// </summary>
         [Fact]
         public void DeserializeBatch_EmptyJsonArray_ReturnsEmptyTable()
         {
@@ -224,6 +261,9 @@ namespace FastData.Tests.Sync
             Assert.Equal(0, result.Rows.Count);
         }
 
+        /// <summary>
+        /// 验证单行序列化后再反序列化的完整往返：反序列化后的表结构、行数和字段值与原始数据一致
+        /// </summary>
         [Fact]
         public void RoundTrip_SerializeThenDeserialize_PreservesData()
         {
@@ -250,6 +290,9 @@ namespace FastData.Tests.Sync
             Assert.Equal(row1["Age"], restoredTable.Rows[0]["Age"]);
         }
 
+        /// <summary>
+        /// 验证批量序列化后再批量反序列化的完整往返：10 条产品数据的表经过往返后行数和字段值完全一致
+        /// </summary>
         [Fact]
         public void RoundTrip_BatchSerializeThenDeserialize_PreservesAllRows()
         {

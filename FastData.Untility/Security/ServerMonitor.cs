@@ -88,7 +88,7 @@ namespace FastUntility.Security
             }
             catch (Exception ex)
             {
-                BaseLog.SaveLog($"获取服务器监控信息失败: {ex.Message}", "ServerMonitor_Error");
+                BaseLog.SaveLog(string.Format("获取服务器监控信息失败: {0}", ex.Message), "ServerMonitor_Error");
             }
 
             return info;
@@ -162,7 +162,7 @@ namespace FastUntility.Security
             }
             catch (Exception ex)
             {
-                BaseLog.SaveLog($"获取CPU使用率失败: {ex.Message}", "ServerMonitor_Error");
+                BaseLog.SaveLog(string.Format("获取CPU使用率失败: {0}", ex.Message), "ServerMonitor_Error");
             }
             return 0;
         }
@@ -185,7 +185,7 @@ namespace FastUntility.Security
             }
             catch (Exception ex)
             {
-                BaseLog.SaveLog($"获取内存信息失败: {ex.Message}", "ServerMonitor_Error");
+                BaseLog.SaveLog(string.Format("获取内存信息失败: {0}", ex.Message), "ServerMonitor_Error");
             }
             return (0, 0, 0, 0);
         }
@@ -258,7 +258,7 @@ namespace FastUntility.Security
             }
             catch (Exception ex)
             {
-                BaseLog.SaveLog($"获取磁盘信息失败: {ex.Message}", "ServerMonitor_Error");
+                BaseLog.SaveLog(string.Format("获取磁盘信息失败: {0}", ex.Message), "ServerMonitor_Error");
             }
 
             return disks;
@@ -290,7 +290,7 @@ namespace FastUntility.Security
             }
             catch (Exception ex)
             {
-                BaseLog.SaveLog($"获取网络信息失败: {ex.Message}", "ServerMonitor_Error");
+                BaseLog.SaveLog(string.Format("获取网络信息失败: {0}", ex.Message), "ServerMonitor_Error");
             }
 
             return networks;

@@ -32,7 +32,7 @@ namespace FastData.Tests
             // Assert
             Assert.NotNull(activeEnv);
             Assert.NotEmpty(activeEnv);
-            Console.WriteLine($"Active Environment: {activeEnv}");
+            Console.WriteLine("Active Environment: {0}", activeEnv);
         }
 
         /// <summary>
@@ -54,7 +54,7 @@ namespace FastData.Tests
                 
                 // Assert
                 Assert.Equal("pro", activeEnv);
-                Console.WriteLine($"Active Environment (from env var): {activeEnv}");
+                Console.WriteLine("Active Environment (from env var): {0}", activeEnv);
             }
             finally
             {
@@ -74,7 +74,7 @@ namespace FastData.Tests
             
             // 读取配置文件内容
             var configContent = File.ReadAllText(dbConfigPath);
-            Console.WriteLine($"db.config content:\n{configContent}");
+            Console.WriteLine("db.config content:\n{0}", configContent);
             
             // Act - 尝试加载配置
             var connStr = FastDataConfig.GetConnectionString("SqlServer");
@@ -82,7 +82,7 @@ namespace FastData.Tests
             // Assert
             Assert.NotNull(connStr);
             Assert.NotEmpty(connStr);
-            Console.WriteLine($"SqlServer ConnectionString: {connStr}");
+            Console.WriteLine("SqlServer ConnectionString: {0}", connStr);
         }
 
         /// <summary>
@@ -96,7 +96,7 @@ namespace FastData.Tests
             
             // 读取 dev 配置文件内容
             var configContent = File.ReadAllText(dbDevConfigPath);
-            Console.WriteLine($"db.dev.config content:\n{configContent}");
+            Console.WriteLine("db.dev.config content:\n{0}", configContent);
             
             // 验证 dev 配置包含测试数据库
             Assert.Contains("FastDataTest", configContent);
@@ -113,7 +113,7 @@ namespace FastData.Tests
             
             // 读取 pro 配置文件内容
             var configContent = File.ReadAllText(dbProConfigPath);
-            Console.WriteLine($"db.pro.config content:\n{configContent}");
+            Console.WriteLine("db.pro.config content:\n{0}", configContent);
             
             // 验证 pro 配置包含 Pro 数据库
             Assert.Contains("FastDataTest_Pro", configContent);

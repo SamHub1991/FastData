@@ -31,14 +31,14 @@ namespace FastData.Sharding.Strategies
             var property = entityType.GetProperty(hashField);
 
             if (property == null)
-                throw new InvalidOperationException($"实体类型 {entityType.Name} 中找不到字段 {hashField}");
+                throw new InvalidOperationException(string.Format("实体类型 {0} 中找不到字段 {1}", entityType.Name, hashField));
 
             var hashValue = property.GetValue(entity)?.ToString();
             if (string.IsNullOrEmpty(hashValue))
-                throw new InvalidOperationException($"字段 {hashField} 的值不能为空");
+                throw new InvalidOperationException(string.Format("字段 {0} 的值不能为空", hashField));
 
             var shardIndex = GetShardIndex(config, hashValue);
-            return $"{config.BaseTableName}_{shardIndex:D4}";
+            return string.Format("{0}_{1:D4}", config.BaseTableName, shardIndex);
         }
 
         /// <summary>
@@ -63,7 +63,7 @@ namespace FastData.Sharding.Strategies
                 if (!string.IsNullOrEmpty(hashValue))
                 {
                     var shardIndex = GetShardIndex(config, hashValue);
-                    result.Add($"{config.BaseTableName}_{shardIndex:D4}");
+                    result.Add(string.Format("{0}_{1:D4}", config.BaseTableName, shardIndex));
                     return result;
                 }
             }
@@ -84,7 +84,7 @@ namespace FastData.Sharding.Strategies
 
             for (int i = 0; i < config.HashConfig.ShardCount; i++)
             {
-                result.Add($"{config.BaseTableName}_{i:D4}");
+                result.Add(string.Format("{0}_{1:D4}", config.BaseTableName, i));
             }
 
             return result;

@@ -294,9 +294,14 @@ namespace FastData.Base
 
         #region 返回分页条数sql
         /// <summary>
-        /// 返回分页条数sql
+        /// 返回分页条数SQL
         /// </summary>
-        /// <returns></returns>
+        /// <param name="param">SQL 参数数组</param>
+        /// <param name="cmd">数据库命令对象</param>
+        /// <param name="sql">原始 SQL 语句</param>
+        /// <param name="config">数据库配置模型</param>
+        /// <param name="tempSql">输出参数：转换后的参数化 SQL（用于日志或调试）</param>
+        /// <returns>分页总记录数</returns>
         public static int ToPageCountSql(DbParameter[] param, DbCommand cmd, string sql, ConfigModel config, ref string tempSql)
         {
             try
@@ -328,12 +333,13 @@ namespace FastData.Base
         /// <summary>
         /// 返回分页DataReader sql
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="dbType"></param>
-        /// <param name="cmd"></param>
-        /// <param name="pModel"></param>
-        /// <param name="where"></param>
-        /// <returns></returns>
+        /// <param name="param">SQL 参数数组</param>
+        /// <param name="cmd">数据库命令对象</param>
+        /// <param name="pModel">分页模型（页码、每页大小）</param>
+        /// <param name="sql">原始 SQL 语句</param>
+        /// <param name="config">数据库配置模型</param>
+        /// <param name="tempSql">输出参数：转换后的参数化 SQL（用于日志或调试）</param>
+        /// <returns>分页数据读取器；出错返回 null</returns>
         public static DbDataReader ToPageDataReaderSql(DbParameter[] param, DbCommand cmd, PageModel pModel, string sql, ConfigModel config, ref string tempSql)
         {
             try

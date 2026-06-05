@@ -1,37 +1,36 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Data.Common;
 using FastData.Model;
 
 namespace FastData.Base
 {
     /// <summary>
-    /// 标签：2015.9.6，魏中针
-    /// 说明：Parameter转sql
+    /// DbParameter 转 SQL 字符串工具类
     /// </summary>
     internal static class ParameterToSql
     {
-        #region object 转sql
-         /// <summary>
-        /// 标签：2015.9.6，魏中针
-        /// 说明：DbParameter转sql
+        /// <summary>
+        /// 将 DbParameter 集合转换为可读的 SQL 调试字符串
+        /// 格式: sql:原始SQL,param:参数名1=值1,参数名2=值2,
         /// </summary>
-        /// <param name="param">数据库参数列表</param>
-        /// <param name="Sql">SQL语句</param>
-        /// <param name="config">配置模型</param>
-        /// <returns>带参数的SQL字符串</returns>
-        public static string ObjectParamToSql(List<DbParameter> param, string Sql, ConfigModel config)
+        /// <param name="parameters">数据库参数列表</param>
+        /// <param name="sql">原始 SQL 语句</param>
+        /// <param name="config">数据库配置模型</param>
+        /// <returns>包含参数值的调试用 SQL 字符串</returns>
+        public static string ObjectParamToSql(List<DbParameter> parameters, string sql, ConfigModel config)
         {
-            if (param == null)
-                return Sql;
-            Sql = string.Format("sql:{0},param:", Sql);
-          
-            param.ForEach(a => {
-                if (a != null)
-                    Sql = string.Format("{0}{1}={2},", Sql, a.ParameterName, a.Value);
-            });
+            if (parameters == null || parameters.Count == 0)
+                return sql;
 
-            return Sql;
+            var result = string.Concat("sql:", sql, ",param:");
+
+            foreach (var parameter in parameters)
+            {
+                if (parameter != null)
+                    result = string.Concat(result, parameter.ParameterName, "=", parameter.Value, ",");
+            }
+
+            return result;
         }
-        #endregion
     }
 }

@@ -89,7 +89,7 @@ namespace FastData.Migrations
             }
             catch (Exception ex)
             {
-                throw new MigrationException($"执行迁移 {migration.Version} 失败: {ex.Message}", ex);
+                throw new MigrationException(string.Format("执行迁移 {0} 失败: {1}", migration.Version, ex.Message), ex);
             }
         }
 
@@ -224,7 +224,7 @@ namespace FastData.Migrations
         /// </summary>
         public void DropTable(string tableName)
         {
-            _sqlStatements.Add($"DROP TABLE IF EXISTS {tableName};");
+            _sqlStatements.Add(string.Format("DROP TABLE IF EXISTS {0};", tableName));
         }
 
         /// <summary>
@@ -233,7 +233,7 @@ namespace FastData.Migrations
         public void AddColumn(string tableName, string columnName, string columnType, bool nullable = true)
         {
             var nullableSql = nullable ? "" : " NOT NULL";
-            _sqlStatements.Add($"ALTER TABLE {tableName} ADD COLUMN {columnName} {columnType}{nullableSql};");
+            _sqlStatements.Add(string.Format("ALTER TABLE {0} ADD COLUMN {1} {2}{3};", tableName, columnName, columnType, nullableSql));
         }
 
         /// <summary>
@@ -241,7 +241,7 @@ namespace FastData.Migrations
         /// </summary>
         public void DropColumn(string tableName, string columnName)
         {
-            _sqlStatements.Add($"ALTER TABLE {tableName} DROP COLUMN {columnName};");
+            _sqlStatements.Add(string.Format("ALTER TABLE {0} DROP COLUMN {1};", tableName, columnName));
         }
 
         /// <summary>
@@ -249,7 +249,7 @@ namespace FastData.Migrations
         /// </summary>
         public void CreateIndex(string indexName, string tableName, string columnName)
         {
-            _sqlStatements.Add($"CREATE INDEX {indexName} ON {tableName}({columnName});");
+            _sqlStatements.Add(string.Format("CREATE INDEX {0} ON {1}({2});", indexName, tableName, columnName));
         }
 
         /// <summary>
@@ -257,7 +257,7 @@ namespace FastData.Migrations
         /// </summary>
         public void DropIndex(string indexName)
         {
-            _sqlStatements.Add($"DROP INDEX IF EXISTS {indexName};");
+            _sqlStatements.Add(string.Format("DROP INDEX IF EXISTS {0};", indexName));
         }
 
         public List<string> GetSqlStatements()
@@ -302,17 +302,17 @@ namespace FastData.Migrations
         {
             var columnsSql = string.Join(",\n    ", _columns.Select(c =>
             {
-                var sql = $"{c.Name} {c.Type}";
+                var sql = string.Format("{0} {1}", c.Name, c.Type);
                 if (!c.Nullable)
                     sql += " NOT NULL";
                 if (!string.IsNullOrEmpty(c.DefaultValue))
-                    sql += $" DEFAULT {c.DefaultValue}";
+                    sql += string.Format(" DEFAULT {0}", c.DefaultValue);
                 return sql;
             }));
 
-            var sql = $"CREATE TABLE {_tableName} (\n    {columnsSql}";
+            var sql = string.Format("CREATE TABLE {0} (\n    {1}", _tableName, columnsSql);
             if (!string.IsNullOrEmpty(_primaryKey))
-                sql += $",\n    PRIMARY KEY ({_primaryKey})";
+                sql += string.Format(",\n    PRIMARY KEY ({0})", _primaryKey);
             sql += "\n);";
 
             return sql;

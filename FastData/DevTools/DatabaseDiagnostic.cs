@@ -29,8 +29,8 @@ namespace FastData.DevTools
                 if (IsHealthy)
                     return "✅ 数据库健康";
 
-                var issues = string.Join("\n", Issues.Select(i => $"⚠️ {i.Severity}: {i.Message}"));
-                return $"❌ 数据库有问题:\n{issues}";
+                var issues = string.Join("\n", Issues.Select(i => string.Format("⚠️ {0}: {1}", i.Severity, i.Message)));
+                return string.Format("❌ 数据库有问题:\n{0}", issues);
             }
         }
 
@@ -91,7 +91,7 @@ namespace FastData.DevTools
                 result.Issues.Add(new DiagnosticIssue
                 {
                     Severity = DiagnosticSeverity.Critical,
-                    Message = $"诊断过程中发生异常: {ex.Message}",
+                    Message = string.Format("诊断过程中发生异常: {0}", ex.Message),
                     Category = "Diagnostics",
                     Details = ex.StackTrace
                 });
@@ -118,7 +118,7 @@ namespace FastData.DevTools
                     result.Issues.Add(new DiagnosticIssue
                     {
                         Severity = DiagnosticSeverity.Warning,
-                        Message = $"数据库连接较慢: {sw.ElapsedMilliseconds}ms",
+                        Message = string.Format("数据库连接较慢: {0}ms", sw.ElapsedMilliseconds),
                         Category = "Connection",
                         Details = sw.ElapsedMilliseconds
                     });
@@ -132,7 +132,7 @@ namespace FastData.DevTools
                 result.Issues.Add(new DiagnosticIssue
                 {
                     Severity = DiagnosticSeverity.Critical,
-                    Message = $"数据库连接失败: {ex.Message}",
+                    Message = string.Format("数据库连接失败: {0}", ex.Message),
                     Category = "Connection",
                     Details = ex
                 });
@@ -194,7 +194,7 @@ namespace FastData.DevTools
                     result.Issues.Add(new DiagnosticIssue
                     {
                         Severity = DiagnosticSeverity.Warning,
-                        Message = $"数据库响应较慢: {sw.ElapsedMilliseconds}ms",
+                        Message = string.Format("数据库响应较慢: {0}ms", sw.ElapsedMilliseconds),
                         Category = "Performance",
                         Details = sw.ElapsedMilliseconds
                     });
@@ -210,7 +210,7 @@ namespace FastData.DevTools
                 result.Issues.Add(new DiagnosticIssue
                 {
                     Severity = DiagnosticSeverity.Error,
-                    Message = $"性能检查失败: {ex.Message}",
+                    Message = string.Format("性能检查失败: {0}", ex.Message),
                     Category = "Performance"
                 });
             }
@@ -280,7 +280,7 @@ namespace FastData.DevTools
                     result.Issues.Add(new DiagnosticIssue
                     {
                         Severity = DiagnosticSeverity.Info,
-                        Message = $"{tablesWithoutIndexes.Count} 个表可能缺少索引: {string.Join(", ", tablesWithoutIndexes)}",
+                        Message = string.Format("{0} 个表可能缺少索引: {1}", tablesWithoutIndexes.Count, string.Join(", ", tablesWithoutIndexes)),
                         Category = "Index",
                         Details = tablesWithoutIndexes
                     });
@@ -291,7 +291,7 @@ namespace FastData.DevTools
                 result.Issues.Add(new DiagnosticIssue
                 {
                     Severity = DiagnosticSeverity.Warning,
-                    Message = $"索引检查失败: {ex.Message}",
+                    Message = string.Format("索引检查失败: {0}", ex.Message),
                     Category = "Index"
                 });
             }
@@ -340,7 +340,7 @@ namespace FastData.DevTools
                 result.Issues.Add(new DiagnosticIssue
                 {
                     Severity = DiagnosticSeverity.Warning,
-                    Message = $"表结构检查失败: {ex.Message}",
+                    Message = string.Format("表结构检查失败: {0}", ex.Message),
                     Category = "Schema"
                 });
             }
@@ -363,12 +363,12 @@ namespace FastData.DevTools
                 {
                     try
                     {
-                        db.cmd.CommandText = $"SELECT COUNT(*) FROM {table}";
+                        db.cmd.CommandText = string.Format("SELECT COUNT(*) FROM {0}", table);
                         var count = Convert.ToInt32(db.cmd.ExecuteScalar());
                         
                         if (count > 0)
                         {
-                            existingTables.Add($"{table}({count}行)");
+                            existingTables.Add(string.Format("{0}({1}行)", table, count));
                         }
                     }
                     catch
@@ -387,7 +387,7 @@ namespace FastData.DevTools
                 result.Issues.Add(new DiagnosticIssue
                 {
                     Severity = DiagnosticSeverity.Info,
-                    Message = $"数据一致性检查跳过: {ex.Message}",
+                    Message = string.Format("数据一致性检查跳过: {0}", ex.Message),
                     Category = "Consistency"
                 });
             }
@@ -401,8 +401,8 @@ namespace FastData.DevTools
             var sb = new System.Text.StringBuilder();
 
             sb.AppendLine("=== 数据库诊断报告 ===");
-            sb.AppendLine($"诊断时间: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
-            sb.AppendLine($"健康状态: {(result.IsHealthy ? "✅ 健康" : "❌ 有问题")}");
+            sb.AppendLine(string.Format("诊断时间: {0:yyyy-MM-dd HH:mm:ss}", DateTime.Now));
+            sb.AppendLine(string.Format("健康状态: {0}", (result.IsHealthy ? "✅ 健康" : "❌ 有问题")));
             sb.AppendLine();
 
             if (result.Metrics.Any())
@@ -410,7 +410,7 @@ namespace FastData.DevTools
                 sb.AppendLine("=== 指标统计 ===");
                 foreach (var metric in result.Metrics)
                 {
-                    sb.AppendLine($"{metric.Key}: {metric.Value}");
+                    sb.AppendLine(string.Format("{0}: {1}", metric.Key, metric.Value));
                 }
                 sb.AppendLine();
             }
@@ -429,10 +429,10 @@ namespace FastData.DevTools
                         _ => "❓"
                     };
 
-                    sb.AppendLine($"{icon} [{issue.Severity}] {issue.Message}");
+                    sb.AppendLine(string.Format("{0} [{1}] {2}", icon, issue.Severity, issue.Message));
                     if (issue.Details != null)
                     {
-                        sb.AppendLine($"   详情: {issue.Details}");
+                        sb.AppendLine(string.Format("   详情: {0}", issue.Details));
                     }
                 }
                 sb.AppendLine();
@@ -449,7 +449,7 @@ namespace FastData.DevTools
                 sb.AppendLine("=== 建议操作 ===");
                 foreach (var issue in result.Issues.Where(i => i.Severity != DiagnosticSeverity.Info))
                 {
-                    sb.AppendLine($"• {GetSuggestion(issue)}");
+                    sb.AppendLine(string.Format("• {0}", GetSuggestion(issue)));
                 }
             }
 

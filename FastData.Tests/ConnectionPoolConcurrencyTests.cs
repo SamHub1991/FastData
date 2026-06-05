@@ -66,7 +66,7 @@ namespace FastData.Tests
                 {
                     try
                     {
-                        pool.RecordDatabaseError(new Exception($"Simulated error {i}"));
+                        pool.RecordDatabaseError(new Exception(string.Format("Simulated error {0}", i)));
                     }
                     catch
                     {
@@ -76,7 +76,7 @@ namespace FastData.Tests
 
                 var metrics = pool.GetMetrics();
                 // 验证错误计数增加
-                Assert.True(metrics.FailedRequests >= 0, $"Failed requests should be tracked");
+                Assert.True(metrics.FailedRequests >= 0, "Failed requests should be tracked");
             }
             catch (Exception ex) when (ex.Message.Contains("nonexistent_host") || ex.Message.Contains("连接"))
             {
@@ -132,7 +132,7 @@ namespace FastData.Tests
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Half-open test exception (may be expected): {ex.Message}");
+                Console.WriteLine("Half-open test exception (may be expected): {0}", ex.Message);
             }
             finally
             {
@@ -206,7 +206,7 @@ namespace FastData.Tests
                                 lock (errors)
                                 {
                                     if (errors.Count < 5)
-                                        errors.Add($"Thread {threadId}: {ex.Message}");
+                                        errors.Add(string.Format("Thread {0}: {1}", threadId, ex.Message));
                                 }
                             }
                         }
@@ -222,9 +222,9 @@ namespace FastData.Tests
             // 验证没有连接泄漏：所有使用过的连接都应该被归还
             var metrics = pool.GetMetrics();
             Assert.True(metrics.ActiveConnections == 0,
-                $"Connection leak detected: {metrics.ActiveConnections} active connections after all tasks completed");
+                string.Format("Connection leak detected: {0} active connections after all tasks completed", metrics.ActiveConnections));
 
-            Console.WriteLine($"Concurrent test: success={successCount}, errors={errorCount}, rate={successRate:P0}");
+            Console.WriteLine("Concurrent test: success={0}, errors={1}, rate={2:P0}", successCount, errorCount, successRate);
         }
 
         /// <summary>
@@ -307,7 +307,7 @@ namespace FastData.Tests
                 Assert.True(exhaustionCount > 0 || sw.ElapsedMilliseconds > 500,
                     "Pool should either reject connection or wait when exhausted");
 
-                Console.WriteLine($"Limiting test: exhaustion={exhaustionCount}, waitTime={sw.ElapsedMilliseconds}ms");
+                Console.WriteLine("Limiting test: exhaustion={0}, waitTime={1}ms", exhaustionCount, sw.ElapsedMilliseconds);
             }
         }
 
@@ -357,7 +357,7 @@ namespace FastData.Tests
 
                 // 注意：实际泄漏检测可能在后台线程处理，这里只验证活跃连接数
                 var metrics = pool.GetMetrics();
-                Console.WriteLine($"Leak detection: active={metrics.ActiveConnections}, leaked={metrics.LeakedConnections}");
+                Console.WriteLine("Leak detection: active={0}, leaked={1}", metrics.ActiveConnections, metrics.LeakedConnections);
 
                 // 安全释放（如果已被回收则忽略）
                 try
@@ -432,7 +432,7 @@ namespace FastData.Tests
                     Thread.Sleep(2000);
 
                     var expandedMetrics = pool.GetMetrics();
-                    Console.WriteLine($"Expand test: initial={initialTotal}, afterLoad={expandedMetrics.TotalConnections}, active={expandedMetrics.ActiveConnections}");
+                    Console.WriteLine("Expand test: initial={0}, afterLoad={1}, active={2}", initialTotal, expandedMetrics.TotalConnections, expandedMetrics.ActiveConnections);
                 }
                 finally
                 {
@@ -503,7 +503,7 @@ namespace FastData.Tests
                 Thread.Sleep(2000);
 
                 var afterMetrics = pool.GetMetrics();
-                Console.WriteLine($"Shrink test: before={initialMetrics.TotalConnections}, after={afterMetrics.TotalConnections}");
+                Console.WriteLine("Shrink test: before={0}, after={1}", initialMetrics.TotalConnections, afterMetrics.TotalConnections);
             }
         }
 
@@ -559,8 +559,7 @@ namespace FastData.Tests
                 }
 
                 var metrics = pool.GetMetrics();
-                Console.WriteLine($"Metrics: totalRequests={metrics.TotalRequests}, success={metrics.SuccessfulRequests}, " +
-                    $"failed={metrics.FailedRequests}, avgWait={metrics.AverageWaitTimeMs:F2}ms");
+                Console.WriteLine("Metrics: totalRequests={0}, success={1}, failed={2}, avgWait={3:F2}ms", metrics.TotalRequests, metrics.SuccessfulRequests, metrics.FailedRequests, metrics.AverageWaitTimeMs);
 
                 // 验证基本指标合理性
                 Assert.True(metrics.TotalRequests > 0, "Total requests should be greater than 0");

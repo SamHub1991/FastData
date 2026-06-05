@@ -1,30 +1,31 @@
-﻿using FastData.Property;
-using FastUntility.Base;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Linq;
 using System.Text;
+using FastData.Property;
+using FastUntility.Base;
 
 namespace FastData.Base
 {
     /// <summary>
-    /// 标签：2015.9.6，魏中针
-    /// 说明：Command操作类
+    /// Command 参数处理类
+    /// 提供 Oracle 类型映射、TVP（表值参数）生成、DataTable 转换等功能
     /// </summary>
     internal static class CommandParam
     {
-        #region 获取列类型
         /// <summary>
-        /// 获取列类型
+        /// 将 Oracle 列类型名称转换为 DbType 枚举
         /// </summary>
-        /// <param name="list"></param>
-        /// <param name="col"></param>
-        /// <returns></returns>
-        public static DbType GetOracleDbType(string type)
+        /// <param name="typeName">Oracle 列类型名称（如 "string"、"datetime"、"decimal"）</param>
+        /// <returns>对应的 DbType 枚举值</returns>
+        public static DbType GetOracleDbType(string typeName)
         {
-            switch (type.ToLower())
+            if (string.IsNullOrEmpty(typeName))
+                return DbType.Object;
+
+            switch (typeName.ToLowerInvariant())
             {
                 case "string":
                     return DbType.String;
@@ -33,123 +34,136 @@ namespace FastData.Base
                 case "decimal":
                     return DbType.Decimal;
                 case "int32":
-                    return DbType.Decimal;
+                    return DbType.Int32;
                 case "int64":
-                    return DbType.Decimal;
+                    return DbType.Int64;
                 case "byte[]":
                     return DbType.Byte;
                 case "float":
-                    return DbType.Double;
                 case "double":
                     return DbType.Double;
                 default:
                     return DbType.Object;
             }
         }
-        #endregion
 
-        #region tvsps sql
         /// <summary>
-        /// tvsps sql
+        /// 生成 SQL Server TVP（表值参数）插入语句
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="dyn"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <returns>TVP 插入 SQL 语句</returns>
         public static string GetTvps<T>()
         {
-            var sql1 = new StringBuilder();
-            var sql2 = new StringBuilder();
-
-            // 获取属性信息，排除 Identity 列
-            var properties = PropertyCache.GetPropertyInfo<T>();
+            var columns = new StringBuilder();
+            var select = new StringBuilder();
             var entityType = typeof(T);
-            var nonIdentityProperties = properties.Where(p => 
+            var properties = PropertyCache.GetPropertyInfo<T>();
+
+            // 过滤掉 Identity 自增列
+            var filteredProperties = properties.Where(p =>
             {
                 var propInfo = entityType.GetProperty(p.Name);
-                if (propInfo == null) return true;
-                var columnAttr = propInfo.GetCustomAttributes(typeof(ColumnAttribute), false)
-                    .FirstOrDefault() as ColumnAttribute;
+                if (propInfo == null)
+                    return true;
+                var columnAttr = propInfo.GetCustomAttributes(typeof(ColumnAttribute), false).FirstOrDefault() as ColumnAttribute;
                 return columnAttr == null || !columnAttr.IsIdentity;
             }).ToList();
 
-            sql1.AppendFormat("insert into {0} (", TableNameHelper.GetTableName<T>());
-            sql2.Append("select ");
-            nonIdentityProperties.ForEach(a => {
-                sql1.AppendFormat("{0},", a.Name);
-                sql2.AppendFormat("tb.{0},", a.Name);
-            });
-            sql1.Append(")");
-            sql2.AppendFormat("from @{0}_TVP as tb", typeof(T).Name);
+            columns.AppendFormat("insert into {0} (", TableNameHelper.GetTableName<T>());
+            select.Append("select ");
 
-            return string.Format("{0}{1}", sql1.ToString().Replace(",)", ") "), sql2.ToString().Replace(",from", " from"));
+            foreach (var prop in filteredProperties)
+            {
+                columns.AppendFormat("{0},", prop.Name);
+                select.AppendFormat("tb.{0},", prop.Name);
+            }
+
+            columns.Append(")");
+            select.AppendFormat("from @{0}_TVP as tb", entityType.Name);
+
+            var columnSql = columns.ToString().Replace(",)", ") ");
+            var selectSql = select.ToString().Replace(",from", " from");
+            return string.Concat(columnSql, selectSql);
         }
-        #endregion
 
-        #region 获取datatabel
         /// <summary>
-        /// 获取datatabel
+        /// 将实体列表转换为 DataTable
         /// </summary>
         /// <typeparam name="T">实体类型</typeparam>
         /// <param name="cmd">数据库命令对象</param>
-        /// <param name="list">实体列表</param>
-        /// <returns>数据表</returns>
-        public static DataTable GetTable<T>(DbCommand cmd, List<T> list)
+        /// <param name="dataList">实体列表</param>
+        /// <returns>填充了数据的 DataTable</returns>
+        public static DataTable GetTable<T>(DbCommand cmd, List<T> dataList)
         {
-            var dyn = new Property.DynamicGet<T>();
-            var dt = new DataTable();
-            
-            // 获取属性信息，排除 Identity 列
-            var properties = PropertyCache.GetPropertyInfo<T>();
+            var entityGetter = new Property.DynamicGet<T>();
+            var dataTable = new DataTable();
             var entityType = typeof(T);
-            var nonIdentityProperties = properties.Where(p => 
+            var properties = PropertyCache.GetPropertyInfo<T>();
+
+            // 过滤掉 Identity 自增列
+            var filteredProperties = properties.Where(p =>
             {
                 var propInfo = entityType.GetProperty(p.Name);
-                if (propInfo == null) return true;
-                var columnAttr = propInfo.GetCustomAttributes(typeof(ColumnAttribute), false)
-                    .FirstOrDefault() as ColumnAttribute;
+                if (propInfo == null)
+                    return true;
+                var columnAttr = propInfo.GetCustomAttributes(typeof(ColumnAttribute), false).FirstOrDefault() as ColumnAttribute;
                 return columnAttr == null || !columnAttr.IsIdentity;
             }).ToList();
-            
-            // 创建 DataTable 结构
-            foreach (var prop in nonIdentityProperties)
-            {
-                dt.Columns.Add(prop.Name, prop.PropertyType);
-            }
-            
-            // 填充数据
-            list.ForEach(p => {
-                var row = dt.NewRow();
-                nonIdentityProperties.ForEach(a => { row[a.Name] = dyn.GetValue(p, a.Name, true) ?? DBNull.Value; });
-                dt.Rows.Add(row);
-            });
-            return dt;
-        }
-        #endregion
 
-        #region tvps
+            // 创建 DataTable 列结构
+            foreach (var prop in filteredProperties)
+            {
+                dataTable.Columns.Add(prop.Name, prop.PropertyType);
+            }
+
+            // 填充数据行
+            foreach (var entity in dataList)
+            {
+                var row = dataTable.NewRow();
+                foreach (var prop in filteredProperties)
+                {
+                    row[prop.Name] = entityGetter.GetValue(entity, prop.Name, true) ?? (object)DBNull.Value;
+                }
+                dataTable.Rows.Add(row);
+            }
+
+            return dataTable;
+        }
+
         /// <summary>
-        /// tvps
+        /// 初始化 SQL Server TVP（表值参数）类型定义
+        /// 从数据库查询表结构并生成 CREATE TYPE 语句
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="cmd"></param>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="cmd">数据库命令对象</param>
         public static void InitTvps<T>(DbCommand cmd)
         {
-            var sql = new StringBuilder();
-            // 查询表结构，排除 Identity 列
-            cmd.CommandText = string.Format("select a.name,(select top 1 name from sys.systypes c where a.xtype=c.xtype) as type,length,isnullable,prec,scale,(a.status & 0x80) as is_identity from syscolumns a where a.id=object_id('{0}') order by a.colid asc", TableNameHelper.GetTableName<T>());
-            var dr = cmd.ExecuteReader();
-            var dic = BaseJson.DataReaderToDic(dr);
-            dr.Close();
+            var entityType = typeof(T);
+            var tableName = TableNameHelper.GetTableName<T>();
 
-            // 过滤掉 Identity 列
-            var nonIdentityColumns = dic.Where(item => item.GetValue("is_identity").ToStr() != "128").ToList();
+            // 查询表结构
+            cmd.CommandText = string.Format(
+                "select a.name,(select top 1 name from sys.systypes c where a.xtype=c.xtype) as type,length,isnullable,prec,scale,(a.status & 0x80) as is_identity from syscolumns a where a.id=object_id('{0}') order by a.colid asc",
+                tableName);
 
-            sql.AppendFormat("if not exists(SELECT 1 FROM sys.table_types where name='{0}_TVP')", typeof(T).Name);
-            sql.AppendFormat("CREATE TYPE {0}_TVP AS TABLE(", typeof(T).Name);
+            var dataReader = cmd.ExecuteReader();
+            var columnData = BaseJson.DataReaderToDic(dataReader);
+            dataReader.Close();
 
-            foreach (var item in nonIdentityColumns)
+            // 过滤掉 Identity 自增列
+            var nonIdentityColumns = columnData.Where(item => item.GetValue("is_identity").ToStr() != "128").ToList();
+
+            var typeBuilder = new StringBuilder();
+            typeBuilder.AppendFormat("if not exists(SELECT 1 FROM sys.table_types where name='{0}_TVP')", entityType.Name);
+            typeBuilder.AppendFormat("CREATE TYPE {0}_TVP AS TABLE(", entityType.Name);
+
+            foreach (var column in nonIdentityColumns)
             {
-                switch (item.GetValue("type").ToStr())
+                var columnName = column.GetValue("name");
+                var columnType = column.GetValue("type");
+                var isNullable = column.GetValue("isnullable").ToStr() == "1" ? "NULL" : "NOT NULL";
+
+                switch (columnType.ToStr())
                 {
                     case "char":
                     case "nchar":
@@ -157,54 +171,74 @@ namespace FastData.Base
                     case "nvarchar":
                     case "varchar2":
                     case "nvarchar2":
-                        sql.AppendFormat("[{0}] [{1}]({2}) {3},", item.GetValue("name"), item.GetValue("type"), item.GetValue("length"), item.GetValue("isnullable").ToStr() == "1" ? "NULL" : "NOT NULL");
+                        var length = column.GetValue("length");
+                        typeBuilder.AppendFormat("[{0}] [{1}]({2}) {3},", columnName, columnType, length, isNullable);
                         break;
+
                     case "decimal":
                     case "numeric":
                     case "number":
-                        if (item.GetValue("prec").ToStr() == "0" && item.GetValue("scale").ToStr() == "0")
-                            sql.AppendFormat("[{0}] [{1}] {2},", item.GetValue("name"), item.GetValue("type"), item.GetValue("isnullable").ToStr() == "1" ? "NULL" : "NOT NULL");
+                        var precision = column.GetValue("prec");
+                        var scale = column.GetValue("scale");
+                        if (precision.ToStr() == "0" && scale.ToStr() == "0")
+                            typeBuilder.AppendFormat("[{0}] [{1}] {2},", columnName, columnType, isNullable);
                         else
-                            sql.AppendFormat("[{0}] [{1}]({2},{3}) {4},", item.GetValue("name"), item.GetValue("type"), item.GetValue("prec"), item.GetValue("scale"), item.GetValue("isnullable").ToStr() == "1" ? "NULL" : "NOT NULL");
+                            typeBuilder.AppendFormat("[{0}] [{1}]({2},{3}) {4},", columnName, columnType, precision, scale, isNullable);
                         break;
+
                     default:
-                        sql.AppendFormat("[{0}] [{1}] {2},", item.GetValue("name"), item.GetValue("type"), item.GetValue("isnullable").ToStr() == "1" ? "NULL" : "NOT NULL");
+                        typeBuilder.AppendFormat("[{0}] [{1}] {2},", columnName, columnType, isNullable);
                         break;
                 }
             }
 
-            sql.Append(")").Replace(",)", ")");
-            cmd.CommandText = sql.ToString();
+            typeBuilder.Append(")").Replace(",)", ")");
+            cmd.CommandText = typeBuilder.ToString();
             cmd.ExecuteNonQuery();
         }
-        #endregion
 
-        #region mysql (已弃用 - 请使用参数化查询方式)
-        [Obsolete("该方法存在SQL注入风险，请使用参数化查询方式", true)]
-        public static string GetMySql<T>(List<T> list)
+        /// <summary>
+        /// 生成 MySQL 批量插入 SQL（已弃用）
+        /// </summary>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="dataList">实体列表</param>
+        /// <returns>批量插入 SQL 语句</returns>
+        [Obsolete("该方法存在 SQL 注入风险，请使用参数化查询方式", true)]
+        public static string GetMySql<T>(List<T> dataList)
         {
             var sql = new StringBuilder();
-            sql.AppendFormat("insert into {0}(", TableNameHelper.GetTableName<T>());
-            var dyn = new Property.DynamicGet<T>();
-            PropertyCache.GetPropertyInfo<T>().ForEach(a => { sql.AppendFormat("{0},", a.Name); });
+            var tableName = TableNameHelper.GetTableName<T>();
+            var entityGetter = new Property.DynamicGet<T>();
+
+            sql.AppendFormat("insert into {0}(", tableName);
+
+            foreach (var prop in PropertyCache.GetPropertyInfo<T>())
+            {
+                sql.AppendFormat("{0},", prop.Name);
+            }
             sql.Append(")").Replace(",)", ")");
-            list.ForEach(a => {
+
+            foreach (var entity in dataList)
+            {
                 sql.Append("(");
-                PropertyCache.GetPropertyInfo<T>().ForEach(p => {
-                    var value = dyn.GetValue(a, p.Name, true);
-                    // 处理布尔值，MySQL 使用 0/1
-                    if (value is bool boolVal)
-                        sql.AppendFormat("{0},", boolVal ? 1 : 0);
+
+                foreach (var prop in PropertyCache.GetPropertyInfo<T>())
+                {
+                    var value = entityGetter.GetValue(entity, prop.Name, true);
+
+                    if (value is bool boolValue)
+                        sql.AppendFormat("{0},", boolValue ? 1 : 0);
                     else if (value == null)
                         sql.Append("NULL,");
                     else
                         sql.AppendFormat("'{0}',", value);
-                });
-                sql.Append("),").Replace(",)", ")");
-            });
+                }
 
-            return sql.ToStr().Substring(0, sql.ToStr().Length - 1);
+                sql.Append("),").Replace(",)", ")");
+            }
+
+            var result = sql.ToStr();
+            return result.Substring(0, result.Length - 1);
         }
-        #endregion
     }
 }

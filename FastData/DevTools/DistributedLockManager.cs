@@ -159,7 +159,7 @@ namespace FastData.DevTools
                 }
             }
 
-            throw new TimeoutException($"无法在 {timeout} 内获取锁: {lockKey}");
+            throw new TimeoutException(string.Format("无法在 {0} 内获取锁: {1}", timeout, lockKey));
         }
 
         /// <summary>
@@ -181,7 +181,7 @@ namespace FastData.DevTools
                 }
             }
 
-            throw new TimeoutException($"无法在 {timeout} 内获取锁: {lockKey}");
+            throw new TimeoutException(string.Format("无法在 {0} 内获取锁: {1}", timeout, lockKey));
         }
 
         /// <summary>
@@ -280,7 +280,7 @@ namespace FastData.DevTools
                 return new LockScope(lockHandle);
             }
 
-            throw new TimeoutException($"无法在 {timeout} 内获取锁: {lockKey}");
+            throw new TimeoutException(string.Format("无法在 {0} 内获取锁: {1}", timeout, lockKey));
         }
 
         /// <summary>
@@ -295,7 +295,7 @@ namespace FastData.DevTools
                 return new LockScope(lockHandle);
             }
 
-            throw new TimeoutException($"无法在 {timeout} 内获取锁: {lockKey}");
+            throw new TimeoutException(string.Format("无法在 {0} 内获取锁: {1}", timeout, lockKey));
         }
 
         /// <summary>

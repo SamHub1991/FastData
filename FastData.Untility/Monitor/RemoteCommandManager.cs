@@ -107,7 +107,7 @@ namespace FastUntility.Monitor
             var response = ExecuteCommand(request);
 
             // 发送响应
-            var responseMessage = response.Success ? response.Message : $"执行失败: {response.Message}";
+            var responseMessage = response.Success ? response.Message : string.Format("执行失败: {0}", response.Message);
 
             if (!string.IsNullOrEmpty(groupId))
             {
@@ -129,7 +129,7 @@ namespace FastUntility.Monitor
                 return new RemoteCommandResponse
                 {
                     Success = false,
-                    Message = $"未知指令: {request.Command}"
+                    Message = string.Format("未知指令: {0}", request.Command)
                 };
             }
 
@@ -152,7 +152,7 @@ namespace FastUntility.Monitor
                 return new RemoteCommandResponse
                 {
                     Success = false,
-                    Message = $"指令执行异常: {ex.Message}"
+                    Message = string.Format("指令执行异常: {0}", ex.Message)
                 };
             }
         }
@@ -201,7 +201,7 @@ namespace FastUntility.Monitor
             foreach (var handler in _manager.GetHandlers())
             {
                 var adminTag = handler.Value.RequiresAdmin ? " [管理员]" : "";
-                sb.AppendLine($"{handler.Key}{adminTag} - {handler.Value.Description}");
+                sb.AppendLine(string.Format("{0}{1} - {2}", handler.Key, adminTag, handler.Value.Description));
             }
 
             return new RemoteCommandResponse
@@ -227,18 +227,18 @@ namespace FastUntility.Monitor
 
             var sb = new StringBuilder();
             sb.AppendLine("[服务器状态]");
-            sb.AppendLine($"机器名: {monitorInfo.MachineName}");
-            sb.AppendLine($"系统: {monitorInfo.OsVersion}");
-            sb.AppendLine($"CPU: {monitorInfo.CpuUsage:F1}% ({monitorInfo.ProcessorCount} 核)");
-            sb.AppendLine($"内存: {FormatBytes(monitorInfo.UsedMemory)} / {FormatBytes(monitorInfo.TotalMemory)} ({monitorInfo.MemoryUsage:F1}%)");
-            sb.AppendLine($"运行时间: {FormatTimeSpan(monitorInfo.Uptime)}");
+            sb.AppendLine(string.Format("机器名: {0}", monitorInfo.MachineName));
+            sb.AppendLine(string.Format("系统: {0}", monitorInfo.OsVersion));
+            sb.AppendLine(string.Format("CPU: {0:F1}% ({1} 核)", monitorInfo.CpuUsage, monitorInfo.ProcessorCount));
+            sb.AppendLine(string.Format("内存: {0} / {1} ({2:F1}%)", FormatBytes(monitorInfo.UsedMemory), FormatBytes(monitorInfo.TotalMemory), monitorInfo.MemoryUsage));
+            sb.AppendLine(string.Format("运行时间: {0}", FormatTimeSpan(monitorInfo.Uptime)));
 
             if (monitorInfo.Disks.Count > 0)
             {
                 sb.AppendLine("磁盘:");
                 foreach (var disk in monitorInfo.Disks)
                 {
-                    sb.AppendLine($"  {disk.Name}: {FormatBytes(disk.FreeSpace)} 可用 / {FormatBytes(disk.TotalSize)} ({disk.UsagePercentage:F1}%)");
+                    sb.AppendLine(string.Format("  {0}: {1} 可用 / {2} ({3:F1}%)", disk.Name, FormatBytes(disk.FreeSpace), FormatBytes(disk.TotalSize), disk.UsagePercentage));
                 }
             }
 
@@ -259,16 +259,16 @@ namespace FastUntility.Monitor
                 order++;
                 size /= 1024;
             }
-            return $"{size:0.##} {sizes[order]}";
+            return string.Format("{0:0.##} {1}", size, sizes[order]);
         }
 
         private string FormatTimeSpan(TimeSpan ts)
         {
             if (ts.TotalDays >= 1)
-                return $"{(int)ts.TotalDays}天{ts.Hours}小时{ts.Minutes}分钟";
+                return string.Format("{0}天{1}小时{2}分钟", (int)ts.TotalDays, ts.Hours, ts.Minutes);
             if (ts.TotalHours >= 1)
-                return $"{(int)ts.TotalHours}小时{ts.Minutes}分钟";
-            return $"{(int)ts.TotalMinutes}分钟";
+                return string.Format("{0}小时{1}分钟", (int)ts.TotalHours, ts.Minutes);
+            return string.Format("{0}分钟", (int)ts.TotalMinutes);
         }
     }
 
@@ -287,10 +287,10 @@ namespace FastUntility.Monitor
 
             var sb = new StringBuilder();
             sb.AppendLine("[内存信息]");
-            sb.AppendLine($"总计: {FormatBytes(total)}");
-            sb.AppendLine($"已用: {FormatBytes(used)}");
-            sb.AppendLine($"可用: {FormatBytes(available)}");
-            sb.AppendLine($"使用率: {usage:F1}%");
+            sb.AppendLine(string.Format("总计: {0}", FormatBytes(total)));
+            sb.AppendLine(string.Format("已用: {0}", FormatBytes(used)));
+            sb.AppendLine(string.Format("可用: {0}", FormatBytes(available)));
+            sb.AppendLine(string.Format("使用率: {0:F1}%", usage));
 
             return new RemoteCommandResponse
             {
@@ -309,7 +309,7 @@ namespace FastUntility.Monitor
                 order++;
                 size /= 1024;
             }
-            return $"{size:0.##} {sizes[order]}";
+            return string.Format("{0:0.##} {1}", size, sizes[order]);
         }
     }
 
@@ -330,7 +330,7 @@ namespace FastUntility.Monitor
             return new RemoteCommandResponse
             {
                 Success = true,
-                Message = $"[CPU 信息]\n核心数: {processCount}\n使用率: {cpuUsage:F1}%"
+                Message = string.Format("[CPU 信息]\n核心数: {0}\n使用率: {1:F1}%", processCount, cpuUsage)
             };
         }
     }
@@ -362,10 +362,10 @@ namespace FastUntility.Monitor
 
             foreach (var disk in disks)
             {
-                sb.AppendLine($"{disk.Name} ({disk.FileSystem})");
-                sb.AppendLine($"  总计: {FormatBytes(disk.TotalSize)}");
-                sb.AppendLine($"  已用: {FormatBytes(disk.UsedSpace)} ({disk.UsagePercentage:F1}%)");
-                sb.AppendLine($"  可用: {FormatBytes(disk.FreeSpace)}");
+                sb.AppendLine(string.Format("{0} ({1})", disk.Name, disk.FileSystem));
+                sb.AppendLine(string.Format("  总计: {0}", FormatBytes(disk.TotalSize)));
+                sb.AppendLine(string.Format("  已用: {0} ({1:F1}%)", FormatBytes(disk.UsedSpace), disk.UsagePercentage));
+                sb.AppendLine(string.Format("  可用: {0}", FormatBytes(disk.FreeSpace)));
             }
 
             return new RemoteCommandResponse
@@ -385,7 +385,7 @@ namespace FastUntility.Monitor
                 order++;
                 size /= 1024;
             }
-            return $"{size:0.##} {sizes[order]}";
+            return string.Format("{0:0.##} {1}", size, sizes[order]);
         }
     }
 
@@ -404,12 +404,12 @@ namespace FastUntility.Monitor
 
             var sb = new StringBuilder();
             sb.AppendLine("[进程信息]");
-            sb.AppendLine($"进程名: {process.ProcessName}");
-            sb.AppendLine($"PID: {process.Id}");
-            sb.AppendLine($"内存: {FormatBytes(process.WorkingSet64)}");
-            sb.AppendLine($"线程数: {process.Threads.Count}");
-            sb.AppendLine($"启动时间: {process.StartTime:yyyy-MM-dd HH:mm:ss}");
-            sb.AppendLine($"运行时间: {FormatTimeSpan(DateTime.Now - process.StartTime)}");
+            sb.AppendLine(string.Format("进程名: {0}", process.ProcessName));
+            sb.AppendLine(string.Format("PID: {0}", process.Id));
+            sb.AppendLine(string.Format("内存: {0}", FormatBytes(process.WorkingSet64)));
+            sb.AppendLine(string.Format("线程数: {0}", process.Threads.Count));
+            sb.AppendLine(string.Format("启动时间: {0:yyyy-MM-dd HH:mm:ss}", process.StartTime));
+            sb.AppendLine(string.Format("运行时间: {0}", FormatTimeSpan(DateTime.Now - process.StartTime)));
 
             return new RemoteCommandResponse
             {
@@ -428,16 +428,16 @@ namespace FastUntility.Monitor
                 order++;
                 size /= 1024;
             }
-            return $"{size:0.##} {sizes[order]}";
+            return string.Format("{0:0.##} {1}", size, sizes[order]);
         }
 
         private string FormatTimeSpan(TimeSpan ts)
         {
             if (ts.TotalDays >= 1)
-                return $"{(int)ts.TotalDays}天{ts.Hours}小时{ts.Minutes}分钟";
+                return string.Format("{0}天{1}小时{2}分钟", (int)ts.TotalDays, ts.Hours, ts.Minutes);
             if (ts.TotalHours >= 1)
-                return $"{(int)ts.TotalHours}小时{ts.Minutes}分钟";
-            return $"{(int)ts.TotalMinutes}分钟";
+                return string.Format("{0}小时{1}分钟", (int)ts.TotalHours, ts.Minutes);
+            return string.Format("{0}分钟", (int)ts.TotalMinutes);
         }
     }
 
@@ -482,11 +482,11 @@ namespace FastUntility.Monitor
             {
                 foreach (var kvp in poolInfo)
                 {
-                    sb.AppendLine($"连接池: {kvp.Key}");
-                    sb.AppendLine($"  活跃连接: {kvp.Value.ActiveConnections}");
-                    sb.AppendLine($"  空闲连接: {kvp.Value.IdleConnections}");
-                    sb.AppendLine($"  总连接数: {kvp.Value.TotalConnections}");
-                    sb.AppendLine($"  等待请求: {kvp.Value.PendingRequests}");
+                    sb.AppendLine(string.Format("连接池: {0}", kvp.Key));
+                    sb.AppendLine(string.Format("  活跃连接: {0}", kvp.Value.ActiveConnections));
+                    sb.AppendLine(string.Format("  空闲连接: {0}", kvp.Value.IdleConnections));
+                    sb.AppendLine(string.Format("  总连接数: {0}", kvp.Value.TotalConnections));
+                    sb.AppendLine(string.Format("  等待请求: {0}", kvp.Value.PendingRequests));
                 }
             }
 
@@ -544,7 +544,7 @@ namespace FastUntility.Monitor
                 return new RemoteCommandResponse
                 {
                     Success = true,
-                    Message = $"已关闭连接池: {poolName}"
+                    Message = string.Format("已关闭连接池: {0}", poolName)
                 };
             }
             catch (Exception ex)
@@ -552,7 +552,7 @@ namespace FastUntility.Monitor
                 return new RemoteCommandResponse
                 {
                     Success = false,
-                    Message = $"关闭连接池失败: {ex.Message}"
+                    Message = string.Format("关闭连接池失败: {0}", ex.Message)
                 };
             }
         }
@@ -605,7 +605,7 @@ namespace FastUntility.Monitor
                 return new RemoteCommandResponse
                 {
                     Success = true,
-                    Message = $"已重启连接池: {poolName}"
+                    Message = string.Format("已重启连接池: {0}", poolName)
                 };
             }
             catch (Exception ex)
@@ -613,7 +613,7 @@ namespace FastUntility.Monitor
                 return new RemoteCommandResponse
                 {
                     Success = false,
-                    Message = $"重启连接池失败: {ex.Message}"
+                    Message = string.Format("重启连接池失败: {0}", ex.Message)
                 };
             }
         }
@@ -642,7 +642,7 @@ namespace FastUntility.Monitor
             return new RemoteCommandResponse
             {
                 Success = true,
-                Message = $"垃圾回收完成\n释放内存: {FormatBytes(freed)}\n当前内存: {FormatBytes(afterMemory)}"
+                Message = string.Format("垃圾回收完成\n释放内存: {0}\n当前内存: {1}", FormatBytes(freed), FormatBytes(afterMemory))
             };
         }
 
@@ -656,7 +656,7 @@ namespace FastUntility.Monitor
                 order++;
                 size /= 1024;
             }
-            return $"{size:0.##} {sizes[order]}";
+            return string.Format("{0:0.##} {1}", size, sizes[order]);
         }
     }
 
@@ -673,12 +673,12 @@ namespace FastUntility.Monitor
         {
             var sb = new StringBuilder();
             sb.AppendLine("[版本信息]");
-            sb.AppendLine($"系统: {Environment.OSVersion}");
-            sb.AppendLine($"运行时: {Environment.Version}");
-            sb.AppendLine($"机器名: {Environment.MachineName}");
-            sb.AppendLine($"处理器: {Environment.ProcessorCount} 核");
-            sb.AppendLine($"64位系统: {Environment.Is64BitOperatingSystem}");
-            sb.AppendLine($"64位进程: {Environment.Is64BitProcess}");
+            sb.AppendLine(string.Format("系统: {0}", Environment.OSVersion));
+            sb.AppendLine(string.Format("运行时: {0}", Environment.Version));
+            sb.AppendLine(string.Format("机器名: {0}", Environment.MachineName));
+            sb.AppendLine(string.Format("处理器: {0} 核", Environment.ProcessorCount));
+            sb.AppendLine(string.Format("64位系统: {0}", Environment.Is64BitOperatingSystem));
+            sb.AppendLine(string.Format("64位进程: {0}", Environment.Is64BitProcess));
 
             return new RemoteCommandResponse
             {
@@ -702,7 +702,7 @@ namespace FastUntility.Monitor
             return new RemoteCommandResponse
             {
                 Success = true,
-                Message = $"服务器时间: {DateTime.Now:yyyy-MM-dd HH:mm:ss}"
+                Message = string.Format("服务器时间: {0:yyyy-MM-dd HH:mm:ss}", DateTime.Now)
             };
         }
     }

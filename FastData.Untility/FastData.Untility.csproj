@@ -39,12 +39,8 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Xml" />
     <!-- net452 专用 NuGet 包 -->
-    <PackageReference Include="RestSharp">
-      <VersionOverride>106.15.0</VersionOverride>
-    </PackageReference>
-    <PackageReference Include="NPOI">
-      <VersionOverride>2.5.6</VersionOverride>
-    </PackageReference>
+    <PackageReference Include="RestSharp" VersionOverride="106.15.0" />
+    <PackageReference Include="NPOI" VersionOverride="2.5.6" />
     <PackageReference Include="Newtonsoft.Json" />
     <PackageReference Include="Microsoft.AspNet.WebApi.Client" />
     <PackageReference Include="Microsoft.AspNet.WebApi.Core" />

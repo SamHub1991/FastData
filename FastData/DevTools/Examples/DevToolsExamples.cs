@@ -65,33 +65,33 @@ namespace FastData.DevTools.Examples
             {
                 // 测试连接
                 var (connected, message) = DatabaseDiagnostic.TestConnection("DefaultDb");
-                Console.WriteLine($"连接测试: {(connected ? "成功" : "失败")}");
-                Console.WriteLine($"消息: {message}\n");
+                Console.WriteLine(string.Format("连接测试: {0}", (connected ? "成功" : "失败")));
+                Console.WriteLine(string.Format("消息: {0}\n", message));
 
                 // 分析性能
                 var slowQueries = DatabaseDiagnostic.AnalyzeSlowQueries("DefaultDb", TimeSpan.FromSeconds(1));
-                Console.WriteLine($"慢查询数量: {slowQueries.Count}\n");
+                Console.WriteLine(string.Format("慢查询数量: {0}\n", slowQueries.Count));
 
                 // 检查表结构
                 var issues = DatabaseDiagnostic.CheckTableStructure("DefaultDb", "User");
-                Console.WriteLine($"表结构问题: {issues.Count}");
+                Console.WriteLine(string.Format("表结构问题: {0}", issues.Count));
                 foreach (var issue in issues)
                 {
-                    Console.WriteLine($"  - {issue}");
+                    Console.WriteLine(string.Format("  - {0}", issue));
                 }
                 Console.WriteLine();
 
                 // 获取诊断报告
                 var report = DatabaseDiagnostic.GetDiagnosticReport("DefaultDb");
-                Console.WriteLine($"诊断报告:");
-                Console.WriteLine($"  数据库大小: {report.DatabaseSizeMB} MB");
-                Console.WriteLine($"  表数量: {report.TableCount}");
-                Console.WriteLine($"  慢查询数: {report.SlowQueryCount}");
-                Console.WriteLine($"  健康评分: {report.HealthScore}");
+                Console.WriteLine("诊断报告:");
+                Console.WriteLine(string.Format("  数据库大小: {0} MB", report.DatabaseSizeMB));
+                Console.WriteLine(string.Format("  表数量: {0}", report.TableCount));
+                Console.WriteLine(string.Format("  慢查询数: {0}", report.SlowQueryCount));
+                Console.WriteLine(string.Format("  健康评分: {0}", report.HealthScore));
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"诊断失败: {ex.Message}\n");
+                Console.WriteLine(string.Format("诊断失败: {0}\n", ex.Message));
             }
         }
 
@@ -107,12 +107,12 @@ namespace FastData.DevTools.Examples
                 // 比较两个数据库
                 var diff = DatabaseComparer.CompareDatabases("SourceDb", "TargetDb");
 
-                Console.WriteLine($"数据库差异:");
-                Console.WriteLine($"  有差异: {diff.HasDifferences}");
-                Console.WriteLine($"  表差异: {diff.TableDifferences.Count}");
-                Console.WriteLine($"  列差异: {diff.ColumnDifferences.Count}");
-                Console.WriteLine($"  数据差异: {diff.DataDifferences.Count}");
-                Console.WriteLine($"  索引差异: {diff.IndexDifferences.Count}");
+                Console.WriteLine("数据库差异:");
+                Console.WriteLine(string.Format("  有差异: {0}", diff.HasDifferences));
+                Console.WriteLine(string.Format("  表差异: {0}", diff.TableDifferences.Count));
+                Console.WriteLine(string.Format("  列差异: {0}", diff.ColumnDifferences.Count));
+                Console.WriteLine(string.Format("  数据差异: {0}", diff.DataDifferences.Count));
+                Console.WriteLine(string.Format("  索引差异: {0}", diff.IndexDifferences.Count));
 
                 // 生成同步脚本
                 if (diff.HasDifferences)
@@ -128,7 +128,7 @@ namespace FastData.DevTools.Examples
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"比较失败: {ex.Message}\n");
+                Console.WriteLine(string.Format("比较失败: {0}\n", ex.Message));
             }
         }
 
@@ -151,7 +151,7 @@ namespace FastData.DevTools.Examples
 
                 // 批量导入
                 var (success, failed) = DataImporter.BatchImport(users, batchSize: 10, dbKey: "DefaultDb");
-                Console.WriteLine($"批量导入: 成功 {success}, 失败 {failed}");
+                Console.WriteLine(string.Format("批量导入: 成功 {0}, 失败 {1}", success, failed));
 
                 // 导出为 CSV
                 DataImporter.ExportToCSV<User>("users.csv", u => u.IsActive == true, "DefaultDb");
@@ -167,7 +167,7 @@ namespace FastData.DevTools.Examples
 
                 // 从 CSV 导入
                 var (importSuccess, importFailed) = DataImporter.ImportFromCSV<User>("users.csv", "DefaultDb");
-                Console.WriteLine($"从 CSV 导入: 成功 {importSuccess}, 失败 {importFailed}");
+                Console.WriteLine(string.Format("从 CSV 导入: 成功 {0}, 失败 {1}", importSuccess, importFailed));
 
                 // 数据同步（增量更新）
                 var (inserted, updated, syncFailed) = DataImporter.SyncData(
@@ -175,11 +175,11 @@ namespace FastData.DevTools.Examples
                     keySelector: u => u.Email,
                     dbKey: "DefaultDb"
                 );
-                Console.WriteLine($"数据同步: 插入 {inserted}, 更新 {updated}, 失败 {syncFailed}");
+                Console.WriteLine(string.Format("数据同步: 插入 {0}, 更新 {1}, 失败 {2}", inserted, updated, syncFailed));
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"导入导出失败: {ex.Message}\n");
+                Console.WriteLine(string.Format("导入导出失败: {0}\n", ex.Message));
             }
         }
 
@@ -199,11 +199,11 @@ namespace FastData.DevTools.Examples
 
                 // 获取缓存
                 var cachedUser = CacheManager.Get<User>("user:1");
-                Console.WriteLine($"从缓存获取: {cachedUser?.Name}");
+                Console.WriteLine(string.Format("从缓存获取: {0}", cachedUser?.Name));
 
                 // 检查缓存是否存在
                 var exists = CacheManager.Exists("user:1");
-                Console.WriteLine($"缓存存在: {exists}");
+                Console.WriteLine(string.Format("缓存存在: {0}", exists));
 
                 // 获取或创建缓存
                 var user2 = CacheManager.GetOrAdd("user:2", () => new User
@@ -212,7 +212,7 @@ namespace FastData.DevTools.Examples
                     Email = "new@example.com",
                     IsActive = true
                 }, TimeSpan.FromMinutes(30));
-                Console.WriteLine($"获取或创建: {user2?.Name}");
+                Console.WriteLine(string.Format("获取或创建: {0}", user2?.Name));
 
                 // 带缓存的查询
                 var cachedUsers = QueryCacheDecorator.QueryWithCache<User>(
@@ -220,7 +220,7 @@ namespace FastData.DevTools.Examples
                     TimeSpan.FromMinutes(10),
                     "DefaultDb"
                 );
-                Console.WriteLine($"带缓存的查询: {cachedUsers?.Count} 条记录");
+                Console.WriteLine(string.Format("带缓存的查询: {0} 条记录", cachedUsers?.Count));
 
                 // 缓存自动失效
                 var result = CacheInvalidationInterceptor.InterceptAdd(new User
@@ -229,18 +229,18 @@ namespace FastData.DevTools.Examples
                     Email = "fresh@example.com",
                     IsActive = true
                 }, "DefaultDb");
-                Console.WriteLine($"缓存失效: {result.IsSuccess}");
+                Console.WriteLine(string.Format("缓存失效: {0}", result.IsSuccess));
 
                 // 获取缓存统计
                 var stats = CacheManager.GetStats();
-                Console.WriteLine($"\n缓存统计:");
-                Console.WriteLine($"  总键数: {stats.TotalKeys}");
-                Console.WriteLine($"  内存限制: {stats.MemoryLimit} bytes");
-                Console.WriteLine($"  物理内存限制: {stats.PhysicalMemoryLimit} bytes");
+                Console.WriteLine("\n缓存统计:");
+                Console.WriteLine(string.Format("  总键数: {0}", stats.TotalKeys));
+                Console.WriteLine(string.Format("  内存限制: {0} bytes", stats.MemoryLimit));
+                Console.WriteLine(string.Format("  物理内存限制: {0} bytes", stats.PhysicalMemoryLimit));
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"缓存操作失败: {ex.Message}\n");
+                Console.WriteLine(string.Format("缓存操作失败: {0}\n", ex.Message));
             }
         }
 
@@ -268,17 +268,17 @@ namespace FastData.DevTools.Examples
                     IsActive = true
                 };
                 var addResult = AuditDecorator.AddWithAudit(user, "DefaultDb");
-                Console.WriteLine($"带审计的添加: {addResult.IsSuccess}");
+                Console.WriteLine(string.Format("带审计的添加: {0}", addResult.IsSuccess));
 
                 // 带审计的更新操作
                 var oldUser = new User { Id = 1, Name = "Old Name", Email = "old@example.com", IsActive = false };
                 var newUser = new User { Id = 1, Name = "New Name", Email = "new@example.com", IsActive = true };
                 var updateResult = AuditDecorator.UpdateWithAudit(oldUser, newUser, "DefaultDb");
-                Console.WriteLine($"带审计的更新: {updateResult.IsSuccess}");
+                Console.WriteLine(string.Format("带审计的更新: {0}", updateResult.IsSuccess));
 
                 // 带审计的删除操作
                 var deleteResult = AuditDecorator.DeleteWithAudit(new User { Id = 1 }, "DefaultDb");
-                Console.WriteLine($"带审计的删除: {deleteResult.IsSuccess}");
+                Console.WriteLine(string.Format("带审计的删除: {0}", deleteResult.IsSuccess));
 
                 // 查询审计日志
                 var logs = AuditLogQuery.QueryLogs(
@@ -287,15 +287,15 @@ namespace FastData.DevTools.Examples
                     entityType: "User",
                     dbKey: "DefaultDb"
                 );
-                Console.WriteLine($"\n审计日志查询结果: {logs.Count} 条记录");
+                Console.WriteLine(string.Format("\n审计日志查询结果: {0} 条记录", logs.Count));
                 foreach (var log in logs)
                 {
-                    Console.WriteLine($"  [{log.Timestamp}] {log.Action} - {log.EntityType}");
+                    Console.WriteLine(string.Format("  [{0}] {1} - {2}", log.Timestamp, log.Action, log.EntityType));
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"审计日志操作失败: {ex.Message}\n");
+                Console.WriteLine(string.Format("审计日志操作失败: {0}\n", ex.Message));
             }
         }
 
@@ -321,7 +321,7 @@ namespace FastData.DevTools.Examples
 
                 Console.WriteLine("生成的查询 SQL:");
                 Console.WriteLine(sql);
-                Console.WriteLine($"参数: {string.Join(", ", parameters)}\n");
+                Console.WriteLine(string.Format("参数: {0}\n", string.Join(", ", parameters)));
 
                 // 插入语句构建
                 var (insertSql, insertParams) = SqlBuilder.Insert()
@@ -333,7 +333,7 @@ namespace FastData.DevTools.Examples
 
                 Console.WriteLine("生成的插入 SQL:");
                 Console.WriteLine(insertSql);
-                Console.WriteLine($"参数: {string.Join(", ", insertParams)}\n");
+                Console.WriteLine(string.Format("参数: {0}\n", string.Join(", ", insertParams)));
 
                 // 更新语句构建
                 var (updateSql, updateParams) = SqlBuilder.Update()
@@ -346,7 +346,7 @@ namespace FastData.DevTools.Examples
 
                 Console.WriteLine("生成的更新 SQL:");
                 Console.WriteLine(updateSql);
-                Console.WriteLine($"参数: {string.Join(", ", updateParams)}\n");
+                Console.WriteLine(string.Format("参数: {0}\n", string.Join(", ", updateParams)));
 
                 // 删除语句构建
                 var (deleteSql, deleteParams) = SqlBuilder.Delete()
@@ -356,7 +356,7 @@ namespace FastData.DevTools.Examples
 
                 Console.WriteLine("生成的删除 SQL:");
                 Console.WriteLine(deleteSql);
-                Console.WriteLine($"参数: {string.Join(", ", deleteParams)}\n");
+                Console.WriteLine(string.Format("参数: {0}\n", string.Join(", ", deleteParams)));
 
                 // 复杂查询构建
                 (string complexSql, DbParameter[] complexParams) = SqlBuilder.Select()
@@ -373,11 +373,11 @@ namespace FastData.DevTools.Examples
 
                 Console.WriteLine("生成的复杂查询 SQL:");
                 Console.WriteLine(complexSql);
-                Console.WriteLine($"参数: {string.Join(", ", complexParams)}\n");
+                Console.WriteLine(string.Format("参数: {0}\n", string.Join(", ", complexParams)));
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"SQL 构建失败: {ex.Message}\n");
+                Console.WriteLine(string.Format("SQL 构建失败: {0}\n", ex.Message));
             }
         }
     }

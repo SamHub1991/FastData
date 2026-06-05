@@ -41,7 +41,12 @@ namespace FastData.ConnectionPool
 
             // 获取系统资源信息
             var processorCount = Environment.ProcessorCount;
+#if !NETFRAMEWORK
             var memoryMB = GC.GetGCMemoryInfo().TotalAvailableMemoryBytes / (1024 * 1024);
+#else
+            // .NET Framework 4.5.2 不支持 GC.GetGCMemoryInfo，使用默认值
+            var memoryMB = 2048;
+#endif
 
             // 根据 CPU 核心数计算池大小
             // 公式：CPU 密集型 = 核心数 + 1，IO 密集型 = 核心数 * 2
@@ -314,9 +319,9 @@ namespace FastData.ConnectionPool
                 return;
 
             if (_logCallback != null)
-                _logCallback.Invoke($"连接池 {_name}: {message}");
+                _logCallback.Invoke(string.Format("连接池 {0}: {1}", _name, message));
             else
-                BaseLog.SaveLog($"连接池 {_name}: {message}", "ConnectionPool");
+                BaseLog.SaveLog(string.Format("连接池 {0}: {1}", _name, message), "ConnectionPool");
         }
 
         // 指标
@@ -375,7 +380,7 @@ namespace FastData.ConnectionPool
                     else
                     {
                         // 预热失败，销毁并重试
-                        Log($"连接池 {_name} 预热连接失败，重试创建");
+                        Log(string.Format("连接池 {0} 预热连接失败，重试创建", _name));
                         DestroyConnection(conn);
                         var retryConn = CreateNewConnection();
                         if (retryConn != null)
@@ -456,7 +461,7 @@ namespace FastData.ConnectionPool
                     _semaphore.Release();
                     Interlocked.Increment(ref _failedRequests);
                     throw new ConnectionPoolExhaustedException(_name,
-                        $"连接池 '{_name}' 无法创建新连接，数据库可能不可达或认证失败");
+                        string.Format("连接池 '{0}' 无法创建新连接，数据库可能不可达或认证失败", _name));
                 }
 
                 connection.MarkUsed();
@@ -486,7 +491,7 @@ namespace FastData.ConnectionPool
             if (!CanExecuteRequest())
             {
                 Interlocked.Increment(ref _failedRequests);
-                throw new CircuitBreakerOpenException($"连接池 {_name} 熔断器打开，拒绝请求");
+                throw new CircuitBreakerOpenException(string.Format("连接池 {0} 熔断器打开，拒绝请求", _name));
             }
 
             var stopwatch = Stopwatch.StartNew();
@@ -536,7 +541,7 @@ namespace FastData.ConnectionPool
                     _semaphore.Release();
                     Interlocked.Increment(ref _failedRequests);
                     throw new ConnectionPoolExhaustedException(_name,
-                        $"连接池 '{_name}' 无法创建新连接，数据库可能不可达或认证失败");
+                        string.Format("连接池 '{0}' 无法创建新连接，数据库可能不可达或认证失败", _name));
                 }
 
                 connection.MarkUsed();
@@ -628,12 +633,12 @@ namespace FastData.ConnectionPool
                 {
                     if (attempt == _config.MaxRetries)
                     {
-                        Log($"连接池 {_name} 创建连接失败（已重试 {_config.MaxRetries} 次）: {ex.Message}");
+                        Log(string.Format("连接池 {0} 创建连接失败（已重试 {1} 次）: {2}", _name, _config.MaxRetries, ex.Message));
                         return null;
                     }
 
                     var delay = _config.RetryBaseDelayMs * (1 << attempt);
-                    Log($"连接池 {_name} 创建连接失败（第 {attempt + 1} 次），{delay}ms 后重试: {ex.Message}");
+                    Log(string.Format("连接池 {0} 创建连接失败（第 {1} 次），{2}ms 后重试: {3}", _name, attempt + 1, delay, ex.Message));
                     Thread.Sleep(delay);
                 }
             }
@@ -653,7 +658,7 @@ namespace FastData.ConnectionPool
             }
             catch (Exception ex)
             {
-                Log($"连接池 {_name} 销毁连接失败: {ex.Message}");
+                Log(string.Format("连接池 {0} 销毁连接失败: {1}", _name, ex.Message));
             }
         }
 
@@ -743,7 +748,7 @@ namespace FastData.ConnectionPool
                     if (DateTime.UtcNow - connection.LastUsedAt > TimeSpan.FromSeconds(_config.LeakDetectionThreshold))
                     {
                         Interlocked.Increment(ref _leakedConnections);
-                        Log($"连接池 {_name} 检测到可能的连接泄漏: {connection.Id}, 最后使用时间: {connection.LastUsedAt}");
+                        Log(string.Format("连接池 {0} 检测到可能的连接泄漏: {1}, 最后使用时间: {2}", _name, connection.Id, connection.LastUsedAt));
                     }
                 }
 
@@ -759,7 +764,7 @@ namespace FastData.ConnectionPool
             }
             catch (Exception ex)
             {
-                Log($"连接池 {_name} 健康检查失败: {ex.Message}");
+                Log(string.Format("连接池 {0} 健康检查失败: {1}", _name, ex.Message));
             }
         }
 
@@ -796,7 +801,7 @@ namespace FastData.ConnectionPool
                                 DestroyConnection(conn);
                             }
                         }
-                        Log($"连接池 {_name} 异常缩容: 近期错误 {_recentErrors} 次，移除 {shrinkCount} 个连接");
+                        Log(string.Format("连接池 {0} 异常缩容: 近期错误 {1} 次，移除 {2} 个连接", _name, _recentErrors, shrinkCount));
                     }
                     
                     // 重置错误计数
@@ -825,7 +830,7 @@ namespace FastData.ConnectionPool
                             break;
                     }
                     _lastExpandTime = DateTime.UtcNow;
-                    Log($"连接池 {_name} 扩容: 新增 {expandCount} 个连接（负载 {loadPercentage:F1}%）");
+                    Log(string.Format("连接池 {0} 扩容: 新增 {1} 个连接（负载 {2:F1}%）", _name, expandCount, loadPercentage));
                 }
                 // 3. 负载过低时缩容
                 else if (loadPercentage < _config.ShrinkThreshold && metrics.TotalConnections > _config.MinPoolSize)
@@ -840,13 +845,13 @@ namespace FastData.ConnectionPool
                                 DestroyConnection(conn);
                             }
                         }
-                        Log($"连接池 {_name} 缩容: 移除 {shrinkCount} 个连接（负载 {loadPercentage:F1}%）");
+                        Log(string.Format("连接池 {0} 缩容: 移除 {1} 个连接（负载 {2:F1}%）", _name, shrinkCount, loadPercentage));
                     }
                 }
             }
             catch (Exception ex)
             {
-                Log($"连接池 {_name} 智能调整失败: {ex.Message}");
+                Log(string.Format("连接池 {0} 智能调整失败: {1}", _name, ex.Message));
             }
             finally
             {
@@ -875,15 +880,20 @@ namespace FastData.ConnectionPool
             try
             {
                 // 1. 检查服务器资源
+#if !NETFRAMEWORK
                 var memoryInfo = GC.GetGCMemoryInfo();
                 var memoryUsagePercent = 100.0 - (double)memoryInfo.TotalAvailableMemoryBytes / 
                     (memoryInfo.TotalAvailableMemoryBytes + memoryInfo.MemoryLoadBytes) * 100;
+#else
+                // .NET Framework 4.5.2 不支持 GC.GetGCMemoryInfo，跳过内存检查
+                var memoryUsagePercent = 0.0;
+#endif
                 
                 // 内存使用超过 85% 时限制扩容
                 if (memoryUsagePercent > 85)
                 {
                     status.ExpandFactor *= 0.5;
-                    reasons.Add($"内存使用率高({memoryUsagePercent:F1}%)");
+                    reasons.Add(string.Format("内存使用率高({0:F1}%)", memoryUsagePercent));
                 }
 
                 // 2. 检查 Redis 可用性（如果配置了）
@@ -914,7 +924,7 @@ namespace FastData.ConnectionPool
                 if (_recentErrors > 0)
                 {
                     status.ExpandFactor *= 0.5;
-                    reasons.Add($"近期有错误({_recentErrors})");
+                    reasons.Add(string.Format("近期有错误({0})", _recentErrors));
                 }
 
                 if (reasons.Any())
@@ -924,7 +934,7 @@ namespace FastData.ConnectionPool
             }
             catch (Exception ex)
             {
-                Log($"环境检测异常: {ex.Message}");
+                Log(string.Format("环境检测异常: {0}", ex.Message));
             }
 
             return status;
@@ -964,7 +974,7 @@ namespace FastData.ConnectionPool
         {
             Interlocked.Increment(ref _recentErrors);
             _lastErrorTime = DateTime.UtcNow;
-            Log($"记录数据库异常: {ex.Message}（近期错误 {_recentErrors} 次）");
+            Log(string.Format("记录数据库异常: {0}（近期错误 {1} 次）", ex.Message, _recentErrors));
         }
 
         /// <summary>
@@ -1048,7 +1058,7 @@ namespace FastData.ConnectionPool
                 if (_circuitState == CircuitState.HalfOpen)
                 {
                     // 半开状态下成功，恢复到关闭状态
-                    Log($"熔断器 {_name} 恢复正常状态（半开->关闭）");
+                    Log(string.Format("熔断器 {0} 恢复正常状态（半开->关闭）", _name));
                     _circuitState = CircuitState.Closed;
                     _consecutiveFailures = 0;
                     _halfOpenRequests = 0;
@@ -1076,7 +1086,7 @@ namespace FastData.ConnectionPool
                 if (_circuitState == CircuitState.HalfOpen)
                 {
                     // 半开状态下失败，重新打开熔断器
-                    Log($"熔断器 {_name} 触发熔断（半开->打开，连续失败 {_consecutiveFailures} 次）");
+                    Log(string.Format("熔断器 {0} 触发熔断（半开->打开，连续失败 {1} 次）", _name, _consecutiveFailures));
                     _circuitState = CircuitState.Open;
                     _circuitOpenedAt = DateTime.UtcNow;
                     _halfOpenRequests = 0;
@@ -1085,7 +1095,7 @@ namespace FastData.ConnectionPool
                          _consecutiveFailures >= _config.CircuitBreaker.FailureThreshold)
                 {
                     // 关闭状态下达到失败阈值，打开熔断器
-                    Log($"熔断器 {_name} 触发熔断（关闭->打开，连续失败 {_consecutiveFailures} 次）");
+                    Log(string.Format("熔断器 {0} 触发熔断（关闭->打开，连续失败 {1} 次）", _name, _consecutiveFailures));
                     _circuitState = CircuitState.Open;
                     _circuitOpenedAt = DateTime.UtcNow;
                 }
@@ -1097,7 +1107,7 @@ namespace FastData.ConnectionPool
         /// </summary>
         private void TryTransitionToHalfOpen()
         {
-            Log($"熔断器 {_name} 进入半开状态（打开->半开）");
+            Log(string.Format("熔断器 {0} 进入半开状态（打开->半开）", _name));
             _circuitState = CircuitState.HalfOpen;
             _halfOpenRequests = 0;
             _consecutiveFailures = 0;
@@ -1131,7 +1141,7 @@ namespace FastData.ConnectionPool
         public int WaitTimeoutSeconds { get; }
 
         public ConnectionPoolExhaustedException(string poolName, int waitTimeoutSeconds)
-            : base($"连接池 {poolName} 已耗尽，等待 {waitTimeoutSeconds} 秒后超时")
+            : base(string.Format("连接池 {0} 已耗尽，等待 {1} 秒后超时", poolName, waitTimeoutSeconds))
         {
             PoolName = poolName;
             WaitTimeoutSeconds = waitTimeoutSeconds;

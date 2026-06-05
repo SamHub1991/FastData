@@ -29,7 +29,7 @@ namespace FastData.DevTools
                 var config = DataConfig.GetConfig(dbKey);
                 if (config == null)
                 {
-                    result.ErrorMessage = $"找不到数据库配置: {dbKey}";
+                    result.ErrorMessage = string.Format("找不到数据库配置: {0}", dbKey);
                     return result;
                 }
 
@@ -54,7 +54,7 @@ namespace FastData.DevTools
                         break;
 
                     default:
-                        result.ErrorMessage = $"不支持的数据库类型: {config.DbType}";
+                        result.ErrorMessage = string.Format("不支持的数据库类型: {0}", config.DbType);
                         break;
                 }
 
@@ -68,7 +68,7 @@ namespace FastData.DevTools
             catch (Exception ex)
             {
                 result.Success = false;
-                result.ErrorMessage = $"备份失败: {ex.Message}";
+                result.ErrorMessage = string.Format("备份失败: {0}", ex.Message);
             }
 
             return result;
@@ -88,13 +88,13 @@ namespace FastData.DevTools
                 var config = DataConfig.GetConfig(dbKey);
                 if (config == null)
                 {
-                    result.ErrorMessage = $"找不到数据库配置: {dbKey}";
+                    result.ErrorMessage = string.Format("找不到数据库配置: {0}", dbKey);
                     return result;
                 }
 
                 if (!File.Exists(backupPath))
                 {
-                    result.ErrorMessage = $"备份文件不存在: {backupPath}";
+                    result.ErrorMessage = string.Format("备份文件不存在: {0}", backupPath);
                     return result;
                 }
 
@@ -119,7 +119,7 @@ namespace FastData.DevTools
                         break;
 
                     default:
-                        result.ErrorMessage = $"不支持的数据库类型: {config.DbType}";
+                        result.ErrorMessage = string.Format("不支持的数据库类型: {0}", config.DbType);
                         break;
                 }
 
@@ -132,7 +132,7 @@ namespace FastData.DevTools
             catch (Exception ex)
             {
                 result.Success = false;
-                result.ErrorMessage = $"恢复失败: {ex.Message}";
+                result.ErrorMessage = string.Format("恢复失败: {0}", ex.Message);
             }
 
             return result;
@@ -213,13 +213,13 @@ namespace FastData.DevTools
                 {
                     if (options.IncludeData)
                     {
-                        sql.AppendLine($"-- 表结构: {table}");
+                        sql.AppendLine(string.Format("-- 表结构: {0}", table));
                         sql.AppendLine(GetTableSchema(dbKey, table));
                         sql.AppendLine();
 
                         if (options.IncludeData)
                         {
-                            sql.AppendLine($"-- 数据: {table}");
+                            sql.AppendLine(string.Format("-- 数据: {0}", table));
                             sql.AppendLine(GetTableData(dbKey, table, options.BatchSize));
                             sql.AppendLine();
                         }
@@ -231,7 +231,7 @@ namespace FastData.DevTools
             }
             catch (Exception ex)
             {
-                result.ErrorMessage = $"MySQL 备份失败: {ex.Message}";
+                result.ErrorMessage = string.Format("MySQL 备份失败: {0}", ex.Message);
             }
 
             return result;
@@ -250,13 +250,13 @@ namespace FastData.DevTools
 
                 foreach (var table in tables)
                 {
-                    sql.AppendLine($"-- 表结构: {table}");
+                    sql.AppendLine(string.Format("-- 表结构: {0}", table));
                     sql.AppendLine(GetTableSchema(dbKey, table));
                     sql.AppendLine();
 
                     if (options.IncludeData)
                     {
-                        sql.AppendLine($"-- 数据: {table}");
+                        sql.AppendLine(string.Format("-- 数据: {0}", table));
                         sql.AppendLine(GetTableData(dbKey, table, options.BatchSize));
                         sql.AppendLine();
                     }
@@ -267,7 +267,7 @@ namespace FastData.DevTools
             }
             catch (Exception ex)
             {
-                result.ErrorMessage = $"SQL Server 备份失败: {ex.Message}";
+                result.ErrorMessage = string.Format("SQL Server 备份失败: {0}", ex.Message);
             }
 
             return result;
@@ -286,13 +286,13 @@ namespace FastData.DevTools
 
                 foreach (var table in tables)
                 {
-                    sql.AppendLine($"-- 表结构: {table}");
+                    sql.AppendLine(string.Format("-- 表结构: {0}", table));
                     sql.AppendLine(GetTableSchema(dbKey, table));
                     sql.AppendLine();
 
                     if (options.IncludeData)
                     {
-                        sql.AppendLine($"-- 数据: {table}");
+                        sql.AppendLine(string.Format("-- 数据: {0}", table));
                         sql.AppendLine(GetTableData(dbKey, table, options.BatchSize));
                         sql.AppendLine();
                     }
@@ -303,7 +303,7 @@ namespace FastData.DevTools
             }
             catch (Exception ex)
             {
-                result.ErrorMessage = $"PostgreSQL 备份失败: {ex.Message}";
+                result.ErrorMessage = string.Format("PostgreSQL 备份失败: {0}", ex.Message);
             }
 
             return result;
@@ -324,12 +324,12 @@ namespace FastData.DevTools
                 }
                 else
                 {
-                    result.ErrorMessage = $"SQLite 数据库文件不存在: {dbPath}";
+                    result.ErrorMessage = string.Format("SQLite 数据库文件不存在: {0}", dbPath);
                 }
             }
             catch (Exception ex)
             {
-                result.ErrorMessage = $"SQLite 备份失败: {ex.Message}";
+                result.ErrorMessage = string.Format("SQLite 备份失败: {0}", ex.Message);
             }
 
             return result;
@@ -353,7 +353,7 @@ namespace FastData.DevTools
                     {
                         try
                         {
-                            db.cmd.CommandText = $"DROP TABLE IF EXISTS {table}";
+                            db.cmd.CommandText = string.Format("DROP TABLE IF EXISTS {0}", table);
                             db.cmd.ExecuteNonQuery();
                         }
                         catch { }
@@ -377,7 +377,7 @@ namespace FastData.DevTools
             }
             catch (Exception ex)
             {
-                result.ErrorMessage = $"MySQL 恢复失败: {ex.Message}";
+                result.ErrorMessage = string.Format("MySQL 恢复失败: {0}", ex.Message);
             }
 
             return result;
@@ -401,7 +401,7 @@ namespace FastData.DevTools
                     {
                         try
                         {
-                            db.cmd.CommandText = $"DROP TABLE IF EXISTS {table}";
+                            db.cmd.CommandText = string.Format("DROP TABLE IF EXISTS {0}", table);
                             db.cmd.ExecuteNonQuery();
                         }
                         catch { }
@@ -425,7 +425,7 @@ namespace FastData.DevTools
             }
             catch (Exception ex)
             {
-                result.ErrorMessage = $"SQL Server 恢复失败: {ex.Message}";
+                result.ErrorMessage = string.Format("SQL Server 恢复失败: {0}", ex.Message);
             }
 
             return result;
@@ -449,7 +449,7 @@ namespace FastData.DevTools
                     {
                         try
                         {
-                            db.cmd.CommandText = $"DROP TABLE IF EXISTS {table}";
+                            db.cmd.CommandText = string.Format("DROP TABLE IF EXISTS {0}", table);
                             db.cmd.ExecuteNonQuery();
                         }
                         catch { }
@@ -473,7 +473,7 @@ namespace FastData.DevTools
             }
             catch (Exception ex)
             {
-                result.ErrorMessage = $"PostgreSQL 恢复失败: {ex.Message}";
+                result.ErrorMessage = string.Format("PostgreSQL 恢复失败: {0}", ex.Message);
             }
 
             return result;
@@ -497,7 +497,7 @@ namespace FastData.DevTools
             }
             catch (Exception ex)
             {
-                result.ErrorMessage = $"SQLite 恢复失败: {ex.Message}";
+                result.ErrorMessage = string.Format("SQLite 恢复失败: {0}", ex.Message);
             }
 
             return result;
@@ -533,11 +533,11 @@ namespace FastData.DevTools
             try
             {
                 using var db = new DataContext(dbKey);
-                db.cmd.CommandText = $@"
+                db.cmd.CommandText = string.Format(@"
                     SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE, COLUMN_DEFAULT
                     FROM INFORMATION_SCHEMA.COLUMNS
-                    WHERE TABLE_NAME = '{tableName}'
-                    ORDER BY ORDINAL_POSITION";
+                    WHERE TABLE_NAME = '{0}'
+                    ORDER BY ORDINAL_POSITION", tableName);
 
                 var columns = new List<string>();
 
@@ -549,14 +549,14 @@ namespace FastData.DevTools
                     var isNullable = reader[2].ToString() == "YES";
                     var defaultValue = reader[3]?.ToString();
 
-                    var columnDef = $"{columnName} {dataType}";
+                    var columnDef = string.Format("{0} {1}", columnName, dataType);
                     if (!isNullable) columnDef += " NOT NULL";
-                    if (!string.IsNullOrEmpty(defaultValue)) columnDef += $" DEFAULT {defaultValue}";
+                    if (!string.IsNullOrEmpty(defaultValue)) columnDef += string.Format(" DEFAULT {0}", defaultValue);
 
                     columns.Add(columnDef);
                 }
 
-                schema.AppendLine($"CREATE TABLE {tableName} (");
+                schema.AppendLine(string.Format("CREATE TABLE {0} (", tableName));
                 schema.AppendLine(string.Join(",\n", columns));
                 schema.AppendLine(");");
             }
@@ -572,7 +572,7 @@ namespace FastData.DevTools
             try
             {
                 using var db = new DataContext(dbKey);
-                db.cmd.CommandText = $"SELECT * FROM {tableName}";
+                db.cmd.CommandText = string.Format("SELECT * FROM {0}", tableName);
 
                 using var reader = db.cmd.ExecuteReader();
                 var columns = new List<string>();
@@ -591,16 +591,16 @@ namespace FastData.DevTools
                         if (value == DBNull.Value)
                             return "NULL";
                         else if (value is string str)
-                            return $"'{str.Replace("'", "''")}'";
+                            return string.Format("'{0}'", str.Replace("'", "''"));
                         else if (value is DateTime dt)
-                            return $"'{dt:yyyy-MM-dd HH:mm:ss}'";
+                            return string.Format("'{0:yyyy-MM-dd HH:mm:ss}'", dt);
                         else if (value is bool b)
                             return b ? "1" : "0";
                         else
                             return value.ToString();
                     });
 
-                    data.AppendLine($"INSERT INTO {tableName} ({string.Join(", ", columns)}) VALUES ({string.Join(", ", values)});");
+                    data.AppendLine(string.Format("INSERT INTO {0} ({1}) VALUES ({2});", tableName, string.Join(", ", columns), string.Join(", ", values)));
 
                     rowCount++;
                     if (batchSize > 0 && rowCount % batchSize == 0)

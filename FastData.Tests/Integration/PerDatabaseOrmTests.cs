@@ -41,7 +41,7 @@ namespace FastData.Tests.Integration
             PrintResults(dbName, results);
 
             // 验证所有测试通过
-            Assert.All(results, r => Assert.True(r.Value.Success, $"{r.Key} 失败: {r.Value.Details}"));
+            Assert.All(results, r => Assert.True(r.Value.Success, string.Format("{0} 失败: {1}", r.Key, r.Value.Details)));
         }
 
         [Fact]
@@ -125,7 +125,7 @@ namespace FastData.Tests.Integration
             var results = RunFullOrmTest(dbName);
             PrintResults(dbName, results);
 
-            Assert.All(results, r => Assert.True(r.Value.Success, $"{r.Key} 失败: {r.Value.Details}"));
+            Assert.All(results, r => Assert.True(r.Value.Success, string.Format("{0} 失败: {1}", r.Key, r.Value.Details)));
         }
 
         [Fact]
@@ -209,7 +209,7 @@ namespace FastData.Tests.Integration
             var results = RunFullOrmTest(dbName);
             PrintResults(dbName, results);
 
-            Assert.All(results, r => Assert.True(r.Value.Success, $"{r.Key} 失败: {r.Value.Details}"));
+            Assert.All(results, r => Assert.True(r.Value.Success, string.Format("{0} 失败: {1}", r.Key, r.Value.Details)));
         }
 
         [Fact]
@@ -311,8 +311,8 @@ namespace FastData.Tests.Integration
             {
                 var entity = new PerfUser
                 {
-                    UserName = $"TestUser_{DateTime.Now.Ticks}",
-                    Email = $"test_{DateTime.Now.Ticks}@example.com",
+                    UserName = string.Format("TestUser_{0}", DateTime.Now.Ticks),
+                    Email = string.Format("test_{0}@example.com", DateTime.Now.Ticks),
                     Age = 25,
                     IsActive = true,
                     CreatedAt = DateTime.Now
@@ -326,7 +326,7 @@ namespace FastData.Tests.Integration
                 {
                     Success = result.WriteReturn.IsSuccess,
                     ElapsedMs = stopwatch.ElapsedMilliseconds,
-                    Details = result.WriteReturn.IsSuccess ? "插入成功" : $"插入失败: {result.WriteReturn.Message}"
+                    Details = result.WriteReturn.IsSuccess ? "插入成功" : string.Format("插入失败: {0}", result.WriteReturn.Message)
                 };
             }
             catch (Exception ex)
@@ -349,7 +349,7 @@ namespace FastData.Tests.Integration
                 {
                     Success = true,
                     ElapsedMs = stopwatch.ElapsedMilliseconds,
-                    Details = $"查询成功，返回 {result.List.Count} 条记录"
+                    Details = string.Format("查询成功，返回 {0} 条记录", result.List.Count)
                 };
             }
             catch (Exception ex)
@@ -375,8 +375,8 @@ namespace FastData.Tests.Integration
                 }
 
                 var user = queryResult.List[0];
-                user.UserName = $"Updated_{DateTime.Now.Ticks}";
-                user.Email = $"updated_{DateTime.Now.Ticks}@example.com";
+                user.UserName = string.Format("Updated_{0}", DateTime.Now.Ticks);
+                user.Email = string.Format("updated_{0}@example.com", DateTime.Now.Ticks);
 
                 // 排除 Id 字段，只更新其他字段
                 var result = db.Update(user, u => u.Id == user.Id, u => new { u.UserName, u.Email, u.Age, u.IsActive, u.CreatedAt });
@@ -386,7 +386,7 @@ namespace FastData.Tests.Integration
                 {
                     Success = result.WriteReturn.IsSuccess,
                     ElapsedMs = stopwatch.ElapsedMilliseconds,
-                    Details = result.WriteReturn.IsSuccess ? "更新成功" : $"更新失败: {result.WriteReturn.Message}"
+                    Details = result.WriteReturn.IsSuccess ? "更新成功" : string.Format("更新失败: {0}", result.WriteReturn.Message)
                 };
             }
             catch (Exception ex)
@@ -404,8 +404,8 @@ namespace FastData.Tests.Integration
                 // 先插入一条记录
                 var entity = new PerfUser
                 {
-                    UserName = $"DeleteTest_{DateTime.Now.Ticks}",
-                    Email = $"delete_{DateTime.Now.Ticks}@example.com",
+                    UserName = string.Format("DeleteTest_{0}", DateTime.Now.Ticks),
+                    Email = string.Format("delete_{0}@example.com", DateTime.Now.Ticks),
                     Age = 30,
                     IsActive = true,
                     CreatedAt = DateTime.Now
@@ -417,7 +417,7 @@ namespace FastData.Tests.Integration
                 if (!insertResult.WriteReturn.IsSuccess)
                 {
                     stopwatch.Stop();
-                    return new TestResult { Success = false, ElapsedMs = stopwatch.ElapsedMilliseconds, Details = $"插入失败: {insertResult.WriteReturn.Message}" };
+                    return new TestResult { Success = false, ElapsedMs = stopwatch.ElapsedMilliseconds, Details = string.Format("插入失败: {0}", insertResult.WriteReturn.Message) };
                 }
 
                 // 查询刚插入的记录
@@ -437,7 +437,7 @@ namespace FastData.Tests.Integration
                 {
                     Success = deleteResult.WriteReturn.IsSuccess,
                     ElapsedMs = stopwatch.ElapsedMilliseconds,
-                    Details = deleteResult.WriteReturn.IsSuccess ? "删除成功" : $"删除失败: {deleteResult.WriteReturn.Message}"
+                    Details = deleteResult.WriteReturn.IsSuccess ? "删除成功" : string.Format("删除失败: {0}", deleteResult.WriteReturn.Message)
                 };
             }
             catch (Exception ex)
@@ -465,7 +465,7 @@ namespace FastData.Tests.Integration
                 {
                     Success = true,
                     ElapsedMs = stopwatch.ElapsedMilliseconds,
-                    Details = $"链式查询成功，返回 {result.List.Count} 条记录"
+                    Details = string.Format("链式查询成功，返回 {0} 条记录", result.List.Count)
                 };
             }
             catch (Exception ex)
@@ -493,7 +493,7 @@ namespace FastData.Tests.Integration
                 {
                     Success = result.Data != null,
                     ElapsedMs = stopwatch.ElapsedMilliseconds,
-                    Details = $"分页查询成功: Page={result.Page}, PageSize={result.PageSize}, Total={result.Total}, Data={result.Data?.Count ?? 0}"
+                    Details = string.Format("分页查询成功: Page={0}, PageSize={1}, Total={2}, Data={3}", result.Page, result.PageSize, result.Total, result.Data?.Count ?? 0)
                 };
             }
             catch (Exception ex)
@@ -513,8 +513,8 @@ namespace FastData.Tests.Integration
                 {
                     entities.Add(new PerfUser
                     {
-                        UserName = $"Batch_{DateTime.Now.Ticks}_{i}",
-                        Email = $"batch_{DateTime.Now.Ticks}_{i}@example.com",
+                        UserName = string.Format("Batch_{0}_{1}", DateTime.Now.Ticks, i),
+                        Email = string.Format("batch_{0}_{1}@example.com", DateTime.Now.Ticks, i),
                         Age = 20 + i,
                         IsActive = true,
                         CreatedAt = DateTime.Now
@@ -529,7 +529,7 @@ namespace FastData.Tests.Integration
                 {
                     Success = result.WriteReturn.IsSuccess,
                     ElapsedMs = stopwatch.ElapsedMilliseconds,
-                    Details = result.WriteReturn.IsSuccess ? $"批量插入 {entities.Count} 条成功" : $"批量插入失败: {result.WriteReturn.Message}"
+                    Details = result.WriteReturn.IsSuccess ? string.Format("批量插入 {0} 条成功", entities.Count) : string.Format("批量插入失败: {0}", result.WriteReturn.Message)
                 };
             }
             catch (Exception ex)
@@ -568,7 +568,7 @@ namespace FastData.Tests.Integration
                 {
                     Success = true,
                     ElapsedMs = stopwatch.ElapsedMilliseconds,
-                    Details = $"Lambda查询成功: Where={whereResult.List.Count}, Or={orResult.List.Count}, Like={likeResult.List.Count}, In={inResult.List.Count}, Between={betweenResult.List.Count}"
+                    Details = string.Format("Lambda查询成功: Where={0}, Or={1}, Like={2}, In={3}, Between={4}", whereResult.List.Count, orResult.List.Count, likeResult.List.Count, inResult.List.Count, betweenResult.List.Count)
                 };
             }
             catch (Exception ex)
@@ -600,7 +600,7 @@ namespace FastData.Tests.Integration
                 {
                     Success = true,
                     ElapsedMs = stopwatch.ElapsedMilliseconds,
-                    Details = $"排序分组成功: OrderBy={orderByResult.List.Count}, OrderByDesc={orderByDescResult.List.Count}, GroupBy={groupByResult.List.Count}"
+                    Details = string.Format("排序分组成功: OrderBy={0}, OrderByDesc={1}, GroupBy={2}", orderByResult.List.Count, orderByDescResult.List.Count, groupByResult.List.Count)
                 };
             }
             catch (Exception ex)
@@ -626,7 +626,7 @@ namespace FastData.Tests.Integration
                 {
                     Success = true,
                     ElapsedMs = stopwatch.ElapsedMilliseconds,
-                    Details = $"表名映射测试成功: MultiDbUser 查询 {result.List.Count} 条"
+                    Details = string.Format("表名映射测试成功: MultiDbUser 查询 {0} 条", result.List.Count)
                 };
             }
             catch (Exception ex)
@@ -642,20 +642,20 @@ namespace FastData.Tests.Integration
 
         private void PrintResults(string dbName, Dictionary<string, TestResult> results)
         {
-            Console.WriteLine($"\n{dbName} ORM 完整测试:");
+            Console.WriteLine("\n{0} ORM 完整测试:", dbName);
             Console.WriteLine(new string('-', 80));
-            Console.WriteLine($"{"测试项",-15} {"结果",-8} {"耗时(ms)",-12} {"详情"}");
+            Console.WriteLine("{0,-15} {1,-8} {2,-12} {3}", "测试项", "结果", "耗时(ms)", "详情");
             Console.WriteLine(new string('-', 80));
 
             foreach (var test in results)
             {
                 var status = test.Value.Success ? "PASS" : "FAIL";
-                Console.WriteLine($"{test.Key,-15} {status,-8} {test.Value.ElapsedMs,-12} {test.Value.Details}");
+                Console.WriteLine("{0,-15} {1,-8} {2,-12} {3}", test.Key, status, test.Value.ElapsedMs, test.Value.Details);
             }
 
             Console.WriteLine(new string('-', 80));
             var passed = results.Count(r => r.Value.Success);
-            Console.WriteLine($"总计: {passed}/{results.Count} 通过\n");
+            Console.WriteLine("总计: {0}/{1} 通过\n", passed, results.Count);
         }
 
         #endregion

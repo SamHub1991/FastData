@@ -69,7 +69,7 @@ namespace FastData.DevTools
                 catch (Exception ex)
                 {
                     // 记录错误，但不影响其他处理器
-                    LogAggregator.Exception(ex, $"事件处理器执行失败: {eventType.Name}", "EventBus");
+                    LogAggregator.Exception(ex, string.Format("事件处理器执行失败: {0}", eventType.Name), "EventBus");
                 }
             }
         }
@@ -195,7 +195,7 @@ namespace FastData.DevTools
                         }
                         catch (Exception ex)
                         {
-                            LogAggregator.Exception(ex, $"事件处理器执行失败: {message.EventType.Name}", "EventBus");
+                            LogAggregator.Exception(ex, string.Format("事件处理器执行失败: {0}", message.EventType.Name), "EventBus");
                         }
                     }));
 
@@ -203,7 +203,7 @@ namespace FastData.DevTools
                 }
                 catch (Exception ex)
                 {
-                    LogAggregator.Exception(ex, $"事件处理失败: {message.EventType.Name}", "EventBus");
+                    LogAggregator.Exception(ex, string.Format("事件处理失败: {0}", message.EventType.Name), "EventBus");
                 }
             }
 
@@ -320,7 +320,7 @@ namespace FastData.DevTools
                 }
                 catch (Exception ex)
                 {
-                    LogAggregator.Exception(ex, $"域事件处理失败: {@event.EventId}", "DomainEventBus");
+                    LogAggregator.Exception(ex, string.Format("域事件处理失败: {0}", @event.EventId), "DomainEventBus");
                 }
             }
 
@@ -421,7 +421,7 @@ namespace FastData.DevTools
                 }
                 catch (Exception ex)
                 {
-                    LogAggregator.Exception(ex, $"事件重放失败: {@event.EventId}", "EventSourcing");
+                    LogAggregator.Exception(ex, string.Format("事件重放失败: {0}", @event.EventId), "EventSourcing");
                 }
             }
         }
@@ -440,7 +440,7 @@ namespace FastData.DevTools
                 }
                 catch (Exception ex)
                 {
-                    LogAggregator.Exception(ex, $"事件重放失败: {@event.EventId}", "EventSourcing");
+                    LogAggregator.Exception(ex, string.Format("事件重放失败: {0}", @event.EventId), "EventSourcing");
                 }
             }
         }

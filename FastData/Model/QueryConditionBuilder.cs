@@ -41,7 +41,7 @@ namespace FastData.Model
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException($"构建 WHERE 条件时出错: {ex.Message}", ex);
+                throw new InvalidOperationException(string.Format("构建 WHERE 条件时出错: {0}", ex.Message), ex);
             }
         }
 
@@ -53,15 +53,13 @@ namespace FastData.Model
             if (config == null)
             {
                 throw new InvalidOperationException(
-                    $"配置为空 - 操作: {operation}\n" +
-                    $"请确保 db.config 文件存在并正确配置");
+                    string.Format("配置为空 - 操作: {0}\n请确保 db.config 文件存在并正确配置", operation));
             }
 
             if (string.IsNullOrEmpty(config.Key))
             {
                 throw new InvalidOperationException(
-                    $"配置 Key 为空 - 操作: {operation}\n" +
-                    $"请在 db.config 中定义数据库 Key");
+                    string.Format("配置 Key 为空 - 操作: {0}\n请在 db.config 中定义数据库 Key", operation));
             }
         }
 
@@ -120,10 +118,10 @@ namespace FastData.Model
         public static void ValidateString(string value, string paramName, int maxLength = 1000)
         {
             if (string.IsNullOrEmpty(value))
-                throw new ArgumentException($"{paramName} 不能为空", nameof(value));
+                throw new ArgumentException(string.Format("{0} 不能为空", paramName), nameof(value));
 
             if (value.Length > maxLength)
-                throw new ArgumentException($"{paramName} 长度不能超过 {maxLength} 字符", nameof(value));
+                throw new ArgumentException(string.Format("{0} 长度不能超过 {1} 字符", paramName, maxLength), nameof(value));
         }
 
         /// <summary>
@@ -133,7 +131,7 @@ namespace FastData.Model
         {
             if (value < min || value > max)
                 throw new ArgumentOutOfRangeException(nameof(value), 
-                    $"{paramName} 必须在 {min} 到 {max} 之间");
+                    string.Format("{0} 必须在 {1} 到 {2} 之间", paramName, min, max));
         }
 
         /// <summary>
@@ -142,7 +140,7 @@ namespace FastData.Model
         public static void ValidateGuid(Guid? value, string paramName)
         {
             if (value == null || value == Guid.Empty)
-                throw new ArgumentException($"{paramName} 必须提供有效的 GUID", nameof(value));
+                throw new ArgumentException(string.Format("{0} 必须提供有效的 GUID", paramName), nameof(value));
         }
 
         /// <summary>
@@ -151,7 +149,7 @@ namespace FastData.Model
         public static void ValidateDateRange(DateTime? startDate, DateTime? endDate, string paramName)
         {
             if (startDate.HasValue && endDate.HasValue && startDate > endDate)
-                throw new ArgumentException($"{paramName} 开始时间不能晚于结束时间");
+                throw new ArgumentException(string.Format("{0} 开始时间不能晚于结束时间", paramName));
         }
     }
 }

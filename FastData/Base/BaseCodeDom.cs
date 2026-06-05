@@ -11,10 +11,20 @@ namespace FastData.Base
 {
     /// <summary>
     /// 动态解析条件
+    /// <para>
+    /// 将 C# 布尔表达式编译为动态程序集，通过反射调用 OutPut 方法获取执行结果。
+    /// 编译失败时记录错误日志并返回 false。
+    /// </para>
     /// </summary>
     internal static class BaseCodeDom
     {
-        public static bool GetResult(string code,string references=null)
+        /// <summary>
+        /// 动态编译 C# 表达式代码并获取布尔结果
+        /// </summary>
+        /// <param name="code">要编译的 C# 布尔表达式代码</param>
+        /// <param name="references">需要引用的程序集名称（不含扩展名），为 null 时不额外引用</param>
+        /// <returns>表达式执行结果；编译失败时返回 false 并记录错误日志</returns>
+        public static bool GetResult(string code, string references = null)
         {
             //动态编译
             var compiler = new CSharpCodeProvider();
@@ -59,10 +69,11 @@ namespace FastData.Base
         }
 
         /// <summary>
-        /// 源代码
+        /// 生成动态编译的源代码模板
         /// </summary>
-        /// <param name="code"></param>
-        /// <returns></returns>
+        /// <param name="code">C# 布尔表达式代码</param>
+        /// <param name="references">需要引用的命名空间，为 null 时跳过</param>
+        /// <returns>完整的 C# 源代码字符串</returns>
         private static string GetCode(string code, string references = null)
         {
             var sb = new StringBuilder();

@@ -1048,17 +1048,17 @@ namespace FastData.Tests
 
         public string GetTableName(ShardingConfig config, object entity)
         {
-            return $"{config.BaseTableName}_test";
+            return string.Format("{0}_test", config.BaseTableName);
         }
 
         public List<string> GetTableNames(ShardingConfig config, Dictionary<string, object> queryParams)
         {
-            return new List<string> { $"{config.BaseTableName}_test" };
+            return new List<string> { string.Format("{0}_test", config.BaseTableName) };
         }
 
         public List<string> GetAllTableNames(ShardingConfig config)
         {
-            return new List<string> { $"{config.BaseTableName}_test" };
+            return new List<string> { string.Format("{0}_test", config.BaseTableName) };
         }
 
         public bool CreateTable(ShardingConfig config, string tableName)

@@ -75,7 +75,7 @@ namespace FastData.DevTools
             }
             catch (Exception ex)
             {
-                throw new Exception($"CSV导入失败: {ex.Message}", ex);
+                throw new Exception(string.Format("CSV导入失败: {0}", ex.Message), ex);
             }
 
             return (successCount, failCount);
@@ -118,7 +118,7 @@ namespace FastData.DevTools
             }
             catch (Exception ex)
             {
-                throw new Exception($"CSV导出失败: {ex.Message}", ex);
+                throw new Exception(string.Format("CSV导出失败: {0}", ex.Message), ex);
             }
         }
 
@@ -236,7 +236,7 @@ namespace FastData.DevTools
             }
             catch (Exception ex)
             {
-                throw new Exception($"JSON导入失败: {ex.Message}", ex);
+                throw new Exception(string.Format("JSON导入失败: {0}", ex.Message), ex);
             }
         }
 
@@ -266,7 +266,7 @@ namespace FastData.DevTools
             }
             catch (Exception ex)
             {
-                throw new Exception($"JSON导出失败: {ex.Message}", ex);
+                throw new Exception(string.Format("JSON导出失败: {0}", ex.Message), ex);
             }
         }
     }
@@ -313,7 +313,7 @@ namespace FastData.DevTools
             }
             catch (Exception ex)
             {
-                throw new Exception($"Excel导出失败: {ex.Message}", ex);
+                throw new Exception(string.Format("Excel导出失败: {0}", ex.Message), ex);
             }
         }
     }

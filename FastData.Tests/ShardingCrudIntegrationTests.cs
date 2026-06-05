@@ -340,7 +340,7 @@ namespace FastData.Tests
             // 验证数据分布到至少2个不同的分片（理想情况下应分布到多个分片）
             var distinctShards = shardTableMap.Values.Distinct().ToList();
             Assert.True(distinctShards.Count >= 2,
-                $"订单应分布到至少2个分片，但实际只分布到 {distinctShards.Count} 个分片");
+                string.Format("订单应分布到至少2个分片，但实际只分布到 {0} 个分片", distinctShards.Count));
         }
 
         #endregion

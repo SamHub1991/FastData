@@ -7,7 +7,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <LangVersion>latest</LangVersion>
-    <NoWarn>CS1591;CS1570;CS1572;CS1573;CS1711;CS1712</NoWarn>
+    <NoWarn>CS1570;CS1572;CS1573;CS1711;CS1712</NoWarn>
   </PropertyGroup>
 
   <!-- 允许测试项目访问内部成员 -->
@@ -28,6 +28,14 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
+    <!-- 覆盖传递依赖的包版本，确保 net452 兼容 -->
+    <PackageReference Include="RestSharp">
+      <VersionOverride>106.15.0</VersionOverride>
+    </PackageReference>
+    <PackageReference Include="NPOI">
+      <VersionOverride>2.5.6</VersionOverride>
+    </PackageReference>
+    <PackageReference Include="System.ValueTuple" />
   </ItemGroup>
 
   <!-- .NET 8/10 专用包引用 -->
@@ -51,9 +59,14 @@
     <Compile Include="DevTools\PerformanceProfiler.cs" />
   </ItemGroup>
 
-  <!-- 排除 net452 的 Queue 目录 -->
+  <!-- 排除 net452 不支持的文件（使用 .NET Core+ 专用 API） -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net452'">
     <Compile Remove="Queue\**" />
+    <Compile Remove="Base\EnhancedDbLog.cs" />
+    <Compile Remove="Config\FastDataDependencyInjection.cs" />
+    <Compile Remove="Core\ResilientWriteExecutor.cs" />
+    <Compile Remove="Extensions\FastDataExtensions.cs" />
+    <Compile Remove="Read\FastReadAsync.cs" />
   </ItemGroup>
 
 </Project>

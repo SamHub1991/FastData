@@ -4,25 +4,22 @@ using System.Data.Common;
 namespace FastData.Core.Base
 {
     /// <summary>
-    /// 标签：2015.9.6，魏中针
-    /// 说明：parameter操作共用类    
+    /// 数据库参数合并工具类
     /// </summary>
     internal static class Parameter
     {
-        #region DbParameter合并
         /// <summary>
-        /// DbParameter合并
+        /// 合并两个 DbParameter 集合
         /// </summary>
-        /// <param name="param1"></param>
-        /// <param name="param2"></param>
-        /// <returns></returns>
-        public static List<DbParameter> ParamMerge(List<DbParameter> param1, List<DbParameter> param2)
+        /// <param name="target">目标参数集合（结果将追加到此集合）</param>
+        /// <param name="source">源参数集合</param>
+        /// <returns>合并后的参数集合</returns>
+        public static List<DbParameter> ParamMerge(List<DbParameter> target, List<DbParameter> source)
         {
-            if (param2.Count != 0)
-                 param1.AddRange(param2);
+            if (source != null && source.Count > 0)
+                target.AddRange(source);
 
-            return param1;
+            return target;
         }
-        #endregion
     }
 }

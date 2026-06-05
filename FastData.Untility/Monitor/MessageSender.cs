@@ -48,7 +48,7 @@ namespace FastUntility.Monitor
             }
             catch (Exception ex)
             {
-                BaseLog.SaveLog($"发送私聊消息失败: {ex.Message}", "MessageSender_Error");
+                BaseLog.SaveLog(string.Format("发送私聊消息失败: {0}", ex.Message), "MessageSender_Error");
             }
         }
 
@@ -74,7 +74,7 @@ namespace FastUntility.Monitor
             }
             catch (Exception ex)
             {
-                BaseLog.SaveLog($"发送群消息失败: {ex.Message}", "MessageSender_Error");
+                BaseLog.SaveLog(string.Format("发送群消息失败: {0}", ex.Message), "MessageSender_Error");
             }
         }
 
@@ -85,7 +85,7 @@ namespace FastUntility.Monitor
         /// <param name="payload">请求负载</param>
         private void SendRequest(string action, object payload)
         {
-            var url = $"{_config.ApiUrl.TrimEnd('/')}/{action}";
+            var url = string.Format("{0}/{1}", _config.ApiUrl.TrimEnd('/'), action);
             var json = JsonSerialize(payload);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
@@ -97,7 +97,7 @@ namespace FastUntility.Monitor
 
             if (!string.IsNullOrEmpty(_config.BotToken))
             {
-                request.Headers.Add("Authorization", $"Bearer {_config.BotToken}");
+                request.Headers.Add("Authorization", string.Format("Bearer {0}", _config.BotToken));
             }
 
             var response = _httpClient.SendAsync(request).GetAwaiter().GetResult();
@@ -132,12 +132,12 @@ namespace FastUntility.Monitor
     {
         public void SendPrivateMessage(string qqNumber, string message)
         {
-            Console.WriteLine($"[QQ私聊] 发送到 {qqNumber}: {message}");
+            Console.WriteLine(string.Format("[QQ私聊] 发送到 {0}: {1}", qqNumber, message));
         }
 
         public void SendGroupMessage(string groupId, string message)
         {
-            Console.WriteLine($"[QQ群聊] 发送到群 {groupId}: {message}");
+            Console.WriteLine(string.Format("[QQ群聊] 发送到群 {0}: {1}", groupId, message));
         }
     }
 
@@ -216,10 +216,10 @@ namespace FastUntility.Monitor
         private string FormatExceptionMessage(ExceptionInfo exception)
         {
             var sb = new StringBuilder();
-            sb.AppendLine($"[{GetLevelEmoji(exception.Level)}] 系统异常通知");
-            sb.AppendLine($"时间: {exception.Timestamp:yyyy-MM-dd HH:mm:ss}");
-            sb.AppendLine($"来源: {exception.Source ?? "未知"}");
-            sb.AppendLine($"消息: {exception.Message}");
+            sb.AppendLine(string.Format("[{0}] 系统异常通知", GetLevelEmoji(exception.Level)));
+            sb.AppendLine(string.Format("时间: {0:yyyy-MM-dd HH:mm:ss}", exception.Timestamp));
+            sb.AppendLine(string.Format("来源: {0}", exception.Source ?? "未知"));
+            sb.AppendLine(string.Format("消息: {0}", exception.Message));
 
             if (_notifyConfig.SendStackTrace && !string.IsNullOrEmpty(exception.StackTrace))
             {
@@ -227,7 +227,7 @@ namespace FastUntility.Monitor
                 if (stackTrace.Length > _notifyConfig.MaxStackTraceLength)
                     stackTrace = stackTrace.Substring(0, _notifyConfig.MaxStackTraceLength) + "...";
 
-                sb.AppendLine($"堆栈: {stackTrace}");
+                sb.AppendLine(string.Format("堆栈: {0}", stackTrace));
             }
 
             if (exception.AdditionalData.Count > 0)
@@ -235,7 +235,7 @@ namespace FastUntility.Monitor
                 sb.AppendLine("附加信息:");
                 foreach (var kvp in exception.AdditionalData)
                 {
-                    sb.AppendLine($"  {kvp.Key}: {kvp.Value}");
+                    sb.AppendLine(string.Format("  {0}: {1}", kvp.Key, kvp.Value));
                 }
             }
 

@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿using System;
+﻿﻿﻿﻿﻿﻿﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -336,7 +336,7 @@ namespace FastData
             {
                 var deleteProperty = FastData.Config.FastDataOptions.SoftDelete.PropertyName;
                 var property = typeof(T).GetProperty(deleteProperty);
-                if (property == null) throw new Exception($"字段{deleteProperty}不存在");
+                if (property == null) throw new Exception(string.Format("字段{0}不存在", deleteProperty));
 
                 var parameter = Expression.Parameter(typeof(T), "x");
                 var updateField = Expression.Lambda<Func<T, object>>(
@@ -777,12 +777,12 @@ namespace FastData
 
                 if (isDropExists)
                 {
-                    try { db.ExecuteSql($"DROP TABLE [{tableName}]", null, false, false); }
+                    try { db.ExecuteSql(string.Format("DROP TABLE [{0}]", tableName), null, false, false); }
                     catch (Exception dropEx) { DbLog.LogException(true, DataDbType.SqlServer, dropEx, "CodeFirst_DropTable", ""); }
                 }
 
                 db.ExecuteSql(sql, null, false, true);
-                return new WriteReturn { IsSuccess = true, Message = $"Table {tableName} created" };
+                return new WriteReturn { IsSuccess = true, Message = string.Format("Table {0} created", tableName) };
             }
             catch (Exception ex)
             {
@@ -797,16 +797,16 @@ namespace FastData
 
             foreach (var c in cols)
             {
-                var def = $"[{c.Name}] {c.Type}";
+                var def = string.Format("[{0}] {1}", c.Name, c.Type);
                 if (c.IsPrimary && c.IsIdentity) def += " IDENTITY(1,1)";
                 if (!c.IsNull || c.IsPrimary) def += " NOT NULL";
                 defs.Add(def);
             }
 
             var pks = cols.Where(x => x.IsPrimary).Select(x => x.Name).ToList();
-            if (pks.Count > 0) defs.Add($"PRIMARY KEY ({string.Join(", ", pks.Select(n => $"[{n}]"))})");
+            if (pks.Count > 0) defs.Add(string.Format("PRIMARY KEY ({0})", string.Join(", ", pks.Select(n => string.Format("[{0}]", n)))));
 
-            return $"CREATE TABLE [{tableName}] ({string.Join(", ", defs)})";
+            return string.Format("CREATE TABLE [{0}] ({1})", tableName, string.Join(", ", defs));
         }
 
         private static List<(string Name, string Type, bool IsPrimary, bool IsIdentity, bool IsNull)> GetModelColumns<T>() where T : class, new()
@@ -824,7 +824,7 @@ namespace FastData
 
         private static string GetClrSqlType(Type t, int len)
         {
-            if (t == typeof(string)) return len > 0 ? $"VARCHAR({len})" : "VARCHAR(MAX)";
+            if (t == typeof(string)) return len > 0 ? string.Format("VARCHAR({0})", len) : "VARCHAR(MAX)";
             if (t == typeof(int)) return "INT";
             if (t == typeof(long)) return "BIGINT";
             if (t == typeof(decimal) || t == typeof(double)) return "DECIMAL(18,2)";

@@ -34,7 +34,7 @@ namespace FastData.DevTools
 
         public SqlQueryBuilder Join(string joinTable, string onCondition, string joinType = "INNER")
         {
-            _joins.Add($"{joinType} JOIN {joinTable} ON {onCondition}");
+            _joins.Add(string.Format("{0} JOIN {1} ON {2}", joinType, joinTable, onCondition));
             return this;
         }
 
@@ -60,15 +60,15 @@ namespace FastData.DevTools
 
         public SqlQueryBuilder WhereIn(string column, IEnumerable<object> values)
         {
-            var placeholders = string.Join(", ", values.Select((_, i) => $"@param{_parameters.Count + i}"));
-            _wheres.Add($"{column} IN ({placeholders})");
+            var placeholders = string.Join(", ", values.Select((_, i) => string.Format("@param{0}", _parameters.Count + i)));
+            _wheres.Add(string.Format("{0} IN ({1})", column, placeholders));
             _parameters.AddRange(values);
             return this;
         }
 
         public SqlQueryBuilder WhereBetween(string column, object start, object end)
         {
-            _wheres.Add($"{column} BETWEEN @param{_parameters.Count} AND @param{_parameters.Count + 1}");
+            _wheres.Add(string.Format("{0} BETWEEN @param{1} AND @param{2}", column, _parameters.Count, _parameters.Count + 1));
             _parameters.Add(start);
             _parameters.Add(end);
             return this;
@@ -76,14 +76,14 @@ namespace FastData.DevTools
 
         public SqlQueryBuilder WhereLike(string column, string pattern)
         {
-            _wheres.Add($"{column} LIKE @param{_parameters.Count}");
+            _wheres.Add(string.Format("{0} LIKE @param{1}", column, _parameters.Count));
             _parameters.Add(pattern);
             return this;
         }
 
         public SqlQueryBuilder WhereRaw(string rawSql)
         {
-            _wheres.Add($"({rawSql})");
+            _wheres.Add(string.Format("({0})", rawSql));
             return this;
         }
 
@@ -95,7 +95,7 @@ namespace FastData.DevTools
 
         public SqlQueryBuilder OrderBy(string column, bool descending = false)
         {
-            _orderBys.Add($"{column} {(descending ? "DESC" : "ASC")}");
+            _orderBys.Add(string.Format("{0} {1}", column, descending ? "DESC" : "ASC"));
             return this;
         }
 
@@ -126,10 +126,10 @@ namespace FastData.DevTools
             var sql = new System.Text.StringBuilder();
 
             // SELECT
-            sql.Append($"SELECT {_select}");
+            sql.Append(string.Format("SELECT {0}", _select));
 
             // FROM
-            sql.Append($" FROM {_from}");
+            sql.Append(string.Format(" FROM {0}", _from));
 
             // JOIN
             if (_joins.Any())
@@ -164,16 +164,16 @@ namespace FastData.DevTools
             {
                 if (_skip.HasValue)
                 {
-                    sql.Append($" LIMIT {_skip.Value}, {_take.Value}");
+                    sql.Append(string.Format(" LIMIT {0}, {1}", _skip.Value, _take.Value));
                 }
                 else
                 {
-                    sql.Append($" LIMIT {_take.Value}");
+                    sql.Append(string.Format(" LIMIT {0}", _take.Value));
                 }
             }
             else if (_skip.HasValue)
             {
-                sql.Append($" LIMIT {_skip.Value}, 18446744073709551615");
+                sql.Append(string.Format(" LIMIT {0}, 18446744073709551615", _skip.Value));
             }
 
             return sql.ToString();
@@ -234,9 +234,9 @@ namespace FastData.DevTools
             }
 
             var columns = string.Join(", ", _columns);
-            var placeholders = string.Join(", ", _columns.Select((c, i) => $"@param{i}"));
+            var placeholders = string.Join(", ", _columns.Select((c, i) => string.Format("@param{0}", i)));
 
-            return $"INSERT INTO {_tableName} ({columns}) VALUES ({placeholders})";
+            return string.Format("INSERT INTO {0} ({1}) VALUES ({2})", _tableName, columns, placeholders);
         }
 
         public List<object> GetParameters()
@@ -305,14 +305,14 @@ namespace FastData.DevTools
 
             var sql = new System.Text.StringBuilder();
 
-            sql.Append($"UPDATE {_tableName} SET ");
+            sql.Append(string.Format("UPDATE {0} SET ", _tableName));
 
             var setClauses = new List<string>();
             var paramIndex = 0;
 
             foreach (var kvp in _setValues)
             {
-                setClauses.Add($"{kvp.Key} = @param{paramIndex}");
+                setClauses.Add(string.Format("{0} = @param{1}", kvp.Key, paramIndex));
                 _parameters.Add(kvp.Value);
                 paramIndex++;
             }
@@ -383,7 +383,7 @@ namespace FastData.DevTools
             }
 
             var sql = new System.Text.StringBuilder();
-            sql.Append($"DELETE FROM {_tableName}");
+            sql.Append(string.Format("DELETE FROM {0}", _tableName));
 
             if (_wheres.Any())
             {

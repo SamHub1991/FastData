@@ -1,193 +1,200 @@
-﻿using System.Web;
+using System.Web;
 
 namespace FastUntility.Cache
 {
     /// <summary>
-    /// 标签：2015.7.13，魏中针
-    /// 说明：session 操作
+    /// Session 操作类
+    /// 提供 Session 的增删查功能
     /// </summary>
     public static class BaseSession
     {
-        #region 添加Session
         /// <summary>
-        /// 添加Session
+        /// 添加 Session 数据
         /// </summary>
-        /// <param name="SessionName">Session对象名称</param>
-        /// <param name="Value">Session值</param>
-        /// <param name="iExpires">调动有效期（分钟）</param>
-        /// <returns>是否成功</returns>
-        public static bool Add(string SessionName, object Value, int iExpires)
+        /// <param name="sessionName">Session 键名</param>
+        /// <param name="value">Session 值</param>
+        /// <param name="expiresMinutes">过期时间（分钟）</param>
+        /// <returns>添加是否成功</returns>
+        public static bool Add(string sessionName, object value, int expiresMinutes)
         {
-            if (string.IsNullOrEmpty(SessionName))
+            if (string.IsNullOrEmpty(sessionName))
                 return false;
-            
-            HttpContext.Current.Session[SessionName] = Value;
-            HttpContext.Current.Session.Timeout = iExpires;
+
+            var session = HttpContext.Current.Session;
+            if (session == null)
+                return false;
+
+            session[sessionName] = value;
+            session.Timeout = expiresMinutes;
             return true;
         }
-        #endregion
-        
-        #region 添加Session
+
         /// <summary>
-        /// 添加Session
+        /// 添加 Session 数据（支持 HttpContextBase）
         /// </summary>
-        /// <param name="context">HTTP上下文</param>
-        /// <param name="SessionName">Session对象名称</param>
-        /// <param name="Value">Session值</param>
-        /// <param name="iExpires">调动有效期（分钟）</param>
-        /// <returns>是否成功</returns>
-        public static bool AddAsync(HttpContextBase context,string SessionName, object Value, int iExpires)
+        /// <param name="context">HTTP 上下文</param>
+        /// <param name="sessionName">Session 键名</param>
+        /// <param name="value">Session 值</param>
+        /// <param name="expiresMinutes">过期时间（分钟）</param>
+        /// <returns>添加是否成功</returns>
+        public static bool AddAsync(HttpContextBase context, string sessionName, object value, int expiresMinutes)
         {
-            if (string.IsNullOrEmpty(SessionName))
+            if (context == null || string.IsNullOrEmpty(sessionName))
                 return false;
-            
-            context.Session[SessionName] = Value;
-            context.Session.Timeout = iExpires;
+
+            var session = context.Session;
+            if (session == null)
+                return false;
+
+            session[sessionName] = value;
+            session.Timeout = expiresMinutes;
             return true;
         }
-        #endregion
 
-        #region 添加Session组
         /// <summary>
-        /// 添加Session组
+        /// 添加 Session 数组数据
         /// </summary>
-        /// <param name="SessionName">Session对象名称</param>
-        /// <param name="Values">Session值数组</param>
-        /// <param name="iExpires">调动有效期（分钟）</param>
-        /// <returns>是否成功</returns>
-        public static bool Adds(string SessionName, object[] Values, int iExpires)
+        /// <param name="sessionName">Session 键名</param>
+        /// <param name="values">Session 值数组</param>
+        /// <param name="expiresMinutes">过期时间（分钟）</param>
+        /// <returns>添加是否成功</returns>
+        public static bool Adds(string sessionName, object[] values, int expiresMinutes)
         {
-            if (string.IsNullOrEmpty(SessionName))
+            if (string.IsNullOrEmpty(sessionName) || values == null)
                 return false;
-            
-            HttpContext.Current.Session[SessionName] = Values;
-            HttpContext.Current.Session.Timeout = iExpires;
+
+            var session = HttpContext.Current.Session;
+            if (session == null)
+                return false;
+
+            session[sessionName] = values;
+            session.Timeout = expiresMinutes;
             return true;
         }
-        #endregion
 
-        #region 添加Session组
         /// <summary>
-        /// 添加Session组
+        /// 添加 Session 数组数据（支持 HttpContextBase）
         /// </summary>
-        /// <param name="strSessionName">Session对象名称</param>
-        /// <param name="strValues">Session值数组</param>
-        /// <param name="iExpires">调动有效期（分钟）</param>
-        public static bool AddsAsync(HttpContextBase context,string SessionName, object[] Values, int iExpires)
+        /// <param name="context">HTTP 上下文</param>
+        /// <param name="sessionName">Session 键名</param>
+        /// <param name="values">Session 值数组</param>
+        /// <param name="expiresMinutes">过期时间（分钟）</param>
+        /// <returns>添加是否成功</returns>
+        public static bool AddsAsync(HttpContextBase context, string sessionName, object[] values, int expiresMinutes)
         {
-            if (string.IsNullOrEmpty(SessionName))
+            if (context == null || string.IsNullOrEmpty(sessionName) || values == null)
                 return false;
-            
-            context.Session[SessionName] = Values;
-            context.Session.Timeout = iExpires;
+
+            var session = context.Session;
+            if (session == null)
+                return false;
+
+            session[sessionName] = values;
+            session.Timeout = expiresMinutes;
             return true;
         }
-        #endregion
 
-        #region 读取某个Session对象值
         /// <summary>
-        /// 读取某个Session对象值
+        /// 获取 Session 值
         /// </summary>
-        /// <param name="strSessionName">Session对象名称</param>
-        /// <returns>Session对象值</returns>
-        public static string Get(string SessionName)
+        /// <param name="sessionName">Session 键名</param>
+        /// <returns>Session 值的字符串表示，不存在时返回 null</returns>
+        public static string Get(string sessionName)
         {
-            if (HttpContext.Current.Session[SessionName] == null)
-            {
+            if (string.IsNullOrEmpty(sessionName))
                 return null;
-            }
-            else
-            {
-                return HttpContext.Current.Session[SessionName].ToString();
-            }
-        }
-        #endregion
 
-        #region 读取某个Session对象值
-        /// <summary>
-        /// 读取某个Session对象值
-        /// </summary>
-        /// <param name="strSessionName">Session对象名称</param>
-        /// <returns>Session对象值</returns>
-        public static string GetAsync(HttpContextBase context,string SessionName)
-        {
-            if (context.Session[SessionName] == null)
-            {
+            var session = HttpContext.Current.Session;
+            if (session == null)
                 return null;
-            }
-            else
-            {
-                return context.Session[SessionName].ToString();
-            }
-        }
-        #endregion
 
-        #region 读取某个Session对象值数组
-        /// <summary>
-        /// 读取某个Session对象值数组
-        /// </summary>
-        /// <param name="strSessionName">Session对象名称</param>
-        /// <returns>Session对象值数组</returns>
-        public static string[] Gets(string SessionName)
-        {
-            if (string.IsNullOrEmpty(SessionName))
-                return null;
-            
-            if (HttpContext.Current.Session[SessionName] == null)
-            {
-                return null;
-            }
-            else
-            {
-                return (string[])HttpContext.Current.Session[SessionName];
-            }
+            var value = session[sessionName];
+            return value == null ? null : value.ToString();
         }
-        #endregion
-        
-        #region 读取某个Session对象值数组
-        /// <summary>
-        /// 读取某个Session对象值数组
-        /// </summary>
-        /// <param name="strSessionName">Session对象名称</param>
-        /// <returns>Session对象值数组</returns>
-        public static string[] Gets(HttpContext context,string SessionName)
-        {
-            if (string.IsNullOrEmpty(SessionName))
-                return null;
-            
-            if (context.Session[SessionName] == null)
-            {
-                return null;
-            }
-            else
-            {
-                return (string[])context.Session[SessionName];
-            }
-        }
-        #endregion
 
-        #region 删除某个Session对象
         /// <summary>
-        /// 删除某个Session对象
+        /// 获取 Session 值（支持 HttpContextBase）
         /// </summary>
-        /// <param name="strSessionName">Session对象名称</param>
-        public static void Del(string SessionName)
+        /// <param name="context">HTTP 上下文</param>
+        /// <param name="sessionName">Session 键名</param>
+        /// <returns>Session 值的字符串表示，不存在时返回 null</returns>
+        public static string GetAsync(HttpContextBase context, string sessionName)
         {
-            if (!string.IsNullOrEmpty(SessionName))
-                HttpContext.Current.Session[SessionName] = null;
-        }
-        #endregion
+            if (context == null || string.IsNullOrEmpty(sessionName))
+                return null;
 
-        #region 删除某个Session对象
-        /// <summary>
-        /// 删除某个Session对象
-        /// </summary>
-        /// <param name="strSessionName">Session对象名称</param>
-        public static void DelAsync(HttpContextBase context, string SessionName)
-        {
-            if (!string.IsNullOrEmpty(SessionName))
-                context.Session[SessionName] = null;
+            var session = context.Session;
+            if (session == null)
+                return null;
+
+            var value = session[sessionName];
+            return value == null ? null : value.ToString();
         }
-        #endregion
+
+        /// <summary>
+        /// 获取 Session 数组值
+        /// </summary>
+        /// <param name="sessionName">Session 键名</param>
+        /// <returns>Session 数组值，不存在或类型不匹配时返回 null</returns>
+        public static string[] Gets(string sessionName)
+        {
+            if (string.IsNullOrEmpty(sessionName))
+                return null;
+
+            var session = HttpContext.Current.Session;
+            if (session == null)
+                return null;
+
+            var value = session[sessionName];
+            return value as string[];
+        }
+
+        /// <summary>
+        /// 获取 Session 数组值（支持 HttpContext 参数）
+        /// </summary>
+        /// <param name="context">HTTP 上下文</param>
+        /// <param name="sessionName">Session 键名</param>
+        /// <returns>Session 数组值，不存在或类型不匹配时返回 null</returns>
+        public static string[] GetsAsync(HttpContext context, string sessionName)
+        {
+            if (context == null || string.IsNullOrEmpty(sessionName))
+                return null;
+
+            var session = context.Session;
+            if (session == null)
+                return null;
+
+            var value = session[sessionName];
+            return value as string[];
+        }
+
+        /// <summary>
+        /// 删除指定 Session
+        /// </summary>
+        /// <param name="sessionName">Session 键名</param>
+        public static void Del(string sessionName)
+        {
+            if (string.IsNullOrEmpty(sessionName))
+                return;
+
+            var session = HttpContext.Current.Session;
+            if (session != null)
+                session[sessionName] = null;
+        }
+
+        /// <summary>
+        /// 删除指定 Session（支持 HttpContextBase）
+        /// </summary>
+        /// <param name="context">HTTP 上下文</param>
+        /// <param name="sessionName">Session 键名</param>
+        public static void DelAsync(HttpContextBase context, string sessionName)
+        {
+            if (context == null || string.IsNullOrEmpty(sessionName))
+                return;
+
+            var session = context.Session;
+            if (session != null)
+                session[sessionName] = null;
+        }
     }
 }

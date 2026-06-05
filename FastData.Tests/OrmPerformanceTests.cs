@@ -138,8 +138,8 @@ namespace FastData.Tests
         {
             return new PerfUser
             {
-                UserName = $"perf_{tag}",
-                Email = $"perf_{tag}@benchmark.com",
+                UserName = string.Format("perf_{0}", tag),
+                Email = string.Format("perf_{0}@benchmark.com", tag),
                 Age = 30,
                 IsActive = true,
                 CreatedAt = DateTime.Now
@@ -153,8 +153,8 @@ namespace FastData.Tests
             {
                 list.Add(new PerfUser
                 {
-                    UserName = $"perf_{prefix}_{i}",
-                    Email = $"perf_{prefix}_{i}@benchmark.com",
+                    UserName = string.Format("perf_{0}_{1}", prefix, i),
+                    Email = string.Format("perf_{0}_{1}@benchmark.com", prefix, i),
                     Age = 20 + (i % 40),
                     IsActive = i % 3 != 0,
                     CreatedAt = DateTime.Now.AddDays(-i)
@@ -171,7 +171,7 @@ namespace FastData.Tests
         {
             if (!_dbAvailable)
             {
-                _output.WriteLine($"SKIP: {operationName} - database unavailable");
+                _output.WriteLine(string.Format("SKIP: {0} - database unavailable", operationName));
                 return 0;
             }
 
@@ -189,7 +189,7 @@ namespace FastData.Tests
             }
 
             var metric = PerformanceProfiler.GetMetric(operationName);
-            _output.WriteLine($"{operationName}: Avg={metric.AverageExecutionTime:F2}ms, Min={metric.MinExecutionTime}ms, Max={metric.MaxExecutionTime}ms, Count={metric.Count}");
+            _output.WriteLine(string.Format("{0}: Avg={1:F2}ms, Min={2}ms, Max={3}ms, Count={4}", operationName, metric.AverageExecutionTime, metric.MinExecutionTime, metric.MaxExecutionTime, metric.Count));
 
             return metric.AverageExecutionTime;
         }
@@ -199,12 +199,12 @@ namespace FastData.Tests
         [Fact]
         public void SingleAdd_Performance_ShouldBeFast()
         {
-            var tag = $"add_{Guid.NewGuid():N}".Substring(0, 20);
+            var tag = string.Format("add_{0:N}", Guid.NewGuid()).Substring(0, 20);
             var user = CreatePerfUser(tag);
 
             MeasurePerformance("SingleAdd", () =>
             {
-                user.UserName = $"perf_{Guid.NewGuid():N}".Substring(0, 20);
+                user.UserName = string.Format("perf_{0:N}", Guid.NewGuid()).Substring(0, 20);
                 FastWrite.Add(user, key: _key);
             });
         }
@@ -212,7 +212,7 @@ namespace FastData.Tests
         [Fact]
         public void SingleQuery_Performance_ShouldBeFast()
         {
-            var tag = $"query_{Guid.NewGuid():N}".Substring(0, 20);
+            var tag = string.Format("query_{0:N}", Guid.NewGuid()).Substring(0, 20);
             var user = CreatePerfUser(tag);
             FastWrite.Add(user, key: _key);
 
@@ -226,7 +226,7 @@ namespace FastData.Tests
         [Fact]
         public void SingleUpdate_Performance_ShouldBeFast()
         {
-            var tag = $"update_{Guid.NewGuid():N}".Substring(0, 20);
+            var tag = string.Format("update_{0:N}", Guid.NewGuid()).Substring(0, 20);
             var user = CreatePerfUser(tag);
             FastWrite.Add(user, key: _key);
 
@@ -244,7 +244,7 @@ namespace FastData.Tests
         {
             MeasurePerformance("SingleDelete", () =>
             {
-                var tag = $"del_{Guid.NewGuid():N}".Substring(0, 20);
+                var tag = string.Format("del_{0:N}", Guid.NewGuid()).Substring(0, 20);
                 var user = CreatePerfUser(tag);
                 FastWrite.Add(user, key: _key);
                 FastWrite.Delete<PerfUser>(u => u.UserName == user.UserName, key: _key);
@@ -258,11 +258,11 @@ namespace FastData.Tests
         [Fact]
         public void BatchAdd_Performance_ShouldBeEfficient()
         {
-            var prefix = $"batch_{Guid.NewGuid():N}".Substring(0, 10);
+            var prefix = string.Format("batch_{0:N}", Guid.NewGuid()).Substring(0, 10);
 
             MeasurePerformance("BatchAdd", () =>
             {
-                var users = CreatePerfUsers(BatchSize, $"{prefix}_{Guid.NewGuid():N}".Substring(0, 15));
+                var users = CreatePerfUsers(BatchSize, string.Format("{0}_{1:N}", prefix, Guid.NewGuid()).Substring(0, 15));
                 FastWrite.AddList(users, key: _key);
             });
         }
@@ -270,13 +270,13 @@ namespace FastData.Tests
         [Fact]
         public void BatchQuery_Performance_ShouldBeEfficient()
         {
-            var prefix = $"bq_{Guid.NewGuid():N}".Substring(0, 10);
+            var prefix = string.Format("bq_{0:N}", Guid.NewGuid()).Substring(0, 10);
             var users = CreatePerfUsers(BatchSize, prefix);
             FastWrite.AddList(users, key: _key);
 
             MeasurePerformance("BatchQuery", () =>
             {
-                FastRead.Query<PerfUser>(u => u.UserName.StartsWith($"perf_{prefix}"), key: _key)
+                FastRead.Query<PerfUser>(u => u.UserName.StartsWith(string.Format("perf_{0}", prefix)), key: _key)
                     .ToList<PerfUser>();
             });
         }
@@ -294,7 +294,7 @@ namespace FastData.Tests
                 return;
             }
 
-            var prefix = $"qp_{Guid.NewGuid():N}".Substring(0, 10);
+            var prefix = string.Format("qp_{0:N}", Guid.NewGuid()).Substring(0, 10);
             var users = CreatePerfUsers(BatchSize, prefix);
             FastWrite.AddList(users, key: _key);
 
@@ -330,20 +330,20 @@ namespace FastData.Tests
 
             MeasurePerformance("Query_ToItem", () =>
             {
-                FastRead.Query<PerfUser>(u => u.UserName.StartsWith($"perf_{prefix}"), key: _key)
+                FastRead.Query<PerfUser>(u => u.UserName.StartsWith(string.Format("perf_{0}", prefix)), key: _key)
                     .ToItem<PerfUser>();
             });
 
             var report = PerformanceProfiler.GenerateReport();
-            _output.WriteLine($"--- 查询模式性能对比 ---");
-            _output.WriteLine($"总操作次数: {report.TotalOperations}");
-            _output.WriteLine($"平均耗时: {report.AverageExecutionTime:F2}ms");
-            _output.WriteLine($"最慢操作: {report.SlowestOperation?.Name} ({report.SlowestOperation?.AverageExecutionTime:F2}ms)");
-            _output.WriteLine($"最快操作: {report.FastestOperation?.Name} ({report.FastestOperation?.AverageExecutionTime:F2}ms)");
+            _output.WriteLine("--- 查询模式性能对比 ---");
+            _output.WriteLine(string.Format("总操作次数: {0}", report.TotalOperations));
+            _output.WriteLine(string.Format("平均耗时: {0:F2}ms", report.AverageExecutionTime));
+            _output.WriteLine(string.Format("最慢操作: {0} ({1:F2}ms)", report.SlowestOperation?.Name, report.SlowestOperation?.AverageExecutionTime));
+            _output.WriteLine(string.Format("最快操作: {0} ({1:F2}ms)", report.FastestOperation?.Name, report.FastestOperation?.AverageExecutionTime));
 
             foreach (var op in report.Operations.OrderBy(o => o.AverageExecutionTime))
             {
-                _output.WriteLine($"  {op.Name}: {op.AverageExecutionTime:F2}ms (min={op.MinExecutionTime}ms, max={op.MaxExecutionTime}ms)");
+                _output.WriteLine(string.Format("  {0}: {1:F2}ms (min={2}ms, max={3}ms)", op.Name, op.AverageExecutionTime, op.MinExecutionTime, op.MaxExecutionTime));
             }
         }
 
@@ -362,7 +362,7 @@ namespace FastData.Tests
 
             PerformanceProfiler.ClearMetrics();
 
-            var prefix = $"pc_{Guid.NewGuid():N}".Substring(0, 10);
+            var prefix = string.Format("pc_{0:N}", Guid.NewGuid()).Substring(0, 10);
             var users = CreatePerfUsers(BatchSize, prefix);
             FastWrite.AddList(users, key: _key);
 
@@ -383,9 +383,9 @@ namespace FastData.Tests
             var first = PerformanceProfiler.GetMetric("PropertyCache_FirstCall");
             var subsequent = PerformanceProfiler.GetMetric("PropertyCache_SubsequentCalls");
 
-            _output.WriteLine($"PropertyCache 首次调用: {first.AverageExecutionTime:F2}ms");
-            _output.WriteLine($"PropertyCache 缓存调用: {subsequent.AverageExecutionTime:F2}ms");
-            _output.WriteLine($"缓存加速比: {first.AverageExecutionTime / Math.Max(subsequent.AverageExecutionTime, 0.1):F2}x");
+            _output.WriteLine(string.Format("PropertyCache 首次调用: {0:F2}ms", first.AverageExecutionTime));
+            _output.WriteLine(string.Format("PropertyCache 缓存调用: {0:F2}ms", subsequent.AverageExecutionTime));
+            _output.WriteLine(string.Format("缓存加速比: {0:F2}x", first.AverageExecutionTime / Math.Max(subsequent.AverageExecutionTime, 0.1)));
 
             var comparison = PerformanceProfiler.CompareMetrics("PropertyCache_FirstCall", "PropertyCache_SubsequentCalls");
             _output.WriteLine(comparison.GetSummary());
@@ -419,8 +419,8 @@ namespace FastData.Tests
             }
 
             var metric = PerformanceProfiler.GetMetric("PropertyCache_Reflection");
-            _output.WriteLine($"PropertyCache 反射缓存查询 x{iterations}: Avg={metric.AverageExecutionTime:F4}ms/call");
-            _output.WriteLine($"PropertyCache 总耗时: {metric.TotalExecutionTime}ms ({iterations}次调用)");
+            _output.WriteLine(string.Format("PropertyCache 反射缓存查询 x{0}: Avg={1:F4}ms/call", iterations, metric.AverageExecutionTime));
+            _output.WriteLine(string.Format("PropertyCache 总耗时: {0}ms ({1}次调用)", metric.TotalExecutionTime, iterations));
         }
 
         #endregion
@@ -438,7 +438,7 @@ namespace FastData.Tests
 
             PerformanceProfiler.ClearMetrics();
 
-            var prefix = $"ep_{Guid.NewGuid():N}".Substring(0, 10);
+            var prefix = string.Format("ep_{0:N}", Guid.NewGuid()).Substring(0, 10);
             var users = CreatePerfUsers(BatchSize, prefix);
             FastWrite.AddList(users, key: _key);
 
@@ -464,10 +464,10 @@ namespace FastData.Tests
             });
 
             var report = PerformanceProfiler.GenerateReport();
-            _output.WriteLine($"--- 表达式解析性能对比 ---");
+            _output.WriteLine("--- 表达式解析性能对比 ---");
             foreach (var op in report.Operations.OrderBy(o => o.AverageExecutionTime))
             {
-                _output.WriteLine($"  {op.Name}: {op.AverageExecutionTime:F2}ms");
+                _output.WriteLine(string.Format("  {0}: {1:F2}ms", op.Name, op.AverageExecutionTime));
             }
         }
 
@@ -485,23 +485,23 @@ namespace FastData.Tests
             }
 
             _output.WriteLine("========== FastData ORM 性能基准测试报告 ==========");
-            _output.WriteLine($"测试时间: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
-            _output.WriteLine($"数据库: {_key}");
-            _output.WriteLine($"预热次数: {WarmupIterations}, 测量次数: {MeasurementIterations}, 批量大小: {BatchSize}");
+            _output.WriteLine(string.Format("测试时间: {0:yyyy-MM-dd HH:mm:ss}", DateTime.Now));
+            _output.WriteLine(string.Format("数据库: {0}", _key));
+            _output.WriteLine(string.Format("预热次数: {0}, 测量次数: {1}, 批量大小: {2}", WarmupIterations, MeasurementIterations, BatchSize));
             _output.WriteLine("");
 
             PerformanceProfiler.ClearMetrics();
 
-            var prefix = $"fr_{Guid.NewGuid():N}".Substring(0, 10);
+            var prefix = string.Format("fr_{0:N}", Guid.NewGuid()).Substring(0, 10);
 
             _output.WriteLine("--- 1. 单条 CRUD 性能 ---");
-            var addUser = CreatePerfUser($"{prefix}_add");
+            var addUser = CreatePerfUser(string.Format("{0}_add", prefix));
             var addTime = MeasurePerformance("FullReport_Add", () =>
             {
-                addUser.UserName = $"perf_fr_{Guid.NewGuid():N}".Substring(0, 20);
+                addUser.UserName = string.Format("perf_fr_{0:N}", Guid.NewGuid()).Substring(0, 20);
                 FastWrite.Add(addUser, key: _key);
             });
-            _output.WriteLine($"  Add: {addTime:F2}ms");
+            _output.WriteLine(string.Format("  Add: {0:F2}ms", addTime));
 
             FastWrite.Add(addUser, key: _key);
             var queryTime = MeasurePerformance("FullReport_Query", () =>
@@ -509,7 +509,7 @@ namespace FastData.Tests
                 FastRead.Query<PerfUser>(u => u.UserName == addUser.UserName, key: _key)
                     .ToList<PerfUser>();
             });
-            _output.WriteLine($"  Query: {queryTime:F2}ms");
+            _output.WriteLine(string.Format("  Query: {0:F2}ms", queryTime));
 
             var updateTime = MeasurePerformance("FullReport_Update", () =>
             {
@@ -517,35 +517,35 @@ namespace FastData.Tests
                     u => u.UserName == addUser.UserName,
                     u => new { u.Age }, key: _key);
             });
-            _output.WriteLine($"  Update: {updateTime:F2}ms");
+            _output.WriteLine(string.Format("  Update: {0:F2}ms", updateTime));
 
             var deleteTime = MeasurePerformance("FullReport_Delete", () =>
             {
-                var temp = CreatePerfUser($"{prefix}_del_{Guid.NewGuid():N}".Substring(0, 20));
+                var temp = CreatePerfUser(string.Format("{0}_del_{1:N}", prefix, Guid.NewGuid()).Substring(0, 20));
                 FastWrite.Add(temp, key: _key);
                 FastWrite.Delete<PerfUser>(u => u.UserName == temp.UserName, key: _key);
             });
-            _output.WriteLine($"  Delete: {deleteTime:F2}ms");
+            _output.WriteLine(string.Format("  Delete: {0:F2}ms", deleteTime));
 
             _output.WriteLine("");
 
             _output.WriteLine("--- 2. 批量操作性能 ---");
-            var batchUsers = CreatePerfUsers(BatchSize, $"{prefix}_batch");
+            var batchUsers = CreatePerfUsers(BatchSize, string.Format("{0}_batch", prefix));
             var batchAddTime = MeasurePerformance("FullReport_BatchAdd", () =>
             {
-                var batch = CreatePerfUsers(BatchSize, $"{prefix}_badd_{Guid.NewGuid():N}".Substring(0, 10));
+                var batch = CreatePerfUsers(BatchSize, string.Format("{0}_badd_{1:N}", prefix, Guid.NewGuid()).Substring(0, 10));
                 FastWrite.AddList(batch, key: _key);
             });
-            _output.WriteLine($"  BatchAdd({BatchSize}条): {batchAddTime:F2}ms");
-            _output.WriteLine($"  单条均摊: {batchAddTime / BatchSize:F4}ms");
+            _output.WriteLine(string.Format("  BatchAdd({0}条): {1:F2}ms", BatchSize, batchAddTime));
+            _output.WriteLine(string.Format("  单条均摊: {0:F4}ms", batchAddTime / BatchSize));
 
             FastWrite.AddList(batchUsers, key: _key);
             var batchQueryTime = MeasurePerformance("FullReport_BatchQuery", () =>
             {
-                FastRead.Query<PerfUser>(u => u.UserName.StartsWith($"perf_{prefix}"), key: _key)
+                FastRead.Query<PerfUser>(u => u.UserName.StartsWith(string.Format("perf_{0}", prefix)), key: _key)
                     .ToList<PerfUser>();
             });
-            _output.WriteLine($"  BatchQuery({BatchSize}条): {batchQueryTime:F2}ms");
+            _output.WriteLine(string.Format("  BatchQuery({0}条): {1:F2}ms", BatchSize, batchQueryTime));
 
             _output.WriteLine("");
 
@@ -556,21 +556,21 @@ namespace FastData.Tests
                     .Take(50)
                     .ToList<PerfUser>();
             });
-            _output.WriteLine($"  条件查询: {filterTime:F2}ms");
+            _output.WriteLine(string.Format("  条件查询: {0:F2}ms", filterTime));
 
             var pageTime = MeasurePerformance("FullReport_Page", () =>
             {
                 FastRead.Query<PerfUser>(u => true, key: _key)
                     .ToPage(new FastUntility.Page.PageModel { PageId = 1, PageSize = 20 });
             });
-            _output.WriteLine($"  分页查询: {pageTime:F2}ms");
+            _output.WriteLine(string.Format("  分页查询: {0:F2}ms", pageTime));
 
             var countTime = MeasurePerformance("FullReport_Count", () =>
             {
                 FastRead.Query<PerfUser>(u => true, key: _key)
                     .ToCount();
             });
-            _output.WriteLine($"  计数查询: {countTime:F2}ms");
+            _output.WriteLine(string.Format("  计数查询: {0:F2}ms", countTime));
 
             _output.WriteLine("");
 
@@ -585,7 +585,7 @@ namespace FastData.Tests
             {
                 foreach (var b in bottlenecks)
                 {
-                    _output.WriteLine($"  [{b.Severity}] {b.OperationName}: {b.AverageExecutionTime:F2}ms (max={b.MaxExecutionTime:F2}ms)");
+                    _output.WriteLine(string.Format("  [{0}] {1}: {2:F2}ms (max={3:F2}ms)", b.Severity, b.OperationName, b.AverageExecutionTime, b.MaxExecutionTime));
                 }
             }
             else
@@ -614,7 +614,7 @@ namespace FastData.Tests
                 return;
             }
 
-            var prefix = $"dm_{Guid.NewGuid():N}".Substring(0, 10);
+            var prefix = string.Format("dm_{0:N}", Guid.NewGuid()).Substring(0, 10);
             var users = CreatePerfUsers(BatchSize, prefix);
             FastWrite.AddList(users, key: _key);
 
@@ -625,10 +625,10 @@ namespace FastData.Tests
 
             foreach (var size in sizes)
             {
-                var metricName = $"DataMapping_Size{size}";
+                var metricName = string.Format("DataMapping_Size{0}", size);
                 var avg = MeasurePerformance(metricName, () =>
                 {
-                    FastRead.Query<PerfUser>(u => u.UserName.StartsWith($"perf_{prefix}"), key: _key)
+                    FastRead.Query<PerfUser>(u => u.UserName.StartsWith(string.Format("perf_{0}", prefix)), key: _key)
                         .Take(size)
                         .ToList<PerfUser>();
                 });
@@ -638,13 +638,13 @@ namespace FastData.Tests
             _output.WriteLine("--- 数据映射性能线性分析 ---");
             foreach (var kvp in results.OrderBy(r => r.Key))
             {
-                _output.WriteLine($"  查询 {kvp.Key} 条: {kvp.Value:F2}ms (单条: {kvp.Value / kvp.Key:F4}ms)");
+                _output.WriteLine(string.Format("  查询 {0} 条: {1:F2}ms (单条: {2:F4}ms)", kvp.Key, kvp.Value, kvp.Value / kvp.Key));
             }
 
             if (results.ContainsKey(10) && results.ContainsKey(100))
             {
                 var ratio = results[100] / results[10];
-                _output.WriteLine($"  100条/10条比率: {ratio:F2}x (理想值: 10x)");
+                _output.WriteLine(string.Format("  100条/10条比率: {0:F2}x (理想值: 10x)", ratio));
             }
         }
 

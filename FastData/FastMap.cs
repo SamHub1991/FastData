@@ -88,6 +88,10 @@ namespace FastData
     {
         private static volatile IFastAop _fastAop;
 
+        /// <summary>
+        /// AOP 切面接口
+        /// 用于在 Map 查询和写入操作的前后插入自定义逻辑（如日志、权限校验、缓存处理等）
+        /// </summary>
         public static IFastAop fastAop
         {
             get { return _fastAop; }
@@ -95,9 +99,10 @@ namespace FastData
         }
 
         /// <summary>
-        /// 初始化model成员 1
+        /// 初始化实体属性元数据缓存
+        /// 遍历指定命名空间下的所有实体类型，将属性信息缓存到 Redis 或 Web 缓存中
         /// </summary>
-        /// <param name="nameSpace">命名空间</param>
+        /// <param name="nameSpace">实体类所在的命名空间</param>
         /// <param name="dbFile">配置文件名</param>
         /// <param name="aop">AOP接口</param>
         public static void InstanceProperties(string nameSpace, string dbFile = "db.config", IFastAop aop = null)
@@ -132,9 +137,10 @@ namespace FastData
         }
 
         /// <summary>
-        /// 初始化code first 2
+        /// 初始化 CodeFirst 表结构检查
+        /// 遍历指定命名空间下的实体类型，检查数据库表是否存在，不存在则自动创建
         /// </summary>
-        /// <param name="nameSpace">命名空间</param>
+        /// <param name="nameSpace">实体类所在的命名空间</param>
         /// <param name="dbKey">数据库键</param>
         /// <param name="dbFile">配置文件名</param>
         /// <param name="aop">AOP接口</param>
@@ -163,7 +169,15 @@ namespace FastData
             }
         }
 
-        public static void InstanceMapResource(string dbKey = null, string dbFile = "db.config", string mapFile = "SqlMap.config", IFastAop aop =null)
+        /// <summary>
+        /// 从嵌入资源加载 XML 映射文件
+        /// 与 InstanceMap 的区别在于：从程序集嵌入资源（而非文件系统）读取 SQL Map 配置文件
+        /// </summary>
+        /// <param name="dbKey">数据库键</param>
+        /// <param name="dbFile">配置文件名</param>
+        /// <param name="mapFile">Map配置文件名</param>
+        /// <param name="aop">AOP接口</param>
+        public static void InstanceMapResource(string dbKey = null, string dbFile = "db.config", string mapFile = "SqlMap.config", IFastAop aop = null)
         {
             fastAop = aop;
             var projectName = FastDb.GetProjectName();
@@ -236,7 +250,8 @@ namespace FastData
         }
 
         /// <summary>
-        /// 初始化map 3
+        /// 初始化 XML 映射文件
+        /// 从文件系统加载 SQL Map 配置，解析所有 XML 映射文件并缓存 SQL 语句
         /// </summary>
         /// <param name="dbKey">数据库键</param>
         /// <param name="dbFile">配置文件名</param>
@@ -520,11 +535,15 @@ namespace FastData
 
 
         /// <summary>
-        /// 执行分页 
+        /// 执行分页查询（字典格式）
         /// </summary>
-        /// <param name="sql"></param>
-        /// <param name="param"></param>
-        /// <returns></returns>
+        /// <param name="pModel">分页模型</param>
+        /// <param name="sql">SQL 语句</param>
+        /// <param name="param">数据库参数数组</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="key">数据库连接键</param>
+        /// <param name="isOutSql">是否输出 SQL</param>
+        /// <returns>分页查询结果</returns>
         private static PageResult ExecuteSqlPage(PageModel pModel, string sql, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
             var result = new DataReturn();
@@ -623,11 +642,16 @@ namespace FastData
 
 
         /// <summary>
-        /// 执行分页 
+        /// 执行分页查询（实体格式）
         /// </summary>
-        /// <param name="sql"></param>
-        /// <param name="param"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="pModel">分页模型</param>
+        /// <param name="sql">SQL 语句</param>
+        /// <param name="param">数据库参数数组</param>
+        /// <param name="db">数据上下文</param>
+        /// <param name="key">数据库连接键</param>
+        /// <param name="isOutSql">是否输出 SQL</param>
+        /// <returns>分页查询结果</returns>
         private static PageResult<T> ExecuteSqlPage<T>(PageModel pModel, string sql, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
             var result = new DataReturn<T>();
@@ -785,16 +809,32 @@ namespace FastData
             return DbCache.Exists(DataConfig.GetConfig().CacheType, name.ToLower());
         }
 
+        /// <summary>
+        /// 获取 Map 的备注说明
+        /// </summary>
+        /// <param name="name">Map 名称</param>
+        /// <returns>备注内容</returns>
         public static string MapRemark(string name)
         {
             return DbCache.Get(DataConfig.GetConfig().CacheType, string.Format("{0}.remark", name.ToLower()));
         }
 
+        /// <summary>
+        /// 检查 Map 是否启用日志记录
+        /// </summary>
+        /// <param name="name">Map 名称</param>
+        /// <returns>启用日志返回 true</returns>
         public static bool IsMapLog(string name)
         {
             return DbCache.Get(DataConfig.GetConfig().CacheType, string.Format("{0}.log", name.ToLower())).ToStr().ToLower() == "true";
         }
 
+        /// <summary>
+        /// 获取 Map 参数的备注说明
+        /// </summary>
+        /// <param name="name">Map 名称</param>
+        /// <param name="param">参数名称</param>
+        /// <returns>参数备注内容</returns>
         public static string MapParamRemark(string name, string param)
         {
             return DbCache.Get(DataConfig.GetConfig().CacheType, string.Format("{0}.{1}.remark", name.ToLower(), param.ToLower()));

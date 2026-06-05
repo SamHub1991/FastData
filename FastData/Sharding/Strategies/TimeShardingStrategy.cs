@@ -33,7 +33,7 @@ namespace FastData.Sharding.Strategies
             var property = entityType.GetProperty(timeField);
 
             if (property == null)
-                throw new InvalidOperationException($"实体类型 {entityType.Name} 中找不到字段 {timeField}");
+                throw new InvalidOperationException(string.Format("实体类型 {0} 中找不到字段 {1}", entityType.Name, timeField));
 
             var timeValue = (DateTime)property.GetValue(entity);
             return GetTableNameByTime(config, timeValue);
@@ -142,7 +142,7 @@ namespace FastData.Sharding.Strategies
             }
 
             var suffixStr = FormatTimeByGranularity(time, config.TimeConfig.Granularity, suffix);
-            return $"{config.BaseTableName}_{suffixStr}";
+            return string.Format("{0}_{1}", config.BaseTableName, suffixStr);
         }
 
         private string FormatTimeByGranularity(DateTime time, TimeGranularity granularity, string format)
@@ -150,9 +150,9 @@ namespace FastData.Sharding.Strategies
             return granularity switch
             {
                 TimeGranularity.Day => time.ToString("yyyyMMdd"),
-                TimeGranularity.Week => $"{time:yyyy}W{GetWeekOfYear(time):D2}",
+                TimeGranularity.Week => string.Format("{0:yyyy}W{1:D2}", time, GetWeekOfYear(time)),
                 TimeGranularity.Month => time.ToString("yyyyMM"),
-                TimeGranularity.Quarter => $"{time:yyyy}Q{(time.Month - 1) / 3 + 1}",
+                TimeGranularity.Quarter => string.Format("{0:yyyy}Q{1}", time, (time.Month - 1) / 3 + 1),
                 TimeGranularity.Year => time.ToString("yyyy"),
                 _ => time.ToString("yyyyMMdd")
             };

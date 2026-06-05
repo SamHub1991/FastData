@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Data.Common;
 using FastData.Property;
@@ -16,12 +16,13 @@ namespace FastData.Base
     {
         #region to list
         /// <summary>
-        ///  to list
+        /// 将 DataReader 转换为实体对象列表
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="dr"></param>
-        /// <param name="dbType"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">实体类型（需有无参构造函数）</typeparam>
+        /// <param name="dr">数据库读取器</param>
+        /// <param name="config">数据库配置模型（用于获取数据库类型以处理列名大小写）</param>
+        /// <param name="field">要读取的字段名列表，为 null 或空时读取全部字段</param>
+        /// <returns>实体对象列表</returns>
         public static List<T> ToList<T>(DbDataReader dr, ConfigModel config, List<string> field = null) where T : class, new()
         {
             var list = new List<T>();
@@ -66,14 +67,16 @@ namespace FastData.Base
         #endregion
 
         /// <summary>
-        /// set value
+        /// 从 DataReader 读取字段值并设置到实体属性
+        /// 针对 Oracle 的 CLOB/BLOB 类型做特殊处理
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="item"></param>
-        /// <param name="dynSet"></param>
-        /// <param name="dr"></param>
-        /// <param name="info"></param>
-        /// <param name="config"></param>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="item">实体对象</param>
+        /// <param name="dynSet">动态属性设置器</param>
+        /// <param name="dr">数据库读取器</param>
+        /// <param name="info">属性元数据模型</param>
+        /// <param name="config">数据库配置模型</param>
+        /// <returns>设置属性后的实体对象</returns>
         private static T SetValue<T>(T item, Property.DynamicSet<T> dynSet, DbDataReader dr, PropertyModel info, ConfigModel config)
         {
             try

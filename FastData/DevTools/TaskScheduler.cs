@@ -30,7 +30,7 @@ namespace FastData.DevTools
         /// </summary>
         public static string Schedule(string name, Func<Task> action, TimeSpan delay, bool repeat = false)
         {
-            var taskId = $"{name}_{Guid.NewGuid():N}";
+            var taskId = string.Format("{0}_{1:N}", name, Guid.NewGuid());
 
             var cts = new CancellationTokenSource();
             _cancellationTokens[taskId] = cts;
@@ -193,7 +193,7 @@ namespace FastData.DevTools
                 {
                     task.Status = TaskStatus.Failed;
                     task.LastError = ex.Message;
-                    LogAggregator.Exception(ex, $"任务执行失败: {task.Name}", "TaskScheduler");
+                    LogAggregator.Exception(ex, string.Format("任务执行失败: {0}", task.Name), "TaskScheduler");
                 }
             }
         }
@@ -290,7 +290,7 @@ namespace FastData.DevTools
         /// </summary>
         public static string Create(string name, Func<Task> action)
         {
-            var taskId = $"{name}_{Guid.NewGuid():N}";
+            var taskId = string.Format("{0}_{1:N}", name, Guid.NewGuid());
 
             var task = new RunningTask
             {
@@ -327,7 +327,7 @@ namespace FastData.DevTools
                     task.Status = TaskState.Failed;
                     task.CompletedAt = DateTime.Now;
                     task.Error = ex.Message;
-                    LogAggregator.Exception(ex, $"任务执行失败: {task.Name}", "TaskManager");
+                    LogAggregator.Exception(ex, string.Format("任务执行失败: {0}", task.Name), "TaskManager");
                 }
             }
         }

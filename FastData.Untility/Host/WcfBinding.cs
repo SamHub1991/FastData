@@ -1,199 +1,170 @@
-﻿using System;
+using System;
 using System.ServiceModel;
 
 namespace FastUntility.Host
 {
     /// <summary>
-    /// 标签：2015.9.6，魏中针
-    /// 说明：WCF宿主绑定类
+    /// WCF 绑定配置类
+    /// 提供各类 WCF 绑定方式的便捷配置方法
     /// </summary>
     public static class WcfBinding
     {
-        #region WebHttpBinding 模式
         /// <summary>
-        /// 标签：2015.7.13，魏中针
-        /// 说明：WebHttpBinding 模式
+        /// 创建 WebHttpBinding 配置（REST HTTP 模式）
+        /// 适用于通过 HTTP GET/POST/PUT/DELETE 访问的 REST 服务
         /// </summary>
-        /// <returns></returns>
-        public static WebHttpBinding HttpBinding()
+        /// <returns>配置好的 WebHttpBinding 实例</returns>
+        public static WebHttpBinding CreateHttpBinding()
         {
-            var webBinding = new WebHttpBinding();
-            //webBinding.AllowCookies = true;
-            webBinding.TransferMode = TransferMode.Streamed;
-            webBinding.Security.Mode = WebHttpSecurityMode.None;
-            webBinding.ReceiveTimeout = TimeSpan.MaxValue;
-            webBinding.SendTimeout = TimeSpan.MaxValue;
-            webBinding.MaxReceivedMessageSize = long.MaxValue;
-            webBinding.Name = "http";
+            var binding = new WebHttpBinding
+            {
+                TransferMode = TransferMode.Streamed,
+                Security = { Mode = WebHttpSecurityMode.None },
+                ReceiveTimeout = TimeSpan.MaxValue,
+                SendTimeout = TimeSpan.MaxValue,
+                MaxReceivedMessageSize = long.MaxValue,
+                Name = "http"
+            };
 
-            return webBinding;
+            return binding;
         }
-        #endregion
 
-        #region BasicHttpBinding 模式
         /// <summary>
-        /// 标签：2015.7.13，魏中针
-        /// 说明：BasicHttpBinding 模式
+        /// 创建 BasicHttpBinding 配置（基础 SOAP 模式）
+        /// 最简单的绑定类型，通常用于兼容传统 Web Services
         /// </summary>
-        /// <returns></returns>
-        public static BasicHttpBinding BasicBinding()
+        /// <returns>配置好的 BasicHttpBinding 实例</returns>
+        public static BasicHttpBinding CreateBasicBinding()
         {
-            var baseBinding = new BasicHttpBinding();
-            baseBinding.TransferMode = TransferMode.Streamed;
-            baseBinding.ReceiveTimeout = TimeSpan.MaxValue;
-            baseBinding.SendTimeout = TimeSpan.MaxValue;
-            baseBinding.MaxReceivedMessageSize = int.MaxValue;
-            baseBinding.Name = "basic";
+            var binding = new BasicHttpBinding
+            {
+                TransferMode = TransferMode.Streamed,
+                ReceiveTimeout = TimeSpan.MaxValue,
+                SendTimeout = TimeSpan.MaxValue,
+                MaxReceivedMessageSize = int.MaxValue,
+                Name = "basic"
+            };
 
-            return baseBinding;
+            return binding;
         }
-        #endregion
 
-        #region WSHttpBinding 模式
         /// <summary>
-        /// 标签：2015.7.13，魏中针
-        /// 说明：WSHttpBinding 模式
+        /// 创建 WSHttpBinding 配置（增强 SOAP 模式）
+        /// 比 BasicHttpBinding 更安全，适用于非双工服务通讯
         /// </summary>
-        /// <returns></returns>
-        public static WSHttpBinding WsBinding()
+        /// <returns>配置好的 WSHttpBinding 实例</returns>
+        public static WSHttpBinding CreateWsBinding()
         {
-            var WsHttpBinding = new WSHttpBinding();
-            WsHttpBinding.Security.Mode = SecurityMode.None;
-            WsHttpBinding.Name = "ws";
+            var binding = new WSHttpBinding
+            {
+                Security = { Mode = SecurityMode.None },
+                Name = "ws"
+            };
 
-            return WsHttpBinding;
+            return binding;
         }
-        #endregion
 
-        #region WSDualHttpBinding 模式
         /// <summary>
-        /// 标签：2015.7.13，魏中针
-        /// 说明：WSDualHttpBinding 模式
+        /// 创建 WSDualHttpBinding 配置（双工 HTTP 模式）
+        /// 支持双向通道通讯，允许服务端回调客户端
         /// </summary>
-        /// <returns></returns>
-        public static WSDualHttpBinding WsDualBinding()
+        /// <returns>配置好的 WSDualHttpBinding 实例</returns>
+        public static WSDualHttpBinding CreateWsDualBinding()
         {
-            var WsDualHttpBinding = new WSDualHttpBinding();
-            WsDualHttpBinding.Security.Mode = WSDualHttpSecurityMode.None;
-            WsDualHttpBinding.ReceiveTimeout = TimeSpan.MaxValue;
-            WsDualHttpBinding.SendTimeout = TimeSpan.MaxValue;
-            WsDualHttpBinding.MaxReceivedMessageSize = int.MaxValue;
-            WsDualHttpBinding.Name = "wsdual";
+            var binding = new WSDualHttpBinding
+            {
+                Security = { Mode = WSDualHttpSecurityMode.None },
+                ReceiveTimeout = TimeSpan.MaxValue,
+                SendTimeout = TimeSpan.MaxValue,
+                MaxReceivedMessageSize = int.MaxValue,
+                Name = "wsdual"
+            };
 
-            return WsDualHttpBinding;
+            return binding;
         }
-        #endregion
 
-        #region WSFederationHttpBinding 模式
         /// <summary>
-        /// 标签：2015.7.13，魏中针
-        /// 说明：WSFederationHttpBinding 模式
+        /// 创建 WSFederationHttpBinding 配置（联合认证模式）
+        /// 支持 WS-Federation 安全通讯协议
         /// </summary>
-        /// <returns></returns>
-        public static WSFederationHttpBinding WsFederationBinding()
+        /// <returns>配置好的 WSFederationHttpBinding 实例</returns>
+        public static WSFederationHttpBinding CreateWsFederationBinding()
         {
-            var WsFederationBinding = new WSFederationHttpBinding();
-            WsFederationBinding.Security.Mode = WSFederationHttpSecurityMode.None;
-            WsFederationBinding.ReceiveTimeout = TimeSpan.MaxValue;
-            WsFederationBinding.SendTimeout = TimeSpan.MaxValue;
-            WsFederationBinding.MaxReceivedMessageSize = int.MaxValue;
-            WsFederationBinding.Name = "wsf";
+            var binding = new WSFederationHttpBinding
+            {
+                Security = { Mode = WSFederationHttpSecurityMode.None },
+                ReceiveTimeout = TimeSpan.MaxValue,
+                SendTimeout = TimeSpan.MaxValue,
+                MaxReceivedMessageSize = int.MaxValue,
+                Name = "wsf"
+            };
 
-            return WsFederationBinding;
+            return binding;
         }
-        #endregion
 
-        #region 流 NetTcpBinding 模式
         /// <summary>
-        /// 标签：2015.7.13，魏中针
-        /// 说明：流 NetTcpBinding 模式
+        /// 创建 NetTcpBinding 配置（TCP 流模式）
+        /// 效率最高，安全的跨机器通讯方式
         /// </summary>
-        /// <returns></returns>
-        public static NetTcpBinding TcpBinding()
+        /// <returns>配置好的 NetTcpBinding 实例</returns>
+        public static NetTcpBinding CreateTcpBinding()
         {
-            var TcpBinding = new NetTcpBinding();
-            TcpBinding.TransferMode = TransferMode.Streamed;
-            TcpBinding.Security.Mode = SecurityMode.None;
-            TcpBinding.ReceiveTimeout = TimeSpan.MaxValue;
-            TcpBinding.SendTimeout = TimeSpan.MaxValue;
-            TcpBinding.MaxReceivedMessageSize = int.MaxValue;
-            TcpBinding.MaxConnections = int.MaxValue;
-            TcpBinding.Security.Transport.ClientCredentialType = TcpClientCredentialType.None;
-            TcpBinding.Name = "tcp";
+            var binding = new NetTcpBinding
+            {
+                TransferMode = TransferMode.Streamed,
+                Security = { Mode = SecurityMode.None },
+                ReceiveTimeout = TimeSpan.MaxValue,
+                SendTimeout = TimeSpan.MaxValue,
+                MaxReceivedMessageSize = int.MaxValue,
+                MaxConnections = int.MaxValue,
+                Name = "tcp"
+            };
 
-            return TcpBinding;
+            binding.Security.Transport.ClientCredentialType = TcpClientCredentialType.None;
+
+            return binding;
         }
-        #endregion
 
-        #region NetNamedPipeBinding 模式
         /// <summary>
-        /// 标签：2015.7.13，魏中针
-        /// 说明：NetNamedPipeBinding 模式
+        /// 创建 NetNamedPipeBinding 配置（命名管道模式）
+        /// 安全、可靠、高效的单机进程间通讯方式
         /// </summary>
-        /// <returns></returns>
-        public static NetNamedPipeBinding NetNameBinding()
+        /// <returns>配置好的 NetNamedPipeBinding 实例</returns>
+        public static NetNamedPipeBinding CreateNetNameBinding()
         {
-            var NetBinding = new NetNamedPipeBinding();
-            NetBinding.TransferMode = TransferMode.Streamed;
-            NetBinding.Security.Mode = NetNamedPipeSecurityMode.None;
-            NetBinding.ReceiveTimeout = TimeSpan.MaxValue;
-            NetBinding.SendTimeout = TimeSpan.MaxValue;
-            NetBinding.MaxReceivedMessageSize = int.MaxValue;
-            NetBinding.MaxConnections = int.MaxValue;
-            NetBinding.Name = "net";
+            var binding = new NetNamedPipeBinding
+            {
+                TransferMode = TransferMode.Streamed,
+                Security = { Mode = NetNamedPipeSecurityMode.None },
+                ReceiveTimeout = TimeSpan.MaxValue,
+                SendTimeout = TimeSpan.MaxValue,
+                MaxReceivedMessageSize = int.MaxValue,
+                Name = "net"
+            };
 
-            return NetBinding;
+            return binding;
         }
-        #endregion
 
-        #region msmq 模式
         /// <summary>
-        /// 标签：2015.7.13，魏中针
-        /// 说明：msmq 模式
+        /// 创建 NetMsmqBinding 配置（消息队列模式）
+        /// 使用消息队列在不同机器间进行异步通讯
         /// </summary>
-        /// <returns></returns>
-        public static NetMsmqBinding MsgBinding()
+        /// <returns>配置好的 NetMsmqBinding 实例</returns>
+        public static NetMsmqBinding CreateMsgBinding()
         {
-            var MsgBinding = new NetMsmqBinding();
-            MsgBinding.Security.Mode =NetMsmqSecurityMode.None;
-            MsgBinding.ReceiveTimeout = TimeSpan.MaxValue;
-            MsgBinding.SendTimeout = TimeSpan.MaxValue;
-            MsgBinding.MaxReceivedMessageSize = int.MaxValue;
-            MsgBinding.QueueTransferProtocol = QueueTransferProtocol.Srmp;
-            MsgBinding.Name = "msg";
-            MsgBinding.ExactlyOnce = false;
-            MsgBinding.Durable = true;
-            
-            return MsgBinding;
+            var binding = new NetMsmqBinding
+            {
+                Security = { Mode = NetMsmqSecurityMode.None },
+                ReceiveTimeout = TimeSpan.MaxValue,
+                SendTimeout = TimeSpan.MaxValue,
+                MaxReceivedMessageSize = int.MaxValue,
+                QueueTransferProtocol = QueueTransferProtocol.Srmp,
+                Name = "msg",
+                ExactlyOnce = false,
+                Durable = true
+            };
+
+            return binding;
         }
-        #endregion
-
-        /*
-            WebHttpBinding: 用于为通过 HTTP 请求,其中：
-                                            WebGet 是读取(get), WebInvoke 是操作(delete,put,post,get)
-                                            RequestFormat = WebMessageFormat.Json 获取格式 json、xml
-                                            ResponseFormat = WebMessageFormat.Json 返回格式 json、xml
-                                            UriTemplate = "/Select/{id}" 路由
-         
-            BasicHttpBinding: 最简单的绑定类型，通常用于 Web Services。使用 HTTP 协议，Text/XML 编码方式。
-            WSHttpBinding: 比 BasicHttpBinding 更加安全，通常用于 non-duplex 服务通讯。
-            WSDualHttpBinding: 和 WSHttpBinding 相比，它支持 duplex(双向通道) 类型的服务。
-            WSFederationHttpBinding: 支持 WS-Federation 安全通讯协议。
-            NetTcpBinding: 效率最高，安全的跨机器通讯方式。
-            NetNamedPipeBinding: 安全、可靠、高效的单机服务通讯方式(适用于跨进程，不能使用于不同机器间)
-            NetMsmqBinding: 使用消息队列在不同机器间进行通讯。
-            MsmqIntegrationBinding: 一个用于wcf与现有msmq程序进行安全通讯的binding
-            NetPeerTcpBinding:  一个支持安全的，多机交互的binding(使用 P2P 协议在多机器间通讯)
-            
-            WCF在通信过程中有三种模式：请求应答、单向、双工通信。
-                        
-            单向：[OperationContract(IsOneWay = true)]
-
-            双工通信：客户端与服务端可以互相调用，在web场景中，因为受nat，firewall等的限制，一般来说服务器无法直接访问客户端，
-            所以一般不会把wsDualHttpBinding用在internet的场景中。
-         
-            支持回调的绑定有4种：WSDualHttpBinding、NetTcpBinding、NetNamedPipeBinding、NetPeerTcpBinding
-          
-        */
     }
 }

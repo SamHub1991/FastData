@@ -1,4 +1,4 @@
-﻿using FastData.Model;
+using FastData.Model;
 
 namespace FastData.Base
 {
@@ -23,9 +23,14 @@ namespace FastData.Base
         }
 
         /// <summary>
-        /// 设置缓存
+        /// 设置泛型缓存
         /// </summary>
-        public static void Set<T>(string cacheType,  string key, T value, int Hours = 8640) where T : class, new()
+        /// <typeparam name="T">缓存实体类型（需有无参构造函数）</typeparam>
+        /// <param name="cacheType">缓存类型</param>
+        /// <param name="key">缓存键</param>
+        /// <param name="value">缓存实体对象</param>
+        /// <param name="Hours">缓存时间（小时），默认 8640 小时（360 天）</param>
+        public static void Set<T>(string cacheType, string key, T value, int Hours = 8640) where T : class, new()
         {
             if (cacheType.ToLower() == CacheType.Web)
                 FastUntility.Cache.BaseCache.Set<T>(key, value, Hours);
@@ -50,9 +55,13 @@ namespace FastData.Base
         }
 
         /// <summary>
-        /// 获取缓存
+        /// 获取泛型缓存
         /// </summary>
-        public static T Get<T>(string cacheType,  string key) where T : class, new()
+        /// <typeparam name="T">缓存实体类型（需有无参构造函数）</typeparam>
+        /// <param name="cacheType">缓存类型</param>
+        /// <param name="key">缓存键</param>
+        /// <returns>缓存实体对象；缓存不存在时返回 new T()</returns>
+        public static T Get<T>(string cacheType, string key) where T : class, new()
         {
             if (cacheType.ToLower() == CacheType.Web)
                 return FastUntility.Cache.BaseCache.Get<T>(key);
@@ -76,9 +85,12 @@ namespace FastData.Base
         }
 
         /// <summary>
-        /// 是否存在
+        /// 检查缓存是否存在
         /// </summary>
-        public static bool Exists(string cacheType,  string key)
+        /// <param name="cacheType">缓存类型</param>
+        /// <param name="key">缓存键</param>
+        /// <returns>缓存存在返回 true，否则返回 false</returns>
+        public static bool Exists(string cacheType, string key)
         {
             if (cacheType.ToLower() == CacheType.Web)
                 return FastUntility.Cache.BaseCache.Exists(key);

@@ -203,7 +203,7 @@ namespace FastData
         /// </summary>
         public static T[] OrEmptyArray<T>(this T[] array)
         {
-            return array ?? Array.Empty<T>();
+            return array ?? new T[0];
         }
 
         /// <summary>

@@ -79,7 +79,7 @@
   - DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 仅限 net45 构建，运行时绝不能设置
   - 完整 net45 构建: `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 FrameworkPathOverride="..." dotnet build FastData.sln /p:RegisterForComInterop=false`
   - Windows 构建直接使用 `dotnet build FastData.sln`
-  - RestSharp 版本: net452 用 106.11.7，net6.0+ 用 108.0.0
+  - RestSharp 版本: net452 用 106.11.7，net8.0+ 用 108.0.0
 
 **构建参数方案（方案C - 已确认）**
 - Date: 2026-05-29
@@ -88,7 +88,7 @@
 - Instructions:
   - 在构建程序阶段，必须加参数命令指明是支持跨平台还是只是 windows 平台
   - 方案C: csproj 条件化 TargetFrameworks + build.sh --platform 参数
-  - `./build.sh --platform cross` 或 `dotnet build -p:BuildPlatform=cross`：排除 net45/net462，仅构建 net6.0;net8.0;net10.0
+  - `./build.sh --platform cross` 或 `dotnet build -p:BuildPlatform=cross`：排除 net45/net462，仅构建 net8.0;net10.0
   - `./build.sh --platform windows` 或 `dotnet build -p:BuildPlatform=windows`：保持 csproj 原始 TargetFrameworks（含 net45/net462）
   - WinForms/WPF 项目（UseWindowsForms=true 或 UseWPF=true）自动排除在 cross 模式外
   - Agent 构建验证时默认使用 `--platform cross`
@@ -463,7 +463,7 @@
 - Date: 2026-06-02
 - Context: 用户明确要求 net452 兼容性，重构时未遵守导致使用了不兼容的包
 - Instructions:
-  - 项目支持多目标框架：net452;net6.0;net8.0;net10.0
+  - 项目支持多目标框架：net452;net8.0;net10.0
   - 任何修改都必须保持 net452 兼容性（这是最低要求）
   - **禁止使用以下不兼容 net452 的 NuGet 包**：
     - ❌ Microsoft.Data.SqlClient（要求 net46+）

@@ -1,179 +1,232 @@
-﻿using System;
-using System.Web;
+using System;
 using System.Management;
+using System.Web;
 
 namespace FastUntility.WinService
 {
     /// <summary>
-    /// 读取硬件信息 
+    /// 硬件信息采集类
+    /// 用于读取 CPU、网卡、操作系统等硬件信息
     /// </summary>
     public static class Win32PSI
     {
-        #region 获取CPU序列号
         /// <summary>
-        /// 获取CPU序列号
+        /// 获取 CPU 序列号
         /// </summary>
-        /// <returns></returns>
-        public static string CpuInfo()
-        {
-            string retValue = "";
-
-            //信息模型
-            var SysInfo = new ManagementClass(ConfigWin32PSI.Cpu);
-
-            //信息集合
-            ManagementObjectCollection moc = SysInfo.GetInstances();
-
-            foreach (var mo in moc)
-            {
-                retValue += mo.Properties["ProcessorId"].Value.ToString();
-            }
-
-            return retValue;
-        }
-        #endregion
-
-        #region 获取网卡硬件地址
-        /// <summary>
-        /// 获取网卡硬件地址
-        /// </summary>
-        /// <returns></returns>
-        public static string MacAddress()
-        {
-            string MacAddress = "";
-            ManagementClass mc = new ManagementClass(ConfigWin32PSI.NetworkAdapterConfiguration);
-            ManagementObjectCollection moc = mc.GetInstances();
-            foreach (var mo in moc)
-            {
-                if ((bool)mo["IPEnabled"] == true)
-                {
-                    MacAddress = mo["MacAddress"].ToString();
-                    break;
-                }
-            }
-
-            return MacAddress;
-        }
-        #endregion
-
-        #region 操作系统的登录用户名
-        /// <summary>
-        /// 操作系统的登录用户名
-        /// </summary>
-        /// <returns></returns>
-        public static string SysUserName()
-        {
-            return Environment.UserName;
-        }
-        #endregion
-
-        #region 操作系统类型
-        /// <summary>
-        /// 操作系统类型
-        /// </summary>
-        /// <returns></returns>
-        public static string SystemType()
-        {
-            string SystemType = "";
-            ManagementClass mc = new ManagementClass(ConfigWin32.ComputerSystem);
-            ManagementObjectCollection moc = mc.GetInstances();
-            foreach (ManagementObject mo in moc)
-            {
-                SystemType += mo["SystemType"].ToString();
-            }
-
-            return SystemType;
-        }
-        #endregion
-
-        #region 获取计算机名
-        /// <summary>
-        /// 获取计算机名
-        /// </summary>
-        /// <returns></returns> 
-        public static string ComputerName()
-        {
-            return Environment.MachineName;
-        }
-        #endregion
-
-        #region 物理内存
-        /// <summary>
-        /// 物理内存
-        /// </summary>
-        /// <returns></returns>
-        public static string PhysicalMemory()
-        {
-            string PhysicalMemory = "";
-            ManagementClass mc = new ManagementClass(ConfigWin32.ComputerSystem);
-            ManagementObjectCollection moc = mc.GetInstances();
-            foreach (ManagementObject mo in moc)
-            {
-                PhysicalMemory += mo["TotalPhysicalMemory"].ToString();
-            }
-
-            return PhysicalMemory;
-        }
-        #endregion
-
-        #region 获取IP地址
-        /// <summary>
-        /// 说明：获取IP地址
-        /// </summary>
-        /// <returns></returns>
-        public static string IPAsync(HttpContextBase context)
+        /// <returns>CPU 序列号</returns>
+        public static string GetCpuInfo()
         {
             try
             {
-                string userIP = "";
-                if (context.Request.ServerVariables["HTTP_VIA"] == null)
+                using (var sysInfo = new ManagementClass(ConfigWin32PSI.Cpu))
+                using (var moc = sysInfo.GetInstances())
                 {
+                    foreach (ManagementObject mo in moc)
+                    {
+                        var processorId = mo.Properties["ProcessorId"];
+                        if (processorId != null && processorId.Value != null)
+                        {
+                            return processorId.Value.ToString();
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // 忽略获取异常
+            }
+
+            return string.Empty;
+        }
+
+        /// <summary>
+        /// 获取网卡 MAC 地址
+        /// </summary>
+        /// <returns>第一个已启用 IP 的网卡 MAC 地址</returns>
+        public static string GetMacAddress()
+        {
+            try
+            {
+                using (var mc = new ManagementClass(ConfigWin32PSI.NetworkAdapterConfiguration))
+                using (var moc = mc.GetInstances())
+                {
+                    foreach (ManagementObject mo in moc)
+                    {
+                        var ipEnabled = mo["IPEnabled"];
+                        if (ipEnabled != null && (bool)ipEnabled)
+                        {
+                            var macAddress = mo["MacAddress"];
+                            if (macAddress != null)
+                            {
+                                return macAddress.ToString();
+                            }
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // 忽略获取异常
+            }
+
+            return string.Empty;
+        }
+
+        /// <summary>
+        /// 获取当前操作系统的登录用户名
+        /// </summary>
+        /// <returns>当前登录用户名</returns>
+        public static string GetSysUserName()
+        {
+            return Environment.UserName;
+        }
+
+        /// <summary>
+        /// 获取操作系统类型
+        /// </summary>
+        /// <returns>系统类型描述</returns>
+        public static string GetSystemType()
+        {
+            try
+            {
+                using (var mc = new ManagementClass(ConfigWin32.ComputerSystem))
+                using (var moc = mc.GetInstances())
+                {
+                    foreach (ManagementObject mo in moc)
+                    {
+                        var systemType = mo["SystemType"];
+                        if (systemType != null)
+                        {
+                            return systemType.ToString();
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // 忽略获取异常
+            }
+
+            return string.Empty;
+        }
+
+        /// <summary>
+        /// 获取计算机名称
+        /// </summary>
+        /// <returns>计算机名称</returns>
+        public static string GetComputerName()
+        {
+            return Environment.MachineName;
+        }
+
+        /// <summary>
+        /// 获取物理内存大小（字节）
+        /// </summary>
+        /// <returns>物理内存总量</returns>
+        public static string GetPhysicalMemory()
+        {
+            try
+            {
+                using (var mc = new ManagementClass(ConfigWin32.ComputerSystem))
+                using (var moc = mc.GetInstances())
+                {
+                    foreach (ManagementObject mo in moc)
+                    {
+                        var totalMemory = mo["TotalPhysicalMemory"];
+                        if (totalMemory != null)
+                        {
+                            return totalMemory.ToString();
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // 忽略获取异常
+            }
+
+            return string.Empty;
+        }
+
+        /// <summary>
+        /// 获取客户端 IP 地址（支持 HttpContextBase）
+        /// 优先获取代理转发的真实 IP
+        /// </summary>
+        /// <param name="context">HTTP 上下文</param>
+        /// <returns>客户端 IP 地址</returns>
+        public static string GetClientIPAsync(HttpContextBase context)
+        {
+            if (context == null || context.Request == null)
+                return "127.0.0.1";
+
+            try
+            {
+                var userIP = context.Request.ServerVariables["HTTP_VIA"];
+
+                if (userIP == null)
+                {
+                    // 无代理，直接获取客户端地址
                     userIP = context.Request.UserHostAddress;
                 }
                 else
                 {
+                    // 有代理，获取转发后的真实 IP
                     userIP = context.Request.ServerVariables["HTTP_X_FORWARDED_FOR"];
                 }
 
+                // IPv6 本地回环地址转换为 IPv4
                 if (userIP == "::1")
+                {
                     userIP = "127.0.0.1";
-                return userIP;
+                }
+
+                return string.IsNullOrEmpty(userIP) ? "127.0.0.1" : userIP;
             }
             catch
             {
                 return "127.0.0.1";
             }
         }
-        #endregion
-        
-        #region 获取IP地址
+
         /// <summary>
-        /// 说明：获取IP地址
+        /// 获取客户端 IP 地址
+        /// 优先获取代理转发的真实 IP
         /// </summary>
-        /// <returns></returns>
-        public static string IP()
+        /// <returns>客户端 IP 地址</returns>
+        public static string GetClientIP()
         {
             try
             {
-                string userIP = "";
-                if (HttpContext.Current.Request.ServerVariables["HTTP_VIA"] == null)
+                var current = HttpContext.Current;
+                if (current == null || current.Request == null)
+                    return "127.0.0.1";
+
+                var viaHeader = current.Request.ServerVariables["HTTP_VIA"];
+
+                string userIP;
+                if (viaHeader == null)
                 {
-                    userIP = HttpContext.Current.Request.UserHostAddress;
+                    // 无代理，直接获取客户端地址
+                    userIP = current.Request.UserHostAddress;
                 }
                 else
                 {
-                    userIP = HttpContext.Current.Request.ServerVariables["HTTP_X_FORWARDED_FOR"];
+                    // 有代理，获取转发后的真实 IP
+                    userIP = current.Request.ServerVariables["HTTP_X_FORWARDED_FOR"];
                 }
 
+                // IPv6 本地回环地址转换为 IPv4
                 if (userIP == "::1")
+                {
                     userIP = "127.0.0.1";
-                return userIP;
+                }
+
+                return string.IsNullOrEmpty(userIP) ? "127.0.0.1" : userIP;
             }
             catch
             {
                 return "127.0.0.1";
             }
         }
-        #endregion
     }
 }

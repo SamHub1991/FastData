@@ -37,11 +37,11 @@ namespace FastData.Sharding.Strategies
             {
                 var property = entityType.GetProperty(field);
                 if (property == null)
-                    throw new InvalidOperationException($"实体类型 {entityType.Name} 中找不到字段 {field}");
+                    throw new InvalidOperationException(string.Format("实体类型 {0} 中找不到字段 {1}", entityType.Name, field));
 
                 var value = property.GetValue(entity)?.ToString();
                 if (string.IsNullOrEmpty(value))
-                    throw new InvalidOperationException($"字段 {field} 的值不能为空");
+                    throw new InvalidOperationException(string.Format("字段 {0} 的值不能为空", field));
 
                 values.Add(value);
             }
@@ -106,7 +106,7 @@ namespace FastData.Sharding.Strategies
                 // 使用哈希方式，返回所有分表
                 for (int i = 0; i < config.CompositeConfig.ShardCount; i++)
                 {
-                    result.Add($"{config.BaseTableName}_{i:D4}");
+                    result.Add(string.Format("{0}_{1:D4}", config.BaseTableName, i));
                 }
             }
 
@@ -136,12 +136,12 @@ namespace FastData.Sharding.Strategies
                 // 使用哈希方式
                 var hash = ComputeHash(combinedValue);
                 var shardIndex = hash % config.CompositeConfig.ShardCount;
-                return $"{config.BaseTableName}_{shardIndex:D4}";
+                return string.Format("{0}_{1:D4}", config.BaseTableName, shardIndex);
             }
             else
             {
                 // 使用拼接方式
-                return $"{config.BaseTableName}_{combinedValue}";
+                return string.Format("{0}_{1}", config.BaseTableName, combinedValue);
             }
         }
 

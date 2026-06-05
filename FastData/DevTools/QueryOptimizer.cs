@@ -119,7 +119,7 @@ namespace FastData.DevTools
                 {
                     Type = OptimizationType.Join,
                     Priority = OptimizationPriority.Medium,
-                    Description = $"包含 {joinCount} 个 JOIN，考虑查询分解",
+                    Description = string.Format("包含 {0} 个 JOIN，考虑查询分解", joinCount),
                     EstimatedImprovement = "20-40%"
                 });
             }
@@ -364,7 +364,7 @@ namespace FastData.DevTools
             {
                 var tableName = tableMatch.Groups[1].Value;
                 // 实际应用中应该查询表结构，这里只是示例
-                return sql.Replace("SELECT *", $"SELECT id, name, created_at");
+                return sql.Replace("SELECT *", "SELECT id, name, created_at");
             }
             return sql;
         }

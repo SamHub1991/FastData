@@ -29,11 +29,11 @@ namespace FastData.Sharding.Strategies
             var property = entityType.GetProperty(listField);
 
             if (property == null)
-                throw new InvalidOperationException($"实体类型 {entityType.Name} 中找不到字段 {listField}");
+                throw new InvalidOperationException(string.Format("实体类型 {0} 中找不到字段 {1}", entityType.Name, listField));
 
             var fieldValue = property.GetValue(entity)?.ToString();
             if (string.IsNullOrEmpty(fieldValue))
-                throw new InvalidOperationException($"字段 {listField} 的值不能为空");
+                throw new InvalidOperationException(string.Format("字段 {0} 的值不能为空", listField));
 
             return GetTableNameByValue(config, fieldValue);
         }
@@ -94,7 +94,7 @@ namespace FastData.Sharding.Strategies
 
             foreach (var mapping in config.ListConfig.ValueMapping)
             {
-                var tableName = $"{config.BaseTableName}_{mapping.Value}";
+                var tableName = string.Format("{0}_{1}", config.BaseTableName, mapping.Value);
                 if (!result.Contains(tableName))
                     result.Add(tableName);
             }
@@ -119,11 +119,11 @@ namespace FastData.Sharding.Strategies
         {
             if (config.ListConfig.ValueMapping.TryGetValue(value, out var suffix))
             {
-                return $"{config.BaseTableName}_{suffix}";
+                return string.Format("{0}_{1}", config.BaseTableName, suffix);
             }
 
             // 如果没有映射，使用值本身作为后缀
-            return $"{config.BaseTableName}_{value}";
+            return string.Format("{0}_{1}", config.BaseTableName, value);
         }
 
         #endregion

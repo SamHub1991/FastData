@@ -175,7 +175,7 @@ namespace FastData.Tooling.CodeGeneration
                 var propType = GetClrType(prop.Value);
                 
                 builder.AppendLine("        [JsonPropertyName(\"" + Escape(prop.Key) + "\")]");
-                builder.AppendLine($"        public {propType} {propName} {{ get; set; }}");
+                builder.AppendLine(string.Format("        public {0} {1} {{ get; set; }}", propType, propName));
                 builder.AppendLine();
             }
             
@@ -203,7 +203,7 @@ namespace FastData.Tooling.CodeGeneration
                     if (jsonValue.Items != null && jsonValue.Items.Count > 0)
                     {
                         var itemType = GetClrType(jsonValue.Items[0]);
-                        return $"List<{itemType}>";
+                        return string.Format("List<{0}>", itemType);
                     }
                     return "List<object>";
                 default:

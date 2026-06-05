@@ -257,15 +257,15 @@ namespace FastData.DevTools
         {
             if (PerformanceRatio > 1)
             {
-                return $"{Operation1Name} 比 {Operation2Name} 慢 {PerformanceRatio:F2}x ({Difference:F2} ms)";
+                return string.Format("{0} 比 {1} 慢 {2:F2}x ({3:F2} ms)", Operation1Name, Operation2Name, PerformanceRatio, Difference);
             }
             else if (PerformanceRatio < 1)
             {
-                return $"{Operation1Name} 比 {Operation2Name} 快 {(1 / PerformanceRatio):F2}x ({Math.Abs(Difference):F2} ms)";
+                return string.Format("{0} 比 {1} 快 {2:F2}x ({3:F2} ms)", Operation1Name, Operation2Name, (1 / PerformanceRatio), Math.Abs(Difference));
             }
             else
             {
-                return $"{Operation1Name} 和 {Operation2Name} 性能相同";
+                return string.Format("{0} 和 {1} 性能相同", Operation1Name, Operation2Name);
             }
         }
     }

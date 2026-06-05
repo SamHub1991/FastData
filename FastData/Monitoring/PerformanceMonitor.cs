@@ -276,37 +276,37 @@ namespace FastData.Monitoring
             var report = new System.Text.StringBuilder();
 
             report.AppendLine("=== FastData 性能监控报告 ===");
-            report.AppendLine($"生成时间: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
+            report.AppendLine(string.Format("生成时间: {0:yyyy-MM-dd HH:mm:ss} UTC", DateTime.UtcNow));
             report.AppendLine();
             report.AppendLine("总体统计:");
-            report.AppendLine($"  总操作数: {summary.TotalOperations:N0}");
-            report.AppendLine($"  成功操作: {summary.TotalSuccessfulOperations:N0}");
-            report.AppendLine($"  失败操作: {summary.TotalFailedOperations:N0}");
-            report.AppendLine($"  成功率: {summary.SuccessRate:F2}%");
-            report.AppendLine($"  平均耗时: {summary.AverageDuration:F2} ms");
-            report.AppendLine($"  最大耗时: {summary.MaxDuration:F2} ms");
-            report.AppendLine($"  最小耗时: {summary.MinDuration:F2} ms");
-            report.AppendLine($"  最后执行: {summary.LastExecutionTime:yyyy-MM-dd HH:mm:ss}");
+            report.AppendLine(string.Format("  总操作数: {0:N0}", summary.TotalOperations));
+            report.AppendLine(string.Format("  成功操作: {0:N0}", summary.TotalSuccessfulOperations));
+            report.AppendLine(string.Format("  失败操作: {0:N0}", summary.TotalFailedOperations));
+            report.AppendLine(string.Format("  成功率: {0:F2}%", summary.SuccessRate));
+            report.AppendLine(string.Format("  平均耗时: {0:F2} ms", summary.AverageDuration));
+            report.AppendLine(string.Format("  最大耗时: {0:F2} ms", summary.MaxDuration));
+            report.AppendLine(string.Format("  最小耗时: {0:F2} ms", summary.MinDuration));
+            report.AppendLine(string.Format("  最后执行: {0:yyyy-MM-dd HH:mm:ss}", summary.LastExecutionTime));
 
             report.AppendLine();
             report.AppendLine("操作类型统计:");
             foreach (var metrics in _monitor.GetAllMetrics())
             {
-                report.AppendLine($"  {metrics.OperationType}:");
-                report.AppendLine($"    总数: {metrics.TotalOperations:N0}");
-                report.AppendLine($"    成功率: {metrics.SuccessRate:F2}%");
-                report.AppendLine($"    平均耗时: {metrics.AverageDuration:F2} ms");
+                report.AppendLine(string.Format("  {0}:", metrics.OperationType));
+                report.AppendLine(string.Format("    总数: {0:N0}", metrics.TotalOperations));
+                report.AppendLine(string.Format("    成功率: {0:F2}%", metrics.SuccessRate));
+                report.AppendLine(string.Format("    平均耗时: {0:F2} ms", metrics.AverageDuration));
             }
 
             var slowQueries = _monitor.GetSlowQueries(1000);
             if (slowQueries.Any())
             {
                 report.AppendLine();
-                report.AppendLine($"慢查询列表 (阈值: 1000ms, 共 {slowQueries.Count} 个):");
+                report.AppendLine(string.Format("慢查询列表 (阈值: 1000ms, 共 {0} 个):", slowQueries.Count));
                 foreach (var query in slowQueries.Take(10))
                 {
-                    report.AppendLine($"  {query.Timestamp:HH:mm:ss} - {query.OperationType} - {query.Duration.TotalMilliseconds:F2}ms");
-                    report.AppendLine($"    SQL: {query.Sql.Substring(0, Math.Min(query.Sql.Length, 100))}...");
+                    report.AppendLine(string.Format("  {0:HH:mm:ss} - {1} - {2:F2}ms", query.Timestamp, query.OperationType, query.Duration.TotalMilliseconds));
+                    report.AppendLine(string.Format("    SQL: {0}...", query.Sql.Substring(0, Math.Min(query.Sql.Length, 100))));
                 }
             }
 

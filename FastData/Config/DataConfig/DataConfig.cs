@@ -222,7 +222,7 @@ namespace FastData.Config
                 // Try to load environment-specific config (e.g., db.dev.config, db.pro.config)
                 if (!string.IsNullOrEmpty(activeEnv))
                 {
-                    var envDbFile = $"db.{activeEnv}.config";
+                    var envDbFile = string.Format("db.{0}.config", activeEnv);
                     config = TryLoadConfig(envDbFile);
                 }
 
@@ -247,7 +247,7 @@ namespace FastData.Config
                         // Try environment-specific embedded resource first
                         if (!string.IsNullOrEmpty(activeEnv))
                         {
-                            var envDbFile = $"db.{activeEnv}.config";
+                            var envDbFile = string.Format("db.{0}.config", activeEnv);
                             var tempConfig = LoadFromEmbeddedResource(name, envDbFile);
                             if (tempConfig != null && tempConfig.Connections != null && tempConfig.Connections.Count != 0)
                             {
@@ -376,7 +376,7 @@ namespace FastData.Config
                 // Try to load environment-specific config (e.g., db.dev.config)
                 if (!string.IsNullOrEmpty(activeEnv))
                 {
-                    var envDbFile = $"db.{activeEnv}.config";
+                    var envDbFile = string.Format("db.{0}.config", activeEnv);
                     config = TryLoadConfig(envDbFile);
                 }
 
@@ -626,7 +626,7 @@ var item = list.Find(a => string.Equals(a.Key, defaultKey, StringComparison.Ordi
             {
                 if (string.IsNullOrEmpty(item.Key)) continue;
                 
-                var envVarName = $"FASTDATA_CONN_{item.Key.ToUpper()}";
+                var envVarName = string.Format("FASTDATA_CONN_{0}", item.Key.ToUpper());
                 var envConnStr = Environment.GetEnvironmentVariable(envVarName);
                 if (!string.IsNullOrEmpty(envConnStr))
                 {
@@ -702,7 +702,7 @@ var item = list.Find(a => string.Equals(a.Key, defaultKey, StringComparison.Ordi
             // Try environment-specific config
             if (!string.IsNullOrEmpty(activeEnv))
             {
-                var envDbFile = $"db.{activeEnv}.config";
+                var envDbFile = string.Format("db.{0}.config", activeEnv);
                 config = TryLoadConfig(envDbFile);
             }
 
@@ -1042,7 +1042,7 @@ var item = list.Find(a => string.Equals(a.Key, defaultKey, StringComparison.Ordi
             DataConfig config = null;
             if (!string.IsNullOrEmpty(activeEnv))
             {
-                var envDbFile = $"db.{activeEnv}.config";
+                var envDbFile = string.Format("db.{0}.config", activeEnv);
                 config = TryLoadConfig(envDbFile);
             }
 

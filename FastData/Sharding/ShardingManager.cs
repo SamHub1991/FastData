@@ -182,7 +182,7 @@ namespace FastData.Sharding
                 if (_strategies.TryGetValue(type, out var strategy))
                     return strategy;
 
-                throw new InvalidOperationException($"未注册的分表策略类型: {type}");
+                throw new InvalidOperationException(string.Format("未注册的分表策略类型: {0}", type));
             }
         }
 
@@ -236,7 +236,7 @@ namespace FastData.Sharding
         {
             // 这里需要根据实体类型生成建表 SQL
             // 实际实现应该从实体的属性映射获取字段定义
-            return $"CREATE TABLE IF NOT EXISTS [{tableName}] (Id INT PRIMARY KEY)";
+            return string.Format("CREATE TABLE IF NOT EXISTS [{0}] (Id INT PRIMARY KEY)", tableName);
         }
 
         /// <summary>

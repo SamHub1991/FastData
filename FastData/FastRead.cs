@@ -276,12 +276,12 @@ namespace FastData
             query.EntityType = typeof(T);
             var fieldName = GetMemberName(field);
             var param = new DbParameter[0]; // dummy for using clause
-            var paramName = $"@like_{query.ChainedConditions.Count}";
+            var paramName = string.Format("@like_{0}", query.ChainedConditions.Count);
             var dbParam = GetDbParameter(query, paramName, value);
             query.ChainedConditions.Add(new ChainedCondition
             {
                 Operator = "AND",
-                Where = $"{fieldName} like {paramName}",
+                Where = string.Format("{0} like {1}", fieldName, paramName),
                 Param = new List<DbParameter> { dbParam }
             });
 
@@ -293,7 +293,7 @@ namespace FastData
         /// </summary>
         public static DataQuery Contains<T>(this DataQuery query, Expression<Func<T, object>> field, string value) where T : class, new()
         {
-            return Like(query, field, $"%{value}%");
+            return Like(query, field, string.Format("%{0}%", value));
         }
 
         /// <summary>
@@ -301,7 +301,7 @@ namespace FastData
         /// </summary>
         public static DataQuery StartsWith<T>(this DataQuery query, Expression<Func<T, object>> field, string value) where T : class, new()
         {
-            return Like(query, field, $"{value}%");
+            return Like(query, field, string.Format("{0}%", value));
         }
 
         /// <summary>
@@ -309,7 +309,7 @@ namespace FastData
         /// </summary>
         public static DataQuery EndsWith<T>(this DataQuery query, Expression<Func<T, object>> field, string value) where T : class, new()
         {
-            return Like(query, field, $"%{value}");
+            return Like(query, field, string.Format("%{0}", value));
         }
 
         /// <summary>
@@ -328,7 +328,7 @@ namespace FastData
             var index = 0;
             foreach (var v in values)
             {
-                var paramName = $"@in_{query.ChainedConditions.Count}_{index}";
+                var paramName = string.Format("@in_{0}_{1}", query.ChainedConditions.Count, index);
                 paramList.Add(GetDbParameter(query, paramName, v?.ToString() ?? ""));
                 placeholders.Add(paramName);
                 index++;
@@ -336,7 +336,7 @@ namespace FastData
             query.ChainedConditions.Add(new ChainedCondition
             {
                 Operator = "AND",
-                Where = $"{fieldName} in ({string.Join(",", placeholders)})",
+                Where = string.Format("{0} in ({1})", fieldName, string.Join(",", placeholders)),
                 Param = paramList
             });
 
@@ -354,12 +354,12 @@ namespace FastData
 
             query.EntityType = typeof(T);
             var fieldName = GetMemberName(field);
-            var startParam = GetDbParameter(query, $"@btw_{query.ChainedConditions.Count}_s", start?.ToString() ?? "");
-            var endParam = GetDbParameter(query, $"@btw_{query.ChainedConditions.Count}_e", end?.ToString() ?? "");
+            var startParam = GetDbParameter(query, string.Format("@btw_{0}_s", query.ChainedConditions.Count), start?.ToString() ?? "");
+            var endParam = GetDbParameter(query, string.Format("@btw_{0}_e", query.ChainedConditions.Count), end?.ToString() ?? "");
             query.ChainedConditions.Add(new ChainedCondition
             {
                 Operator = "AND",
-                Where = $"{fieldName} between {startParam.ParameterName} and {endParam.ParameterName}",
+                Where = string.Format("{0} between {1} and {2}", fieldName, startParam.ParameterName, endParam.ParameterName),
                 Param = new List<DbParameter> { startParam, endParam }
             });
 
@@ -656,7 +656,7 @@ namespace FastData
         /// <param name="db">数据上下文</param>
         /// <param name="isOutSql">是否输出SQL</param>
         /// <returns>记录总数任务</returns>
-        public static Task<int> ToCountAsync<T, T1>(this DataQuery item, DataContext db = null, bool isOutSql = false)
+        public static Task<int> ToCountAsync(this DataQuery item, DataContext db = null, bool isOutSql = false)
         {
             return AsyncHelper.RunAsync(() => ToCount(item, db, isOutSql));
         }

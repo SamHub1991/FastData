@@ -148,13 +148,13 @@ namespace FastData.ChangeTracking
 
             var setClauses = changes
                 .Where(c => c.PropertyName != "Id")
-                .Select(c => $"{c.PropertyName} = @{c.PropertyName}")
+                .Select(c => string.Format("{0} = @{0}", c.PropertyName))
                 .ToList();
 
             if (setClauses.Count == 0)
                 return null;
 
-            var sql = $"UPDATE {tableName} SET {string.Join(", ", setClauses)} WHERE Id = @Id";
+            var sql = string.Format("UPDATE {0} SET {1} WHERE Id = @Id", tableName, string.Join(", ", setClauses));
             return sql;
         }
     }
@@ -196,7 +196,7 @@ namespace FastData.ChangeTracking
 
         public override string ToString()
         {
-            return $"{PropertyName}: {OriginalValue} → {CurrentValue}";
+            return string.Format("{0}: {1} → {2}", PropertyName, OriginalValue, CurrentValue);
         }
     }
 

@@ -1,6 +1,6 @@
 using System;
-using System.Text.RegularExpressions;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using FastUntility.Attributes;
 using System.IO;
 
@@ -13,18 +13,18 @@ using System.Runtime.Serialization.Formatters.Binary;
 namespace FastUntility.Base
 {
     /// <summary>
-    /// 标签：2015.7.13，魏中针
-    /// 说明：常用处理类
+    /// 常用类型转换和验证工具类
+    /// 提供基础类型转换、格式验证等功能
     /// </summary>
     public static class BaseRegular
     {
+        #region 序列化与反序列化
 
-        #region 转成字节流
         /// <summary>
-        /// 转成字节流
+        /// 将对象序列化为字节数组
         /// </summary>
-        /// <param name="value"></param>
-        /// <returns></returns>
+        /// <param name="value">待序列化的对象</param>
+        /// <returns>序列化后的字节数组</returns>
         public static byte[] ToByte(this object value)
         {
 #if NET6_0_OR_GREATER
@@ -34,18 +34,17 @@ namespace FastUntility.Base
             {
                 var formatter = new BinaryFormatter();
                 formatter.Serialize(stream, value);
-                return stream.GetBuffer();
+                return stream.ToArray();
             }
 #endif
         }
-        #endregion
 
-        #region 流转成对象
         /// <summary>
-        /// 流转成对象
+        /// 将字节数组反序列化为指定类型对象
         /// </summary>
+        /// <typeparam name="T">目标类型</typeparam>
         /// <param name="value">字节数组</param>
-        /// <returns></returns>
+        /// <returns>反序列化后的对象</returns>
         public static T ToModel<T>(this byte[] value) where T : class, new()
         {
 #if NET6_0_OR_GREATER
@@ -59,6 +58,11 @@ namespace FastUntility.Base
 #endif
         }
 
+        /// <summary>
+        /// 将字节数组反序列化为对象
+        /// </summary>
+        /// <param name="value">字节数组</param>
+        /// <returns>反序列化后的对象</returns>
         public static object ToModel(this byte[] value)
         {
 #if NET6_0_OR_GREATER
@@ -71,446 +75,427 @@ namespace FastUntility.Base
             }
 #endif
         }
+
         #endregion
 
-        #region 转时间格式化
+        #region 时间转换
+
         /// <summary>
-        /// 标签：2015.7.13，魏中针
-        /// 说明：转时间格式化
+        /// 转换为可空 DateTime 类型
         /// </summary>
-        public static DateTime? ToDate(this object strValue)
+        /// <param name="value">待转换的对象</param>
+        /// <returns>转换后的 DateTime，失败时返回 null</returns>
+        public static DateTime? ToDate(this object value)
         {
-            if (strValue.ToStr() == "")
+            if (value == null)
                 return null;
-            return Convert.ToDateTime(strValue);
+
+            var str = value.ToString();
+            if (string.IsNullOrEmpty(str))
+                return null;
+
+            DateTime result;
+            return DateTime.TryParse(str, out result) ? result : (DateTime?)null;
         }
 
-        public static DateTime ToDate(this string strValue)
+        /// <summary>
+        /// 转换为 DateTime 类型
+        /// </summary>
+        /// <param name="value">待转换的字符串</param>
+        /// <returns>转换后的 DateTime，失败时返回 DateTime.MinValue</returns>
+        public static DateTime ToDate(this string value)
         {
-            if (strValue.ToStr() == "")
+            if (string.IsNullOrEmpty(value))
                 return DateTime.MinValue;
-            return Convert.ToDateTime(strValue);
+
+            DateTime result;
+            return DateTime.TryParse(value, out result) ? result : DateTime.MinValue;
         }
 
-        public static string ToDate(this object strValue, string format)
+        /// <summary>
+        /// 转换为指定格式的日期字符串
+        /// </summary>
+        /// <param name="value">待转换的对象</param>
+        /// <param name="format">日期格式，如 "yyyy-MM-dd"</param>
+        /// <returns>格式化后的日期字符串，失败时返回 null</returns>
+        public static string ToDate(this object value, string format)
         {
-            if (strValue.ToStr() == "")
+            if (value == null || string.IsNullOrEmpty(format))
                 return null;
-            else
-                return Convert.ToDateTime(strValue).ToString(format);
-        }
 
-        public static string ToDate(this DateTime strValue, string format)
-        {
-            if (strValue.ToStr() == "")
+            var str = value.ToString();
+            if (string.IsNullOrEmpty(str))
                 return null;
-            else
-                return Convert.ToDateTime(strValue).ToString(format);
+
+            DateTime result;
+            return DateTime.TryParse(str, out result) ? result.ToString(format) : null;
         }
-        #endregion
-        
-        #region 验证时间
+
         /// <summary>
-        /// 验证时间
+        /// 将 DateTime 转换为指定格式的字符串
         /// </summary>
-        /// <param name="dateValue">日期字符串</param>
-        /// <returns></returns>
-        public static bool IsDate(this string dateValue)
+        /// <param name="value">待转换的 DateTime</param>
+        /// <param name="format">日期格式，如 "yyyy-MM-dd"</param>
+        /// <returns>格式化后的日期字符串</returns>
+        public static string ToDate(this DateTime value, string format)
         {
-            DateTime date = new DateTime();
-            
-            if (DateTime.TryParse(dateValue, out date))
-            {
-                return true;
-            }
-            else
-            {
+            if (string.IsNullOrEmpty(format))
+                return null;
+
+            return value.ToString(format);
+        }
+
+        /// <summary>
+        /// 验证字符串是否为有效日期
+        /// </summary>
+        /// <param name="value">待验证的日期字符串</param>
+        /// <returns>是否为有效日期</returns>
+        public static bool IsDate(this string value)
+        {
+            if (string.IsNullOrEmpty(value))
                 return false;
-            }
+
+            DateTime result;
+            return DateTime.TryParse(value, out result);
         }
+
         #endregion
 
-        #region string转向Int
+        #region 类型转换
+
         /// <summary>
-        /// 标签：2015.7.13，魏中针
-        /// 说明：string型转换为Int32类型
+        /// 转换为 Int32 类型
         /// </summary>
-        /// <param name="str">字符串</param>
-        /// <param name="defValue">默认值</param>
-        /// <returns>整数值</returns>
-        public static int ToInt(this string str, int defValue)
+        /// <param name="value">待转换的字符串</param>
+        /// <param name="defaultValue">转换失败时的默认值</param>
+        /// <returns>转换后的整数</returns>
+        public static int ToInt(this string value, int defaultValue)
         {
-            int tmp = 0;
-            if (Int32.TryParse(str, out tmp))
-                return (int)tmp;
-            else
-                return defValue;
+            int result;
+            return int.TryParse(value, out result) ? result : defaultValue;
         }
+
+        /// <summary>
+        /// 转换为 float 类型
+        /// </summary>
+        /// <param name="value">待转换的字符串</param>
+        /// <param name="defaultValue">转换失败时的默认值</param>
+        /// <returns>转换后的浮点数</returns>
+        public static float ToFloat(this string value, float defaultValue)
+        {
+            float result;
+            return float.TryParse(value, out result) ? result : defaultValue;
+        }
+
+        /// <summary>
+        /// 转换为 double 类型
+        /// </summary>
+        /// <param name="value">待转换的字符串</param>
+        /// <param name="defaultValue">转换失败时的默认值</param>
+        /// <returns>转换后的双精度浮点数</returns>
+        public static double ToDouble(this string value, double defaultValue)
+        {
+            double result;
+            return double.TryParse(value, out result) ? result : defaultValue;
+        }
+
+        /// <summary>
+        /// 转换为 long 类型
+        /// </summary>
+        /// <param name="value">待转换的字符串</param>
+        /// <param name="defaultValue">转换失败时的默认值</param>
+        /// <returns>转换后的长整数</returns>
+        public static long ToLong(this string value, long defaultValue)
+        {
+            long result;
+            return long.TryParse(value, out result) ? result : defaultValue;
+        }
+
+        /// <summary>
+        /// 转换为 decimal 类型
+        /// </summary>
+        /// <param name="value">待转换的字符串</param>
+        /// <param name="defaultValue">转换失败时的默认值</param>
+        /// <returns>转换后的高精度小数</returns>
+        public static decimal ToDecimal(this string value, decimal defaultValue)
+        {
+            decimal result;
+            return decimal.TryParse(value, out result) ? result : defaultValue;
+        }
+
+        /// <summary>
+        /// 转换为 byte 类型
+        /// </summary>
+        /// <param name="value">待转换的字符串</param>
+        /// <param name="defaultValue">转换失败时的默认值</param>
+        /// <returns>转换后的字节</returns>
+        public static byte ToByte(this string value, byte defaultValue)
+        {
+            byte result;
+            return byte.TryParse(value, out result) ? result : defaultValue;
+        }
+
+        /// <summary>
+        /// 转换为 Int16 类型
+        /// </summary>
+        /// <param name="value">待转换的字符串</param>
+        /// <param name="defaultValue">转换失败时的默认值</param>
+        /// <returns>转换后的短整数</returns>
+        public static short ToInt16(this string value, short defaultValue)
+        {
+            short result;
+            return short.TryParse(value, out result) ? result : defaultValue;
+        }
+
+        /// <summary>
+        /// 转换为字符串
+        /// </summary>
+        /// <param name="value">待转换的对象</param>
+        /// <returns>字符串表示，null 时返回空字符串</returns>
+        public static string ToStr(this object value)
+        {
+            return value == null ? string.Empty : value.ToString();
+        }
+
         #endregion
 
-        #region string型转换为float型
-        /// <summary>
-        /// 标签：2015.7.13，魏中针
-        /// 说明：string型转换为float型
-        /// </summary>
-        /// <param name="strValue">要转换的字符串</param>
-        /// <param name="defValue">缺省值</param>
-        /// <returns>转换后的float类型结果</returns>
-        public static float ToFloat(this string strValue, float defValue)
-        {
-            float tmp = 0;
-            if (float.TryParse(strValue, out tmp))
-                return (float)tmp;
-            else
-                return defValue;
-        }
-        #endregion
+        #region 格式验证
 
-        #region string型转换为double型
         /// <summary>
-        /// 标签：2015.7.13，魏中针
-        /// 说明：string型转换为double型
+        /// 验证固定电话号码
+        /// 支持格式：区号-号码，如 010-12345678
         /// </summary>
-        /// <param name="strValue">要转换的字符串</param>
-        /// <param name="defValue">缺省值</param>
-        /// <returns>转换后的double类型结果</returns>
-        public static double ToDouble(this string strValue, double defValue)
+        /// <param name="value">待验证的电话号码</param>
+        /// <returns>是否为有效固定电话号码</returns>
+        public static bool IsTelephone(this string value)
         {
-            double tmp = 0;
-            if (double.TryParse(strValue, out tmp))
-                return (double)tmp;
-            else
-                return defValue;
-        }
-        #endregion
-
-        #region string型转换为long型
-        /// <summary>
-        /// 标签：2015.7.13，魏中针
-        /// 说明：string型转换为long型
-        /// </summary>
-        /// <param name="strValue">要转换的字符串</param>
-        /// <param name="defValue">缺省值</param>
-        /// <returns>转换后的double类型结果</returns>
-        public static long ToLong(this string strValue, long defValue)
-        {
-            long tmp = 0;
-            if (Int64.TryParse(strValue, out tmp))
-                return (Int64)tmp;
-            else
-                return defValue;
-        }
-        #endregion
-
-        #region string型转换为Decimal型
-        /// <summary>
-        /// 标签：2015.7.13，魏中针
-        /// 说明：string型转换为Decimal型
-        /// </summary>
-        /// <param name="strValue">要转换的字符串</param>
-        /// <param name="defValue">缺省值</param>
-        /// <returns>转换后的double类型结果</returns>
-        public static Decimal ToDecimal(this string strValue, Decimal defValue)
-        {
-            Decimal tmp = 0;
-            if (Decimal.TryParse(strValue, out tmp))
-                return (decimal)tmp;
-            else
-                return defValue;
-        }
-        #endregion
-
-        #region string型转换为byte型
-        /// <summary>
-        /// 标签：2015.7.13，魏中针
-        /// 说明：string型转换为byte型
-        /// </summary>
-        /// <param name="strValue">要转换的字符串</param>
-        /// <param name="defValue">缺省值</param>
-        /// <returns>转换后的byte类型结果</returns>
-        public static byte ToByte(this string strValue, byte defValue)
-        {
-            byte tmp = 0;
-            if (byte.TryParse(strValue, out tmp))
-                return (byte)tmp;
-            else
-                return defValue;
-        }
-        #endregion
-
-        #region string型转换为Int16型
-        /// <summary>
-        /// 标签：2015.7.13，魏中针
-        /// 说明：string型转换为Int16型
-        /// </summary>
-        /// <param name="strValue">要转换的字符串</param>
-        /// <param name="defValue">缺省值</param>
-        /// <returns>转换后的Int16类型结果</returns>
-        public static Int16 ToInt16(this string strValue, Int16 defValue)
-        {
-            Int16 tmp = 0;
-            if (Int16.TryParse(strValue, out tmp))
-                return (Int16)tmp;
-            else
-                return defValue;
-        }
-        #endregion
-        
-        #region object型转换为string
-        /// <summary>
-        /// 标签：2015.7.13，魏中针
-        /// 说明：object型转换为string
-        /// </summary>
-        /// <param name="strValue">要转换的字符串</param>
-        /// <returns>转换后的Int16类型结果</returns>
-        public static string ToStr(this object strValue)
-        {
-            if (strValue == null)
-                return "";
-            else
-                return strValue.ToString();
-        }
-        #endregion
-
-        #region 验证固定号码
-        /// <summary>
-        /// 验证固定号码
-        /// </summary>
-        /// <param name="telephone"></param>
-        /// <returns></returns>
-        public static bool IsTelephone(this string telephone)
-        {
-            if (telephone == null)
+            if (string.IsNullOrEmpty(value))
                 return false;
-            return Regex.IsMatch(telephone, @"^(\d{3,4}-)?\d{6,8}$");
-        }
-        #endregion
 
-        #region 验证手机号码
+            return Regex.IsMatch(value, @"^(\d{3,4}-)?\d{6,8}$");
+        }
+
         /// <summary>
         /// 验证手机号码
+        /// 支持中国大陆主流手机号码格式
         /// </summary>
-        /// <param name="mobilePhone"></param>
-        /// <returns></returns>
-        public static bool IsMobilePhone(this string mobilePhone)
+        /// <param name="value">待验证的手机号码</param>
+        /// <returns>是否为有效手机号码</returns>
+        public static bool IsMobilePhone(this string value)
         {
-            if (mobilePhone == null || mobilePhone.Length > 11) 
+            if (string.IsNullOrEmpty(value) || value.Length > 11)
                 return false;
-            return Regex.IsMatch(mobilePhone, @"^(0|86|17951)?(13[0-9]|15[012356789]|17[678]|18[0-9]|14[57])[0-9]{8}");
-        }
-        #endregion
 
-        #region 验证身份证号
-        /// <summary>  
-        /// 验证身份证号（不区分一二代身份证号）  
-        /// </summary>  
-        /// <param name="input">待验证的字符串</param>  
-        /// <returns>是否匹配</returns>  
-        public static bool IsIDCard(this string input)
+            return Regex.IsMatch(value, @"^(0|86|17951)?(13[0-9]|15[012356789]|17[678]|18[0-9]|14[57])[0-9]{8}");
+        }
+
+        /// <summary>
+        /// 验证身份证号码（支持 15 位和 18 位）
+        /// </summary>
+        /// <param name="value">待验证的身份证号</param>
+        /// <returns>是否为有效身份证号</returns>
+        public static bool IsIDCard(this string value)
         {
-            if (input.Length == 18)
-                return IsIDCard18(input);
-            else if (input.Length == 15)
-                return IsIDCard15(input);
+            if (string.IsNullOrEmpty(value))
+                return false;
+
+            if (value.Length == 18)
+                return IsIDCard18(value);
+            else if (value.Length == 15)
+                return IsIDCard15(value);
             else
                 return false;
         }
-        #endregion
 
-        #region 验证一代身份证号（15位数）
-        /// <summary>  
-        /// 验证一代身份证号（15位数）  
-        /// [长度为15位的数字；匹配对应省份地址；生日能正确匹配]  
-        /// </summary>  
-        /// <param name="input">待验证的字符串</param>  
-        /// <returns>是否匹配</returns>  
-        private static bool IsIDCard15(string input)
+        /// <summary>
+        /// 验证 15 位身份证号（一代身份证）
+        /// </summary>
+        /// <param name="value">待验证的 15 位身份证号</param>
+        /// <returns>是否为有效的一代身份证号</returns>
+        private static bool IsIDCard15(string value)
         {
-            //验证是否可以转换为15位整数  
-            long l = 0;
-            if (!long.TryParse(input, out l) || l.ToString().Length != 15)
-            {
+            long number;
+            if (!long.TryParse(value, out number) || value.Length != 15)
                 return false;
-            }
 
-            //验证省份是否匹配  
-            //1~6位为地区代码，其中1、2位数为各省级政府的代码，3、4位数为地、市级政府的代码，5、6位数为县、区级政府代码。  
-            string address = "11,12,13,14,15,21,22,23,31,32,33,34,35,36,37,41,42,43,44,45,46,50,51,52,53,54,61,62,63,64,65,71,81,82,91,";
-            if (!address.Contains(input.Remove(2) + ","))
-            {
+            // 验证省份代码
+            var validProvinces = "11,12,13,14,15,21,22,23,31,32,33,34,35,36,37,41,42,43,44,45,46,50,51,52,53,54,61,62,63,64,65,71,81,82,91,";
+            var provinceCode = value.Substring(0, 2) + ",";
+            if (!validProvinces.Contains(provinceCode))
                 return false;
-            }
-            //验证生日是否匹配  
-            string birthdate = input.Substring(6, 6).Insert(4, "/").Insert(2, "/");
-            DateTime dt;
-            if (!DateTime.TryParse(birthdate, out dt))
-            {
+
+            // 验证出生日期
+            var birthdate = value.Substring(6, 6).Insert(4, "/").Insert(2, "/");
+            DateTime date;
+            if (!DateTime.TryParse(birthdate, out date))
                 return false;
-            }
 
             return true;
         }
-        #endregion
 
-        #region 验证二代身份证号（18位数，GB11643-1999标准）
-        /// <summary>  
-        /// 验证二代身份证号（18位数，GB11643-1999标准）  
-        /// [长度为18位；前17位为数字，最后一位(校验码)可以为大小写x；匹配对应省份地址；生日能正确匹配；校验码能正确匹配]  
-        /// </summary>  
-        /// <param name="input">待验证的字符串</param>  
-        /// <returns>是否匹配</returns>  
-        private static bool IsIDCard18(string input)
+        /// <summary>
+        /// 验证 18 位身份证号（二代身份证，GB11643-1999 标准）
+        /// </summary>
+        /// <param name="value">待验证的 18 位身份证号</param>
+        /// <returns>是否为有效的二代身份证号</returns>
+        private static bool IsIDCard18(string value)
         {
-            //验证是否可以转换为正确的整数  
-            long l = 0;
-            if (!long.TryParse(input.Remove(17), out l) || l.ToString().Length != 17 || !long.TryParse(input.Replace('x', '0').Replace('X', '0'), out l))
-            {
+            long number;
+            if (!long.TryParse(value.Substring(0, 17), out number) || value.Substring(0, 17).Length != 17)
                 return false;
-            }
-            //验证省份是否匹配  
-            //1~6位为地区代码，其中1、2位数为各省级政府的代码，3、4位数为地、市级政府的代码，5、6位数为县、区级政府代码。  
-            string address = "11,12,13,14,15,21,22,23,31,32,33,34,35,36,37,41,42,43,44,45,46,50,51,52,53,54,61,62,63,64,65,71,81,82,91,";
-            if (!address.Contains(input.Remove(2) + ","))
-            {
+
+            if (!long.TryParse(value.Replace('x', '0').Replace('X', '0'), out number))
                 return false;
-            }
-            //验证生日是否匹配  
-            string birthdate = input.Substring(6, 8).Insert(6, "/").Insert(4, "/");
-            DateTime dt;
-            if (!DateTime.TryParse(birthdate, out dt))
-            {
+
+            // 验证省份代码
+            var validProvinces = "11,12,13,14,15,21,22,23,31,32,33,34,35,36,37,41,42,43,44,45,46,50,51,52,53,54,61,62,63,64,65,71,81,82,91,";
+            var provinceCode = value.Substring(0, 2) + ",";
+            if (!validProvinces.Contains(provinceCode))
                 return false;
-            }
-            //校验码验证  
-            //校验码：  
-            //（1）十七位数字本体码加权求和公式   
-            //S = Sum(Ai * Wi), i = 0, ... , 16 ，先对前17位数字的权求和   
-            //Ai:表示第i位置上的身份证号码数字值   
-            //Wi:表示第i位置上的加权因子   
-            //Wi: 7 9 10 5 8 4 2 1 6 3 7 9 10 5 8 4 2   
-            //（2）计算模   
-            //Y = mod(S, 11)   
-            //（3）通过模得到对应的校验码   
-            //Y: 0 1 2 3 4 5 6 7 8 9 10   
-            //校验码: 1 0 X 9 8 7 6 5 4 3 2   
-            string[] arrVarifyCode = ("1,0,x,9,8,7,6,5,4,3,2").Split(',');
-            string[] Wi = ("7,9,10,5,8,4,2,1,6,3,7,9,10,5,8,4,2").Split(',');
-            char[] Ai = input.Remove(17).ToCharArray();
+
+            // 验证出生日期
+            var birthdate = value.Substring(6, 8).Insert(6, "/").Insert(4, "/");
+            DateTime date;
+            if (!DateTime.TryParse(birthdate, out date))
+                return false;
+
+            // 校验码验证
+            var verifyCodes = new[] { "1", "0", "x", "9", "8", "7", "6", "5", "4", "3", "2" };
+            var weights = new[] { 7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2 };
+
             int sum = 0;
-            for (int i = 0; i < 17; i++)
+            for (var i = 0; i < 17; i++)
             {
-                sum += int.Parse(Wi[i]) * int.Parse(Ai[i].ToString());
-            }
-            int y = -1;
-            Math.DivRem(sum, 11, out y);
-            if (arrVarifyCode[y] != input.Substring(17, 1).ToLower())
-            {
-                return false;
-            }
-            return true;
-        }
-        #endregion
-
-        #region 取身份证的出生日期
-        /// <summary>
-        /// 取身份证的出生日期
-        /// </summary>
-        /// <param name="IdCard">身份证</param>
-        /// <returns></returns>
-        public static DateTime GetIdCardBirthday(this string IdCard)
-        {
-            //计算出生日期
-            var birthday = "";
-
-            //处理18位的身份证号码
-            if (IdCard.Length == 18)
-                birthday = string.Format("{0}-{1}-{2}", IdCard.Substring(6, 4), IdCard.Substring(10, 2), IdCard.Substring(12, 2));
-
-
-            //处理15位的身份证号码
-            if (IdCard.Length == 15)
-                birthday = string.Format("19{0}-{1}-{2}", IdCard.Substring(6, 2), IdCard.Substring(8, 2), IdCard.Substring(10, 2));
-            
-            if (birthday.IsDate())
-                return Convert.ToDateTime(birthday);
-            else
-                return Convert.ToDateTime("1900-01-01");
-        }
-        #endregion
-
-        #region 是否中文,空默认为中文
-        /// <summary>
-        /// 是否中文,空默认为中文
-        /// </summary>
-        /// <param name="str">待检测字符串</param>
-        /// <param name="IsDefaule">空值时默认返回值</param>
-        /// <returns></returns>
-        public static bool IsZhString(this string str, bool IsDefaule = true)
-        {
-            if (String.IsNullOrEmpty(str))
-                return IsDefaule;
-
-            try
-            {
-                Match mInfo = Regex.Match(str, @"[\u4e00-\u9fa5]");
-
-                if (mInfo.Success)
-                    return true;
-                else
-                    return false;
-            }
-            catch
-            {
-                return IsDefaule;
-            }
-        }
-        #endregion
-        
-        #region 获取特性内容
-        /// <summary>
-        /// 获取特性内容
-        /// </summary>
-        /// <param name="item">枚举成员</param>
-        /// <returns></returns>
-        public static string ToEnum(this Enum item)
-        {
-            var value = "";
-            foreach (Attribute temp in item.GetType().GetField(item.ToString()).GetCustomAttributes())
-            {
-                if (temp.GetType() == typeof(RemarkAttribute))
+                int digit;
+                if (int.TryParse(value[i].ToString(), out digit))
                 {
-                    value = ((RemarkAttribute)temp).Remark;
-                    break;
+                    sum += weights[i] * digit;
                 }
             }
 
-            return value;
+            int remainder;
+            Math.DivRem(sum, 11, out remainder);
+
+            if (verifyCodes[remainder] != value.Substring(17, 1).ToLower())
+                return false;
+
+            return true;
         }
+
+        /// <summary>
+        /// 从身份证号提取出生日期
+        /// </summary>
+        /// <param name="idCard">身份证号码</param>
+        /// <returns>出生日期，解析失败时返回 1900-01-01</returns>
+        public static DateTime GetIdCardBirthday(this string idCard)
+        {
+            if (string.IsNullOrEmpty(idCard))
+                return new DateTime(1900, 1, 1);
+
+            string birthday;
+
+            if (idCard.Length == 18)
+            {
+                birthday = string.Format("{0}-{1}-{2}",
+                    idCard.Substring(6, 4),
+                    idCard.Substring(10, 2),
+                    idCard.Substring(12, 2));
+            }
+            else if (idCard.Length == 15)
+            {
+                birthday = string.Format("19{0}-{1}-{2}",
+                    idCard.Substring(6, 2),
+                    idCard.Substring(8, 2),
+                    idCard.Substring(10, 2));
+            }
+            else
+            {
+                return new DateTime(1900, 1, 1);
+            }
+
+            DateTime result;
+            return DateTime.TryParse(birthday, out result) ? result : new DateTime(1900, 1, 1);
+        }
+
+        /// <summary>
+        /// 检测是否包含中文字符
+        /// </summary>
+        /// <param name="value">待检测的字符串</param>
+        /// <param name="defaultValue">空值时的默认返回值</param>
+        /// <returns>是否包含中文字符</returns>
+        public static bool IsZhString(this string value, bool defaultValue = true)
+        {
+            if (string.IsNullOrEmpty(value))
+                return defaultValue;
+
+            try
+            {
+                return Regex.IsMatch(value, @"[\u4e00-\u9fa5]");
+            }
+            catch
+            {
+                return defaultValue;
+            }
+        }
+
         #endregion
 
-        #region url
+        #region 枚举特性
+
         /// <summary>
-        /// url 
+        /// 获取枚举成员的 RemarkAttribute 特性值
         /// </summary>
-        /// <param name="HtmlString"></param>
-        /// <returns></returns>
-        public static string Transform(string HtmlString)
+        /// <param name="item">枚举成员</param>
+        /// <returns>特性中的 Remark 值，不存在时返回空字符串</returns>
+        public static string ToEnum(this Enum item)
         {
-            HtmlString = HtmlString.Replace(" ", "-");
-            HtmlString = HtmlString.Replace("<", "-");
-            HtmlString = HtmlString.Replace(">", "-");
-            HtmlString = HtmlString.Replace("*", "-");
-            HtmlString = HtmlString.Replace("?", "-");
-            HtmlString = HtmlString.Replace(",", "");
-            HtmlString = HtmlString.Replace("/", "-");
-            HtmlString = HtmlString.Replace(";", "-");
-            HtmlString = HtmlString.Replace("*/", "-");
-            HtmlString = HtmlString.Replace("&amp", "");
-            HtmlString = HtmlString.Replace("&", "");
-            HtmlString = HtmlString.Replace("\r\n", "-");
-            HtmlString = HtmlString.Replace("+", "-");
-            return HtmlString;
+            if (item == null)
+                return string.Empty;
+
+            var field = item.GetType().GetField(item.ToString());
+            if (field == null)
+                return string.Empty;
+
+            var attributes = field.GetCustomAttributes(typeof(RemarkAttribute), false);
+            if (attributes.Length > 0)
+            {
+                var remarkAttr = attributes[0] as RemarkAttribute;
+                return remarkAttr != null ? remarkAttr.Remark : string.Empty;
+            }
+
+            return string.Empty;
         }
+
+        #endregion
+
+        #region URL 处理
+
+        /// <summary>
+        /// 清理 URL 中的特殊字符，使其适合作为文件名或路径
+        /// </summary>
+        /// <param name="url">待处理的 URL 字符串</param>
+        /// <returns>清理后的字符串</returns>
+        public static string TransformUrl(string url)
+        {
+            if (string.IsNullOrEmpty(url))
+                return string.Empty;
+
+            return url
+                .Replace(" ", "-")
+                .Replace("<", "-")
+                .Replace(">", "-")
+                .Replace("*", "-")
+                .Replace("?", "-")
+                .Replace(",", "")
+                .Replace("/", "-")
+                .Replace(";", "-")
+                .Replace("*/", "-")
+                .Replace("&amp", "")
+                .Replace("&", "")
+                .Replace("\r\n", "-")
+                .Replace("+", "-");
+        }
+
         #endregion
     }
 }

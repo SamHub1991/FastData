@@ -6,9 +6,16 @@ namespace FastData.Tests.Abstractions
 {
     /// <summary>
     /// DateTimeProvider 单元测试
+    /// 
+    /// 覆盖默认时间提供器和可测试时间提供器的所有核心功能，
+    /// 包括时间获取、固定时间设置、全局时间提供器切换、重置操作、
+    /// 异常场景以及多属性同步更新等。
     /// </summary>
     public class DateTimeProviderTests
     {
+        /// <summary>
+        /// 验证 DefaultDateTimeProvider.Now 返回当前本地时间（误差 1 秒以内）
+        /// </summary>
         [Fact]
         public void DefaultDateTimeProvider_Now_ReturnsCurrentTime()
         {
@@ -19,6 +26,9 @@ namespace FastData.Tests.Abstractions
             Assert.True(result >= now.AddSeconds(-1) && result <= now.AddSeconds(1));
         }
 
+        /// <summary>
+        /// 验证 DefaultDateTimeProvider.UtcNow 返回当前 UTC 时间（误差 1 秒以内）
+        /// </summary>
         [Fact]
         public void DefaultDateTimeProvider_UtcNow_ReturnsCurrentUtcTime()
         {
@@ -29,6 +39,9 @@ namespace FastData.Tests.Abstractions
             Assert.True(result >= utcNow.AddSeconds(-1) && result <= utcNow.AddSeconds(1));
         }
 
+        /// <summary>
+        /// 验证 DefaultDateTimeProvider.Today 返回当前日期（不含时间部分）
+        /// </summary>
         [Fact]
         public void DefaultDateTimeProvider_Today_ReturnsCurrentDate()
         {
@@ -39,6 +52,9 @@ namespace FastData.Tests.Abstractions
             Assert.Equal(today.Date, result.Date);
         }
 
+        /// <summary>
+        /// 验证 TestableDateTimeProvider 初始状态下（未设置固定时间）返回当前时间
+        /// </summary>
         [Fact]
         public void TestableDateTimeProvider_InitiallyNotFixed_ReturnsCurrentTime()
         {
@@ -49,6 +65,9 @@ namespace FastData.Tests.Abstractions
             Assert.True(result >= now.AddSeconds(-1) && result <= now.AddSeconds(1));
         }
 
+        /// <summary>
+        /// 验证 TestableDateTimeProvider.SetNow 可正确固定 Now 为指定时间
+        /// </summary>
         [Fact]
         public void TestableDateTimeProvider_SetNow_ReturnsFixedTime()
         {
@@ -60,6 +79,9 @@ namespace FastData.Tests.Abstractions
             Assert.Equal(fixedTime, result);
         }
 
+        /// <summary>
+        /// 验证 TestableDateTimeProvider.SetUtcNow 可正确固定 UtcNow 为指定 UTC 时间
+        /// </summary>
         [Fact]
         public void TestableDateTimeProvider_SetUtcNow_ReturnsFixedUtcTime()
         {
@@ -71,6 +93,9 @@ namespace FastData.Tests.Abstractions
             Assert.Equal(fixedTime, result);
         }
 
+        /// <summary>
+        /// 验证 TestableDateTimeProvider.SetToday 可正确固定 Today 为指定日期
+        /// </summary>
         [Fact]
         public void TestableDateTimeProvider_SetToday_ReturnsFixedDate()
         {
@@ -82,6 +107,9 @@ namespace FastData.Tests.Abstractions
             Assert.Equal(fixedDate.Date, result.Date);
         }
 
+        /// <summary>
+        /// 验证 TestableDateTimeProvider 可同时设置 Now、UtcNow、Today 三个属性，并且值正确同步
+        /// </summary>
         [Fact]
         public void TestableDateTimeProvider_SetMultipleTimes_AllPropertiesUpdated()
         {
@@ -96,6 +124,9 @@ namespace FastData.Tests.Abstractions
             Assert.Equal(fixedTime.Date, provider.Today);
         }
 
+        /// <summary>
+        /// 验证 TestableDateTimeProvider.Reset 可将固定时间恢复为实时时间
+        /// </summary>
         [Fact]
         public void TestableDateTimeProvider_Reset_RestoresCurrentTime()
         {
@@ -112,6 +143,9 @@ namespace FastData.Tests.Abstractions
             Assert.True(afterReset >= now.AddSeconds(-1) && afterReset <= now.AddSeconds(1));
         }
 
+        /// <summary>
+        /// 验证 DateTimeProvider 静态属性初始使用默认时间提供器返回当前时间
+        /// </summary>
         [Fact]
         public void DateTimeProvider_Global_InitiallyUsesDefault()
         {
@@ -121,6 +155,9 @@ namespace FastData.Tests.Abstractions
             Assert.True(result >= now.AddSeconds(-1) && result <= now.AddSeconds(1));
         }
 
+        /// <summary>
+        /// 验证 DateTimeProvider.Current 设置为自定义提供器后，所有静态方法使用该提供器的时间
+        /// </summary>
         [Fact]
         public void DateTimeProvider_SetProvider_UsesCustomProvider()
         {
@@ -141,6 +178,9 @@ namespace FastData.Tests.Abstractions
             }
         }
 
+        /// <summary>
+        /// 验证通过自定义提供器设置固定时间后，所有全局静态方法（Now、UtcNow、Today）都返回固定时间
+        /// </summary>
         [Fact]
         public void DateTimeProvider_SetToFixedTime_AllGlobalMethodsUseFixedTime()
         {
@@ -164,6 +204,9 @@ namespace FastData.Tests.Abstractions
             }
         }
 
+        /// <summary>
+        /// 验证 DateTimeProvider.ResetToDefault 可将全局提供器恢复为默认实现
+        /// </summary>
         [Fact]
         public void DateTimeProvider_ResetToDefault_RestoresCurrentTime()
         {
@@ -181,6 +224,9 @@ namespace FastData.Tests.Abstractions
             Assert.True(afterReset >= now.AddSeconds(-1) && afterReset <= now.AddSeconds(1));
         }
 
+        /// <summary>
+        /// 验证将 DateTimeProvider.Current 设置为 null 时抛出 ArgumentNullException
+        /// </summary>
         [Fact]
         public void DateTimeProvider_SetCurrentToNull_ThrowsArgumentNullException()
         {

@@ -63,17 +63,17 @@ namespace FastUntility.Base
             if (ts.TotalSeconds < 0)
                 return "刚刚";
             if (ts.TotalSeconds < 60)
-                return $"{(int)ts.TotalSeconds}秒前";
+                return string.Format("{0}秒前", (int)ts.TotalSeconds);
             if (ts.TotalMinutes < 60)
-                return $"{(int)ts.TotalMinutes}分钟前";
+                return string.Format("{0}分钟前", (int)ts.TotalMinutes);
             if (ts.TotalHours < 24)
-                return $"{(int)ts.TotalHours}小时前";
+                return string.Format("{0}小时前", (int)ts.TotalHours);
             if (ts.TotalDays < 30)
-                return $"{(int)ts.TotalDays}天前";
+                return string.Format("{0}天前", (int)ts.TotalDays);
             if (ts.TotalDays < 365)
-                return $"{(int)(ts.TotalDays / 30)}个月前";
+                return string.Format("{0}个月前", (int)(ts.TotalDays / 30));
 
-            return $"{(int)(ts.TotalDays / 365)}年前";
+            return string.Format("{0}年前", (int)(ts.TotalDays / 365));
         }
 
         /// <summary>
@@ -86,17 +86,17 @@ namespace FastUntility.Base
             if (ts.TotalSeconds < 0)
                 return "已过期";
             if (ts.TotalSeconds < 60)
-                return $"{(int)ts.TotalSeconds}秒后";
+                return string.Format("{0}秒后", (int)ts.TotalSeconds);
             if (ts.TotalMinutes < 60)
-                return $"{(int)ts.TotalMinutes}分钟后";
+                return string.Format("{0}分钟后", (int)ts.TotalMinutes);
             if (ts.TotalHours < 24)
-                return $"{(int)ts.TotalHours}小时后";
+                return string.Format("{0}小时后", (int)ts.TotalHours);
             if (ts.TotalDays < 30)
-                return $"{(int)ts.TotalDays}天后";
+                return string.Format("{0}天后", (int)ts.TotalDays);
             if (ts.TotalDays < 365)
-                return $"{(int)(ts.TotalDays / 30)}个月后";
+                return string.Format("{0}个月后", (int)(ts.TotalDays / 30));
 
-            return $"{(int)(ts.TotalDays / 365)}年后";
+            return string.Format("{0}年后", (int)(ts.TotalDays / 365));
         }
         #endregion
 
@@ -239,11 +239,11 @@ namespace FastUntility.Base
             var ts = now - dateTime;
 
             if (ts.TotalDays == 0)
-                return $"今天 {dateTime:HH:mm}";
+                return string.Format("今天 {0}", dateTime.ToString("HH:mm"));
             if (ts.TotalDays == 1)
-                return $"昨天 {dateTime:HH:mm}";
+                return string.Format("昨天 {0}", dateTime.ToString("HH:mm"));
             if (ts.TotalDays == 2)
-                return $"前天 {dateTime:HH:mm}";
+                return string.Format("前天 {0}", dateTime.ToString("HH:mm"));
             if (dateTime.Year == now.Year)
                 return dateTime.ToString("MM月dd日 HH:mm");
 

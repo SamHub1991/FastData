@@ -1,6 +1,6 @@
 # FastData
 
-FastData 是一个轻量级多目标框架 ORM，支持 .NET Framework 4.5 / .NET 6.0 / .NET 8.0 / .NET 10.0。
+FastData 是一个轻量级多目标框架 ORM，支持 .NET Framework 4.5.2 / .NET 8.0 / .NET 10.0。
 
 ## 目标框架
 

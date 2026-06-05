@@ -1,8 +1,8 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Xml;
 using System.Xml.Serialization;
-using System.IO;
 
 #if NETFRAMEWORK
 using System.Web;
@@ -11,21 +11,23 @@ using System.Web;
 namespace FastUntility.Base
 {
     /// <summary>
-    /// 标签：2015.7.13，魏中针
-    /// 说明：XML处理
+    /// XML 处理类
+    /// 提供 XML 解析、序列化和反序列化功能
     /// </summary>
     public static class BaseXml
     {
-        #region 根据XML返回结点中的对象列表
         /// <summary>
-        /// 根据XML返回结点中的对象列表
+        /// 从 XML 字符串中提取指定节点的对象列表
         /// </summary>
-        /// <typeparam name="T">泛型</typeparam>
-        /// <param name="xmlValue">xml值</param>
-        /// <param name="xmlNodel">结点</param>
-        /// <returns></returns>
-        public static List<T> GetXmlList<T>(string xmlValue, string xmlNodel)
+        /// <typeparam name="T">目标类型</typeparam>
+        /// <param name="xmlValue">完整的 XML 字符串</param>
+        /// <param name="xpath">节点 XPath 表达式</param>
+        /// <returns>反序列化后的对象列表，解析失败时返回空列表</returns>
+        public static List<T> GetXmlList<T>(string xmlValue, string xpath)
         {
+            if (string.IsNullOrEmpty(xmlValue) || string.IsNullOrEmpty(xpath))
+                return new List<T>();
+
             try
             {
                 var xmlHead = "<?xml version=\"1.0\" encoding=\"utf-8\"?>";
@@ -33,16 +35,19 @@ namespace FastUntility.Base
                 var list = new List<T>();
 
                 xmlDoc.LoadXml(xmlValue);
-                var nodelList = xmlDoc.SelectNodes(xmlNodel);
+                var nodeList = xmlDoc.SelectNodes(xpath);
 
-                foreach (XmlNode item in nodelList)
+                if (nodeList == null)
+                    return list;
+
+                foreach (XmlNode node in nodeList)
                 {
-                    xmlValue = xmlHead + "<" + item.LocalName + ">" + item.InnerXml + "</" + item.LocalName + ">";
+                    var nodeXml = string.Format("{0}<{1}>{2}</{1}>", xmlHead, node.LocalName, node.InnerXml);
 
-                    using (StringReader sR = new StringReader(xmlValue))
+                    using (var reader = new StringReader(nodeXml))
                     {
-                        var xmlDes = new XmlSerializer(typeof(T));
-                        list.Add((T)xmlDes.Deserialize(sR));
+                        var serializer = new XmlSerializer(typeof(T));
+                        list.Add((T)serializer.Deserialize(reader));
                     }
                 }
 
@@ -53,93 +58,32 @@ namespace FastUntility.Base
                 return new List<T>();
             }
         }
-        #endregion
 
-#if NETFRAMEWORK
-        #region 返回字符串列表
         /// <summary>
-        /// 返回字符串列表
+        /// 从 XML 字符串中提取指定节点的文本列表
         /// </summary>
-        /// <param name="context">HTTP上下文</param>
-        /// <param name="FileName">文件名</param>
-        /// <param name="xmlNodel">结点</param>
-        /// <returns>字符串列表</returns>
-        public static List<string> GetXmlListForFileAsync(HttpContextBase context,string FileName, string xmlNodel)
+        /// <param name="xmlValue">完整的 XML 字符串</param>
+        /// <param name="xpath">节点 XPath 表达式</param>
+        /// <returns>节点文本列表，解析失败时返回空列表</returns>
+        public static List<string> GetXmlList(string xmlValue, string xpath)
         {
-            try
-            {
-                var xmlDoc = new XmlDocument();                
-                xmlDoc.Load(context.Server.MapPath(FileName));
-                var nodelList = xmlDoc.SelectNodes(xmlNodel);
-
-                var list = new List<string>();
-
-                foreach (XmlNode item in nodelList)
-                {
-                    list.Add(item.InnerXml);
-                }
-
-                return list;
-            }
-            catch
-            {
+            if (string.IsNullOrEmpty(xmlValue) || string.IsNullOrEmpty(xpath))
                 return new List<string>();
-            }
-        }
-        #endregion
 
-        #region 返回字符串列表 文件 
-        /// <summary>
-        /// 返回字符串列表 文件 
-        /// </summary>
-        /// <param name="FileName">文件名</param>
-        /// <param name="xmlNodel">结点</param>
-        /// <returns></returns>
-        public static List<string> GetXmlListForFile(string FileName, string xmlNodel)
-        {
-            try
-            {
-                var xmlDoc = new XmlDocument();                
-                xmlDoc.Load(HttpContext.Current.Server.MapPath(FileName));
-                var nodelList = xmlDoc.SelectNodes(xmlNodel);
-
-                var list = new List<string>();
-
-                foreach (XmlNode item in nodelList)
-                {
-                    list.Add(item.InnerXml);
-                }
-
-                return list;
-            }
-            catch
-            {
-                return new List<string>();
-            }
-        }
-        #endregion
-#endif
-
-        #region 返回字符串列表
-        /// <summary>
-        /// 返回字符串列表
-        /// </summary>
-        /// <param name="xmlValue">xml</param>
-        /// <param name="xmlNodel">结点</param>
-        /// <returns></returns>
-        public static List<string> GetXmlList(string xmlValue, string xmlNodel)
-        {
             try
             {
                 var xmlDoc = new XmlDocument();
                 xmlDoc.LoadXml(xmlValue);
-                var nodelList = xmlDoc.SelectNodes(xmlNodel);
+                var nodeList = xmlDoc.SelectNodes(xpath);
 
                 var list = new List<string>();
 
-                foreach (XmlNode item in nodelList)
+                if (nodeList == null)
+                    return list;
+
+                foreach (XmlNode node in nodeList)
                 {
-                    list.Add(item.InnerXml);
+                    list.Add(node.InnerXml);
                 }
 
                 return list;
@@ -149,44 +93,108 @@ namespace FastUntility.Base
                 return new List<string>();
             }
         }
-        #endregion
+
+        /// <summary>
+        /// 从 XML 字符串中提取第一个匹配节点的文本
+        /// </summary>
+        /// <param name="xmlValue">完整的 XML 字符串</param>
+        /// <param name="xpath">节点 XPath 表达式</param>
+        /// <returns>第一个节点的文本，不存在时返回空字符串</returns>
+        public static string GetXmlString(string xmlValue, string xpath)
+        {
+            var list = GetXmlList(xmlValue, xpath);
+            return list.Count > 0 ? list[0] : string.Empty;
+        }
 
 #if NETFRAMEWORK
-        #region 返回字符串 文件 
         /// <summary>
-        /// 返回字符串 文件 
+        /// 从 XML 文件中提取指定节点的文本列表（支持 HttpContextBase）
         /// </summary>
-        /// <param name="FileName">文件名</param>
-        /// <param name="xmlNodel">结点</param>
-        /// <returns></returns>
-        public static string GetXmlStringForFile(string FileName, string xmlNodel)
+        /// <param name="context">HTTP 上下文</param>
+        /// <param name="fileName">XML 文件虚拟路径</param>
+        /// <param name="xpath">节点 XPath 表达式</param>
+        /// <returns>节点文本列表，解析失败时返回空列表</returns>
+        public static List<string> GetXmlListFromFileAsync(HttpContextBase context, string fileName, string xpath)
         {
-            var list = GetXmlListForFile(FileName, xmlNodel);
+            if (context == null || string.IsNullOrEmpty(fileName) || string.IsNullOrEmpty(xpath))
+                return new List<string>();
 
-            if (list.Count != 0)
-                return list.First();
-            else
-                return "";
+            try
+            {
+                var xmlDoc = new XmlDocument();
+                var filePath = context.Server.MapPath(fileName);
+                xmlDoc.Load(filePath);
+                var nodeList = xmlDoc.SelectNodes(xpath);
+
+                var list = new List<string>();
+
+                if (nodeList == null)
+                    return list;
+
+                foreach (XmlNode node in nodeList)
+                {
+                    list.Add(node.InnerXml);
+                }
+
+                return list;
+            }
+            catch
+            {
+                return new List<string>();
+            }
         }
-        #endregion
+
+        /// <summary>
+        /// 从 XML 文件中提取指定节点的文本列表
+        /// </summary>
+        /// <param name="fileName">XML 文件虚拟路径</param>
+        /// <param name="xpath">节点 XPath 表达式</param>
+        /// <returns>节点文本列表，解析失败时返回空列表</returns>
+        public static List<string> GetXmlListFromFile(string fileName, string xpath)
+        {
+            if (string.IsNullOrEmpty(fileName) || string.IsNullOrEmpty(xpath))
+                return new List<string>();
+
+            try
+            {
+                var current = HttpContext.Current;
+                if (current == null)
+                    return new List<string>();
+
+                var xmlDoc = new XmlDocument();
+                var filePath = current.Server.MapPath(fileName);
+                xmlDoc.Load(filePath);
+                var nodeList = xmlDoc.SelectNodes(xpath);
+
+                var list = new List<string>();
+
+                if (nodeList == null)
+                    return list;
+
+                foreach (XmlNode node in nodeList)
+                {
+                    list.Add(node.InnerXml);
+                }
+
+                return list;
+            }
+            catch
+            {
+                return new List<string>();
+            }
+        }
+
+        /// <summary>
+        /// 从 XML 文件中提取第一个匹配节点的文本
+        /// </summary>
+        /// <param name="fileName">XML 文件虚拟路径</param>
+        /// <param name="xpath">节点 XPath 表达式</param>
+        /// <returns>第一个节点的文本，不存在时返回空字符串</returns>
+        public static string GetXmlStringFromFile(string fileName, string xpath)
+        {
+            var list = GetXmlListFromFile(fileName, xpath);
+            return list.Count > 0 ? list[0] : string.Empty;
+        }
 #endif
-
-        #region 返回字符串
-        /// <summary>
-        /// 返回字符串
-        /// </summary>
-        /// <param name="xmlValue">xml</param>
-        /// <param name="xmlNodel">结点</param>
-        /// <returns></returns>
-        public static string GetXmlString(string xmlValue, string xmlNodel)
-        {
-            var list = GetXmlList(xmlValue, xmlNodel);
-
-            if (list.Count != 0)
-                return list.First();
-            else
-                return "";
-        }
-        #endregion
     }
 }

@@ -199,10 +199,10 @@ namespace FastData.Tests.Config
                 {
                     manager.SaveTaskConfig(new SyncTaskConfig
                     {
-                        TaskId = $"task{i}",
-                        TaskName = $"Task {i}",
-                        SourceTable = $"source_{i}",
-                        TargetTable = $"target_{i}"
+                        TaskId = string.Format("task{0}", i),
+                        TaskName = string.Format("Task {0}", i),
+                        SourceTable = string.Format("source_{0}", i),
+                        TargetTable = string.Format("target_{0}", i)
                     });
                 }
 

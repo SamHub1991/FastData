@@ -137,7 +137,7 @@ namespace FastData.ConnectionPool
             }
             catch (Exception ex)
             {
-                BaseLog.SaveLog($"连接池监控失败: {ex.Message}", "ConnectionPool_Monitor");
+                BaseLog.SaveLog(string.Format("连接池监控失败: {0}", ex.Message), "ConnectionPool_Monitor");
             }
         }
 

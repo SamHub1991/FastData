@@ -38,13 +38,13 @@ namespace FastUntility.Security
 
             var signature = algorithm switch
             {
-                "HS256" => ComputeHmacSha256($"{headerBase64}.{payloadBase64}", secret),
-                "HS384" => ComputeHmacSha384($"{headerBase64}.{payloadBase64}", secret),
-                "HS512" => ComputeHmacSha512($"{headerBase64}.{payloadBase64}", secret),
-                _ => throw new NotSupportedException($"不支持的算法: {algorithm}")
+                "HS256" => ComputeHmacSha256(string.Format("{0}.{1}", headerBase64, payloadBase64), secret),
+                "HS384" => ComputeHmacSha384(string.Format("{0}.{1}", headerBase64, payloadBase64), secret),
+                "HS512" => ComputeHmacSha512(string.Format("{0}.{1}", headerBase64, payloadBase64), secret),
+                _ => throw new NotSupportedException(string.Format("不支持的算法: {0}", algorithm))
             };
 
-            return $"{headerBase64}.{payloadBase64}.{signature}";
+            return string.Format("{0}.{1}.{2}", headerBase64, payloadBase64, signature);
         }
 
         /// <summary>
@@ -68,10 +68,10 @@ namespace FastUntility.Security
             // 验证签名
             var expectedSignature = algorithm switch
             {
-                "HS256" => ComputeHmacSha256($"{headerBase64}.{payloadBase64}", secret),
-                "HS384" => ComputeHmacSha384($"{headerBase64}.{payloadBase64}", secret),
-                "HS512" => ComputeHmacSha512($"{headerBase64}.{payloadBase64}", secret),
-                _ => throw new NotSupportedException($"不支持的算法: {algorithm}")
+                "HS256" => ComputeHmacSha256(string.Format("{0}.{1}", headerBase64, payloadBase64), secret),
+                "HS384" => ComputeHmacSha384(string.Format("{0}.{1}", headerBase64, payloadBase64), secret),
+                "HS512" => ComputeHmacSha512(string.Format("{0}.{1}", headerBase64, payloadBase64), secret),
+                _ => throw new NotSupportedException(string.Format("不支持的算法: {0}", algorithm))
             };
 
             if (signature != expectedSignature)

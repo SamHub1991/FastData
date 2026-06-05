@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using FastUntility.Base;
 using FastData.DbTypes;
 
@@ -79,10 +79,9 @@ namespace FastData.Base
         /// <summary>
         /// 数据库sql code first日志
         /// </summary>
-        /// <param name="IsOutSql"></param>
-        /// <param name="IsAsyc"></param>
-        /// <param name="sql"></param>
-        /// <param name="dbType"></param>
+        /// <param name="IsOutSql">是否输出 SQL 日志</param>
+        /// <param name="sql">执行的 SQL 语句</param>
+        /// <param name="dbType">数据库类型</param>
         public static void LogSql(bool IsOutSql, string sql, DataDbType dbType)
         {
             // Check global SQL log setting first, then per-database setting

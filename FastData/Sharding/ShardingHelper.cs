@@ -63,7 +63,7 @@ namespace FastData
         {
             if (!ShardingManager.IsShardingEnabled<T>())
             {
-                throw new InvalidOperationException($"Entity type {typeof(T).Name} is not configured for sharding.");
+                throw new InvalidOperationException(string.Format("Entity type {0} is not configured for sharding.", typeof(T).Name));
             }
 
             var tableNames = ShardingManager.GetTableNames<T>(queryParams);
@@ -103,7 +103,7 @@ namespace FastData
         {
             if (!ShardingManager.IsShardingEnabled<T>())
             {
-                throw new InvalidOperationException($"Entity type {typeof(T).Name} is not configured for sharding.");
+                throw new InvalidOperationException(string.Format("Entity type {0} is not configured for sharding.", typeof(T).Name));
             }
 
             var tableNames = ShardingManager.GetTableNames<T>(queryParams);
@@ -193,7 +193,7 @@ namespace FastData
         {
             if (!ShardingManager.IsShardingEnabled<T>())
             {
-                throw new InvalidOperationException($"Entity type {typeof(T).Name} is not configured for sharding.");
+                throw new InvalidOperationException(string.Format("Entity type {0} is not configured for sharding.", typeof(T).Name));
             }
 
             key = key ?? FastDb.CurrentKey;
@@ -214,7 +214,7 @@ namespace FastData
         {
             if (!ShardingManager.IsShardingEnabled<T>())
             {
-                throw new InvalidOperationException($"Entity type {typeof(T).Name} is not configured for sharding.");
+                throw new InvalidOperationException(string.Format("Entity type {0} is not configured for sharding.", typeof(T).Name));
             }
 
             key = key ?? FastDb.CurrentKey;
@@ -239,7 +239,7 @@ namespace FastData
         {
             if (!ShardingManager.IsShardingEnabled<T>())
             {
-                throw new InvalidOperationException($"Entity type {typeof(T).Name} is not configured for sharding.");
+                throw new InvalidOperationException(string.Format("Entity type {0} is not configured for sharding.", typeof(T).Name));
             }
 
             var tableNames = ShardingManager.GetTableNames<T>(queryParams);
@@ -270,7 +270,7 @@ namespace FastData
         {
             if (!ShardingManager.IsShardingEnabled<T>())
             {
-                throw new InvalidOperationException($"Entity type {typeof(T).Name} is not configured for sharding.");
+                throw new InvalidOperationException(string.Format("Entity type {0} is not configured for sharding.", typeof(T).Name));
             }
 
             key = key ?? FastDb.CurrentKey;
