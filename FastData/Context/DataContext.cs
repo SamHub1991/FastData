@@ -145,6 +145,7 @@ namespace FastData.Context
 
                 if (_usePool && _pooledConnection != null)
                 {
+                    try { _pooledConnection.Connection.Close(); } catch { }
                     _pooledConnection.Dispose();
                     _pooledConnection = null;
                 }

@@ -1,29 +1,136 @@
+version: '3.8'
+
+# FastData ORM 开发环境数据库服务
+# 包含 SQL Server、MySQL、PostgreSQL、SQLite 和 Redis
+#
+# 启动服务：docker-compose up -d
+# 停止服务：docker-compose down
+# 查看状态：docker-compose ps
+# 重启服务：docker-compose restart
+
 services:
+  # ===========================================================================
+  # Microsoft SQL Server 2019 Express
+  # 端口：1433
+  # 账号：sa / FastData@Test123
+  # 用途：ORM 核心功能测试、TVPs 批量插入测试
+  # ===========================================================================
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2019-latest
     container_name: sqlserver
+    platform: linux/amd64
     environment:
       - ACCEPT_EULA=Y
       - SA_PASSWORD=FastData@Test123
       - MSSQL_PID=Express
     ports:
       - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    healthcheck:
+      test: /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'FastData@Test123' -Q "SELECT 1"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     restart: unless-stopped
+    networks:
+      - fastdata_network
 
+  # ===========================================================================
+  # MySQL 8.0
+  # 端口：3306
+  # 账号：root / FastData@Test123
+  # 用途：ORM 核心功能测试、批量插入测试
+  # 注意：lower_case_table_names=0（表名大小写敏感）
+  # ===========================================================================
   mysql:
     image: mysql:8.0
     container_name: mysql
+    platform: linux/amd64
     environment:
       - MYSQL_ROOT_PASSWORD=FastData@Test123
+      - MYSQL_DATABASE=fastdata
     ports:
       - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --lower_case_table_names=0
+    healthcheck:
+      test: mysqladmin ping -h localhost -u root -p'FastData@Test123'
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     restart: unless-stopped
+    networks:
+      - fastdata_network
 
+  # ===========================================================================
+  # PostgreSQL 14
+  # 端口：5432
+  # 账号：postgres / FastData@Test123
+  # 用途：ORM 核心功能测试、大小写敏感测试
+  # 注意：PostgreSQL 自动将未加引号的标识符转为小写
+  # ===========================================================================
   postgres:
     image: postgres:14
     container_name: postgres
+    platform: linux/amd64
     environment:
-      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_PASSWORD=FastData@Test123
+      - POSTGRES_DB=fastdata
     ports:
       - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: pg_isready -U postgres -d fastdata
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     restart: unless-stopped
+    networks:
+      - fastdata_network
+
+  # ===========================================================================
+  # Redis 7 (Alpine)
+  # 端口：6379
+  # 用途：缓存、消息队列、分布式锁
+  # 注意：--save "" --appendonly no 禁用持久化（开发环境）
+  # ===========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    platform: linux/amd64
+    ports:
+      - "6379:6379"
+    command: redis-server --save "" --appendonly no
+    healthcheck:
+      test: redis-cli ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - fastdata_network
+
+# 数据卷：持久化数据库数据
+volumes:
+  sqlserver_data:
+    driver: local
+  mysql_data:
+    driver: local
+  postgres_data:
+    driver: local
+
+# 网络：统一内部网络
+networks:
+  fastdata_network:
+    driver: bridge

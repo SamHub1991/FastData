@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using FastData.Config;
+using FastData.DbTypes;
+using FastData.Model;
 
 namespace FastData.Base
 {
@@ -11,36 +14,64 @@ namespace FastData.Base
             var type = typeof(T);
             var attr = type.GetCustomAttribute<Property.TableAttribute>();
             if (attr == null)
-                return type.Name;
+                return QuoteTableName(type.Name, dbKey);
 
-            // 优先使用多数据库表名映射
             if (!string.IsNullOrEmpty(attr.DbTableNames))
             {
-                // 如果未传入 dbKey，尝试使用当前上下文的数据库 key
                 var effectiveKey = dbKey ?? FastDb.CurrentKey;
                 if (!string.IsNullOrEmpty(effectiveKey))
                 {
                     var tableName = GetTableNameFromMapping(attr.DbTableNames, effectiveKey);
                     if (!string.IsNullOrEmpty(tableName))
-                        return tableName;
+                        return QuoteTableName(tableName, effectiveKey);
                 }
             }
 
-            // 其次使用 Name 属性
             if (!string.IsNullOrEmpty(attr.Name))
-                return attr.Name;
+                return QuoteTableName(attr.Name, dbKey);
 
-            // 最后使用类名
-            return type.Name;
+            return QuoteTableName(type.Name, dbKey);
         }
 
-        /// <summary>
-        /// 从多数据库表名映射中获取表名
-        /// 格式: "数据库Key.表名,数据库Key.表名"
-        /// </summary>
-        /// <param name="dbTableNames">数据库表名映射字符串</param>
-        /// <param name="dbKey">数据库键</param>
-        /// <returns>表名</returns>
+        public static string GetTableName<T>(ConfigModel config)
+        {
+            return GetTableName<T>(config?.Key);
+        }
+
+        private static string QuoteTableName(string tableName, DataDbType dbType)
+        {
+            if (string.IsNullOrEmpty(tableName))
+                return tableName;
+
+            switch (dbType)
+            {
+                case DataDbType.PostgreSql:
+                    return tableName.ToLowerInvariant();
+
+                case DataDbType.MySql:
+                    return $"`{tableName}`";
+
+                default:
+                    return tableName;
+            }
+        }
+
+        private static string QuoteTableName(string tableName, string dbKey)
+        {
+            if (string.IsNullOrEmpty(tableName) || string.IsNullOrEmpty(dbKey))
+                return tableName;
+
+            try
+            {
+                var dbConfig = FastDataConfig.GetConfig(dbKey);
+                if (dbConfig != null)
+                    return QuoteTableName(tableName, dbConfig.DbType);
+            }
+            catch { }
+
+            return tableName;
+        }
+
         private static string GetTableNameFromMapping(string dbTableNames, string dbKey)
         {
             if (string.IsNullOrEmpty(dbTableNames) || string.IsNullOrEmpty(dbKey))
@@ -51,9 +82,7 @@ namespace FastData.Base
             {
                 var parts = pair.Trim().Split('.');
                 if (parts.Length == 2 && string.Equals(parts[0].Trim(), dbKey, StringComparison.OrdinalIgnoreCase))
-                {
                     return parts[1].Trim();
-                }
             }
 
             return null;

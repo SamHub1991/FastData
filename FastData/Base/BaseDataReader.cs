@@ -51,9 +51,13 @@ namespace FastData.Base
                 {
                     for (var i = 0; i < field.Count; i++)
                     {
-                        if (propertyList.Exists(a => a.Name.ToLower() == field[i].ToLower()))
+                        var fieldName = field[i];
+                        if (fieldName.Contains("."))
+                            fieldName = fieldName.Substring(fieldName.IndexOf(".") + 1);
+
+                        if (propertyList.Exists(a => a.Name.ToLower() == fieldName.ToLower()))
                         {
-                            var info = propertyList.Find(a => a.Name.ToLower() == field[i].ToLower());
+                            var info = propertyList.Find(a => a.Name.ToLower() == fieldName.ToLower());
                             item = SetValue<T>(item, dynSet, dr, info, config);
                         }
                     }

@@ -1,162 +1,62 @@
-## FastData .gitignore
+# 编译输出
+bin/
+obj/
+*.dll
+*.exe
+*.so
+*.dylib
 
-# ========================
-# 构建产物和中间文件
-# ========================
-[Bb]in/
-[Oo]bj/
-[Dd]ebug/
-[Rr]elease/
-[Dd]ebugPublic/
-[Rr]eleases/
-bld/
-[Ll]og/
-
-# ========================
-# Visual Studio 文件
-# ========================
-.vs/
-*.suo
-*.user
-*.userosscache
-*.sln.docstates
-*.userprefs
-*.DotSettings.user
-
-# ========================
-# .NET Core / .NET 5+
-# ========================
-*.lock.json
-*.nuspec
+# 项目特定文件
 *.nupkg
-*.snupkg
-**/packages/*
-!**/packages/build/
-*.nuget.props
-*.nuget.targets
-artifacts/
+*.snk
+*.pfx
+appsettings.local.json
 
-# ========================
-# 测试和覆盖率
-# ========================
-[Tt]est[Rr]esult*/
-[Bb]uild[Ll]og.*
-*.trx
-*.coverage
-*.coveragexml
-*.VisualState.xml
-TestResult.xml
-[Bb]enchmark[Dd]ot[Nn]et.Artifacts/
-
-# ========================
-# IDE 和编辑器
-# ========================
-_ReSharper*/
-*.[Rr]e[Ss]harper
-.JustCode
-*.dotCover
-_NCrunch_*
-.*crunch*.local.xml
-nCrunchTemp_*
-.idea/
-*.sln.iml
-.cr/
-
-# ========================
-# 临时和备份文件
-# ========================
-*~
-$tf/
-*.tmp
-*.tmp_proj
+# 日志文件
 *.log
-*.pidb
-*.svclog
-*.scc
-*.ilk
-*.meta
-*.obj
-*.pch
-*.pdb
-*.pgc
-*.pgd
-*.rsp
-*.sbr
-*.tlb
-*.tli
-*.tlh
+Log/
+logs/
 
-# ========================
-# 发布和部署
-# ========================
-publish/
-*.[Pp]ublish.xml
-*.azurePubxml
-*.publishproj
-PublishScripts/
-
-# ========================
-# 数据库文件
-# ========================
-*.mdf
-*.ldf
+# 数据库文件（SQLite 等）
 *.db
-*.db-shm
-*.db-wal
+*.sqlite
+*.sqlite3
 
-# ========================
-# 生产环境配置（含敏感信息）
-# ========================
-**/db.pro.config
-**/db.prod.config
-**/appsettings.Production.json
-**/appsettings.Production.*.json
+# 用户特定配置
+*.user
+.vscode/
+.idea/
+*.suo
+*.iml
 
-# ========================
-# OS 特定文件
-# ========================
+# 操作系统文件
 .DS_Store
 Thumbs.db
-desktop.ini
 
-# ========================
-# 工具链
-# ========================
-.paket/
-paket-files/
-.fake/
+# 临时文件
+tmp/
+temp/
+*.tmp
+
+# 测试输出
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
+
+# NuGet 包
+packages/
+.nuget/
+
+# Docker 数据卷（如果本地挂载）
+docker/*/data/
+
+# Node.js（如果有前端项目）
 node_modules/
+npm-debug.log
+
+# Python（如果有脚本）
 __pycache__/
-*.pyc
-
-# ========================
-# 备份和升级报告
-# ========================
-_UpgradeReport_Files/
-Backup*/
-UpgradeLog*.XML
-UpgradeLog*.htm
-
-# ========================
-# 其他
-# ========================
-ClientBin/
-*.dbmdl
-*.dbproj.schemaview
-*.jfm
-*.pfx
-*.publishsettings
-orleans.codegen.cs
-Generated_Code/
-FakesAssemblies/
-*.GhostDoc.xml
-.ntvs_analysis.dat
-*.plg
-*.opt
-**/*.HTMLClient/GeneratedArtifacts
-**/*.DesktopClient/GeneratedArtifacts
-**/*.DesktopClient/ModelManifest.xml
-**/*.Server/GeneratedArtifacts
-**/*.Server/ModelManifest.xml
-_Pvt_Extensions
-*.bak
+*.py[cod]
+.env
+.venv/

@@ -53,8 +53,6 @@ namespace FastData.Context
 
                 result.Sql = ParameterToSql.ObjectParamToSql(param, sql.ToString(), item.Config);
 
-                DisposeCommand(cmd);
-
                 if (param.Count != 0)
                     cmd.Parameters.AddRange(param.ToArray());
 
@@ -66,12 +64,12 @@ namespace FastData.Context
 
                 if (item.Take == 1)
                 {
-                    result.Item = BaseDataReader.ToList<T>(dr, item.Config, item.AsName).FirstOrDefault<T>();
+                    result.Item = BaseDataReader.ToList<T>(dr, item.Config, item.Field).FirstOrDefault<T>();
                     data = result.Item;
                 }
                 else
                 {
-                    result.List = BaseDataReader.ToList<T>(dr, item.Config, item.AsName);
+                    result.List = BaseDataReader.ToList<T>(dr, item.Config, item.Field);
                     data = result.List;
                 }
 

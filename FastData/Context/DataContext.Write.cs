@@ -42,7 +42,7 @@ namespace FastData.Context
 
                 visitModel = VisitExpression.LambdaWhere<T>(predicate, config);
 
-                sql.AppendFormat("delete from {0} {1}", TableNameHelper.GetTableName<T>()
+                sql.AppendFormat("delete from {0} {1}", TableNameHelper.GetTableName<T>(config)
                     , string.IsNullOrEmpty(visitModel.Where) ? "" : string.Format("where {0}", visitModel.Where.Replace(string.Format("{0}.", predicate.Parameters[0].Name), "")));
 
                 result.Sql = ParameterToSql.ObjectParamToSql(visitModel.Param, sql.ToString(), config);
@@ -52,7 +52,7 @@ namespace FastData.Context
                 if (visitModel.Param.Count != 0)
                     cmd.Parameters.AddRange(visitModel.Param.ToArray());
 
-                tableName.Add(TableNameHelper.GetTableName<T>());
+                tableName.Add(TableNameHelper.GetTableName<T>(config));
                     AopBefore(tableName, sql.ToString(), visitModel.Param, config, false,AopType.Delete_Lambda);
 
                 if (visitModel.IsSuccess)
@@ -355,7 +355,7 @@ namespace FastData.Context
 
                         result.Sql = ParameterToSql.ObjectParamToSql(update.Param, update.Sql, config);
                         
-                        tableName.Add(TableNameHelper.GetTableName<T>());
+                tableName.Add(TableNameHelper.GetTableName<T>(config));
                         AopBefore(tableName, update.Sql, update.Param, config, false,AopType.UpdateList);
 
                         result.WriteReturn.IsSuccess = adapter.Update(update.table) > 0;
@@ -621,7 +621,7 @@ namespace FastData.Context
                     }).ToList();
                     
                     // 构建排除 Identity 列的 SQL
-                    var mysqlTableName = TableNameHelper.GetTableName<T>();
+                    var mysqlTableName = TableNameHelper.GetTableName<T>(config);
                     var mysqlColumns = string.Join(", ", nonIdentityProperties.Select(p => p.Name));
                     var mysqlValues = string.Join(", ", list.Select(item => 
                         string.Format("({0})", string.Join(", ", nonIdentityProperties.Select(p => {
@@ -651,7 +651,7 @@ namespace FastData.Context
                     #region postgresql
                     DisposeCommand(cmd);
                     
-                    var pgTableName = TableNameHelper.GetTableName<T>();
+                    var pgTableName = TableNameHelper.GetTableName<T>(config);
                     var pgProperties = PropertyCache.GetPropertyInfo<T>();
                     
                     // 排除 Identity 列

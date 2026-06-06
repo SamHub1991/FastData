@@ -33,11 +33,11 @@ namespace FastData.Base
             var result = new OptionModel();
             var entityGetter = new Property.DynamicGet<T>();
             result.IsCache = config.IsPropertyCache;
-            var primaryKeys = GetPrimaryKeys(config, cmd, TableNameHelper.GetTableName<T>());
+            var primaryKeys = GetPrimaryKeys(config, cmd, TableNameHelper.GetTableName<T>(config));
 
             try
             {
-                var tableName = TableNameHelper.GetTableName<T>();
+                var tableName = TableNameHelper.GetTableName<T>(config);
                 var sqlBuilder = new StringBuilder();
                 sqlBuilder.AppendFormat("update {0} set", tableName);
 
@@ -111,7 +111,7 @@ namespace FastData.Base
             var result = new OptionModel();
             var entityGetter = new Property.DynamicGet<T>();
             result.IsCache = config.IsPropertyCache;
-            var tableName = TableNameHelper.GetTableName<T>();
+            var tableName = TableNameHelper.GetTableName<T>(config);
             var primaryKeys = GetPrimaryKeys(config, cmd, tableName);
 
             if (primaryKeys.Count == 0)
@@ -219,7 +219,7 @@ namespace FastData.Base
                 if (string.IsNullOrEmpty(config.ProviderName))
                     throw new InvalidOperationException("config.ProviderName 为空 - 数据库配置未加载");
 
-                columnBuilder.AppendFormat("insert into {0} (", TableNameHelper.GetTableName<T>());
+                columnBuilder.AppendFormat("insert into {0} (", TableNameHelper.GetTableName<T>(config));
                 valueBuilder.Append(" values (");
 
                 var properties = PropertyCache.GetPropertyInfo<T>(config.IsPropertyCache);
@@ -284,7 +284,7 @@ namespace FastData.Base
             var entityGetter = new Property.DynamicGet<T>();
             var result = new OptionModel();
             result.IsCache = config.IsPropertyCache;
-            var primaryKeys = GetPrimaryKeys(config, cmd, TableNameHelper.GetTableName<T>());
+            var primaryKeys = GetPrimaryKeys(config, cmd, TableNameHelper.GetTableName<T>(config));
 
             if (primaryKeys.Count == 0)
             {
@@ -298,7 +298,7 @@ namespace FastData.Base
                 result.table = BaseExecute.ToDataTable<T>(cmd, config, primaryKeys, fieldSelector);
 
                 var sqlBuilder = new StringBuilder();
-                sqlBuilder.AppendFormat("update {0} set", TableNameHelper.GetTableName<T>());
+                sqlBuilder.AppendFormat("update {0} set", TableNameHelper.GetTableName<T>(config));
 
                 if (fieldSelector == null)
                 {
@@ -403,7 +403,7 @@ namespace FastData.Base
             var result = new OptionModel();
             var entityGetter = new Property.DynamicGet<T>();
             result.IsCache = config.IsPropertyCache;
-            var primaryKeys = GetPrimaryKeys(config, cmd, TableNameHelper.GetTableName<T>());
+            var primaryKeys = GetPrimaryKeys(config, cmd, TableNameHelper.GetTableName<T>(config));
 
             if (primaryKeys.Count == 0)
             {
@@ -415,7 +415,7 @@ namespace FastData.Base
             try
             {
                 var sqlBuilder = new StringBuilder();
-                sqlBuilder.AppendFormat("delete {0} ", TableNameHelper.GetTableName<T>());
+                sqlBuilder.AppendFormat("delete {0} ", TableNameHelper.GetTableName<T>(config));
 
                 var keyIndex = 1;
                 foreach (var primaryKey in primaryKeys)
