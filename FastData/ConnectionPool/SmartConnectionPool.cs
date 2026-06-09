@@ -16,6 +16,15 @@ namespace FastData.ConnectionPool
     /// </summary>
     public class ConnectionPoolConfig
     {
+        // 连接池大小计算常量
+        private const double CpuMultiplierForIO = 1.5;       // 数据库属于 IO 密集型，取 CPU 核心数 * 1.5
+        private const double MemoryReservationPercent = 0.1; // 预留 10% 内存给连接池
+        private const double BytesPerConnectionMB = 2;       // 每个连接约占用 2MB 内存
+        private const int MinPoolSizeMinValue = 2;           // 最小连接数下限
+        private const int MinPoolSizeFraction = 10;          // 最小连接数 = 最大连接数 / 10
+        private const int MaxPoolSizeMinValue = 10;          // 最大连接数下限
+        private const int MaxPoolSizeMaxValue = 200;         // 最大连接数上限
+
         /// <summary>
         /// 最小连接数（-1 表示根据环境自动计算）
         /// </summary>
@@ -49,26 +58,23 @@ namespace FastData.ConnectionPool
 #endif
 
             // 根据 CPU 核心数计算池大小
-            // 公式：CPU 密集型 = 核心数 + 1，IO 密集型 = 核心数 * 2
-            // 数据库属于 IO 密集型，但有连接开销，取核心数 * 1.5
-            var cpuBasedMax = (int)(processorCount * 1.5);
+            var cpuBasedMax = (int)(processorCount * CpuMultiplierForIO);
 
-            // 根据内存计算池大小（每连接约占用 1-2MB）
-            // 保守估计，预留 10% 内存给连接池
-            var memoryBasedMax = (int)(memoryMB * 0.1 / 2);
+            // 根据内存计算池大小
+            var memoryBasedMax = (int)(memoryMB * MemoryReservationPercent / BytesPerConnectionMB);
 
             // 如果 MinPoolSize 未设置，设为 MaxPoolSize 的 10%
             if (MinPoolSize < 0)
             {
-                MinPoolSize = Math.Max(2, cpuBasedMax / 10);
+                MinPoolSize = Math.Max(MinPoolSizeMinValue, cpuBasedMax / MinPoolSizeFraction);
             }
 
             // 如果 MaxPoolSize 未设置，取 CPU 和内存计算的较小值
             if (MaxPoolSize < 0)
             {
                 MaxPoolSize = Math.Min(cpuBasedMax, memoryBasedMax);
-                // 限制范围：最小 10，最大 200
-                MaxPoolSize = Math.Max(10, Math.Min(200, MaxPoolSize));
+                // 限制范围
+                MaxPoolSize = Math.Max(MaxPoolSizeMinValue, Math.Min(MaxPoolSizeMaxValue, MaxPoolSize));
             }
 
             // 确保 MinPoolSize 不超过 MaxPoolSize
@@ -238,7 +244,21 @@ namespace FastData.ConnectionPool
             LastUsedBy = null;
         }
 
+        /// <summary>
+        /// 终结器：确保即使调用方忘记 Dispose 也能释放底层数据库连接
+        /// </summary>
+        ~PooledConnection()
+        {
+            Dispose(false);
+        }
+
         public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
         {
             if (!_disposed)
             {
@@ -272,6 +292,15 @@ namespace FastData.ConnectionPool
     /// </summary>
     public class SmartConnectionPool : IDisposable
     {
+        // 环境检测常量
+        private const double HighMemoryUsageThresholdPercent = 85; // 内存使用率超过此值时限制扩容
+        private const double LowMemoryExpandFactor = 0.5;          // 内存高时扩容因子
+        private const double RecentExpandExpandFactor = 0.3;       // 近期已扩容时的扩容因子
+        private const double ErrorExpandFactor = 0.5;              // 有错误时的扩容因子
+        private const int RedisCheckIntervalSeconds = 30;          // Redis 可用性检测间隔
+        private const int ExpandFrequencySeconds = 60;             // 扩容频率间隔
+        private const int RedisConnectTimeoutSeconds = 2;          // Redis 连接超时
+
         private readonly string _name;
         private readonly ConnectionPoolConfig _config;
         private readonly Func<DbConnection> _connectionFactory;
@@ -415,6 +444,13 @@ namespace FastData.ConnectionPool
         /// <returns>池化连接</returns>
         public async Task<PooledConnection> GetConnectionAsync(CancellationToken cancellationToken = default)
         {
+            // 熔断器检查
+            if (!CanExecuteRequest())
+            {
+                Interlocked.Increment(ref _failedRequests);
+                throw new CircuitBreakerOpenException(string.Format("连接池 {0} 熔断器打开，拒绝请求", _name));
+            }
+
             var stopwatch = Stopwatch.StartNew();
             Interlocked.Increment(ref _totalRequests);
 
@@ -438,7 +474,7 @@ namespace FastData.ConnectionPool
                     if (IsConnectionExpired(connection))
                     {
                         DestroyConnection(connection);
-                        connection = CreateNewConnection();
+                        connection = await CreateNewConnectionAsync(cancellationToken);
                     }
                     else
                     {
@@ -446,14 +482,14 @@ namespace FastData.ConnectionPool
                         if (!await ValidateConnectionAsync(connection))
                         {
                             DestroyConnection(connection);
-                            connection = CreateNewConnection();
+                            connection = await CreateNewConnectionAsync(cancellationToken);
                         }
                     }
                 }
                 else
                 {
                     // 创建新连接
-                    connection = CreateNewConnection();
+                    connection = await CreateNewConnectionAsync(cancellationToken);
                 }
 
                 if (connection == null)
@@ -574,16 +610,16 @@ namespace FastData.ConnectionPool
                 connection.MarkReturned();
                 Interlocked.Decrement(ref _activeCount);
 
-                // 检查连接是否应该被销毁
-                if (IsConnectionExpired(connection) || !ValidateConnection(connection))
+                // 仅检查连接是否过期，不在归还时执行 ValidateConnection（SELECT 1）
+                // 连接有效性验证已在 GetConnection/GetConnectionAsync 取出时执行
+                // 归还时验证会带来不必要的 SELECT 1 开销，且在连接已关闭时会误判销毁
+                if (IsConnectionExpired(connection))
                 {
                     DestroyConnection(connection);
-                    RecordFailure(); // 连接验证失败也算一次失败
                 }
                 else
                 {
                     _availableConnections.Add(connection);
-                    RecordSuccess(); // 连接正常归还，记录成功
                 }
 
                 _semaphore.Release();
@@ -640,6 +676,39 @@ namespace FastData.ConnectionPool
                     var delay = _config.RetryBaseDelayMs * (1 << attempt);
                     Log(string.Format("连接池 {0} 创建连接失败（第 {1} 次），{2}ms 后重试: {3}", _name, attempt + 1, delay, ex.Message));
                     Thread.Sleep(delay);
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// 创建新连接（异步版本，带指数退避重试）
+        /// </summary>
+        private async Task<PooledConnection> CreateNewConnectionAsync(CancellationToken cancellationToken = default)
+        {
+            for (int attempt = 0; attempt <= _config.MaxRetries; attempt++)
+            {
+                try
+                {
+                    var connection = _connectionFactory();
+                    if (connection != null)
+                    {
+                        connection.Open();
+                        Interlocked.Increment(ref _totalCount);
+                        return new PooledConnection(connection, this);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    if (attempt == _config.MaxRetries)
+                    {
+                        Log(string.Format("连接池 {0} 创建连接失败（已重试 {1} 次）: {2}", _name, _config.MaxRetries, ex.Message));
+                        return null;
+                    }
+
+                    var delay = _config.RetryBaseDelayMs * (1 << attempt);
+                    Log(string.Format("连接池 {0} 创建连接失败（第 {1} 次），{2}ms 后重试: {3}", _name, attempt + 1, delay, ex.Message));
+                    await Task.Delay(delay, cancellationToken);
                 }
             }
             return null;
@@ -779,15 +848,20 @@ namespace FastData.ConnectionPool
             try
             {
                 var metrics = GetMetrics();
-                var loadPercentage = (double)metrics.ActiveConnections / _config.MaxPoolSize * 100;
+                var loadPercentage = metrics.TotalConnections > 0 
+                    ? (double)metrics.ActiveConnections / metrics.TotalConnections * 100 
+                    : 0;
 
                 // 检测环境状态
                 var environmentStatus = CheckEnvironmentStatus();
 
+                // 重新获取最新指标，避免竞态条件
+                var currentMetrics = GetMetrics();
+
                 // 1. 异常检测缩容：当近期错误多时，主动缩容
                 if (_recentErrors >= _config.ErrorShrinkThreshold)
                 {
-                    var currentTotal = metrics.TotalConnections;
+                    var currentTotal = currentMetrics.TotalConnections;
                     var shrinkTarget = Math.Max(_config.MinPoolSize, 
                         currentTotal * (100 - _config.ErrorShrinkPercentage) / 100);
                     var shrinkCount = Math.Min(_config.MaxShrinkCount, currentTotal - shrinkTarget);
@@ -810,10 +884,10 @@ namespace FastData.ConnectionPool
                 // 2. 负载过高时扩容（需要环境支持）
                 else if (loadPercentage > _config.LoadThreshold && 
                          environmentStatus.CanExpand &&
-                         metrics.TotalConnections < _config.MaxPoolSize)
+                         currentMetrics.TotalConnections < _config.MaxPoolSize)
                 {
                     var expandCount = Math.Min(_config.MaxExpandCount, 
-                        _config.MaxPoolSize - metrics.TotalConnections);
+                        _config.MaxPoolSize - currentMetrics.TotalConnections);
                     
                     // 根据环境状态调整扩容数量
                     if (environmentStatus.ExpandFactor < 1.0)
@@ -833,9 +907,9 @@ namespace FastData.ConnectionPool
                     Log(string.Format("连接池 {0} 扩容: 新增 {1} 个连接（负载 {2:F1}%）", _name, expandCount, loadPercentage));
                 }
                 // 3. 负载过低时缩容
-                else if (loadPercentage < _config.ShrinkThreshold && metrics.TotalConnections > _config.MinPoolSize)
+                else if (loadPercentage < _config.ShrinkThreshold && currentMetrics.TotalConnections > _config.MinPoolSize)
                 {
-                    var shrinkCount = Math.Min(_config.MaxShrinkCount, metrics.IdleConnections - _config.MinPoolSize);
+                    var shrinkCount = Math.Min(_config.MaxShrinkCount, currentMetrics.IdleConnections - _config.MinPoolSize);
                     if (shrinkCount > 0)
                     {
                         for (int i = 0; i < shrinkCount; i++)
@@ -889,18 +963,18 @@ namespace FastData.ConnectionPool
                 var memoryUsagePercent = 0.0;
 #endif
                 
-                // 内存使用超过 85% 时限制扩容
-                if (memoryUsagePercent > 85)
+                // 内存使用超过阈值时限制扩容
+                if (memoryUsagePercent > HighMemoryUsageThresholdPercent)
                 {
-                    status.ExpandFactor *= 0.5;
+                    status.ExpandFactor *= LowMemoryExpandFactor;
                     reasons.Add(string.Format("内存使用率高({0:F1}%)", memoryUsagePercent));
                 }
 
                 // 2. 检查 Redis 可用性（如果配置了）
                 if (_config.EnableRedisCheck && !string.IsNullOrEmpty(_config.RedisConnectionString))
                 {
-                    // 每 30 秒检测一次 Redis
-                    if (DateTime.UtcNow - _lastRedisCheckTime > TimeSpan.FromSeconds(30))
+                    // 定期检测 Redis
+                    if (DateTime.UtcNow - _lastRedisCheckTime > TimeSpan.FromSeconds(RedisCheckIntervalSeconds))
                     {
                         _isRedisAvailable = CheckRedisAvailability(_config.RedisConnectionString);
                         _lastRedisCheckTime = DateTime.UtcNow;
@@ -914,16 +988,16 @@ namespace FastData.ConnectionPool
                 }
 
                 // 3. 检查近期扩容频率（避免频繁扩缩容）
-                if (DateTime.UtcNow - _lastExpandTime < TimeSpan.FromSeconds(60))
+                if (DateTime.UtcNow - _lastExpandTime < TimeSpan.FromSeconds(ExpandFrequencySeconds))
                 {
-                    status.ExpandFactor *= 0.3;
+                    status.ExpandFactor *= RecentExpandExpandFactor;
                     reasons.Add("近期已扩容");
                 }
 
                 // 4. 检查近期错误率
                 if (_recentErrors > 0)
                 {
-                    status.ExpandFactor *= 0.5;
+                    status.ExpandFactor *= ErrorExpandFactor;
                     reasons.Add(string.Format("近期有错误({0})", _recentErrors));
                 }
 
@@ -947,15 +1021,16 @@ namespace FastData.ConnectionPool
         {
             try
             {
-                // 简单的 Redis 连接测试
-                // 实际项目中应该使用 Redis 客户端库进行测试
                 var parts = connectionString.Split(':');
                 if (parts.Length == 2 && int.TryParse(parts[1], out var port))
                 {
                     using var client = new System.Net.Sockets.TcpClient();
                     var result = client.BeginConnect(parts[0], port, null, null);
-                    var success = result.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(2));
-                    client.EndConnect(result);
+                    var success = result.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(RedisConnectTimeoutSeconds));
+                    if (success)
+                    {
+                        client.EndConnect(result);
+                    }
                     return success;
                 }
             }
@@ -983,29 +1058,47 @@ namespace FastData.ConnectionPool
         public long RecentErrors => Interlocked.Read(ref _recentErrors);
 
         /// <summary>
+        /// 终结器：确保即使调用方忘记 Dispose 也能释放定时器和信号量
+        /// </summary>
+        ~SmartConnectionPool()
+        {
+            Dispose(false);
+        }
+
+        /// <summary>
         /// 释放资源
         /// </summary>
         public void Dispose()
         {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
             if (!_disposed)
             {
+                if (disposing)
+                {
+                    _healthCheckTimer?.Dispose();
+                    _smartAdjustmentTimer?.Dispose();
+
+                    // 销毁所有空闲连接
+                    while (_availableConnections.TryTake(out var conn))
+                    {
+                        DestroyConnection(conn);
+                    }
+
+                    // 销毁所有使用中连接
+                    foreach (var kvp in _inUseConnections)
+                    {
+                        DestroyConnection(kvp.Value);
+                    }
+
+                    _semaphore?.Dispose();
+                }
+                // 无需要清理的非托管资源
                 _disposed = true;
-
-                _healthCheckTimer?.Dispose();
-                _smartAdjustmentTimer?.Dispose();
-
-                // 销毁所有连接
-                while (_availableConnections.TryTake(out var conn))
-                {
-                    DestroyConnection(conn);
-                }
-
-                foreach (var kvp in _inUseConnections)
-                {
-                    DestroyConnection(kvp.Value);
-                }
-
-                _semaphore?.Dispose();
             }
         }
 

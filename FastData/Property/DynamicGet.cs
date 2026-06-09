@@ -1,4 +1,4 @@
-﻿using FastData.Base;
+using FastData.Base;
 using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
@@ -17,13 +17,7 @@ namespace FastData.Property
         public DynamicGet()
         {
             var key = string.Format("DynamicGet<T>.{0}.{1}", typeof(T)?.Namespace, typeof(T).Name);
-            if (!DbCache.Exists(CacheType.Web, key))
-            {
-                GetValueDelegate = GenerateGetValue();
-                DbCache.Set<object>(CacheType.Web, key, GetValueDelegate);
-            }
-            else
-                GetValueDelegate = DbCache.Get<object>(CacheType.Web, key) as Func<object, string, object>;
+            GetValueDelegate = PropertyCache.GetOrAddDynamicGetDelegate(key, GenerateGetValue);
         }
 
         #region 动态getvalue
@@ -83,13 +77,7 @@ namespace FastData.Property
             Instance = model;
 
             var key = string.Format("DynamicGet.{0}.{1}", model.GetType()?.Namespace, model.GetType().Name);
-            if (!DbCache.Exists(CacheType.Web, key))
-            {
-                GetValueDelegate = GenerateGetValue();
-                DbCache.Set<object>(CacheType.Web, key, GetValueDelegate);
-            }
-            else
-                GetValueDelegate = DbCache.Get<object>(CacheType.Web, key) as Func<object, string, object>;
+            GetValueDelegate = PropertyCache.GetOrAddDynamicGetDelegate(key, GenerateGetValue);
         }
 
         #region 动态getvalue

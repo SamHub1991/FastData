@@ -80,7 +80,7 @@ namespace FastData
                 ?.SetValue(null, new Lazy<string>(() => Assembly.GetCallingAssembly().GetName().Name, LazyThreadSafetyMode.ExecutionAndPublication));
         }
 
-/// <summary>
+        /// <summary>
         /// 全局 SQL 日志开关（默认关闭）
         /// 设置为 true 时，所有 SQL 查询都会被记录
         /// </summary>
@@ -98,7 +98,7 @@ namespace FastData
 #if !NETFRAMEWORK
         public static void ConfigureLogging(ILoggerFactory loggerFactory)
         {
-            EnhancedDbLog.Initialize(loggerFactory);
+            DbLog.InitializeLogger(loggerFactory);
         }
 #endif
 

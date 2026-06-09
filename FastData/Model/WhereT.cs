@@ -8,6 +8,11 @@ namespace FastData.Model
 {
     /// <summary>
     /// 条件构建器 - 支持分开写条件
+    /// <para>
+    /// 设计思路参考 Dos.ORM 的 WhereClipBuilder：在内存中累积条件列表，
+    /// 所有条件使用 <see cref="Condition"/> 不可变值对象 + 参数化渲染，
+    /// 彻底解决字符串拼接带来的 SQL 注入问题。
+    /// </para>
     /// </summary>
     /// <typeparam name="T">实体类型</typeparam>
     public class Where<T> where T : class, new()
@@ -53,21 +58,19 @@ namespace FastData.Model
         }
 
         /// <summary>
-        /// 添加 LIKE 条件
+        /// 添加 LIKE 条件（参数化）
         /// </summary>
         public Where<T> Like(Expression<Func<T, object>> field, string value)
         {
-            if (field == null || string.IsNullOrEmpty(value))
-                return this;
+            return AppendCondition(ConditionOperator.Like, field, value);
+        }
 
-            var fieldName = GetMemberName(field);
-            _conditions.Add(new ChainedCondition
-            {
-                Operator = "AND",
-                Where = string.Format("{0} like '{1}'", fieldName, value)
-            });
-
-            return this;
+        /// <summary>
+        /// 添加 NOT LIKE 条件
+        /// </summary>
+        public Where<T> NotLike(Expression<Func<T, object>> field, string value)
+        {
+            return AppendCondition(ConditionOperator.NotLike, field, value);
         }
 
         /// <summary>
@@ -75,7 +78,7 @@ namespace FastData.Model
         /// </summary>
         public Where<T> Contains(Expression<Func<T, object>> field, string value)
         {
-            return Like(field, string.Format("%{0}%", value));
+            return AppendCondition(ConditionOperator.Contains, field, value);
         }
 
         /// <summary>
@@ -83,7 +86,7 @@ namespace FastData.Model
         /// </summary>
         public Where<T> StartsWith(Expression<Func<T, object>> field, string value)
         {
-            return Like(field, string.Format("{0}%", value));
+            return AppendCondition(ConditionOperator.StartsWith, field, value);
         }
 
         /// <summary>
@@ -91,7 +94,7 @@ namespace FastData.Model
         /// </summary>
         public Where<T> EndsWith(Expression<Func<T, object>> field, string value)
         {
-            return Like(field, string.Format("%{0}", value));
+            return AppendCondition(ConditionOperator.EndsWith, field, value);
         }
 
         /// <summary>
@@ -99,18 +102,21 @@ namespace FastData.Model
         /// </summary>
         public Where<T> In(Expression<Func<T, object>> field, IEnumerable<object> values)
         {
-            if (field == null || values == null)
-                return this;
+            if (field == null || values == null) return this;
+            var list = new List<object>();
+            foreach (var v in values) list.Add(v);
+            return AppendCondition(ConditionOperator.In, field, list);
+        }
 
-            var fieldName = GetMemberName(field);
-            var valueList = values.Select(v => string.Format("'{0}'", v)).ToArray();
-            _conditions.Add(new ChainedCondition
-            {
-                Operator = "AND",
-                Where = string.Format("{0} in ({1})", fieldName, string.Join(",", valueList))
-            });
-
-            return this;
+        /// <summary>
+        /// 添加 NOT IN 条件
+        /// </summary>
+        public Where<T> NotIn(Expression<Func<T, object>> field, IEnumerable<object> values)
+        {
+            if (field == null || values == null) return this;
+            var list = new List<object>();
+            foreach (var v in values) list.Add(v);
+            return AppendCondition(ConditionOperator.NotIn, field, list);
         }
 
         /// <summary>
@@ -122,16 +128,104 @@ namespace FastData.Model
         /// <returns>Where构建器</returns>
         public Where<T> Between(Expression<Func<T, object>> field, object start, object end)
         {
-            if (field == null)
-                return this;
-
-            var fieldName = GetMemberName(field);
+            if (field == null) return this;
+            var fieldName = ConditionExpression.GetMemberName(field);
             _conditions.Add(new ChainedCondition
             {
                 Operator = "AND",
-                Where = string.Format("{0} between '{1}' and '{2}'", fieldName, start, end)
+                Where = string.Empty,
+                Param = new List<System.Data.Common.DbParameter>(),
+                Conditions = new List<Condition>
+                {
+                    new Condition(fieldName, ConditionOperator.Between, (start, end), ConditionLogic.And)
+                }
             });
+            return this;
+        }
 
+        /// <summary>添加 NOT BETWEEN 条件</summary>
+        public Where<T> NotBetween(Expression<Func<T, object>> field, object start, object end)
+        {
+            if (field == null) return this;
+            var fieldName = ConditionExpression.GetMemberName(field);
+            _conditions.Add(new ChainedCondition
+            {
+                Operator = "AND",
+                Where = string.Empty,
+                Param = new List<System.Data.Common.DbParameter>(),
+                Conditions = new List<Condition>
+                {
+                    new Condition(fieldName, ConditionOperator.NotBetween, (start, end), ConditionLogic.And)
+                }
+            });
+            return this;
+        }
+
+        /// <summary>添加 IS NULL 条件</summary>
+        public Where<T> IsNull(Expression<Func<T, object>> field)
+        {
+            return AppendCondition(ConditionOperator.IsNull, field, null);
+        }
+
+        /// <summary>添加 IS NOT NULL 条件</summary>
+        public Where<T> IsNotNull(Expression<Func<T, object>> field)
+        {
+            return AppendCondition(ConditionOperator.IsNotNull, field, null);
+        }
+
+        /// <summary>添加等于条件</summary>
+        public Where<T> Equal(Expression<Func<T, object>> field, object value)
+        {
+            return AppendCondition(ConditionOperator.Equal, field, value);
+        }
+
+        /// <summary>添加不等于条件</summary>
+        public Where<T> NotEqual(Expression<Func<T, object>> field, object value)
+        {
+            return AppendCondition(ConditionOperator.NotEqual, field, value);
+        }
+
+        /// <summary>添加大于条件</summary>
+        public Where<T> GreaterThan(Expression<Func<T, object>> field, object value)
+        {
+            return AppendCondition(ConditionOperator.GreaterThan, field, value);
+        }
+
+        /// <summary>添加大于等于条件</summary>
+        public Where<T> GreaterThanOrEqual(Expression<Func<T, object>> field, object value)
+        {
+            return AppendCondition(ConditionOperator.GreaterThanOrEqual, field, value);
+        }
+
+        /// <summary>添加小于条件</summary>
+        public Where<T> LessThan(Expression<Func<T, object>> field, object value)
+        {
+            return AppendCondition(ConditionOperator.LessThan, field, value);
+        }
+
+        /// <summary>添加小于等于条件</summary>
+        public Where<T> LessThanOrEqual(Expression<Func<T, object>> field, object value)
+        {
+            return AppendCondition(ConditionOperator.LessThanOrEqual, field, value);
+        }
+
+        /// <summary>
+        /// 内部统一添加条件（参数化）
+        /// </summary>
+        private Where<T> AppendCondition(ConditionOperator op, Expression<Func<T, object>> field, object value)
+        {
+            if (field == null) return this;
+            var fieldName = ConditionExpression.GetMemberName(field);
+            _conditions.Add(new ChainedCondition
+            {
+                Operator = "AND",
+                Where = string.Empty,
+                Param = new List<System.Data.Common.DbParameter>(),
+                Conditions = new List<Condition>
+                {
+                    new Condition(fieldName, op, value, ConditionLogic.And)
+                }
+            });
             return this;
         }
 
@@ -158,20 +252,6 @@ namespace FastData.Model
             }
 
             return this;
-        }
-
-        /// <summary>
-        /// 从表达式中获取成员名称
-        /// </summary>
-        private static string GetMemberName(Expression<Func<T, object>> expression)
-        {
-            if (expression.Body is MemberExpression member)
-                return member.Member.Name;
-
-            if (expression.Body is UnaryExpression unary && unary.Operand is MemberExpression unaryMember)
-                return unaryMember.Member.Name;
-
-            throw new ArgumentException("表达式必须是成员访问表达式");
         }
     }
 }

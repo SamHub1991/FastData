@@ -31,58 +31,6 @@ namespace FastData
     /// 4. XML 映射查询（Query / QueryAsync / QueryPage）
     /// 5. XML 映射写入（Write / WriteAsync）
     /// 6. AOP 切面支持（fastAop）
-    /// 
-    /// 使用示例：
-    /// <code>
-    /// // ========== 初始化（程序启动时调用） ==========
-    /// 
-    /// // 加载 XML 映射文件
-    /// FastMap.InstanceMap(dbKey: "db1", dbFile: "db.config", mapFile: "SqlMap.config");
-    /// 
-    /// // 加载实体属性映射
-    /// FastMap.InstanceProperties(nameSpace: "MyApp.Models");
-    /// 
-    /// // 加载表结构映射
-    /// FastMap.InstanceTable(nameSpace: "MyApp.Models", dbKey: "db1");
-    /// 
-    /// // ========== XML 映射查询 ==========
-    /// 
-    /// // XML 定义示例（SqlMap.config）：
-    /// // &lt;sql id="GetUsersByAge"&gt;
-    /// //   SELECT * FROM Users WHERE Age &gt; :Age
-    /// // &lt;/sql&gt;
-    /// 
-    /// var param = new[] { new OracleParameter(":Age", 18) };
-    /// var users = FastMap.Query&lt;User&gt;("GetUsersByAge", param);
-    /// 
-    /// // 分页查询
-    /// var pageModel = new PageModel { PageIndex = 1, PageSize = 10 };
-    /// var page = FastMap.QueryPage&lt;User&gt;(pageModel, "GetUsers", param);
-    /// 
-    /// // 返回字典
-    /// var dicts = FastMap.Query("GetUsersByAge", param);
-    /// 
-    /// // ========== XML 映射写入 ==========
-    /// 
-    /// // XML 定义示例：
-    /// // &lt;sql id="UpdateUserAge"&gt;
-    /// //   UPDATE Users SET Age = :Age WHERE Id = :Id
-    /// // &lt;/sql&gt;
-    /// 
-    /// var result = FastMap.Write("UpdateUserAge", param);
-    /// 
-    /// // ========== 绑定 Key ==========
-    /// 
-    /// var client = new FastDataClient("db1");
-    /// var users = client.MapQuery&lt;User&gt;("GetUsersByAge", param);
-    /// var result = client.MapWrite("UpdateUserAge", param);
-    /// </code>
-    /// 
-    /// 相关类：
-    /// - FastDataClient: 统一门面（推荐，整合所有功能）
-    /// - FastRead: LINQ 读取操作
-    /// - FastWrite: 写入操作
-    /// - IFastAop: AOP 切面接口
     /// </summary>
     public static class FastMap
     {
@@ -379,19 +327,11 @@ namespace FastData
         }
 
         /// <summary>
-        /// maq 执行返回结果 lazy
+        /// 延迟加载查询
         /// </summary>
         public static Lazy<List<T>> QueryLazy<T>(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
             return new Lazy<List<T>>(() => Query<T>(name, param, db, key, isOutSql));
-        }
-
-        /// <summary>
-        /// maq 执行返回结果 lazy asy
-        /// </summary>
-        public static Task<Lazy<List<T>>> QueryLazyAsync<T>(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
-        {
-            return AsyncHelper.RunAsync(() => new Lazy<List<T>>(() => Query<T>(name, param, db, key, isOutSql)));
         }
 
 
@@ -446,19 +386,11 @@ namespace FastData
         }
 
         /// <summary>
-        /// maq 执行写操作 asy lazy
+        /// 延迟加载写入
         /// </summary>
         public static Lazy<WriteReturn> WriteLazy(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
-            return AsyncHelper.ToLazy(() => Write(name, param, db, key, isOutSql));
-        }
-
-        /// <summary>
-        /// maq 执行写操作 asy lazy asy
-        /// </summary>
-        public static Task<Lazy<WriteReturn>> WriteLazyAsync(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
-        {
-            return AsyncHelper.RunAsync(() => AsyncHelper.ToLazy(() => Write(name, param, db, key, isOutSql)));
+            return new Lazy<WriteReturn>(() => Write(name, param, db, key, isOutSql));
         }
 
 
@@ -518,19 +450,11 @@ namespace FastData
         }
 
         /// <summary>
-        /// maq 执行返回 List<Dictionary<string, object>> lazy
+        /// 延迟加载查询（字典格式）
         /// </summary>
         public static Lazy<List<Dictionary<string, object>>> QueryLazy(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
             return new Lazy<List<Dictionary<string, object>>>(() => Query(name, param, db, key, isOutSql));
-        }
-
-        /// <summary>
-        /// maq 执行返回 List<Dictionary<string, object>> lazy asy
-        /// </summary>
-        public static Task<Lazy<List<Dictionary<string, object>>>> ExecuteLazyMapAsync(string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
-        {
-            return AsyncHelper.RunAsync(() => new Lazy<List<Dictionary<string, object>>>(() => Query(name, param, db, key, isOutSql)));
         }
 
 
@@ -625,19 +549,11 @@ namespace FastData
         }
 
         /// <summary>
-        /// maq 执行分页 lazy
+        /// 延迟加载分页查询（字典格式）
         /// </summary>
         public static Lazy<PageResult> QueryPageLazy(PageModel pModel, string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
-            return AsyncHelper.ToLazy(() => QueryPage(pModel, name, param, db, key, isOutSql));
-        }
-
-        /// <summary>
-        /// maq 执行分页lazy asy
-        /// </summary>
-        public static Task<Lazy<PageResult>> QueryPageLazyAsync(PageModel pModel, string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
-        {
-            return AsyncHelper.RunAsync(() => AsyncHelper.ToLazy(() => QueryPage(pModel, name, param, db, key, isOutSql)));
+            return new Lazy<PageResult>(() => QueryPage(pModel, name, param, db, key, isOutSql));
         }
 
 
@@ -732,19 +648,11 @@ namespace FastData
         }
 
         /// <summary>
-        /// maq 执行分页 lazy
+        /// 延迟加载分页查询（实体格式）
         /// </summary>
         public static Lazy<PageResult<T>> QueryPageLazy<T>(PageModel pModel, string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
             return new Lazy<PageResult<T>>(() => QueryPage<T>(pModel, name, param, db, key, isOutSql));
-        }
-
-        /// <summary>
-        /// maq 执行分页lazy asy
-        /// </summary>
-        public static Task<Lazy<PageResult<T>>> QueryPageLazyAsync<T>(PageModel pModel, string name, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
-        {
-            return AsyncHelper.RunAsync(() => new Lazy<PageResult<T>>(() => QueryPage<T>(pModel, name, param, db, key, isOutSql)));
         }
 
         /// <summary>
@@ -761,49 +669,39 @@ namespace FastData
         /// <summary>
         /// map 参数列表
         /// </summary>
-        /// <param name="name"></param>
-        /// <returns></returns>
         public static List<string> MapParam(string name, ConfigModel config = null)
         {
             var cacheType = config == null ? DataConfig.GetConfig().CacheType : config.CacheType;
-            return DbCache.Get<List<string>>(cacheType, string.Format("{0}.param", name.ToLower()));
+            return DbCache.Get<List<string>>(cacheType, MapCacheKey(name, "param"));
         }
 
         /// <summary>
         /// map db
         /// </summary>
-        /// <param name="name"></param>
-        /// <returns></returns>
         public static string MapDb(string name)
         {
-            return DbCache.Get(DataConfig.GetConfig().CacheType, string.Format("{0}.db", name.ToLower()));
+            return DbCache.Get(DataConfig.GetConfig().CacheType, MapCacheKey(name, "db"));
         }
 
         /// <summary>
-        /// map db
+        /// map type
         /// </summary>
-        /// <param name="name"></param>
-        /// <returns></returns>
         public static string MapType(string name)
         {
-            return DbCache.Get(DataConfig.GetConfig().CacheType, string.Format("{0}.type", name.ToLower()));
+            return DbCache.Get(DataConfig.GetConfig().CacheType, MapCacheKey(name, "type"));
         }
 
         /// <summary>
         /// map view
         /// </summary>
-        /// <param name="name"></param>
-        /// <returns></returns>
         public static string MapView(string name)
         {
-            return DbCache.Get(DataConfig.GetConfig().CacheType, string.Format("{0}.view", name.ToLower()));
+            return DbCache.Get(DataConfig.GetConfig().CacheType, MapCacheKey(name, "view"));
         }
 
         /// <summary>
         /// 是否存在map id
         /// </summary>
-        /// <param name="name"></param>
-        /// <returns></returns>
         public static bool IsExists(string name)
         {
             return DbCache.Exists(DataConfig.GetConfig().CacheType, name.ToLower());
@@ -812,32 +710,25 @@ namespace FastData
         /// <summary>
         /// 获取 Map 的备注说明
         /// </summary>
-        /// <param name="name">Map 名称</param>
-        /// <returns>备注内容</returns>
         public static string MapRemark(string name)
         {
-            return DbCache.Get(DataConfig.GetConfig().CacheType, string.Format("{0}.remark", name.ToLower()));
+            return DbCache.Get(DataConfig.GetConfig().CacheType, MapCacheKey(name, "remark"));
         }
 
         /// <summary>
         /// 检查 Map 是否启用日志记录
         /// </summary>
-        /// <param name="name">Map 名称</param>
-        /// <returns>启用日志返回 true</returns>
         public static bool IsMapLog(string name)
         {
-            return DbCache.Get(DataConfig.GetConfig().CacheType, string.Format("{0}.log", name.ToLower())).ToStr().ToLower() == "true";
+            return DbCache.Get(DataConfig.GetConfig().CacheType, MapCacheKey(name, "log")).ToStr().ToLower() == "true";
         }
 
         /// <summary>
         /// 获取 Map 参数的备注说明
         /// </summary>
-        /// <param name="name">Map 名称</param>
-        /// <param name="param">参数名称</param>
-        /// <returns>参数备注内容</returns>
         public static string MapParamRemark(string name, string param)
         {
-            return DbCache.Get(DataConfig.GetConfig().CacheType, string.Format("{0}.{1}.remark", name.ToLower(), param.ToLower()));
+            return DbCache.Get(DataConfig.GetConfig().CacheType, MapCacheKey(name, param, "remark"));
         }
 
         /// <summary>
@@ -845,129 +736,121 @@ namespace FastData
         /// </summary>
         public static Dictionary<string, object> Api
         {
-            get
-            {
-                return DbCache.Get<Dictionary<string, object>>(DataConfig.GetConfig().CacheType, "FastMap.Api") ?? new Dictionary<string, object>();
-            }
+            get => DbCache.Get<Dictionary<string, object>>(DataConfig.GetConfig().CacheType, "FastMap.Api") ?? new Dictionary<string, object>();
         }
 
         /// <summary>
         /// 获取map验证必填
         /// </summary>
-        /// <param name="name"></param>
-        /// <param name="param"></param>
-        /// <returns></returns>
         public static string MapRequired(string name, string param)
         {
-            return DbCache.Get(DataConfig.GetConfig().CacheType, string.Format("{0}.{1}.required", name.ToLower(), param.ToLower()));
+            return DbCache.Get(DataConfig.GetConfig().CacheType, MapCacheKey(name, param, "required"));
         }
 
         /// <summary>
         /// 获取map验证长度
         /// </summary>
-        /// <param name="name"></param>
-        /// <param name="param"></param>
-        /// <returns></returns>
         public static string MapMaxlength(string name, string param)
         {
-            return DbCache.Get(DataConfig.GetConfig().CacheType, string.Format("{0}.{1}.maxlength", name.ToLower(), param.ToLower()));
+            return DbCache.Get(DataConfig.GetConfig().CacheType, MapCacheKey(name, param, "maxlength"));
         }
 
         /// <summary>
         /// 获取map验证日期
         /// </summary>
-        /// <param name="name"></param>
-        /// <param name="param"></param>
-        /// <returns></returns>
         public static string MapDate(string name, string param)
         {
-            return DbCache.Get(DataConfig.GetConfig().CacheType, string.Format("{0}.{1}.date", name.ToLower(), param.ToLower()));
+            return DbCache.Get(DataConfig.GetConfig().CacheType, MapCacheKey(name, param, "date"));
         }
 
         /// <summary>
         /// 获取map验证map
         /// </summary>
-        /// <param name="name"></param>
-        /// <param name="param"></param>
-        /// <returns></returns>
         public static string MapCheckMap(string name, string param)
         {
-            return DbCache.Get(DataConfig.GetConfig().CacheType, string.Format("{0}.{1}.checkmap", name.ToLower(), param.ToLower()));
+            return DbCache.Get(DataConfig.GetConfig().CacheType, MapCacheKey(name, param, "checkmap"));
         }
 
         /// <summary>
         /// 获取map验证map
         /// </summary>
-        /// <param name="name"></param>
-        /// <param name="param"></param>
-        /// <returns></returns>
         public static string MapExistsMap(string name, string param)
         {
-            return DbCache.Get(DataConfig.GetConfig().CacheType, string.Format("{0}.{1}.existsmap", name.ToLower(), param.ToLower()));
+            return DbCache.Get(DataConfig.GetConfig().CacheType, MapCacheKey(name, param, "existsmap"));
         }
 
         /// <summary>
         /// 获取db配置文件
         /// </summary>
-        /// <param name="name"></param>
-        /// <returns></returns>
         public static ConfigModel DbConfig(string name)
         {
             return DataConfig.GetConfig(name);
         }
 
-
+        #region 私有辅助方法
 
         /// <summary>
-        /// Aop Map Before
+        /// 生成 Map 缓存键（单段后缀）
         /// </summary>
-        /// <param name="sql"></param>
-        /// <param name="name"></param>
-        /// <param name="param"></param>
-        /// <param name="config"></param>
+        private static string MapCacheKey(string name, string suffix)
+        {
+            return string.Format("{0}.{1}", name.ToLower(), suffix);
+        }
+
+        /// <summary>
+        /// 生成 Map 缓存键（参数+后缀两段）
+        /// </summary>
+        private static string MapCacheKey(string name, string param, string suffix)
+        {
+            return string.Format("{0}.{1}.{2}", name.ToLower(), param.ToLower(), suffix);
+        }
+
+        /// <summary>
+        /// AOP Map 前置事件触发
+        /// </summary>
         private static void AopMapBefore(string mapName, string sql, DbParameter[] param, ConfigModel config, AopType type)
         {
-            if (fastAop != null)
+            if (fastAop == null)
+                return;
+
+            var context = new MapBeforeContext
             {
-                var context = new MapBeforeContext();
-                context.mapName = mapName;
-                context.sql = sql;
-                context.type = type;
+                mapName = mapName,
+                sql = sql,
+                type = type,
+                dbType = config.DbType
+            };
 
-                if (param != null)
-                    context.param = param.ToList();
+            if (param != null)
+                context.param = param.ToList();
 
-                context.dbType = config.DbType;
-
-                fastAop.MapBefore(context);
-            }
+            fastAop.MapBefore(context);
         }
 
         /// <summary>
-        /// Aop Map After
+        /// AOP Map 后置事件触发
         /// </summary>
-        /// <param name="sql"></param>
-        /// <param name="name"></param>
-        /// <param name="param"></param>
-        /// <param name="config"></param>
         private static void AopMapAfter(string mapName, string sql, DbParameter[] param, ConfigModel config, AopType type, object data)
         {
-            if (fastAop != null)
+            if (fastAop == null)
+                return;
+
+            var context = new MapAfterContext
             {
-                var context = new MapAfterContext();
-                context.mapName = mapName;
-                context.sql = sql;
-                context.type = type;
+                mapName = mapName,
+                sql = sql,
+                type = type,
+                dbType = config.DbType,
+                result = data
+            };
 
-                if (param != null)
-                    context.param = param.ToList();
+            if (param != null)
+                context.param = param.ToList();
 
-                context.dbType = config.DbType;
-                context.result = data;
-
-                fastAop.MapAfter(context);
-            }
+            fastAop.MapAfter(context);
         }
+
+        #endregion
     }
 }
 

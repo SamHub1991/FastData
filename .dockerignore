@@ -1,0 +1,44 @@
+# Build artifacts
+bin/
+obj/
+**/bin/
+**/obj/
+
+# IDE
+.vs/
+.vscode/
+*.user
+*.suo
+*.userprefs
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Data files
+*.db
+*.sqlite
+*.sqlite3
+
+# Coverage
+coverage/
+*.coverage
+*.cobertura.xml
+
+# Local config (may contain secrets)
+*.local.config
+db.pro.config
+appsettings.Production.json
+*.env
+
+# NuGet
+*.nupkg
+*.snupkg
+nuget/
+
+# Docker
+.dockerignore

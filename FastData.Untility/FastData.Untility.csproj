@@ -8,7 +8,17 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <LangVersion>latest</LangVersion>
     <NoWarn>CS1591</NoWarn>
+    <!-- NuGet 打包配置 -->
+    <PackageId>FastData.Untility</PackageId>
+    <Description>FastData ORM 框架配套工具库，提供缓存、Redis、序列化、加密等通用功能</Description>
+    <PackageTags>FastData;Utility;Cache;Redis;Helper;DotNet</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+
+  <!-- 打包文件 -->
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
   <!-- .NET Framework 4.5.2 专用引用 -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net452'">

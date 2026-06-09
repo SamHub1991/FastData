@@ -12,6 +12,27 @@
     <AcceptNPOIOSMFLicense>true</AcceptNPOIOSMFLicense>
   </PropertyGroup>
   
+  <!-- ===== NuGet 打包统一配置 ===== -->
+  <PropertyGroup>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/FastData/FastData</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/FastData/FastData</PackageProjectUrl>
+    <Copyright>Copyright 2026 FastData</Copyright>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+  
+  <!-- 代码质量分析器（Release 模式下启用） -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <RunAnalyzers>true</RunAnalyzers>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+  </PropertyGroup>
+  
   <!-- net45: FrameworkPathOverride for reference assemblies -->
   <PropertyGroup Condition="'$(TargetFramework)' == 'net45'">
     <FrameworkPathOverride Condition="'$(FrameworkPathOverride)' == ''">$(NuGetPackageRoot)microsoft.netframework.referenceassemblies.net45/1.0.3/build/.NETFramework/v4.5</FrameworkPathOverride>

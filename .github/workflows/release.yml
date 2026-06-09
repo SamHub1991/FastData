@@ -1,0 +1,61 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  release:
+    name: Build & Publish Release
+    runs-on: windows-latest
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Get version from tag
+        id: version
+        shell: bash
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Restore
+        run: dotnet restore FastData.sln -p:BuildPlatform=windows
+
+      - name: Build
+        run: dotnet build FastData.sln -p:BuildPlatform=windows -c Release --no-restore
+
+      - name: Test
+        run: dotnet test FastData.Tests/FastData.Tests.csproj -c Release --no-build --filter "FullyQualifiedName!~Integration" -v minimal
+
+      - name: Pack
+        run: |
+          dotnet pack FastData/FastData.csproj -c Release --no-build -o artifacts -p:Version=${{ steps.version.outputs.VERSION }}
+          dotnet pack FastData.Untility/FastData.Untility.csproj -c Release --no-build -o artifacts -p:Version=${{ steps.version.outputs.VERSION }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*.nupkg
+          generate_release_notes: true
+          draft: true
+
+      - name: Publish to NuGet
+        run: dotnet nuget push "artifacts/*.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+        if: env.NUGET_API_KEY != ''
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}

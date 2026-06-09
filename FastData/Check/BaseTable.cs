@@ -45,7 +45,7 @@ namespace FastData.Check
                         if (model.Count >= table.Column.Count)
                         {
                             model.ForEach(p => {
-                                var info = table.Column.Find(a => a.Name.ToLower() == p.Name.ToLower()) ?? new ColumnModel();
+                                var info = table.Column.Find(a => string.Equals(a.Name, p.Name, StringComparison.OrdinalIgnoreCase)) ?? new ColumnModel();
                                 var result = CheckModel.CompareTo(info, p);
                                 if (result.IsUpdate)
                                     UpdateTable(item, result, tableName);
@@ -57,7 +57,7 @@ namespace FastData.Check
                             tempColumn = table.Column;
                            
                             tempColumn.ForEach(p => {
-                                var info = table.Column.Find(a => a.Name.ToLower() == p.Name.ToLower()) ?? new ColumnModel();
+                                var info = table.Column.Find(a => string.Equals(a.Name, p.Name, StringComparison.OrdinalIgnoreCase)) ?? new ColumnModel();
                                 var result = CheckModel.CompareTo(p, info);
                                 if (result.IsUpdate)
                                     UpdateTable(item, result, tableName);
@@ -97,7 +97,7 @@ namespace FastData.Check
                     FastMap.fastAop.Exception(context);
                 }
 
-                if (item.Config.SqlErrorType.ToLower() == SqlErrorType.Db)
+                if (string.Equals(item.Config?.SqlErrorType, SqlErrorType.Db, StringComparison.OrdinalIgnoreCase))
                     DbLogTable.LogException(item.Config, ex, string.Format("Check_{0}", tableName), "");
                 else
                     DbLog.LogException(item.Config.IsOutError, item.Config.DbType, ex, string.Format("Check_{0}", tableName), "");
@@ -589,6 +589,18 @@ namespace FastData.Check
                     result = db.ExecuteSqlList(sql, param.ToArray(), query.Config.IsOutSql,false).DicList[0].GetValue("count").ToStr().ToInt(0) == 1;
                 }
 
+                if (query.Config.DbType == DataDbType.PostgreSql)
+                {
+                    var sql = "select count(0) as count from information_schema.tables where table_name=@name";
+                    result = db.ExecuteSqlList(sql, param.ToArray(), query.Config.IsOutSql,false).DicList[0].GetValue("count").ToStr().ToInt(0) == 1;
+                }
+
+                if (query.Config.DbType == DataDbType.SQLite)
+                {
+                    var sql = "select count(0) as count from sqlite_master where type='table' and name=@name";
+                    result = db.ExecuteSqlList(sql, param.ToArray(), query.Config.IsOutSql,false).DicList[0].GetValue("count").ToStr().ToInt(0) == 1;
+                }
+
                 return result;
             }
         }
@@ -722,6 +734,86 @@ namespace FastData.Check
                         model.Name = temp.GetValue("name").ToStr();
                         model.Precision = temp.GetValue("prec").ToStr().ToInt(0);
                         model.Scale = temp.GetValue("scale").ToStr().ToInt(0);
+                        result.Column.Add(model);
+                    }
+                    #endregion
+                }
+
+                if (item.Config.DbType == DataDbType.PostgreSql)
+                {
+                    #region PostgreSql
+                    //参数
+                    var tempParam = DbProviderFactories.GetFactory(item.Config.ProviderName).CreateParameter();
+                    tempParam.ParameterName = "name";
+                    tempParam.Value = tableName.ToLower();
+                    param.Add(tempParam);
+
+                    //表
+                    var sql = "select table_name, '' as comments from information_schema.tables where table_name=@name";
+                    var dic = db.ExecuteSqlList(sql, param.ToArray(), item.Config.IsOutSql,false).DicList[0];
+
+                    result.Name = dic.GetValue("table_name").ToStr();
+                    result.Comments = dic.GetValue("comments").ToStr();
+
+                    //列
+                    sql = @"select c.column_name, c.data_type, c.character_maximum_length as length, 
+                                 '' as comments,
+                                 (select count(0) from information_schema.key_column_usage k 
+                                  where k.table_name=c.table_name and k.column_name=c.column_name 
+                                  and k.constraint_name like '%pkey') as iskey, 
+                                 c.is_nullable, c.numeric_precision as precision, c.numeric_scale as scale
+                            from information_schema.columns c 
+                            where c.table_name=@name 
+                            order by c.ordinal_position asc";
+
+                    var dicList = db.ExecuteSqlList(sql, param.ToArray(), item.Config.IsOutSql,false).DicList;
+                    foreach (var temp in dicList)
+                    {
+                        var model = new ColumnModel();
+                        model.Comments = temp.GetValue("comments").ToStr();
+                        model.DataType = temp.GetValue("data_type").ToStr();
+                        model.IsKey = temp.GetValue("iskey").ToStr() == "1" ? true : false;
+                        model.IsNull = temp.GetValue("is_nullable").ToStr() == "YES" ? true : false;
+                        model.Length = temp.GetValue("length").ToStr().ToInt(0);
+                        model.Name = temp.GetValue("column_name").ToStr();
+                        model.Precision = temp.GetValue("precision").ToStr().ToInt(0);
+                        model.Scale = temp.GetValue("scale").ToStr().ToInt(0);
+                        result.Column.Add(model);
+                    }
+                    #endregion
+                }
+
+                if (item.Config.DbType == DataDbType.SQLite)
+                {
+                    #region SQLite
+                    //参数
+                    var tempParam = DbProviderFactories.GetFactory(item.Config.ProviderName).CreateParameter();
+                    tempParam.ParameterName = "name";
+                    tempParam.Value = tableName;
+                    param.Add(tempParam);
+
+                    //表
+                    var sql = "select name, '' as comments from sqlite_master where type='table' and name=@name";
+                    var dic = db.ExecuteSqlList(sql, param.ToArray(), item.Config.IsOutSql,false).DicList[0];
+
+                    result.Name = dic.GetValue("name").ToStr();
+                    result.Comments = dic.GetValue("comments").ToStr();
+
+                    //列
+                    sql = string.Format("PRAGMA table_info('{0}')", tableName);
+
+                    var dicList = db.ExecuteSqlList(sql, null, item.Config.IsOutSql,false).DicList;
+                    foreach (var temp in dicList)
+                    {
+                        var model = new ColumnModel();
+                        model.Comments = "";
+                        model.DataType = temp.GetValue("type").ToStr();
+                        model.IsKey = temp.GetValue("pk").ToStr() == "1" ? true : false;
+                        model.IsNull = temp.GetValue("notnull").ToStr() == "0" ? true : false;
+                        model.Length = 0;
+                        model.Name = temp.GetValue("name").ToStr();
+                        model.Precision = 0;
+                        model.Scale = 0;
                         result.Column.Add(model);
                     }
                     #endregion

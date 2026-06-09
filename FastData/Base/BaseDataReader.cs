@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
+using System.Reflection;
 using FastData.Property;
 using FastData.DbTypes;
 using FastData.Model;
@@ -14,6 +15,46 @@ namespace FastData.Base
     /// </summary>
     internal static class BaseDataReader
     {
+        /// <summary>
+        /// Oracle CLOB/BLOB 反射方法缓存（避免每次调用反射遍历）
+        /// </summary>
+        private static class OracleMethodCache
+        {
+            /// <summary>OracleDataReader.GetOracleClob(int) 方法</summary>
+            public static readonly MethodInfo GetOracleClob;
+            /// <summary>OracleDataReader.GetOracleBlob(int) 方法</summary>
+            public static readonly MethodInfo GetOracleBlob;
+            /// <summary>OracleClob.get_Value 方法</summary>
+            public static readonly MethodInfo GetValue;
+            /// <summary>OracleClob.Dispose 方法</summary>
+            public static readonly MethodInfo Dispose;
+            /// <summary>OracleClob.Close 方法</summary>
+            public static readonly MethodInfo Close;
+
+            static OracleMethodCache()
+            {
+                try
+                {
+                    var oracleReaderType = Type.GetType("Oracle.ManagedDataAccess.Client.OracleDataReader, Oracle.ManagedDataAccess");
+                    if (oracleReaderType != null)
+                    {
+                        GetOracleClob = oracleReaderType.GetMethod("GetOracleClob");
+                        GetOracleBlob = oracleReaderType.GetMethod("GetOracleBlob");
+                        var clobType = Type.GetType("Oracle.ManagedDataAccess.Types.OracleClob, Oracle.ManagedDataAccess");
+                        if (clobType != null)
+                        {
+                            GetValue = clobType.GetMethod("get_Value");
+                            Dispose = clobType.GetMethod("Dispose");
+                            Close = clobType.GetMethod("Close");
+                        }
+                    }
+                }
+                catch
+                {
+                    // 忽略 Oracle 类型加载失败（非 Oracle 环境运行时）
+                }
+            }
+        }
         #region to list
         /// <summary>
         /// 将 DataReader 转换为实体对象列表
@@ -33,12 +74,24 @@ namespace FastData.Base
 
             var propertyList = PropertyCache.GetPropertyInfo<T>(config.IsPropertyCache);
 
+            // 构建字段名 → PropertyModel 的 O(1) 查找字典（忽略大小写）
+            Dictionary<string, PropertyModel> propertyDict = null;
+            if (field != null && field.Count > 0)
+            {
+                propertyDict = new Dictionary<string, PropertyModel>(propertyList.Count, StringComparer.OrdinalIgnoreCase);
+                foreach (var info in propertyList)
+                {
+                    propertyDict[info.Name] = info;
+                }
+            }
+
             while (dr.Read())
             {
                 var item = new T();
 
-                if (field == null || field.Count == 0)
+                if (propertyDict == null)
                 {
+                    // 读取全部字段
                     foreach (var info in propertyList)
                     {
                         if (info.PropertyType.IsGenericType && info.PropertyType.GetGenericTypeDefinition() != typeof(Nullable<>))
@@ -49,15 +102,15 @@ namespace FastData.Base
                 }
                 else
                 {
+                    // 按指定字段读取（O(1) 字典查找替代 O(n) List.Find）
                     for (var i = 0; i < field.Count; i++)
                     {
                         var fieldName = field[i];
                         if (fieldName.Contains("."))
                             fieldName = fieldName.Substring(fieldName.IndexOf(".") + 1);
 
-                        if (propertyList.Exists(a => a.Name.ToLower() == fieldName.ToLower()))
+                        if (propertyDict.TryGetValue(fieldName, out var info))
                         {
-                            var info = propertyList.Find(a => a.Name.ToLower() == fieldName.ToLower());
                             item = SetValue<T>(item, dynSet, dr, info, config);
                         }
                     }
@@ -97,57 +150,35 @@ namespace FastData.Base
                     var typeName = dr.GetDataTypeName(id).ToLower();
                     if (typeName == "clob" || typeName == "nclob")
                     {
-                        dr.GetType().GetMethods().ToList().ForEach(m =>
+                        var getOracleClob = OracleMethodCache.GetOracleClob;
+                        if (getOracleClob != null)
                         {
-                            if (m.Name == "GetOracleClob")
+                            var temp = getOracleClob.Invoke(dr, new object[] { id });
+                            if (temp != null)
                             {
-                                var param = new object[1];
-                                param[0] = id;
-                                var temp = m.Invoke(dr, param);
-                                temp.GetType().GetMethods().ToList().ForEach(v =>
-                                {
-                                    if (v.Name == "get_Value" && !dr.IsDBNull(id))
-                                        value = v.Invoke(temp, null);
-                                });
-                                temp.GetType().GetMethods().ToList().ForEach(v =>
-                                {
-                                    if (v.Name == "Close")
-                                        v.Invoke(temp, null);
-                                });
-                                temp.GetType().GetMethods().ToList().ForEach(v =>
-                                {
-                                    if (v.Name == "Dispose")
-                                        v.Invoke(temp, null);
-                                });
+                                var getValue = OracleMethodCache.GetValue;
+                                if (getValue != null && !dr.IsDBNull(id))
+                                    value = getValue.Invoke(temp, null);
+                                OracleMethodCache.Close?.Invoke(temp, null);
+                                OracleMethodCache.Dispose?.Invoke(temp, null);
                             }
-                        });
+                        }
                     }
                     else if (typeName == "blob")
                     {
-                        dr.GetType().GetMethods().ToList().ForEach(m =>
+                        var getOracleBlob = OracleMethodCache.GetOracleBlob;
+                        if (getOracleBlob != null)
                         {
-                            if (m.Name == "GetOracleBlob")
+                            var temp = getOracleBlob.Invoke(dr, new object[] { id });
+                            if (temp != null)
                             {
-                                var param = new object[1];
-                                param[0] = id;
-                                var temp = m.Invoke(dr, param);
-                                temp.GetType().GetMethods().ToList().ForEach(v =>
-                                {
-                                    if (v.Name == "get_Value" && !dr.IsDBNull(id))
-                                        value = v.Invoke(temp, null);
-                                });
-                                temp.GetType().GetMethods().ToList().ForEach(v =>
-                                {
-                                    if (v.Name == "Close")
-                                        v.Invoke(temp, null);
-                                });
-                                temp.GetType().GetMethods().ToList().ForEach(v =>
-                                {
-                                    if (v.Name == "Dispose")
-                                        v.Invoke(temp, null);
-                                });
+                                var getValue = OracleMethodCache.GetValue;
+                                if (getValue != null && !dr.IsDBNull(id))
+                                    value = getValue.Invoke(temp, null);
+                                OracleMethodCache.Close?.Invoke(temp, null);
+                                OracleMethodCache.Dispose?.Invoke(temp, null);
                             }
-                        });
+                        }
                     }
                     else
                         value = dr.GetValue(id);

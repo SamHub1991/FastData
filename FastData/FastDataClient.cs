@@ -19,92 +19,15 @@ using NewLife.Caching;
 namespace FastData
 {
     /// <summary>
-    /// FastData 统一客户端门面
+    /// FastData 统一客户端门面（推荐入口）
     /// 
-    /// 整合 FastRead、FastWrite、FastMap、FastDb、ShardingHelper 的功能，
-    /// 提供一个绑定数据库 Key 的统一入口，简化 API 使用。
+    /// 绑定数据库 Key 的实例级 API，覆盖查询、写入、Map 操作、分片、队列等全部功能。
+    /// 推荐使用 FastDataClient 替代 FastRead.Use() / FastWrite.Use() 的静态门面方式。
     /// 
-    /// 使用示例：
+    /// 使用方式：
     /// <code>
-    /// // 创建客户端（绑定数据库 key）
     /// var client = new FastDataClient("db1");
-    /// 
-    /// // ========== 查询操作 ==========
-    /// 
-    /// // LINQ 查询
     /// var users = client.Query&lt;User&gt;(u => u.Age > 18).ToList();
-    /// var user = client.Query&lt;User&gt;(u => u.Id == 1).ToItem();
-    /// var count = client.Query&lt;User&gt;(u => u.Age > 18).ToCount();
-    /// var page = client.Query&lt;User&gt;(u => u.Age > 18).ToPage(pageModel);
-    /// 
-    /// // 带条件的 LINQ 查询
-    /// var list = client.Query&lt;User&gt;(u => u.Age > 18)
-    ///     .Where&lt;User&gt;(u => u.Name.Contains("张"))
-    ///     .OrderBy&lt;User&gt;(u => u.CreateTime)
-    ///     .Take(10)
-    ///     .ToList();
-    /// 
-    /// // 原生 SQL 查询
-    /// var users = client.ExecuteSql&lt;User&gt;("SELECT * FROM Users WHERE Age > @Age", param);
-    /// var dicts = client.ExecuteSql("SELECT * FROM Users WHERE Age > @Age", param);
-    /// 
-    /// // Map 映射查询（XML 配置的 SQL）
-    /// var users = client.MapQuery&lt;User&gt;("GetUsersByAge", param);
-    /// var page = client.MapQueryPage&lt;User&gt;(pageModel, "GetUsers", param);
-    /// 
-    /// // ========== 写入操作 ==========
-    /// 
-    /// // 添加
-    /// var result = client.Add(user);
-    /// var result = client.AddList(userList);
-    /// 
-    /// // 更新
-    /// var result = client.Update(user);
-    /// var result = client.Update(user, u => u.Id == 1);
-    /// var result = client.Update(user, u => new { u.Name, u.Age });
-    /// var result = client.UpdateList(userList);
-    /// 
-    /// // 删除
-    /// var result = client.Delete&lt;User&gt;(u => u.Id == 1);
-    /// var result = client.Delete(user);
-    /// 
-    /// // 批量插入（高性能）
-    /// var result = client.BulkInsert(userList);
-    /// 
-    /// // 原生 SQL 写入
-    /// var result = client.ExecuteSqlWrite("UPDATE Users SET Age = @Age WHERE Id = @Id", param);
-    /// 
-    /// // Map 映射写入（XML 配置的 SQL）
-    /// var result = client.MapWrite("UpdateUserAge", param);
-    /// 
-    /// // CodeFirst 建表
-    /// var result = client.CodeFirst&lt;User&gt;();
-    /// var result = client.CodeFirst&lt;User&gt;(isDropExists: true);
-    /// 
-    /// // ========== 分片操作 ==========
-    /// 
-    /// // 分片查询
-    /// var results = client.ShardQuery&lt;User&gt;(u => u.CreateTime > DateTime.Now.AddMonths(-3));
-    /// 
-    /// // 分片分页查询
-    /// var page = client.ShardQueryPage&lt;User&gt;(pageModel, u => u.CreateTime > DateTime.Now.AddMonths(-3));
-    /// 
-    /// // 分片写入
-    /// var result = client.ShardAdd(user);
-    /// var result = client.ShardAddList(userList);
-    /// var result = client.ShardDelete&lt;User&gt;(u => u.Id == 1);
-    /// var result = client.ShardUpdate(user, u => u.Id == 1);
-    /// 
-    /// // ========== 配置操作 ==========
-    /// 
-    /// // 启用 SQL 日志（覆盖全局设置）
-    /// client.EnableSqlLog();
-    /// 
-    /// // 切换数据库
-    /// using (FastDb.Use("db2"))
-    /// {
-    ///     // 此作用域内使用 db2
-    /// }
     /// </code>
     /// </summary>
     public sealed class FastDataClient : IDisposable
@@ -391,57 +314,29 @@ namespace FastData
 
 #if !NETFRAMEWORK
         /// <summary>
-        /// 创建写入操作对象（用于弹性写入）
-        /// </summary>
-        private WriteOperation CreateWriteOperation<T>(WriteOperationType operationType, T model) where T : class, new()
-        {
-            return new WriteOperation
-            {
-                OperationType = operationType,
-                EntityType = typeof(T).AssemblyQualifiedName,
-                TableName = TableNameHelper.GetTableName<T>(),
-                Data = Newtonsoft.Json.JsonConvert.SerializeObject(model)
-            };
-        }
-
-        /// <summary>
         /// 使用弹性写入执行器执行写入（支持消息队列降级）
         /// </summary>
         private WriteReturn ExecuteResilientWrite<T>(WriteOperationType operationType, T model) where T : class, new()
         {
             if (_resilientExecutor == null)
             {
-                // 没有配置弹性执行器，使用普通写入
-                return ExecuteDirectWrite(operationType, model);
+                return operationType == WriteOperationType.Add
+                    ? FastWrite.Add<T>(model, null, _key, _enableSqlLog)
+                    : throw new NotSupportedException(string.Format("不支持的操作类型: {0}", operationType));
             }
 
-            var operation = CreateWriteOperation(operationType, model);
-            var result = _resilientExecutor.ExecuteWrite(operation);
+            var operation = new WriteOperation
+            {
+                OperationType = operationType,
+                EntityType = typeof(T).AssemblyQualifiedName,
+                TableName = TableNameHelper.GetTableName<T>(),
+                Data = Newtonsoft.Json.JsonConvert.SerializeObject(model)
+            };
             
-            if (result.Success)
-            {
-                // 记录成功到连接池
-                return new WriteReturn { IsSuccess = true };
-            }
-            else
-            {
-                // 写入失败
-                return new WriteReturn { IsSuccess = false, Message = result.ErrorMessage };
-            }
-        }
-
-        /// <summary>
-        /// 直接写入数据库（不使用消息队列）
-        /// </summary>
-        private WriteReturn ExecuteDirectWrite<T>(WriteOperationType operationType, T model) where T : class, new()
-        {
-            switch (operationType)
-            {
-                case WriteOperationType.Add:
-                    return FastWrite.Add<T>(model, null, _key, _enableSqlLog);
-                default:
-                    throw new NotSupportedException(string.Format("不支持的操作类型: {0}", operationType));
-            }
+            var result = _resilientExecutor.ExecuteWrite(operation);
+            return result.Success
+                ? new WriteReturn { IsSuccess = true }
+                : new WriteReturn { IsSuccess = false, Message = result.ErrorMessage };
         }
 #endif
 
@@ -660,6 +555,64 @@ namespace FastData
             return FastWrite.BulkInsertAsync<T>(list, db, _key);
         }
 
+        /// <summary>
+        /// 批量更新（使用 SQL UPDATE ... WHERE IN）
+        /// 
+        /// 通过 IN 条件批量更新符合条件的记录，比逐条 Update 性能更高
+        /// 注意：不触发 Aop 事件，不支持事务回滚
+        /// </summary>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="list">实体列表（包含要更新的值）</param>
+        /// <param name="predicate">更新条件</param>
+        /// <param name="db">数据上下文（可选，用于事务）</param>
+        /// <returns>写入结果</returns>
+        /// <example>
+        /// <code>
+        /// var users = new List&lt;User&gt; { new User { Name = "批量更新" } };
+        /// var result = client.BulkUpdate(users, u => u.Age > 18);
+        /// </code>
+        /// </example>
+        public WriteReturn BulkUpdate<T>(List<T> list, Expression<Func<T, bool>> predicate, DataContext db = null) where T : class, new()
+        {
+            return FastWrite.BulkUpdate<T>(list, predicate, db, _key);
+        }
+
+        /// <summary>
+        /// 批量更新（异步）
+        /// </summary>
+        public Task<WriteReturn> BulkUpdateAsync<T>(List<T> list, Expression<Func<T, bool>> predicate, DataContext db = null) where T : class, new()
+        {
+            return FastWrite.BulkUpdateAsync<T>(list, predicate, db, _key);
+        }
+
+        /// <summary>
+        /// 批量删除（使用 SQL DELETE FROM ... WHERE IN）
+        /// 
+        /// 通过 IN 条件批量删除符合条件的记录，比逐条 Delete 性能更高
+        /// 注意：不触发 Aop 事件，不支持事务回滚
+        /// </summary>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="predicate">删除条件</param>
+        /// <param name="db">数据上下文（可选）</param>
+        /// <returns>写入结果</returns>
+        /// <example>
+        /// <code>
+        /// var result = client.BulkDelete&lt;User&gt;(u => u.Age < 18);
+        /// </code>
+        /// </example>
+        public WriteReturn BulkDelete<T>(Expression<Func<T, bool>> predicate, DataContext db = null) where T : class, new()
+        {
+            return FastWrite.BulkDelete<T>(predicate, db, _key);
+        }
+
+        /// <summary>
+        /// 批量删除（异步）
+        /// </summary>
+        public Task<WriteReturn> BulkDeleteAsync<T>(Expression<Func<T, bool>> predicate, DataContext db = null) where T : class, new()
+        {
+            return FastWrite.BulkDeleteAsync<T>(predicate, db, _key);
+        }
+
         #endregion
 
         #region 原生 SQL 写入
@@ -874,14 +827,10 @@ namespace FastData
 
         #endregion
 
-        #region 队列操作（Queue）
-
 #if !NETFRAMEWORK
         /// <summary>
         /// 创建链式读取构建器（带消息队列支持）
         /// </summary>
-        /// <typeparam name="T">实体类型</typeparam>
-        /// <returns>链式构建器</returns>
         public FastReadQueueBuilder<T> ReadQueue<T>() where T : class, new()
         {
             return new FastReadQueueBuilder<T>(_key);
@@ -890,53 +839,50 @@ namespace FastData
         /// <summary>
         /// 创建链式写入构建器（带消息队列支持）
         /// </summary>
-        /// <returns>链式构建器</returns>
         public FastWriteQueueBuilder WriteQueue()
         {
             return new FastWriteQueueBuilder(_key);
         }
 
         /// <summary>
-        /// 配置表级别的消息队列
+        /// 配置表级别的消息队列（泛型版本）
         /// </summary>
         /// <typeparam name="T">实体类型</typeparam>
         /// <param name="config">队列配置</param>
         public void ConfigureQueue<T>(WriteBehindConfig config) where T : class
         {
-            WriteBehindRegistry.Register<T>(config);
+            FastWrite.ConfigureQueue<T>(config);
         }
 
         /// <summary>
-        /// 配置表级别的消息队列
+        /// 配置表级别的消息队列（表名版本）
         /// </summary>
         /// <param name="tableName">表名</param>
         /// <param name="config">队列配置</param>
         public void ConfigureQueue(string tableName, WriteBehindConfig config)
         {
-            WriteBehindRegistry.Register(tableName, config);
+            FastWrite.ConfigureQueue(tableName, config);
         }
 
         /// <summary>
-        /// 检查表是否启用了消息队列
+        /// 检查表是否启用了消息队列（泛型版本）
         /// </summary>
         /// <typeparam name="T">实体类型</typeparam>
         /// <returns>是否启用队列</returns>
         public bool IsQueueEnabled<T>() where T : class
         {
-            return WriteBehindRegistry.IsQueueEnabled<T>();
+            return FastWrite.IsQueueEnabled<T>();
         }
 
         /// <summary>
-        /// 检查表是否启用了消息队列
+        /// 检查表是否启用了消息队列（表名版本）
         /// </summary>
         /// <param name="tableName">表名</param>
         /// <returns>是否启用队列</returns>
         public bool IsQueueEnabled(string tableName)
         {
-            return WriteBehindRegistry.IsQueueEnabled(tableName);
+            return FastWrite.IsQueueEnabled(tableName);
         }
 #endif
-
-        #endregion
     }
 }

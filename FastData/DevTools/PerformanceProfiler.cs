@@ -169,18 +169,49 @@ namespace FastData.DevTools
     }
 
     /// <summary>
-    /// 性能指标
+    /// 性能指标数据模型
     /// </summary>
     public class PerformanceMetric
     {
+        /// <summary>
+        /// 获取或设置操作名称
+        /// </summary>
         public string Name { get; set; }
+
+        /// <summary>
+        /// 获取或设置操作执行次数
+        /// </summary>
         public long Count { get; set; }
+
+        /// <summary>
+        /// 获取或设置操作总执行时间（毫秒）
+        /// </summary>
         public long TotalExecutionTime { get; set; }
+
+        /// <summary>
+        /// 获取操作平均执行时间（毫秒）
+        /// </summary>
         public double AverageExecutionTime => Count > 0 ? TotalExecutionTime / (double)Count : 0;
+
+        /// <summary>
+        /// 获取或设置操作最小执行时间（毫秒）
+        /// </summary>
         public long MinExecutionTime { get; set; } = long.MaxValue;
+
+        /// <summary>
+        /// 获取或设置操作最大执行时间（毫秒）
+        /// </summary>
         public long MaxExecutionTime { get; set; }
+
+        /// <summary>
+        /// 获取或设置最后一次执行的时间戳
+        /// </summary>
         public DateTime LastExecutedAt { get; set; }
 
+        /// <summary>
+        /// 记录一次操作的执行时间
+        /// </summary>
+        /// <param name="elapsedMs">操作执行耗时（毫秒）</param>
         internal void Record(long elapsedMs)
         {
             Count++;
@@ -190,6 +221,10 @@ namespace FastData.DevTools
             LastExecutedAt = DateTime.Now;
         }
 
+        /// <summary>
+        /// 创建当前性能指标的深拷贝
+        /// </summary>
+        /// <returns>返回一个新的 PerformanceMetric 实例，包含当前指标的所有数据</returns>
         public PerformanceMetric Clone()
         {
             return new PerformanceMetric
@@ -205,54 +240,142 @@ namespace FastData.DevTools
     }
 
     /// <summary>
-    /// 性能报告
+    /// 性能报告数据模型，汇总所有性能指标的统计信息
     /// </summary>
     public class PerformanceReport
     {
+        /// <summary>
+        /// 获取或设置报告生成时间
+        /// </summary>
         public DateTime GeneratedAt { get; set; }
+
+        /// <summary>
+        /// 获取或设置所有操作的总执行次数
+        /// </summary>
         public long TotalOperations { get; set; }
+
+        /// <summary>
+        /// 获取或设置所有操作的平均执行时间（毫秒）
+        /// </summary>
         public double AverageExecutionTime { get; set; }
+
+        /// <summary>
+        /// 获取或设置执行最慢的操作的性能指标
+        /// </summary>
         public PerformanceMetric SlowestOperation { get; set; }
+
+        /// <summary>
+        /// 获取或设置执行最快的操作的性能指标
+        /// </summary>
         public PerformanceMetric FastestOperation { get; set; }
+
+        /// <summary>
+        /// 获取或设置执行频率最高的操作的性能指标
+        /// </summary>
         public PerformanceMetric MostFrequentOperation { get; set; }
+
+        /// <summary>
+        /// 获取或设置所有操作的性能指标列表
+        /// </summary>
         public List<PerformanceMetric> Operations { get; set; } = new List<PerformanceMetric>();
     }
 
     /// <summary>
-    /// 性能瓶颈
+    /// 性能瓶颈数据模型，用于识别和描述性能问题
     /// </summary>
     public class PerformanceBottleneck
     {
+        /// <summary>
+        /// 获取或设置存在性能瓶颈的操作名称
+        /// </summary>
         public string OperationName { get; set; }
+
+        /// <summary>
+        /// 获取或设置该操作的平均执行时间（毫秒）
+        /// </summary>
         public double AverageExecutionTime { get; set; }
+
+        /// <summary>
+        /// 获取或设置该操作的最大执行时间（毫秒）
+        /// </summary>
         public double MaxExecutionTime { get; set; }
+
+        /// <summary>
+        /// 获取或设置该操作的执行次数
+        /// </summary>
         public long Count { get; set; }
+
+        /// <summary>
+        /// 获取或设置瓶颈严重程度
+        /// </summary>
         public BottleneckSeverity Severity { get; set; }
     }
 
     /// <summary>
-    /// 瓶颈严重程度
+    /// 性能瓶颈严重程度等级
     /// </summary>
     public enum BottleneckSeverity
     {
+        /// <summary>
+        /// 低严重程度，性能影响较小，可延后优化
+        /// </summary>
         Low,
+
+        /// <summary>
+        /// 中等严重程度，建议在近期迭代中优化
+        /// </summary>
         Medium,
+
+        /// <summary>
+        /// 高严重程度，应尽快进行性能优化
+        /// </summary>
         High,
+
+        /// <summary>
+        /// 临界严重程度，需要立即处理以避免系统性能恶化
+        /// </summary>
         Critical
     }
 
     /// <summary>
-    /// 性能比较
+    /// 性能比较数据模型，用于对比两个操作的性能差异
     /// </summary>
     public class PerformanceComparison
     {
+        /// <summary>
+        /// 获取或设置第一个操作的名称
+        /// </summary>
         public string Operation1Name { get; set; }
+
+        /// <summary>
+        /// 获取或设置第二个操作的名称
+        /// </summary>
         public string Operation2Name { get; set; }
+
+        /// <summary>
+        /// 获取或设置第一个操作的平均执行时间（毫秒）
+        /// </summary>
         public double Operation1AvgTime { get; set; }
+
+        /// <summary>
+        /// 获取或设置第二个操作的平均执行时间（毫秒）
+        /// </summary>
         public double Operation2AvgTime { get; set; }
+
+        /// <summary>
+        /// 获取或设置两个操作的性能比率（操作1平均时间 / 操作2平均时间）
+        /// </summary>
         public double PerformanceRatio { get; set; }
+
+        /// <summary>
+        /// 获取或设置两个操作的平均执行时间差值（毫秒）
+        /// </summary>
         public double Difference { get; set; }
 
+        /// <summary>
+        /// 获取性能比较结果的文本摘要
+        /// </summary>
+        /// <returns>返回描述两个操作性能差异的中文文本</returns>
         public string GetSummary()
         {
             if (PerformanceRatio > 1)
@@ -271,13 +394,28 @@ namespace FastData.DevTools
     }
 
     /// <summary>
-    /// 索引类型
+    /// 数据库索引类型枚举
     /// </summary>
     public enum IndexType
     {
+        /// <summary>
+        /// B-Tree 索引，适用于范围查询和排序场景
+        /// </summary>
         BTree,
+
+        /// <summary>
+        /// 哈希索引，适用于精确等值查询场景
+        /// </summary>
         Hash,
+
+        /// <summary>
+        /// 全文索引，适用于文本内容检索场景
+        /// </summary>
         FullText,
+
+        /// <summary>
+        /// 空间索引，适用于地理空间数据查询场景
+        /// </summary>
         Spatial
     }
 }

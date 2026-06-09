@@ -29,7 +29,7 @@ namespace FastData.ChangeTracking
         /// </summary>
         public void Untrack<T>(T entity) where T : class
         {
-            if (entity != null && _snapshots.ContainsKey(entity))
+            if (entity != null)
             {
                 _snapshots.Remove(entity);
             }
@@ -43,16 +43,15 @@ namespace FastData.ChangeTracking
             if (entity == null)
                 throw new ArgumentNullException(nameof(entity));
 
-            if (!_snapshots.ContainsKey(entity))
+            if (!_snapshots.TryGetValue(entity, out var snapshot))
                 return new List<PropertyChange>();
 
-            var snapshot = _snapshots[entity];
             var currentSnapshot = CreateSnapshot(entity);
             var changes = new List<PropertyChange>();
 
             foreach (var property in snapshot.Properties)
             {
-                var currentValue = currentSnapshot.Properties.TryGetValue(property.Key, out var currentVal) ? currentVal : null;
+                currentSnapshot.Properties.TryGetValue(property.Key, out var currentValue);
                 var originalValue = property.Value;
 
                 if (!Equals(originalValue, currentValue))

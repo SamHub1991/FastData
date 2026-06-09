@@ -10,7 +10,14 @@ namespace FastData.Sharding.Strategies
     /// </summary>
     public class ListShardingStrategy : IShardingStrategy
     {
+        /// <summary>
+        /// 获取分片策略的名称
+        /// </summary>
         public string Name => "ListSharding";
+
+        /// <summary>
+        /// 获取分片策略的类型
+        /// </summary>
         public ShardingType Type => ShardingType.List;
 
         /// <summary>

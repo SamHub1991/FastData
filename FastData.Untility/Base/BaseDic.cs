@@ -24,10 +24,20 @@ namespace FastUntility.Base
         {
             var result = new T();
             var info = new DynamicSet<T>();
-            PropertyInfo<T>(isCache).ForEach(a => {
-                if (dic.ContainsKey(a.Name.ToLower()) && !string.IsNullOrEmpty(dic[a.Name.ToLower()].ToStr()))
-                    info.SetValue(result, a.Name, Convert.ChangeType(dic[a.Name.ToLower()], a.PropertyType), isCache);
-            });
+            foreach (var prop in PropertyInfo<T>(isCache))
+            {
+                // 使用 foreach 遍历字典，避免 O(n) 的 ContainsKey + 索引器双重查找
+                foreach (var kvp in dic)
+                {
+                    if (string.Equals(kvp.Key, prop.Name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        var strVal = kvp.Value?.ToString();
+                        if (!string.IsNullOrEmpty(strVal))
+                            info.SetValue(result, prop.Name, Convert.ChangeType(kvp.Value, prop.PropertyType), isCache);
+                        break;
+                    }
+                }
+            }
 
             return result;
         }
@@ -78,7 +88,7 @@ namespace FastUntility.Base
         /// <returns>属性信息列表</returns>
         public static List<PropertyInfo> PropertyInfo<T>(bool IsCache = true)
         {
-            var key = string.Format("{0}.to.{1}",typeof(T).Namespace , typeof(T).Name);
+            var key = string.Format("{0}.to.{1}", typeof(T).Namespace, typeof(T).Name);
 
             if (IsCache)
             {
@@ -86,15 +96,14 @@ namespace FastUntility.Base
                     return BaseCache.Get<List<PropertyInfo>>(key);
                 else
                 {
-                    var info = typeof(T).GetProperties().ToList();
-
+                    var info = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly).ToList();
                     BaseCache.Set<List<PropertyInfo>>(key, info);
                     return info;
                 }
             }
             else
             {
-                return typeof(T).GetProperties().ToList();
+                return typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly).ToList();
             }
         }
         #endregion
@@ -242,37 +251,53 @@ namespace FastUntility.Base
 
 namespace System.Collections.Generic
 {
+    /// <summary>
+    /// 字典扩展方法（忽略大小写）
+    /// </summary>
     public static class Dic
     {
+        /// <summary>
+        /// 忽略大小写获取字典值
+        /// 使用预构建的忽略大小写字典进行 O(1) 查找，避免 O(n) 遍历
+        /// </summary>
         public static Object GetValue(this Dictionary<string, object> item, string key)
         {
-            if (string.IsNullOrEmpty(key))
+            if (string.IsNullOrEmpty(key) || item == null)
                 return "";
 
-            if (item == null)
-                return "";
+            // 直接尝试大小写无关查找（TryGetValue 本身不支持忽略大小写）
+            if (item.TryGetValue(key, out var value))
+                return value;
 
-            key = item.Keys.ToList().Find(a => a.ToLower() == key.ToLower());
+            // 回退到遍历查找（兼容旧行为）
+            foreach (var kvp in item)
+            {
+                if (string.Equals(kvp.Key, key, StringComparison.OrdinalIgnoreCase))
+                    return kvp.Value;
+            }
 
-            if (string.IsNullOrEmpty(key))
-                return "";
-            else
-                return item[key];
+            return "";
         }
 
-        public static Dictionary<string, object> SetValue(this Dictionary<string, object> item, string key,object value)
+        /// <summary>
+        /// 忽略大小写设置字典值
+        /// </summary>
+        public static Dictionary<string, object> SetValue(this Dictionary<string, object> item, string key, object value)
         {
-            if (string.IsNullOrEmpty(key))
+            if (string.IsNullOrEmpty(key) || item == null)
                 return item;
 
-            if (item == null)
-                return item;
+            // 直接尝试大小写无关查找并更新
+            foreach (var kvp in item)
+            {
+                if (string.Equals(kvp.Key, key, StringComparison.OrdinalIgnoreCase))
+                {
+                    item[kvp.Key] = value;
+                    return item;
+                }
+            }
 
-            if (item.Keys.ToList().Exists(a => a.ToLower() == key.ToLower()))
-                item[key] = value;
-            else
-                item.Add(key, value);
-
+            item.Add(key, value);
             return item;
         }
     }

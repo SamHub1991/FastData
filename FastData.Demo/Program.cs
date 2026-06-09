@@ -14,6 +14,20 @@ var builder = WebApplication.CreateBuilder(args);
 
 var _ = FastDataConfig.GetConnectionSummaries();
 
+// CodeFirst 表初始化：为每个数据库自动创建实体表（不存在时创建，存在时校验结构）
+// 使用 Task.Delay().Wait() 阻塞等待，确保连接池完全初始化
+try
+{
+    Task.Delay(3000).Wait(); // 等待 3 秒让连接池完成初始化
+    FastMap.InstanceTable("FastData.Demo.Models", "SqlServer");
+    FastMap.InstanceTable("FastData.Demo.Models", "MySql");
+    FastMap.InstanceTable("FastData.Demo.Models", "PostgreSql");
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"[警告] CodeFirst 表初始化部分失败: {ex.Message}");
+}
+
 builder.WebHost.ConfigureKestrel(options =>
 {
     options.Limits.MaxConcurrentConnections = 100;

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Data.Common;
@@ -13,13 +14,30 @@ namespace FastData.Base
 {
     /// <summary>
     /// Lambda 表达式解析器
-    /// 将 LINQ 表达式树解析为 SQL WHERE 条件语句和参数集合。
-    /// 
-    /// 注意：本类暂时声明为 public 以供测试项目访问，验证通过后应改回 internal。
-    /// 测试项目通过 InternalsVisibleTo 配置访问内部类型，当前为临时修改。
+    /// 将 LINQ 表达式树解析为 SQL WHERE 条件语句和参数集合
     /// </summary>
     public static class VisitExpression
     {
+        /// <summary>
+        /// 已编译表达式委托的缓存，避免重复调用 Expression.Compile() 产生 IL 开销
+        /// 键为表达式字符串表示，值为编译后的委托
+        /// </summary>
+        private static readonly ConcurrentDictionary<string, Delegate> _compiledCache =
+            new ConcurrentDictionary<string, Delegate>();
+
+        /// <summary>
+        /// 缓存编译并执行表达式，避免同一表达式重复编译
+        /// </summary>
+        /// <param name="expression">待求值的表达式</param>
+        /// <returns>表达式的运行时求值结果</returns>
+        private static object EvaluateExpressionCached(Expression expression)
+        {
+            var cacheKey = expression.ToString();
+            var compiled = _compiledCache.GetOrAdd(cacheKey,
+                _ => Expression.Lambda(expression).Compile());
+            return compiled.DynamicInvoke();
+        }
+
         #region 解析 Lambda 表达式为 SQL WHERE 条件
         /// <summary>
         /// 将 Lambda 表达式解析为 SQL WHERE 条件
@@ -49,9 +67,10 @@ namespace FastData.Base
                 result.Where = whereClause;
 
                 // 构建参数列表
+                var dbFactory = DbProviderFactories.GetFactory(config.ProviderName);
                 for (int i = 0; i < leftList.Count; i++)
                 {
-                    var parameter = DbProviderFactories.GetFactory(config.ProviderName).CreateParameter();
+                    var parameter = dbFactory.CreateParameter();
                     parameter.ParameterName = leftList[i] + i.ToString();
                     parameter.Value = ConvertToTypedValue(rightList[i], typeList, i, config);
                     result.Param.Add(parameter);
@@ -100,9 +119,10 @@ namespace FastData.Base
                 result.Where = whereClause;
 
                 // 构建参数列表
+                var dbFactory = DbProviderFactories.GetFactory(config.ProviderName);
                 for (int i = 0; i < leftList.Count; i++)
                 {
-                    var parameter = DbProviderFactories.GetFactory(config.ProviderName).CreateParameter();
+                    var parameter = dbFactory.CreateParameter();
                     parameter.ParameterName = leftList[i] + i.ToString();
                     parameter.Value = ConvertToTypedValue(rightList[i], typeList, i, config);
                     result.Param.Add(parameter);
@@ -187,7 +207,7 @@ namespace FastData.Base
             var rightSql = ParseExpression(config, right, ref leftList, ref rightList, ref typeList, ref sqlBuilder, ref parameterIndex, needsParameter);
 
             // 处理 null 比较
-            if (rightSql != null && rightSql.ToUpper() == "NULL" || (config.DbType == DataDbType.Oracle && string.IsNullOrEmpty(rightSql)))
+            if (rightSql != null && string.Equals(rightSql, "NULL", StringComparison.OrdinalIgnoreCase) || (config.DbType == DataDbType.Oracle && string.IsNullOrEmpty(rightSql)))
             {
                 var nullSql = operatorSymbol == "=" ? "IS NULL" : "IS NOT NULL";
                 if (left is MemberExpression memberLeft)
@@ -264,8 +284,9 @@ namespace FastData.Base
         {
             if (isRightOperand)
             {
-                typeList.Add(Expression.Lambda(methodCall).Compile().DynamicInvoke().GetType());
-                return Expression.Lambda(methodCall).Compile().DynamicInvoke().ToString();
+                var result = EvaluateExpressionCached(methodCall);
+                typeList.Add(result.GetType());
+                return result.ToString();
             }
 
             var methodName = methodCall.Method.Name.ToLowerInvariant();
@@ -314,7 +335,7 @@ namespace FastData.Base
         /// </summary>
         private static string ParseContainsMethod(ConfigModel config, string memberName, string aliasPrefix, MethodCallExpression methodCall, ref List<string> leftList, ref List<string> rightList, ref List<Type> typeList, ref StringBuilder sqlBuilder, ref int parameterIndex)
         {
-            var searchValue = Expression.Lambda(methodCall.Arguments[0]).Compile().DynamicInvoke().ToString();
+            var searchValue = EvaluateExpressionCached(methodCall.Arguments[0]).ToString();
             sqlBuilder.Append(string.Format(" {0}{1} LIKE {2}{1}{3}", aliasPrefix, memberName, config.Flag, parameterIndex));
             leftList.Add(memberName);
             rightList.Add(string.Format("%{0}%", searchValue));
@@ -330,7 +351,7 @@ namespace FastData.Base
         /// </summary>
         private static string ParseEndsWithMethod(ConfigModel config, string memberName, string aliasPrefix, MethodCallExpression methodCall, ref List<string> leftList, ref List<string> rightList, ref List<Type> typeList, ref StringBuilder sqlBuilder, ref int parameterIndex)
         {
-            var searchValue = Expression.Lambda(methodCall.Arguments[0]).Compile().DynamicInvoke().ToString();
+            var searchValue = EvaluateExpressionCached(methodCall.Arguments[0]).ToString();
             sqlBuilder.Append(string.Format(" {0}{1} LIKE {2}{1}{3}", aliasPrefix, memberName, config.Flag, parameterIndex));
             leftList.Add(memberName);
             rightList.Add(string.Format("%{0}", searchValue));
@@ -346,7 +367,7 @@ namespace FastData.Base
         /// </summary>
         private static string ParseStartsWithMethod(ConfigModel config, string memberName, string aliasPrefix, MethodCallExpression methodCall, ref List<string> leftList, ref List<string> rightList, ref List<Type> typeList, ref StringBuilder sqlBuilder, ref int parameterIndex)
         {
-            var searchValue = Expression.Lambda(methodCall.Arguments[0]).Compile().DynamicInvoke().ToString();
+            var searchValue = EvaluateExpressionCached(methodCall.Arguments[0]).ToString();
             sqlBuilder.Append(string.Format(" {0}{1} LIKE {2}{1}{3}", aliasPrefix, memberName, config.Flag, parameterIndex));
             leftList.Add(memberName);
             rightList.Add(string.Format("{0}%", searchValue));
@@ -362,9 +383,9 @@ namespace FastData.Base
         /// </summary>
         private static string ParseSubstringMethod(ConfigModel config, string memberName, string aliasPrefix, MethodCallExpression methodCall, ref List<string> leftList, ref List<string> rightList, ref List<Type> typeList, ref StringBuilder sqlBuilder, ref int parameterIndex)
         {
-            var startIndex = Expression.Lambda(methodCall.Arguments[0]).Compile().DynamicInvoke().ToString();
+            var startIndex = EvaluateExpressionCached(methodCall.Arguments[0]).ToString();
             var length = methodCall.Arguments.Count > 1
-                ? Expression.Lambda(methodCall.Arguments[1]).Compile().DynamicInvoke().ToString()
+                ? EvaluateExpressionCached(methodCall.Arguments[1]).ToString()
                 : string.Empty;
 
             var funcName = config.DbType == DataDbType.SqlServer ? "SUBSTRING" : "SUBSTR";
@@ -448,7 +469,7 @@ namespace FastData.Base
         {
             try
             {
-                var value = Expression.Lambda(expression).Compile().DynamicInvoke();
+                var value = EvaluateExpressionCached(expression);
                 if (value == null)
                 {
                     typeList.Add(typeof(string));
@@ -553,7 +574,7 @@ namespace FastData.Base
             if (index >= typeList.Count)
                 return stringValue;
 
-            var targetType = typeList[index];
+            var targetType = Nullable.GetUnderlyingType(typeList[index]) ?? typeList[index];
 
             if (targetType == typeof(DateTime))
             {
@@ -562,16 +583,15 @@ namespace FastData.Base
                 return DateTime.Parse(stringValue);
             }
 
-            var typeName = targetType.Name;
-            if (typeName == "Int32")
+            if (targetType == typeof(int))
                 return int.Parse(stringValue);
-            if (typeName == "Int64")
+            if (targetType == typeof(long))
                 return long.Parse(stringValue);
-            if (typeName == "Decimal")
+            if (targetType == typeof(decimal))
                 return decimal.Parse(stringValue);
-            if (typeName == "Double")
+            if (targetType == typeof(double))
                 return double.Parse(stringValue);
-            if (typeName == "Boolean")
+            if (targetType == typeof(bool))
                 return bool.Parse(stringValue);
 
             return stringValue;

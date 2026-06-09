@@ -29,12 +29,30 @@ namespace FastData.Base
         public static DataTable ToDataTable(DbCommand cmd, string sql, bool IsProcedure = false)
         {
             var dt = new DataTable();
-            var dr = ToDataReader(cmd, sql, IsProcedure);
 
-            dt.Load(dr);
+            using (var dr = ToDataReader(cmd, sql, IsProcedure))
+            {
+                dt.Load(dr);
+            }
 
-            dr.Close();
-            dr.Dispose();
+            return dt;
+        }
+
+        /// <summary>
+        ///  异步返回DataTable（真正的I/O异步）
+        /// </summary>
+        /// <param name="cmd">数据库命令对象</param>
+        /// <param name="sql">SQL语句</param>
+        /// <param name="IsProcedure">是否存储过程</param>
+        /// <returns>数据表任务</returns>
+        public static async Task<DataTable> ToDataTableAsync(DbCommand cmd, string sql, bool IsProcedure = false)
+        {
+            var dt = new DataTable();
+
+            using (var dr = await ToDataReaderAsync(cmd, sql, IsProcedure).ConfigureAwait(false))
+            {
+                dt.Load(dr);
+            }
 
             return dt;
         }
@@ -91,6 +109,40 @@ namespace FastData.Base
         }
 
         /// <summary>
+        /// 获取 INSERT 操作后生成的自增主键值（跨数据库兼容）
+        /// </summary>
+        /// <param name="dbType">数据库类型</param>
+        /// <param name="cmd">数据库命令对象（需与 INSERT 在同一连接上执行）</param>
+        /// <returns>自增主键值，失败返回 0</returns>
+        public static long GetIdentityValue(DataDbType dbType, DbCommand cmd)
+        {
+            try
+            {
+                cmd.Parameters.Clear();
+                cmd.CommandType = CommandType.Text;
+                // 根据数据库类型生成对应的身份查询 SQL
+                cmd.CommandText = dbType switch
+                {
+                    DataDbType.SqlServer => "SELECT CAST(SCOPE_IDENTITY() AS BIGINT)",
+                    DataDbType.MySql => "SELECT LAST_INSERT_ID()",
+                    DataDbType.SQLite => "SELECT last_insert_rowid()",
+                    DataDbType.PostgreSql => "SELECT lastval()",
+                    DataDbType.Oracle => "SELECT last_number FROM user_sequences WHERE sequence_name = 'SEQ_ID'",
+                    _ => "SELECT CAST(SCOPE_IDENTITY() AS BIGINT)"
+                };
+                var result = cmd.ExecuteScalar();
+                if (result != null && result != DBNull.Value)
+                    return Convert.ToInt64(result);
+            }
+            catch (Exception ex)
+            {
+                // 记录到调试日志，但不影响主流程
+                DbLog.LogException(false, DataDbType.SqlServer, ex, "GetIdentityValue", "");
+            }
+            return 0L;
+        }
+
+        /// <summary>
         ///  异步返回bool（真正的I/O异步）
         /// </summary>
         /// <param name="cmd">数据库命令对象</param>
@@ -105,6 +157,55 @@ namespace FastData.Base
                 cmd.CommandType = CommandType.StoredProcedure;
 
             return await cmd.ExecuteNonQueryAsync().ConfigureAwait(false) > 0;
+        }
+
+        /// <summary>
+        ///  异步执行标量查询（真正的I/O异步）
+        /// </summary>
+        /// <param name="cmd">数据库命令对象</param>
+        /// <param name="sql">SQL语句</param>
+        /// <param name="IsProcedure">是否存储过程</param>
+        /// <returns>标量结果任务</returns>
+        public static async Task<object> ExecuteScalarAsync(DbCommand cmd, string sql, bool IsProcedure = false)
+        {
+            cmd.CommandText = sql;
+
+            if (IsProcedure)
+                cmd.CommandType = CommandType.StoredProcedure;
+
+            return await cmd.ExecuteScalarAsync().ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// 异步获取 INSERT 操作后生成的自增主键值（跨数据库兼容）
+        /// </summary>
+        /// <param name="dbType">数据库类型</param>
+        /// <param name="cmd">数据库命令对象</param>
+        /// <returns>自增主键值任务</returns>
+        public static async Task<long> GetIdentityValueAsync(DataDbType dbType, DbCommand cmd)
+        {
+            try
+            {
+                cmd.Parameters.Clear();
+                cmd.CommandType = CommandType.Text;
+                cmd.CommandText = dbType switch
+                {
+                    DataDbType.SqlServer => "SELECT CAST(SCOPE_IDENTITY() AS BIGINT)",
+                    DataDbType.MySql => "SELECT LAST_INSERT_ID()",
+                    DataDbType.SQLite => "SELECT last_insert_rowid()",
+                    DataDbType.PostgreSql => "SELECT lastval()",
+                    DataDbType.Oracle => "SELECT last_number FROM user_sequences WHERE sequence_name = 'SEQ_ID'",
+                    _ => "SELECT CAST(SCOPE_IDENTITY() AS BIGINT)"
+                };
+                var result = await ExecuteScalarAsync(cmd, cmd.CommandText).ConfigureAwait(false);
+                if (result != null && result != DBNull.Value)
+                    return Convert.ToInt64(result);
+            }
+            catch (Exception ex)
+            {
+                DbLog.LogException(false, DataDbType.SqlServer, ex, "GetIdentityValueAsync", "");
+            }
+            return 0L;
         }
         #endregion
                 
@@ -234,12 +335,11 @@ namespace FastData.Base
             }
             catch (Exception ex)
             {
-                if (item.Config.SqlErrorType.ToLower() == SqlErrorType.Db)
+                if (string.Equals(item.Config?.SqlErrorType, SqlErrorType.Db, StringComparison.OrdinalIgnoreCase))
                     DbLogTable.LogException(item.Config, ex, "ToPageDataReader", "");
                 else
-                    DbLog.LogException(true, item.Config.DbType, ex, "ToPageDataReader", "");
-
-                return null;
+                    DbLog.LogException(true, item.Config?.DbType ?? DataDbType.SqlServer, ex, "ToPageDataReader", "");
+                throw;
             }
         }
         #endregion
@@ -282,12 +382,11 @@ namespace FastData.Base
             }
             catch (Exception ex)
             {
-                if (item.Config.SqlErrorType.ToLower() == SqlErrorType.Db)
+                if (string.Equals(item.Config?.SqlErrorType, SqlErrorType.Db, StringComparison.OrdinalIgnoreCase))
                     DbLogTable.LogException(item.Config, ex, "ToPageCount", "");
                 else
-                    DbLog.LogException(true, item.Config.DbType, ex, "ToPageCount", "");
-
-                return 0;
+                    DbLog.LogException(true, item.Config?.DbType ?? DataDbType.SqlServer, ex, "ToPageCount", "");
+                throw;
             }
         }
         #endregion
@@ -319,12 +418,11 @@ namespace FastData.Base
             }
             catch (Exception ex)
             {
-                if (config.SqlErrorType.ToLower() == SqlErrorType.Db)
+                if (string.Equals(config?.SqlErrorType, SqlErrorType.Db, StringComparison.OrdinalIgnoreCase))
                     DbLogTable.LogException(config, ex, "ToPageCountSql", "");
                 else
-                    DbLog.LogException(config.IsOutError, config.DbType, ex, "ToPageCountSql", "");
-
-                return 0;
+                    DbLog.LogException(config?.IsOutError ?? false, config?.DbType ?? DataDbType.SqlServer, ex, "ToPageCountSql", "");
+                throw;
             }
         }
         #endregion
@@ -377,12 +475,11 @@ namespace FastData.Base
             }
             catch (Exception ex)
             {
-                if (config.SqlErrorType.ToLower() == SqlErrorType.Db)
+                if (string.Equals(config?.SqlErrorType, SqlErrorType.Db, StringComparison.OrdinalIgnoreCase))
                     DbLogTable.LogException(config, ex, "ToPageDataReaderSql", "");
                 else
-                    DbLog.LogException(config.IsOutError, config.DbType, ex, "ToPageDataReaderSql", "");
-
-                return null;
+                    DbLog.LogException(config?.IsOutError ?? false, config?.DbType ?? DataDbType.SqlServer, ex, "ToPageDataReaderSql", "");
+                throw;
             }
         }
         #endregion

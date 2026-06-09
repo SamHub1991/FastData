@@ -53,7 +53,8 @@ namespace FastData.Context
         {
             if (command == null) return;
 
-            if (command.Parameters != null && _config != null && _config.DbType == DataDbType.Oracle)
+            // 多数 ADO.NET 提供程序的参数对象实现了 IDisposable，需统一释放
+            if (command.Parameters != null)
             {
                 foreach (var param in command.Parameters.Cast<DbParameter>())
                 {
@@ -145,7 +146,8 @@ namespace FastData.Context
 
                 if (_usePool && _pooledConnection != null)
                 {
-                    try { _pooledConnection.Connection.Close(); } catch { }
+                    // 仅调用 Dispose 归还连接到池，不要先 Close()
+                    // Close() 会导致 ReturnConnection 验证失败（连接已关闭），连接被销毁而非归还池
                     _pooledConnection.Dispose();
                     _pooledConnection = null;
                 }
@@ -258,7 +260,7 @@ namespace FastData.Context
             {
                 AopException(ex, "DataContext :" + key, _config ?? new ConfigModel(), AopType.DataContext);
 
-                if (_config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                if (string.Equals(_config?.SqlErrorType, SqlErrorType.Db, StringComparison.OrdinalIgnoreCase))
                     DbLogTable.LogException(_config, ex, "DataContext", "");
                 else
                     DbLog.LogException(true, _config?.DbType ?? DataDbType.SqlServer, ex, "DataContext", "");

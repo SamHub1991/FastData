@@ -1,0 +1,122 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ main, develop, 'release/**' ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  build-cross-platform:
+    name: Build (Cross-Platform)
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        framework: [net8.0, net10.0]
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore FastData.sln -p:BuildPlatform=cross
+
+      - name: Build
+        run: dotnet build FastData.sln -p:BuildPlatform=cross -c Release --no-restore
+
+      - name: Run Tests (non-integration)
+        run: dotnet test FastData.Tests/FastData.Tests.csproj -c Release --no-build --filter "FullyQualifiedName!~Integration" -v minimal
+
+  build-windows-full:
+    name: Build (Windows Full - includes .NET Framework 4.5.2)
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore FastData.sln -p:BuildPlatform=windows
+
+      - name: Build
+        run: dotnet build FastData.sln -p:BuildPlatform=windows -c Release --no-restore
+
+      - name: Run Tests
+        run: dotnet test FastData.Tests/FastData.Tests.csproj -c Release --no-build --filter "FullyQualifiedName!~Integration" -v minimal
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Check for vulnerable packages
+        run: dotnet list package --vulnerable --include-transitive
+        continue-on-error: true
+
+      - name: Check for deprecated packages
+        run: dotnet list package --deprecated
+        continue-on-error: true
+
+      - name: Build with analyzers
+        run: dotnet build FastData.sln -p:BuildPlatform=cross -c Release /p:RunAnalyzers=true
+
+  package:
+    name: Package NuGet
+    runs-on: windows-latest
+    needs: [build-cross-platform, build-windows-full, security-scan]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/'))
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Restore
+        run: dotnet restore FastData.sln -p:BuildPlatform=cross
+
+      - name: Build
+        run: dotnet build FastData.sln -p:BuildPlatform=cross -c Release --no-restore
+
+      - name: Pack
+        run: |
+          dotnet pack FastData/FastData.csproj -c Release --no-build -o artifacts
+          dotnet pack FastData.Untility/FastData.Untility.csproj -c Release --no-build -o artifacts
+
+      - name: Upload NuGet packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages
+          path: artifacts/*.nupkg
+          retention-days: 30

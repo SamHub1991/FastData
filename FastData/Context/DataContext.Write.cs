@@ -15,6 +15,8 @@ using System.Data;
 using FastData.Property;
 using FastData.Aop;
 using FastData.Core.Base;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace FastData.Context
 {
@@ -47,7 +49,8 @@ namespace FastData.Context
 
                 result.Sql = ParameterToSql.ObjectParamToSql(visitModel.Param, sql.ToString(), config);
 
-                DisposeCommand(cmd);
+                // 清理参数而非 dispose 命令对象（PostgreSQL/Npgsql 不支持对已 dispose 的命令重新使用）
+                cmd.Parameters.Clear();
 
                 if (visitModel.Param.Count != 0)
                     cmd.Parameters.AddRange(visitModel.Param.ToArray());
@@ -75,7 +78,7 @@ namespace FastData.Context
             {
                 AopException(ex, "Delete by Lambda tableName"+typeof(T).Name,config, AopType.Delete_Lambda);
 
-                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                if (string.Equals(config?.SqlErrorType, SqlErrorType.Db, StringComparison.OrdinalIgnoreCase))
                     DbLogTable.LogException<T>(config, ex, "Delete<T>", "");
                 else
                     DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "Delete<T>", result.Sql);
@@ -114,7 +117,8 @@ namespace FastData.Context
 
                 result.Sql = ParameterToSql.ObjectParamToSql(optionModel.Param, optionModel.Sql, config);
 
-                DisposeCommand(cmd);
+                // 清理参数而非 dispose 命令对象（PostgreSQL/Npgsql 不支持对已 dispose 的命令重新使用）
+                cmd.Parameters.Clear();
 
                 if (optionModel.Param.Count != 0)
                     cmd.Parameters.AddRange(optionModel.Param.ToArray());
@@ -148,7 +152,7 @@ namespace FastData.Context
                 if (isTrans)
                     RollbackTrans();
 
-                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                if (string.Equals(config?.SqlErrorType, SqlErrorType.Db, StringComparison.OrdinalIgnoreCase))
                     DbLogTable.LogException<T>(config, ex, "Delete<T>", "");
                 else
                     DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "Delete<T>", result.Sql);
@@ -192,7 +196,8 @@ namespace FastData.Context
 
                     sql = string.Format("{0} {1}", update.Sql, string.IsNullOrEmpty(visitModel.Where) ? "" : string.Format("where {0}", visitModel.Where.Replace(string.Format("{0}.", predicate.Parameters[0].Name), "")));
 
-                    DisposeCommand(cmd);
+                    // 清理参数而非 dispose 命令对象（PostgreSQL/Npgsql 不支持对已 dispose 的命令重新使用）
+                    cmd.Parameters.Clear();
 
                     if (update.Param.Count != 0)
                         cmd.Parameters.AddRange(update.Param.ToArray());
@@ -231,7 +236,7 @@ namespace FastData.Context
             {
                 AopException(ex, "Update by Lambda tableName:" + typeof(T).Name,config, AopType.Update_Lambda);
 
-                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                if (string.Equals(config?.SqlErrorType, SqlErrorType.Db, StringComparison.OrdinalIgnoreCase))
                     DbLogTable.LogException<T>(config, ex, "Update<T>", "");
                 else
                     DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "Update<T>", result.Sql);
@@ -268,7 +273,8 @@ namespace FastData.Context
                     BeginTrans();
                 if (update.IsSuccess)
                 {
-                    DisposeCommand(cmd);
+                    // 清理参数而非 dispose 命令对象（PostgreSQL/Npgsql 不支持对已 dispose 的命令重新使用）
+                    cmd.Parameters.Clear();
 
                     if (update.Param.Count != 0)
                         cmd.Parameters.AddRange(update.Param.ToArray());
@@ -302,7 +308,7 @@ namespace FastData.Context
                 if (isTrans)
                     RollbackTrans();
 
-                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                if (string.Equals(config?.SqlErrorType, SqlErrorType.Db, StringComparison.OrdinalIgnoreCase))
                     DbLogTable.LogException<T>(config, ex, "UpdateModel<T>", "");
                 else
                     DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "UpdateModel<T>", result.Sql);
@@ -344,7 +350,8 @@ namespace FastData.Context
                     using (var adapter = DbProviderFactories.GetFactory(config.ProviderName).CreateDataAdapter())
                     {
                         BeginTrans();
-                        DisposeCommand(cmd);
+                        // 清理参数而非 dispose 命令对象（PostgreSQL/Npgsql 不支持对已 dispose 的命令重新使用）
+                        cmd.Parameters.Clear();
                         adapter.InsertCommand = cmd;
                         adapter.InsertCommand.CommandText = update.Sql;
                         adapter.InsertCommand.UpdatedRowSource = UpdateRowSource.None;
@@ -377,7 +384,7 @@ namespace FastData.Context
             {
                 AopException(ex, "Update List tableName:" + typeof(T).Name,config, AopType.UpdateList);
 
-                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                if (string.Equals(config?.SqlErrorType, SqlErrorType.Db, StringComparison.OrdinalIgnoreCase))
                     DbLogTable.LogException<T>(config, ex, "UpdateList<T>", "");
                 else
                     DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "UpdateList<T>", result.Sql);
@@ -419,7 +426,8 @@ namespace FastData.Context
                 {
                     result.Sql = ParameterToSql.ObjectParamToSql(insert.Param, insert.Sql, config);
 
-                    DisposeCommand(cmd);
+                    // 清理参数而非 dispose 命令对象（PostgreSQL/Npgsql 不支持对已 dispose 的命令重新使用）
+                    cmd.Parameters.Clear();
 
                     if (insert.Param.Count != 0)
                         cmd.Parameters.AddRange(insert.Param.ToArray());
@@ -430,6 +438,10 @@ namespace FastData.Context
                     if (conn.State == ConnectionState.Closed)
                         conn.Open();
                     result.WriteReturn.IsSuccess = BaseExecute.ToBool(cmd, insert.Sql);
+
+                    // 插入成功后获取自增主键值
+                    if (result.WriteReturn.IsSuccess)
+                        result.WriteReturn.IdentityValue = BaseExecute.GetIdentityValue(config.DbType, cmd);
 
                     if (isTrans)
                         SubmitTrans();
@@ -445,14 +457,12 @@ namespace FastData.Context
             {
                 AopException(ex, "Add tableName: " + typeof(T).Name,config, AopType.Add);
 
-                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                if (string.Equals(config?.SqlErrorType, SqlErrorType.Db, StringComparison.OrdinalIgnoreCase))
                     DbLogTable.LogException<T>(config, ex, "Add<T>", "");
                 else
                     DbLog.LogException<T>(config?.IsOutError ?? false, config?.DbType ?? DataDbType.SqlServer, ex, "Add<T>", result.Sql);
 
-                if (isTrans && result.WriteReturn.IsSuccess)
-                    SubmitTrans();
-                else if (isTrans && result.WriteReturn.IsSuccess == false)
+                if (isTrans)
                     RollbackTrans();
 
                 result.WriteReturn.Message = string.Format("{0}: {1}", ex.GetType().Name, ex.Message);
@@ -486,7 +496,8 @@ namespace FastData.Context
                 if (config.DbType == DataDbType.Oracle)
                 {
                     #region oracle
-                    DisposeCommand(cmd);
+                    // 清理参数而非 dispose 命令对象（PostgreSQL/Npgsql 不支持对已 dispose 的命令重新使用）
+                    cmd.Parameters.Clear();
                     if (!isLog)
                     {
                         cmd.CommandText = string.Format("alter table {0} nologging", TableNameHelper.GetTableName<T>());
@@ -557,7 +568,8 @@ namespace FastData.Context
                 if (config.DbType == DataDbType.SqlServer)
                 {
                     #region sqlserver
-                    DisposeCommand(cmd);
+                    // 清理参数而非 dispose 命令对象
+                    cmd.Parameters.Clear();
                     
                     // 打开连接以支持 InitTvps 和 GetTable 中的 ExecuteReader
                     if (conn.State == ConnectionState.Closed)
@@ -606,7 +618,8 @@ namespace FastData.Context
                 if (config.DbType == DataDbType.MySql)
                 {
                     #region mysql
-                    DisposeCommand(cmd);
+                    // 清理参数而非 dispose 命令对象
+                    cmd.Parameters.Clear();
                     
                     // 获取属性信息，排除 Identity 列
                     var mysqlProperties = PropertyCache.GetPropertyInfo<T>();
@@ -620,21 +633,31 @@ namespace FastData.Context
                         return columnAttr == null || !columnAttr.IsIdentity;
                     }).ToList();
                     
-                    // 构建排除 Identity 列的 SQL
                     var mysqlTableName = TableNameHelper.GetTableName<T>(config);
                     var mysqlColumns = string.Join(", ", nonIdentityProperties.Select(p => p.Name));
-                    var mysqlValues = string.Join(", ", list.Select(item => 
-                        string.Format("({0})", string.Join(", ", nonIdentityProperties.Select(p => {
-                            var value = dyn.GetValue(item, p.Name, true);
-                            if (value is bool boolVal)
-                                return boolVal ? "1" : "0";
-                            else if (value == null)
-                                return "NULL";
-                            else if (value is DateTime dtVal)
-                                return string.Format("'{0:yyyy-MM-dd HH:mm:ss}'", dtVal);
-                            else
-                                return string.Format("'{0}'", value);
-                        })))));
+                    
+                    // 使用参数化查询防止 SQL 注入
+                    var paramIndex = 0;
+                    var valuePlaceholders = new List<string>();
+                    
+                    foreach (var item in list)
+                    {
+                        var itemParams = new List<string>();
+                        foreach (var prop in nonIdentityProperties)
+                        {
+                            var paramName = string.Format("@mysql_p{0}", paramIndex++);
+                            itemParams.Add(paramName);
+                            
+                            var param = cmd.CreateParameter();
+                            param.ParameterName = paramName;
+                            var value = dyn.GetValue(item, prop.Name, true);
+                            param.Value = value ?? DBNull.Value;
+                            cmd.Parameters.Add(param);
+                        }
+                        valuePlaceholders.Add(string.Format("({0})", string.Join(", ", itemParams)));
+                    }
+                    
+                    var mysqlValues = string.Join(", ", valuePlaceholders);
                     cmd.CommandText = string.Format("INSERT INTO {0} ({1}) VALUES {2}", mysqlTableName, mysqlColumns, mysqlValues);
 
                     tableName.Add(TableNameHelper.GetTableName<T>());
@@ -649,7 +672,8 @@ namespace FastData.Context
                 if (config.DbType == DataDbType.PostgreSql)
                 {
                     #region postgresql
-                    DisposeCommand(cmd);
+                    // 清理参数而非 dispose 命令对象
+                    cmd.Parameters.Clear();
                     
                     var pgTableName = TableNameHelper.GetTableName<T>(config);
                     var pgProperties = PropertyCache.GetPropertyInfo<T>();
@@ -711,7 +735,8 @@ namespace FastData.Context
                 if (config.DbType == DataDbType.SQLite)
                 {
                     #region sqlite
-                    DisposeCommand(cmd);
+                    // 清理参数而非 dispose 命令对象
+                    cmd.Parameters.Clear();
                     
                     var sqliteTableName = TableNameHelper.GetTableName<T>();
                     var properties = PropertyCache.GetPropertyInfo<T>();
@@ -765,7 +790,7 @@ namespace FastData.Context
                 if (IsTrans)
                     RollbackTrans();
 
-                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                if (string.Equals(config?.SqlErrorType, SqlErrorType.Db, StringComparison.OrdinalIgnoreCase))
                     DbLogTable.LogException<T>(config, ex, "AddList<T>", "");
                 else
                     DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "AddList<T>", result.Sql);
@@ -831,7 +856,7 @@ namespace FastData.Context
                 if (isTrans)
                     RollbackTrans();
 
-                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                if (string.Equals(config?.SqlErrorType, SqlErrorType.Db, StringComparison.OrdinalIgnoreCase))
                     DbLogTable.LogException(config, ex, "ExecuteSql", result.Sql);
                 else
                     DbLog.LogException(config.IsOutError, config.DbType, ex, "ExecuteSql", result.Sql);
@@ -917,7 +942,7 @@ namespace FastData.Context
                 RollbackTrans();
                 AopException(ex, "BulkInsert", config, AopType.AddList);
 
-                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                if (string.Equals(config?.SqlErrorType, SqlErrorType.Db, StringComparison.OrdinalIgnoreCase))
                     DbLogTable.LogException(config, ex, "BulkInsert", result.Sql);
                 else
                     DbLog.LogException(config.IsOutError, config.DbType, ex, "BulkInsert", result.Sql);
@@ -1001,7 +1026,7 @@ namespace FastData.Context
                 RollbackTrans();
                 AopException(ex, "BulkUpdate", config, AopType.UpdateList);
 
-                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                if (string.Equals(config?.SqlErrorType, SqlErrorType.Db, StringComparison.OrdinalIgnoreCase))
                     DbLogTable.LogException(config, ex, "BulkUpdate", result.Sql);
                 else
                     DbLog.LogException(config.IsOutError, config.DbType, ex, "BulkUpdate", result.Sql);
@@ -1067,10 +1092,920 @@ namespace FastData.Context
                 RollbackTrans();
                 AopException(ex, "BulkDelete", config, AopType.Delete_Lambda);
 
-                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                if (string.Equals(config?.SqlErrorType, SqlErrorType.Db, StringComparison.OrdinalIgnoreCase))
                     DbLogTable.LogException(config, ex, "BulkDelete", result.Sql);
                 else
                     DbLog.LogException(config.IsOutError, config.DbType, ex, "BulkDelete", result.Sql);
+
+                result.WriteReturn.IsSuccess = false;
+                result.WriteReturn.Message = ex.Message;
+            }
+
+            stopwatch.Stop();
+            return result;
+        }
+
+        #endregion
+
+        #region 异步写入操作
+
+        /// <summary>
+        /// 异步确保连接已打开（真正的I/O异步）
+        /// </summary>
+        private async Task EnsureConnectionOpenAsync(CancellationToken cancellationToken = default)
+        {
+            if (_disposed)
+                throw new ObjectDisposedException(nameof(DataContext));
+
+            if (_connection == null)
+                throw new InvalidOperationException("Connection is null. DataContext was not initialized properly.");
+
+            if (_connection.State != ConnectionState.Open)
+                await _connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// 异步删除(Lambda表达式)
+        /// </summary>
+        public async Task<DataReturn<T>> DeleteAsync<T>(Expression<Func<T, bool>> predicate, bool isTrans = false, CancellationToken cancellationToken = default) where T : class, new()
+        {
+            var result = new DataReturn<T>();
+            var sql = new StringBuilder();
+            var visitModel = new VisitModel();
+            var tableName = new List<string>();
+
+            try
+            {
+                if (isTrans)
+                    BeginTrans();
+
+                visitModel = VisitExpression.LambdaWhere<T>(predicate, config);
+
+                sql.AppendFormat("delete from {0} {1}", TableNameHelper.GetTableName<T>(config)
+                    , string.IsNullOrEmpty(visitModel.Where) ? "" : string.Format("where {0}", visitModel.Where.Replace(string.Format("{0}.", predicate.Parameters[0].Name), "")));
+
+                result.Sql = ParameterToSql.ObjectParamToSql(visitModel.Param, sql.ToString(), config);
+
+                cmd.Parameters.Clear();
+
+                if (visitModel.Param.Count != 0)
+                    cmd.Parameters.AddRange(visitModel.Param.ToArray());
+
+                tableName.Add(TableNameHelper.GetTableName<T>(config));
+                AopBefore(tableName, sql.ToString(), visitModel.Param, config, false, AopType.Delete_Lambda);
+
+                if (visitModel.IsSuccess)
+                {
+                    await EnsureConnectionOpenAsync(cancellationToken).ConfigureAwait(false);
+                    result.WriteReturn.IsSuccess = await BaseExecute.ToBoolAsync(cmd, sql.ToString()).ConfigureAwait(false);
+                }
+                else
+                    result.WriteReturn.IsSuccess = false;
+
+                if (isTrans && result.WriteReturn.IsSuccess)
+                    SubmitTrans();
+                else if (isTrans && !result.WriteReturn.IsSuccess)
+                    RollbackTrans();
+
+                AopAfter(tableName, sql.ToString(), visitModel.Param, config, false, AopType.Delete_Lambda, result.WriteReturn.IsSuccess);
+            }
+            catch (Exception ex)
+            {
+                AopException(ex, "DeleteAsync by Lambda tableName" + typeof(T).Name, config, AopType.Delete_Lambda);
+
+                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                    DbLogTable.LogException<T>(config, ex, "DeleteAsync<T>", "");
+                else
+                    DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "DeleteAsync<T>", result.Sql);
+
+                if (isTrans)
+                    RollbackTrans();
+
+                result.WriteReturn.IsSuccess = false;
+                result.WriteReturn.Message = ex.Message;
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// 异步删除(根据实体主键)
+        /// </summary>
+        public async Task<DataReturn<T>> DeleteAsync<T>(T model, bool isTrans = false, CancellationToken cancellationToken = default) where T : class, new()
+        {
+            var result = new DataReturn<T>();
+            var optionModel = new OptionModel();
+            var tableName = new List<string>();
+
+            try
+            {
+                if (isTrans)
+                    BeginTrans();
+
+                optionModel = BaseModel.DeleteToSql<T>(cmd, model, config);
+
+                result.Sql = ParameterToSql.ObjectParamToSql(optionModel.Param, optionModel.Sql, config);
+
+                cmd.Parameters.Clear();
+
+                if (optionModel.Param.Count != 0)
+                    cmd.Parameters.AddRange(optionModel.Param.ToArray());
+
+                tableName.Add(TableNameHelper.GetTableName<T>());
+                AopBefore(tableName, optionModel.Sql, optionModel.Param, config, false, AopType.Delete_PrimaryKey);
+
+                if (optionModel.IsSuccess)
+                {
+                    await EnsureConnectionOpenAsync(cancellationToken).ConfigureAwait(false);
+                    result.WriteReturn.IsSuccess = await BaseExecute.ToBoolAsync(cmd, optionModel.Sql).ConfigureAwait(false);
+                }
+                else
+                {
+                    result.WriteReturn.IsSuccess = false;
+                    result.WriteReturn.Message = optionModel.Message;
+                }
+
+                if (isTrans && result.WriteReturn.IsSuccess)
+                    SubmitTrans();
+                else if (isTrans && !result.WriteReturn.IsSuccess)
+                    RollbackTrans();
+
+                AopAfter(tableName, optionModel.Sql, optionModel.Param, config, false, AopType.Delete_PrimaryKey, result.WriteReturn.IsSuccess);
+            }
+            catch (Exception ex)
+            {
+                AopException(ex, "DeleteAsync by Primary Key tableName" + typeof(T).Name, config, AopType.Delete_PrimaryKey);
+
+                if (isTrans)
+                    RollbackTrans();
+
+                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                    DbLogTable.LogException<T>(config, ex, "DeleteAsync<T>", "");
+                else
+                    DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "DeleteAsync<T>", result.Sql);
+
+                result.WriteReturn.IsSuccess = false;
+                result.WriteReturn.Message = ex.Message;
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// 异步修改(Lambda表达式)
+        /// </summary>
+        public async Task<DataReturn<T>> UpdateAsync<T>(T model, Expression<Func<T, bool>> predicate, Expression<Func<T, object>> field = null, bool isTrans = false, CancellationToken cancellationToken = default) where T : class, new()
+        {
+            string sql = "";
+            var result = new DataReturn<T>();
+            var visitModel = new VisitModel();
+            var update = new OptionModel();
+            var tableName = new List<string>();
+
+            try
+            {
+                if (isTrans)
+                    BeginTrans();
+
+                update = BaseModel.UpdateToSql<T>(model, config, field, cmd);
+
+                if (update.IsSuccess)
+                {
+                    visitModel = VisitExpression.LambdaWhere<T>(predicate, config);
+
+                    sql = string.Format("{0} {1}", update.Sql, string.IsNullOrEmpty(visitModel.Where) ? "" : string.Format("where {0}", visitModel.Where.Replace(string.Format("{0}.", predicate.Parameters[0].Name), "")));
+
+                    cmd.Parameters.Clear();
+
+                    if (update.Param.Count != 0)
+                        cmd.Parameters.AddRange(update.Param.ToArray());
+
+                    if (visitModel.Param.Count != 0)
+                        cmd.Parameters.AddRange(visitModel.Param.ToArray());
+
+                    result.Sql = ParameterToSql.ObjectParamToSql(Parameter.ParamMerge(update.Param, visitModel.Param), sql, config);
+
+                    tableName.Add(TableNameHelper.GetTableName<T>());
+                    AopBefore(tableName, sql, Parameter.ParamMerge(update.Param, visitModel.Param), config, false, AopType.Update_Lambda);
+
+                    if (visitModel.IsSuccess)
+                    {
+                        await EnsureConnectionOpenAsync(cancellationToken).ConfigureAwait(false);
+                        result.WriteReturn.IsSuccess = await BaseExecute.ToBoolAsync(cmd, sql).ConfigureAwait(false);
+                    }
+                    else
+                        result.WriteReturn.IsSuccess = false;
+                }
+                else
+                {
+                    result.WriteReturn.Message = update.Message;
+                    result.WriteReturn.IsSuccess = false;
+                }
+
+                if (isTrans && result.WriteReturn.IsSuccess)
+                    SubmitTrans();
+                else if (isTrans && !result.WriteReturn.IsSuccess)
+                    RollbackTrans();
+
+                AopAfter(tableName, sql, Parameter.ParamMerge(update.Param, visitModel.Param), config, false, AopType.Update_Lambda, result.WriteReturn.IsSuccess);
+            }
+            catch (Exception ex)
+            {
+                AopException(ex, "UpdateAsync by Lambda tableName:" + typeof(T).Name, config, AopType.Update_Lambda);
+
+                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                    DbLogTable.LogException<T>(config, ex, "UpdateAsync<T>", "");
+                else
+                    DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "UpdateAsync<T>", result.Sql);
+                result.WriteReturn.IsSuccess = false;
+                result.WriteReturn.Message = ex.Message;
+
+                if (isTrans)
+                    RollbackTrans();
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// 异步修改(根据主键)
+        /// </summary>
+        public async Task<DataReturn<T>> UpdateAsync<T>(T model, Expression<Func<T, object>> field = null, bool isTrans = false, CancellationToken cancellationToken = default) where T : class, new()
+        {
+            var result = new DataReturn<T>();
+            var update = new OptionModel();
+            var tableName = new List<string>();
+            try
+            {
+                update = BaseModel.UpdateToSql<T>(cmd, model, config, field);
+                if (isTrans)
+                    BeginTrans();
+                if (update.IsSuccess)
+                {
+                    cmd.Parameters.Clear();
+
+                    if (update.Param.Count != 0)
+                        cmd.Parameters.AddRange(update.Param.ToArray());
+
+                    result.Sql = ParameterToSql.ObjectParamToSql(update.Param, update.Sql, config);
+
+                    tableName.Add(TableNameHelper.GetTableName<T>());
+                    AopBefore(tableName, update.Sql, update.Param, config, false, AopType.Update_PrimaryKey);
+
+                    await EnsureConnectionOpenAsync(cancellationToken).ConfigureAwait(false);
+                    result.WriteReturn.IsSuccess = await BaseExecute.ToBoolAsync(cmd, update.Sql).ConfigureAwait(false);
+                }
+                else
+                {
+                    result.WriteReturn.Message = update.Message;
+                    result.WriteReturn.IsSuccess = false;
+                }
+
+                if (isTrans && result.WriteReturn.IsSuccess)
+                    SubmitTrans();
+                else if (isTrans && !result.WriteReturn.IsSuccess)
+                    RollbackTrans();
+
+                AopAfter(tableName, update.Sql, update.Param, config, false, AopType.Update_PrimaryKey, result.WriteReturn.IsSuccess);
+            }
+            catch (Exception ex)
+            {
+                AopException(ex, "UpdateAsync by Primary Key tableName:" + typeof(T).Name, config, AopType.Update_PrimaryKey);
+
+                if (isTrans)
+                    RollbackTrans();
+
+                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                    DbLogTable.LogException<T>(config, ex, "UpdateModelAsync<T>", "");
+                else
+                    DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "UpdateModelAsync<T>", result.Sql);
+                result.WriteReturn.IsSuccess = false;
+                result.WriteReturn.Message = ex.Message;
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// 异步增加
+        /// </summary>
+        public async Task<DataReturn<T>> AddAsync<T>(T model, bool isTrans = false, Expression<Func<T, object>> notAddField = null, CancellationToken cancellationToken = default) where T : class, new()
+        {
+            var result = new DataReturn<T>();
+            var insert = new OptionModel();
+            var tableName = new List<string>();
+
+            try
+            {
+                if (isTrans)
+                    BeginTrans();
+
+                insert = BaseModel.InsertToSql<T>(model, config);
+
+                if (insert.IsSuccess)
+                {
+                    result.Sql = ParameterToSql.ObjectParamToSql(insert.Param, insert.Sql, config);
+
+                    cmd.Parameters.Clear();
+
+                    if (insert.Param.Count != 0)
+                        cmd.Parameters.AddRange(insert.Param.ToArray());
+
+                    tableName.Add(TableNameHelper.GetTableName<T>());
+                    AopBefore(tableName, insert.Sql, insert.Param, config, false, AopType.Add);
+
+                    await EnsureConnectionOpenAsync(cancellationToken).ConfigureAwait(false);
+                    result.WriteReturn.IsSuccess = await BaseExecute.ToBoolAsync(cmd, insert.Sql).ConfigureAwait(false);
+
+                    if (result.WriteReturn.IsSuccess)
+                        result.WriteReturn.IdentityValue = await BaseExecute.GetIdentityValueAsync(config.DbType, cmd).ConfigureAwait(false);
+
+                    if (isTrans)
+                        SubmitTrans();
+
+                    AopAfter(tableName, insert.Sql, insert.Param, config, false, AopType.Add, result.WriteReturn.IsSuccess);
+
+                    return result;
+                }
+                else
+                    return result;
+            }
+            catch (Exception ex)
+            {
+                AopException(ex, "AddAsync tableName: " + typeof(T).Name, config, AopType.Add);
+
+                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                    DbLogTable.LogException<T>(config, ex, "AddAsync<T>", "");
+                else
+                    DbLog.LogException<T>(config?.IsOutError ?? false, config?.DbType ?? DataDbType.SqlServer, ex, "AddAsync<T>", result.Sql);
+
+                if (isTrans)
+                    RollbackTrans();
+
+                result.WriteReturn.Message = string.Format("{0}: {1}", ex.GetType().Name, ex.Message);
+                result.WriteReturn.IsSuccess = false;
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// 异步批量增加
+        /// </summary>
+        public async Task<DataReturn<T>> AddListAsync<T>(List<T> list, bool isTrans = false, bool isLog = true, CancellationToken cancellationToken = default) where T : class, new()
+        {
+            var result = new DataReturn<T>();
+            var sql = new StringBuilder();
+            var dyn = new Property.DynamicGet<T>();
+            var tableName = new List<string>();
+
+            try
+            {
+                if (isTrans)
+                    BeginTrans();
+
+                if (config.DbType == DataDbType.Oracle)
+                {
+                    cmd.Parameters.Clear();
+                    if (!isLog)
+                    {
+                        cmd.CommandText = string.Format("alter table {0} nologging", TableNameHelper.GetTableName<T>());
+                        await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+                    }
+
+                    cmd.GetType().GetMethods().ToList().ForEach(a =>
+                    {
+                        if (a.Name == "set_ArrayBindCount")
+                        {
+                            var param = new object[1];
+                            param[0] = list.Count;
+                            a.Invoke(cmd, param);
+                        }
+
+                        if (a.Name == "set_BindByName")
+                        {
+                            var param = new object[1];
+                            param[0] = true;
+                            a.Invoke(cmd, param);
+                        }
+                    });
+
+                    sql.AppendFormat("insert into {0} values(", TableNameHelper.GetTableName<T>());
+
+                    PropertyCache.GetPropertyInfo<T>().ForEach(a =>
+                    {
+                        var pValue = new List<object>();
+                        var param = DbProviderFactories.GetFactory(config.ProviderName).CreateParameter();
+
+                        if (a.PropertyType.Name.ToLower() == "nullable`1")
+                            param.DbType = CommandParam.GetOracleDbType(a.PropertyType.GetGenericArguments()[0].Name);
+                        else
+                            param.DbType = CommandParam.GetOracleDbType(a.PropertyType.Name);
+
+                        param.Direction = ParameterDirection.Input;
+                        param.ParameterName = a.Name;
+                        sql.AppendFormat("{0}{1},", config.Flag, a.Name);
+
+                        list.ForEach(l =>
+                        {
+                            var value = dyn.GetValue(l, a.Name, true);
+                            if (value == null)
+                                value = DBNull.Value;
+                            pValue.Add(value);
+                        });
+
+                        param.Value = pValue.ToArray();
+                        cmd.Parameters.Add(param);
+                    });
+
+                    sql.Append(")");
+                    cmd.CommandText = sql.ToString().Replace(",)", ")");
+
+                    tableName.Add(TableNameHelper.GetTableName<T>());
+                    AopBefore(tableName, cmd.CommandText, null, config, false, AopType.AddList);
+
+                    result.WriteReturn.IsSuccess = await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false) > 0;
+
+                    if (!isLog)
+                    {
+                        cmd.CommandText = string.Format("alter table {0} logging", TableNameHelper.GetTableName<T>());
+                        await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+                    }
+                }
+
+                if (config.DbType == DataDbType.SqlServer)
+                {
+                    cmd.Parameters.Clear();
+
+                    await EnsureConnectionOpenAsync(cancellationToken).ConfigureAwait(false);
+
+                    CommandParam.InitTvps<T>(cmd);
+                    foreach (var method in cmd.Parameters.GetType().GetMethods())
+                    {
+                        if (method.Name == "AddWithValue")
+                        {
+                            var param = new object[2];
+                            param[0] = string.Format("@{0}_TVP", typeof(T).Name);
+                            param[1] = CommandParam.GetTable<T>(cmd, list);
+                            var sqlParam = method.Invoke(cmd.Parameters, param);
+
+                            sqlParam.GetType().GetMethods().ToList().ForEach(a =>
+                            {
+                                if (a.Name == "set_SqlDbType")
+                                {
+                                    param = new object[1];
+                                    param[0] = SqlDbType.Structured;
+                                    a.Invoke(sqlParam, param);
+                                }
+                                if (a.Name == "set_TypeName")
+                                {
+                                    param = new object[1];
+                                    param[0] = string.Format("{0}_TVP", typeof(T).Name);
+                                    a.Invoke(sqlParam, param);
+                                }
+                            });
+
+                            break;
+                        }
+                    }
+
+                    cmd.CommandText = CommandParam.GetTvps<T>();
+
+                    tableName.Add(TableNameHelper.GetTableName<T>());
+                    AopBefore(tableName, cmd.CommandText, null, config, false, AopType.AddList);
+
+                    result.WriteReturn.IsSuccess = await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false) > 0;
+                }
+
+                if (config.DbType == DataDbType.MySql)
+                {
+                    cmd.Parameters.Clear();
+
+                    var mysqlProperties = PropertyCache.GetPropertyInfo<T>();
+                    var mysqlEntityType = typeof(T);
+                    var nonIdentityProperties = mysqlProperties.Where(p =>
+                    {
+                        var propInfo = mysqlEntityType.GetProperty(p.Name);
+                        if (propInfo == null) return true;
+                        var columnAttr = propInfo.GetCustomAttributes(typeof(ColumnAttribute), false)
+                            .FirstOrDefault() as ColumnAttribute;
+                        return columnAttr == null || !columnAttr.IsIdentity;
+                    }).ToList();
+
+                    var mysqlTableName = TableNameHelper.GetTableName<T>(config);
+                    var mysqlColumns = string.Join(", ", nonIdentityProperties.Select(p => p.Name));
+
+                    var paramIndex = 0;
+                    var valuePlaceholders = new List<string>();
+
+                    foreach (var item in list)
+                    {
+                        var itemParams = new List<string>();
+                        foreach (var prop in nonIdentityProperties)
+                        {
+                            var paramName = string.Format("@mysql_p{0}", paramIndex++);
+                            itemParams.Add(paramName);
+
+                            var param = cmd.CreateParameter();
+                            param.ParameterName = paramName;
+                            var value = dyn.GetValue(item, prop.Name, true);
+                            param.Value = value ?? DBNull.Value;
+                            cmd.Parameters.Add(param);
+                        }
+                        valuePlaceholders.Add(string.Format("({0})", string.Join(", ", itemParams)));
+                    }
+
+                    var mysqlValues = string.Join(", ", valuePlaceholders);
+                    cmd.CommandText = string.Format("INSERT INTO {0} ({1}) VALUES {2}", mysqlTableName, mysqlColumns, mysqlValues);
+
+                    tableName.Add(TableNameHelper.GetTableName<T>());
+                    AopBefore(tableName, cmd.CommandText, null, config, false, AopType.AddList);
+
+                    await EnsureConnectionOpenAsync(cancellationToken).ConfigureAwait(false);
+                    result.WriteReturn.IsSuccess = await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false) > 0;
+                }
+
+                if (config.DbType == DataDbType.PostgreSql)
+                {
+                    cmd.Parameters.Clear();
+
+                    var pgTableName = TableNameHelper.GetTableName<T>(config);
+                    var pgProperties = PropertyCache.GetPropertyInfo<T>();
+
+                    var pgEntityType = typeof(T);
+                    var pgNonIdentityProperties = pgProperties.Where(p =>
+                    {
+                        var propInfo = pgEntityType.GetProperty(p.Name);
+                        if (propInfo == null) return true;
+                        var columnAttr = propInfo.GetCustomAttributes(typeof(ColumnAttribute), false)
+                            .FirstOrDefault() as ColumnAttribute;
+                        return columnAttr == null || !columnAttr.IsIdentity;
+                    }).ToList();
+
+                    var pgColumns = string.Join(", ", pgNonIdentityProperties.Select(p => p.Name));
+                    var pgPlaceholders = string.Join(", ", pgNonIdentityProperties.Select((p, i) => string.Format("{0}{1}", config.Flag, p.Name)));
+                    var insertSql = string.Format("INSERT INTO {0} ({1}) VALUES ({2})", pgTableName, pgColumns, pgPlaceholders);
+
+                    AopBefore(new List<string> { pgTableName }, insertSql, null, config, false, AopType.AddList);
+
+                    if (!isTrans)
+                        BeginTrans();
+
+                    cmd.CommandText = insertSql;
+
+                    foreach (var item in list)
+                    {
+                        cmd.Parameters.Clear();
+                        foreach (var prop in pgNonIdentityProperties)
+                        {
+                            var param = cmd.CreateParameter();
+                            param.ParameterName = string.Format("{0}{1}", config.Flag, prop.Name);
+                            var value = dyn.GetValue(item, prop.Name, true);
+                            if (value is bool pgBoolVal)
+                                param.Value = pgBoolVal;
+                            else
+                                param.Value = value ?? DBNull.Value;
+                            cmd.Parameters.Add(param);
+                        }
+
+                        await EnsureConnectionOpenAsync(cancellationToken).ConfigureAwait(false);
+                        await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+                    }
+
+                    if (!isTrans)
+                        SubmitTrans();
+
+                    result.WriteReturn.IsSuccess = true;
+                    result.Sql = string.Format("{0} (x{1})", insertSql, list.Count);
+
+                    AopAfter(new List<string> { pgTableName }, result.Sql, null, config, false, AopType.AddList, result.WriteReturn.IsSuccess);
+                }
+
+                if (config.DbType == DataDbType.SQLite)
+                {
+                    cmd.Parameters.Clear();
+
+                    var sqliteTableName = TableNameHelper.GetTableName<T>();
+                    var properties = PropertyCache.GetPropertyInfo<T>();
+                    var columns = string.Join(", ", properties.Select(p => p.Name));
+                    var placeholders = string.Join(", ", properties.Select(p => string.Format("{0}{1}", config.Flag, p.Name)));
+                    var insertSql = string.Format("INSERT INTO {0} ({1}) VALUES ({2})", sqliteTableName, columns, placeholders);
+
+                    AopBefore(new List<string> { sqliteTableName }, insertSql, null, config, false, AopType.AddList);
+
+                    if (!isTrans)
+                        BeginTrans();
+
+                    cmd.CommandText = insertSql;
+
+                    foreach (var item in list)
+                    {
+                        cmd.Parameters.Clear();
+                        foreach (var prop in properties)
+                        {
+                            var param = cmd.CreateParameter();
+                            param.ParameterName = string.Format("{0}{1}", config.Flag, prop.Name);
+                            var value = dyn.GetValue(item, prop.Name, true);
+                            param.Value = value ?? DBNull.Value;
+                            cmd.Parameters.Add(param);
+                        }
+                        await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+                    }
+
+                    if (!isTrans)
+                        SubmitTrans();
+
+                    result.WriteReturn.IsSuccess = true;
+                    result.Sql = string.Format("{0} (x{1})", insertSql, list.Count);
+
+                    AopAfter(new List<string> { sqliteTableName }, result.Sql, null, config, false, AopType.AddList, result.WriteReturn.IsSuccess);
+                }
+
+                if (result.WriteReturn.IsSuccess && isTrans)
+                    SubmitTrans();
+                else if (!result.WriteReturn.IsSuccess && isTrans)
+                    RollbackTrans();
+
+                AopAfter(tableName, cmd.CommandText, null, config, false, AopType.AddList, result.WriteReturn.IsSuccess);
+            }
+            catch (Exception ex)
+            {
+                AopException(ex, "AddListAsync tableName:" + typeof(T).Name, config, AopType.AddList);
+
+                if (isTrans)
+                    RollbackTrans();
+
+                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                    DbLogTable.LogException<T>(config, ex, "AddListAsync<T>", "");
+                else
+                    DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "AddListAsync<T>", result.Sql);
+
+                result.WriteReturn.IsSuccess = false;
+                result.WriteReturn.Message = ex.Message;
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// 异步执行SQL
+        /// </summary>
+        public async Task<DataReturn> ExecuteSqlAsync(string sql, DbParameter[] param = null, bool isTrans = false, bool isLog = false, bool isProcedure = false, bool isAop = true, CancellationToken cancellationToken = default)
+        {
+            var result = new DataReturn();
+            try
+            {
+                if (isTrans)
+                    BeginTrans();
+
+                if (param != null)
+                    result.Sql = ParameterToSql.ObjectParamToSql(param.ToList(), sql, config);
+                else
+                    result.Sql = sql;
+
+                DbLog.LogSql(isLog, result.Sql, config.DbType, 0);
+
+                DisposeCommand(cmd);
+
+                if (param != null)
+                    cmd.Parameters.AddRange(param);
+
+                if (isAop)
+                    AopBefore(null, sql, param?.ToList(), config, false, AopType.Execute_Sql_Bool);
+
+                await EnsureConnectionOpenAsync(cancellationToken).ConfigureAwait(false);
+                result.WriteReturn.IsSuccess = await BaseExecute.ToBoolAsync(cmd, sql, isProcedure).ConfigureAwait(false);
+
+                if (isTrans && result.WriteReturn.IsSuccess)
+                    SubmitTrans();
+                else if (isTrans && !result.WriteReturn.IsSuccess)
+                    RollbackTrans();
+
+                if (isAop)
+                    AopAfter(null, sql, param?.ToList(), config, false, AopType.Execute_Sql_Bool, result.WriteReturn.IsSuccess);
+            }
+            catch (Exception ex)
+            {
+                AopException(ex, "ExecuteSqlAsync", config, AopType.Execute_Sql_Bool);
+
+                if (isTrans)
+                    RollbackTrans();
+
+                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                    DbLogTable.LogException(config, ex, "ExecuteSqlAsync", result.Sql);
+                else
+                    DbLog.LogException(config.IsOutError, config.DbType, ex, "ExecuteSqlAsync", result.Sql);
+                result.WriteReturn.IsSuccess = false;
+                result.WriteReturn.Message = ex.Message;
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// 异步批量插入（使用 SqlBulkCopy 或逐条异步插入）
+        /// </summary>
+        public async Task<DataReturn> BulkInsertAsync<T>(List<T> list, bool isLog = false, CancellationToken cancellationToken = default) where T : class, new()
+        {
+            var result = new DataReturn();
+            var stopwatch = Stopwatch.StartNew();
+
+            try
+            {
+                BeginTrans();
+                var tableName = TableNameHelper.GetTableName<T>();
+                var allProperties = PropertyCache.GetPropertiesCached<T>().Where(p => p.CanRead && p.CanWrite).ToList();
+                var properties = allProperties.Where(p =>
+                {
+                    var propInfo = typeof(T).GetProperty(p.Name);
+                    if (propInfo == null) return true;
+                    var colAttr = propInfo.GetCustomAttributes(typeof(Property.ColumnAttribute), false)
+                        .FirstOrDefault() as Property.ColumnAttribute;
+                    return colAttr == null || !colAttr.IsIdentity;
+                }).ToList();
+                var columnNames = string.Join(", ", properties.Select(p => p.Name));
+
+                if (_command != null)
+                {
+                    _command.Parameters.Clear();
+                    _command.Dispose();
+                }
+                _command = _connection.CreateCommand();
+                if (_transaction != null)
+                    _command.Transaction = _transaction;
+
+                var paramNames = string.Join(", ", properties.Select((_, i) => string.Format("@p{0}", i)));
+                var insertSql = string.Format("INSERT INTO {0} ({1}) VALUES ({2})", tableName, columnNames, paramNames);
+                _command.CommandText = insertSql;
+
+                foreach (var item in list)
+                {
+                    _command.Parameters.Clear();
+                    for (int i = 0; i < properties.Count; i++)
+                    {
+                        var value = properties[i].GetValue(item);
+                        var param = _command.CreateParameter();
+                        param.ParameterName = string.Format("@p{0}", i);
+                        param.Value = value ?? DBNull.Value;
+                        _command.Parameters.Add(param);
+                    }
+
+                    await EnsureConnectionOpenAsync(cancellationToken).ConfigureAwait(false);
+                    await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+                }
+
+                result.Sql = string.Format("{0} (x{1})", insertSql, list.Count);
+                if (isLog)
+                    DbLog.LogSql(true, result.Sql, config.DbType, 0);
+
+                AopBefore(new List<string> { tableName }, insertSql, new List<DbParameter>(), config, false, AopType.AddList);
+                result.WriteReturn.IsSuccess = true;
+                SubmitTrans();
+                AopAfter(new List<string> { tableName }, insertSql, new List<DbParameter>(), config, false, AopType.AddList, list.Count);
+            }
+            catch (Exception ex)
+            {
+                RollbackTrans();
+                AopException(ex, "BulkInsertAsync", config, AopType.AddList);
+
+                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                    DbLogTable.LogException(config, ex, "BulkInsertAsync", result.Sql);
+                else
+                    DbLog.LogException(config.IsOutError, config.DbType, ex, "BulkInsertAsync", result.Sql);
+
+                result.WriteReturn.IsSuccess = false;
+                result.WriteReturn.Message = ex.Message;
+            }
+
+            stopwatch.Stop();
+            return result;
+        }
+
+        /// <summary>
+        /// 异步批量更新
+        /// </summary>
+        public async Task<DataReturn> BulkUpdateAsync<T>(List<T> list, Expression<Func<T, bool>> predicate, bool isLog = false, CancellationToken cancellationToken = default) where T : class, new()
+        {
+            var result = new DataReturn();
+            var stopwatch = Stopwatch.StartNew();
+
+            try
+            {
+                BeginTrans();
+
+                var tableName = TableNameHelper.GetTableName<T>();
+                var properties = PropertyCache.GetPropertiesCached<T>()
+                    .Where(p => p.CanRead && p.CanWrite && p.Name != "Id")
+                    .ToList();
+
+                var setClause = string.Join(", ", properties.Select(p => string.Format("{0} = @{0}", p.Name)));
+
+                var visitModel = VisitExpression.LambdaWhere<T>(predicate, config);
+                if (!visitModel.IsSuccess)
+                {
+                    throw new InvalidOperationException("更新条件解析失败");
+                }
+
+                var whereClause = visitModel.Where;
+                var paramList = visitModel.Param;
+
+                foreach (var item in list)
+                {
+                    cmd.Parameters.Clear();
+                    foreach (var prop in properties)
+                    {
+                        var value = prop.GetValue(item);
+                        var param = cmd.CreateParameter();
+                        param.ParameterName = string.Format("@{0}", prop.Name);
+                        param.Value = value ?? DBNull.Value;
+                        cmd.Parameters.Add(param);
+                    }
+
+                    await EnsureConnectionOpenAsync(cancellationToken).ConfigureAwait(false);
+
+                    var updateSql = string.Format("UPDATE {0} SET {1} WHERE {2}", tableName, setClause, whereClause);
+                    cmd.CommandText = updateSql;
+                    await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+                }
+
+                result.Sql = string.Format("UPDATE {0} SET {1} WHERE {2} (x{3})", tableName, setClause, whereClause, list.Count);
+                if (isLog)
+                    DbLog.LogSql(true, result.Sql, config.DbType, 0);
+
+                AopBefore(new List<string> { tableName }, result.Sql, paramList, config, false, AopType.UpdateList);
+                result.WriteReturn.IsSuccess = true;
+                SubmitTrans();
+                AopAfter(new List<string> { tableName }, result.Sql, paramList, config, false, AopType.UpdateList, list.Count);
+            }
+            catch (Exception ex)
+            {
+                RollbackTrans();
+                AopException(ex, "BulkUpdateAsync", config, AopType.UpdateList);
+
+                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                    DbLogTable.LogException(config, ex, "BulkUpdateAsync", result.Sql);
+                else
+                    DbLog.LogException(config.IsOutError, config.DbType, ex, "BulkUpdateAsync", result.Sql);
+
+                result.WriteReturn.IsSuccess = false;
+                result.WriteReturn.Message = ex.Message;
+            }
+
+            stopwatch.Stop();
+            return result;
+        }
+
+        /// <summary>
+        /// 异步批量删除
+        /// </summary>
+        public async Task<DataReturn> BulkDeleteAsync<T>(Expression<Func<T, bool>> predicate, bool isLog = false, CancellationToken cancellationToken = default) where T : class, new()
+        {
+            var result = new DataReturn();
+            var stopwatch = Stopwatch.StartNew();
+
+            try
+            {
+                BeginTrans();
+
+                var tableName = TableNameHelper.GetTableName<T>();
+                var visitModel = VisitExpression.LambdaWhere<T>(predicate, config);
+                if (!visitModel.IsSuccess)
+                {
+                    throw new InvalidOperationException("删除条件解析失败");
+                }
+
+                var whereClause = visitModel.Where;
+                var paramList = visitModel.Param;
+
+                await EnsureConnectionOpenAsync(cancellationToken).ConfigureAwait(false);
+
+                var deleteSql = string.Format("DELETE FROM {0} WHERE {1}", tableName, whereClause);
+                cmd.CommandText = deleteSql;
+
+                foreach (var param in paramList)
+                {
+                    cmd.Parameters.Add(param);
+                }
+
+                int affectedRows = await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+                result.Sql = string.Format("DELETE FROM {0} WHERE {1} (x{2})", tableName, whereClause, affectedRows);
+                if (isLog)
+                    DbLog.LogSql(true, result.Sql, config.DbType, 0);
+
+                AopBefore(new List<string> { tableName }, result.Sql, paramList, config, false, AopType.Delete_Lambda);
+                result.WriteReturn.IsSuccess = true;
+                result.WriteReturn.Message = string.Format("删除 {0} 条记录", affectedRows);
+                SubmitTrans();
+                AopAfter(new List<string> { tableName }, result.Sql, paramList, config, false, AopType.Delete_Lambda, affectedRows);
+            }
+            catch (Exception ex)
+            {
+                RollbackTrans();
+                AopException(ex, "BulkDeleteAsync", config, AopType.Delete_Lambda);
+
+                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                    DbLogTable.LogException(config, ex, "BulkDeleteAsync", result.Sql);
+                else
+                    DbLog.LogException(config.IsOutError, config.DbType, ex, "BulkDeleteAsync", result.Sql);
 
                 result.WriteReturn.IsSuccess = false;
                 result.WriteReturn.Message = ex.Message;

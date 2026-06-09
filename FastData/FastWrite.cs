@@ -1,7 +1,8 @@
-﻿﻿﻿﻿﻿﻿﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Data;
 using System.Data.Common;
@@ -29,74 +30,6 @@ namespace FastData
     /// 4. 高性能批量插入（BulkInsert，使用 SqlBulkCopy 等）
     /// 5. 原生 SQL 写入（ExecuteSql）
     /// 6. CodeFirst 建表（根据实体类特性自动创建表结构）
-    /// 
-    /// 使用示例：
-    /// <code>
-    /// // ========== 添加 ==========
-    /// 
-    /// // 单条添加
-    /// var user = new User { Name = "张三", Age = 25 };
-    /// var result = FastWrite.Add(user);
-    /// if (result.IsSuccess)
-    ///     Console.WriteLine($"新增成功，ID: {result.GetIdentity()}");
-    /// 
-    /// // 批量添加
-    /// var users = new List&lt;User&gt; { new User { Name = "张三" }, new User { Name = "李四" } };
-    /// var result = FastWrite.AddList(users);
-    /// 
-    /// // 高性能批量插入（适合大数据量）
-    /// var result = FastWrite.BulkInsert(users);
-    /// 
-    /// // ========== 更新 ==========
-    /// 
-    /// // 根据主键更新
-    /// var result = FastWrite.Update(user);
-    /// 
-    /// // 只更新指定字段
-    /// var result = FastWrite.Update(user, u =&gt; new { u.Name });
-    /// 
-    /// // 根据条件更新
-    /// var result = FastWrite.Update(new User { Name = "新名字" }, u =&gt; u.Age &gt; 18);
-    /// 
-    /// // 批量更新
-    /// var result = FastWrite.UpdateList(userList);
-    /// 
-    /// // ========== 删除 ==========
-    /// 
-    /// // 根据条件删除
-    /// var result = FastWrite.Delete&lt;User&gt;(u =&gt; u.Age &lt; 18);
-    /// 
-    /// // 根据主键删除
-    /// var result = FastWrite.Delete(user);
-    /// 
-    /// // ========== 原生 SQL ==========
-    /// 
-    /// var result = FastWrite.ExecuteSql("UPDATE Users SET Age = @Age WHERE Id = @Id", param);
-    /// 
-    /// // ========== CodeFirst ==========
-    /// 
-    /// // 根据实体类创建表
-    /// var result = FastWrite.CodeFirst&lt;User&gt;();
-    /// 
-    /// // 重建表（先删除再创建）
-    /// var result = FastWrite.CodeFirst&lt;User&gt;(isDropExists: true);
-    /// 
-    /// // ========== 绑定 Key ==========
-    /// 
-    /// // 方式1：使用 Use 方法
-    /// var db1 = FastWrite.Use("db1");
-    /// var result = db1.Add(user);
-    /// 
-    /// // 方式2：使用 FastDataClient（推荐）
-    /// var client = new FastDataClient("db1");
-    /// var result = client.Add(user);
-    /// </code>
-    /// 
-    /// 相关类：
-    /// - FastWriteDb: 绑定 Key 的写入操作（实例方法）
-    /// - FastDataClient: 统一门面（推荐，整合所有功能）
-    /// - FastRead: 读取操作
-    /// - FastMap: XML 映射操作
     /// </summary>
     public static class FastWrite
     {
@@ -158,172 +91,168 @@ namespace FastData
         }
 #endif
 
-        #region 批量增加
+        #region 异步写入操作模板
+
         /// <summary>
-        /// 批量增加
+        /// 异步写入操作核心模板
         /// </summary>
-        /// <typeparam name="T">泛型</typeparam>
-        /// <param name="list">实体集合</param>
-        /// <param name="key">数据库连接键</param>
-        /// <param name="IsTrans">是否使用事务</param>
-        /// <param name="isLog">是否记录日志</param>
-        /// <returns>写入操作结果</returns>
-        public static WriteReturn AddList<T>(List<T> list, string key = null, bool IsTrans = false, bool isLog = true) where T : class, new()
+        private static async Task<WriteReturn> ExecuteWriteTemplateAsync<T>(
+            string key, DataContext db, bool isOutSql,
+            Func<DataContext, Task<DataReturn<T>>> execute) where T : class, new()
         {
-            key = key ?? FastDb.CurrentKey;
-            var projectName = FastDb.GetProjectName();
-            ConfigModel config = null;
-            var result = new DataReturn<T>();
-            var stopwatch = new Stopwatch();
+            var config = db?.config;
+            DataReturn<T> result;
+            var stopwatch = Stopwatch.StartNew();
 
-            stopwatch.Start();
-
-            using (var tempDb = new DataContext(key, projectName))
+            if (db != null)
             {
-                config = tempDb.config;
-                result = tempDb.AddList<T>(list, IsTrans, isLog);
-            }
-
-            stopwatch.Stop();
-
-            DbLog.LogSql(config.IsOutSql, result.Sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
-
-            return result.WriteReturn;
-        }
-        #endregion
-
-        #region 批量增加 异步
-        /// <summary>
-        /// 批量增加（异步）
-        /// </summary>
-        /// <typeparam name="T">泛型</typeparam>
-        /// <param name="list">实体集合</param>
-        /// <param name="key">数据库连接键</param>
-        /// <param name="IsTrans">是否使用事务</param>
-        /// <param name="isLog">是否记录日志</param>
-        /// <returns>写入操作结果任务</returns>
-        public static Task<WriteReturn> AddListAsy<T>(List<T> list, string key = null, bool IsTrans = false, bool isLog = true) where T : class, new()
-        {
-            return AsyncHelper.RunAsync(() => AddList<T>(list, key, IsTrans, isLog));
-        }
-        #endregion
-
-
-        #region 增加
-        /// <summary>
-        /// 增加单条记录
-        /// </summary>
-        /// <typeparam name="T">泛型</typeparam>
-        /// <param name="model">实体对象</param>
-        /// <param name="db">数据上下文（可选）</param>
-        /// <param name="key">数据库连接键</param>
-        /// <param name="isOutSql">是否输出SQL</param>
-        /// <returns>写入操作结果</returns>
-        public static WriteReturn Add<T>(T model, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
-        {
-            key = key ?? FastDb.CurrentKey;
-            var projectName = FastDb.GetProjectName();
-            ConfigModel config = null;
-            var result = new DataReturn<T>();
-            var stopwatch = new Stopwatch();
-
-            stopwatch.Start();
-
-            // 审计字段自动填充
-            if (FastData.Config.FastDataOptions.Audit.Enabled)
-            {
-                AutoFillAuditFields(model, isUpdate: false);
-            }
-
-            if (db == null)
-            {
-                using (var tempDb = new DataContext(key, projectName))
-                {
-                    result = tempDb.Add<T>(model, false);
-                    config = tempDb.config;
-                }
+                result = await execute(db).ConfigureAwait(false);
             }
             else
             {
-                result = db.Add<T>(model, false);
-                config = db.config;
+                using (var tempDb = new DataContext(key, FastDb.GetProjectName()))
+                {
+                    config = tempDb.config;
+                    result = await execute(tempDb).ConfigureAwait(false);
+                }
             }
 
             stopwatch.Stop();
 
             if (config != null)
             {
-                config.IsOutSql = config.IsOutSql || isOutSql;
+                config.IsOutSql |= isOutSql;
                 DbLog.LogSql(config.IsOutSql, result.Sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
             }
 
             return result.WriteReturn;
         }
+
         #endregion
 
-        #region 增加 异步
+        #region 写入操作模板（消除重复代码）
+
         /// <summary>
-        /// 增加单条记录（异步）
+        /// 泛型写入操作模板 - 封装 DataContext 生命周期、计时和日志记录
         /// </summary>
-        /// <typeparam name="T">泛型</typeparam>
-        /// <param name="model">实体对象</param>
-        /// <param name="db">数据上下文（可选）</param>
-        /// <param name="key">数据库连接键</param>
-        /// <param name="isOutSql">是否输出SQL</param>
-        /// <returns>写入操作结果任务</returns>
-        public static Task<WriteReturn> AddAsy<T>(T model, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
+        private static WriteReturn ExecuteWriteTemplate<T>(
+            string key, DataContext db, bool isOutSql,
+            Func<DataContext, DataReturn<T>> execute) where T : class, new()
         {
-            return AsyncHelper.RunAsync(() => Add<T>(model, db, key, isOutSql));
+            return ExecuteWriteTemplateCore(
+                key ?? FastDb.CurrentKey, db, isOutSql,
+                ctx => execute(ctx),
+                r => r.WriteReturn,
+                r => r.Sql);
+        }
+
+        /// <summary>
+        /// 写入操作模板（非泛型版本，用于 ExecuteSql 等返回 DataReturn 的方法）
+        /// </summary>
+        private static WriteReturn ExecuteWriteTemplate(
+            string key, DataContext db, bool isOutSql,
+            Func<DataContext, DataReturn> execute)
+        {
+            return ExecuteWriteTemplateCore(
+                key ?? FastDb.CurrentKey, db, isOutSql,
+                ctx => execute(ctx),
+                r => r.WriteReturn,
+                r => r.Sql);
+        }
+
+        /// <summary>
+        /// 写入操作核心模板 - 封装 DataContext 生命周期、计时和日志记录
+        /// </summary>
+        private static WriteReturn ExecuteWriteTemplateCore<TResult>(
+            string key, DataContext db, bool isOutSql,
+            Func<DataContext, TResult> execute,
+            Func<TResult, WriteReturn> resultSelector,
+            Func<TResult, string> sqlSelector)
+        {
+            var config = db?.config;
+            TResult result;
+            var stopwatch = Stopwatch.StartNew();
+
+            if (db != null)
+            {
+                result = execute(db);
+            }
+            else
+            {
+                using (var tempDb = new DataContext(key, FastDb.GetProjectName()))
+                {
+                    config = tempDb.config;
+                    result = execute(tempDb);
+                }
+            }
+
+            stopwatch.Stop();
+
+            if (config != null)
+            {
+                config.IsOutSql |= isOutSql;
+                DbLog.LogSql(config.IsOutSql, sqlSelector(result), config.DbType, stopwatch.Elapsed.TotalMilliseconds);
+            }
+
+            return resultSelector(result);
+        }
+
+        #endregion
+
+        #region 批量增加
+        /// <summary>
+        /// 批量增加
+        /// </summary>
+        public static WriteReturn AddList<T>(List<T> list, string key = null, bool IsTrans = false, bool isLog = true) where T : class, new()
+        {
+            return ExecuteWriteTemplate<T>(key, null, false, ctx => ctx.AddList<T>(list, IsTrans, isLog));
         }
         #endregion
 
+        #region 批量增加 异步
+        public static async Task<WriteReturn> AddListAsy<T>(List<T> list, string key = null, bool IsTrans = false, bool isLog = true, CancellationToken cancellationToken = default) where T : class, new()
+        {
+            return await ExecuteWriteTemplateAsync<T>(key, null, false,
+                async (ctx) => await ctx.AddListAsync<T>(list, IsTrans, isLog, cancellationToken).ConfigureAwait(false)).ConfigureAwait(false);
+        }
+        #endregion
+
+        #region 增加
+        /// <summary>
+        /// 增加单条记录
+        /// </summary>
+        public static WriteReturn Add<T>(T model, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
+        {
+            // 审计字段自动填充
+            if (FastData.Config.FastDataOptions.Audit.Enabled)
+                AutoFillAuditFields(model, isUpdate: false);
+
+            return ExecuteWriteTemplate<T>(key, db, isOutSql, ctx => ctx.Add<T>(model, false));
+        }
+        #endregion
+
+        #region 增加 异步
+        public static async Task<WriteReturn> AddAsy<T>(T model, DataContext db = null, string key = null, bool isOutSql = false, CancellationToken cancellationToken = default) where T : class, new()
+        {
+            if (FastData.Config.FastDataOptions.Audit.Enabled)
+                AutoFillAuditFields(model, isUpdate: false);
+
+            return await ExecuteWriteTemplateAsync<T>(key, db, isOutSql,
+                async (ctx) => await ctx.AddAsync<T>(model, false, cancellationToken: cancellationToken).ConfigureAwait(false)).ConfigureAwait(false);
+        }
+        #endregion
 
         #region 删除(Lambda表达式)
         /// <summary>
         /// 根据Lambda表达式条件删除记录
         /// </summary>
-        /// <typeparam name="T">实体类型</typeparam>
-        /// <param name="predicate">Lambda条件表达式</param>
-        /// <param name="db">数据上下文（可选）</param>
-        /// <param name="key">数据库连接键（可选）</param>
-        /// <param name="isOutSql">是否输出SQL语句</param>
-        /// <returns>删除操作结果</returns>
         public static WriteReturn Delete<T>(Expression<Func<T, bool>> predicate, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
             // 软删除支持
             if (Config.FastDataOptions.SoftDelete.Enabled)
-            {
                 return SoftDelete<T>(predicate, db, key, isOutSql);
-            }
 
-            key = key ?? FastDb.CurrentKey;
-            var projectName = FastDb.GetProjectName();
-            ConfigModel config = null;
-            var result = new DataReturn<T>();
-            var stopwatch = new Stopwatch();
-
-            stopwatch.Start();
-
-            if (db == null)
-            {
-                using (var tempDb = new DataContext(key, projectName))
-                {
-                    result = tempDb.Delete<T>(predicate);
-                    config = tempDb.config;
-                }
-            }
-            else
-            {
-                result = db.Delete<T>(predicate);
-                config = db.config;
-            }
-
-            stopwatch.Stop();
-
-            config.IsOutSql = config.IsOutSql || isOutSql;
-            DbLog.LogSql(config.IsOutSql, result.Sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
-
-            return result.WriteReturn;
+            return ExecuteWriteTemplate<T>(key, db, isOutSql, ctx => ctx.Delete<T>(predicate));
         }
 
         /// <summary>
@@ -343,356 +272,186 @@ namespace FastData
                     Expression.Convert(Expression.Property(parameter, property), typeof(object)), parameter);
 
                 var example = new T();
-                if (db == null)
-                {
-                    using (var tempDb = new DataContext(key, FastDb.GetProjectName()))
-                    {
-                        var result = tempDb.Update(example, predicate, updateField);
-                        return result.WriteReturn;
-                    }
-                }
-                else
-                {
-                    var result = db.Update(example, predicate, updateField);
-                    return result.WriteReturn;
-                }
+                return ExecuteWriteTemplate<T>(key, db, isOutSql, ctx => ctx.Update(example, predicate, updateField));
             }
             catch (Exception ex)
             {
+                DbLog.LogException<T>(true, DataDbType.SqlServer, ex, "SoftDelete", "");
                 return new WriteReturn { IsSuccess = false, Message = ex.Message };
             }
         }
         #endregion
 
         #region 删除(Lambda表达式)异步
-        /// <summary>
-        /// 根据Lambda表达式条件删除记录（异步）
-        /// </summary>
-        /// <typeparam name="T">实体类型</typeparam>
-        /// <param name="predicate">Lambda条件表达式</param>
-        /// <param name="db">数据上下文（可选）</param>
-        /// <param name="key">数据库连接键（可选）</param>
-        /// <param name="isOutSql">是否输出SQL语句</param>
-        /// <returns>删除操作结果任务</returns>
-        public static Task<WriteReturn> DeleteAsy<T>(Expression<Func<T, bool>> predicate, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
+        public static async Task<WriteReturn> DeleteAsy<T>(Expression<Func<T, bool>> predicate, DataContext db = null, string key = null, bool isOutSql = false, CancellationToken cancellationToken = default) where T : class, new()
         {
-            return AsyncHelper.RunAsync(() => Delete<T>(predicate, db, key, isOutSql));
+            if (Config.FastDataOptions.SoftDelete.Enabled)
+                return await ExecuteWriteTemplateAsync<T>(key, db, isOutSql,
+                    async (ctx) => await SoftDeleteAsync<T>(predicate, ctx, cancellationToken).ConfigureAwait(false)).ConfigureAwait(false);
+
+            return await ExecuteWriteTemplateAsync<T>(key, db, isOutSql,
+                async (ctx) => await ctx.DeleteAsync<T>(predicate, cancellationToken: cancellationToken).ConfigureAwait(false)).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// 异步软删除实现
+        /// </summary>
+        private static async Task<DataReturn<T>> SoftDeleteAsync<T>(Expression<Func<T, bool>> predicate, DataContext db, CancellationToken cancellationToken = default) where T : class, new()
+        {
+            try
+            {
+                var deleteProperty = FastData.Config.FastDataOptions.SoftDelete.PropertyName;
+                var property = typeof(T).GetProperty(deleteProperty);
+                if (property == null) throw new Exception(string.Format("字段{0}不存在", deleteProperty));
+
+                var parameter = Expression.Parameter(typeof(T), "x");
+                var updateField = Expression.Lambda<Func<T, object>>(
+                    Expression.Convert(Expression.Property(parameter, property), typeof(object)), parameter);
+
+                var example = new T();
+                return await db.UpdateAsync<T>(example, predicate, updateField, cancellationToken: cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                DbLog.LogException<T>(true, DataDbType.SqlServer, ex, "SoftDeleteAsync", "");
+                return new DataReturn<T> { WriteReturn = new WriteReturn { IsSuccess = false, Message = ex.Message } };
+            }
         }
         #endregion
-
 
         #region 删除
         /// <summary>
         /// 根据实体对象删除记录
         /// </summary>
-        /// <typeparam name="T">实体类型</typeparam>
-        /// <param name="model">要删除的实体对象</param>
-        /// <param name="db">数据上下文（可选）</param>
-        /// <param name="key">数据库连接键（可选）</param>
-        /// <param name="isTrans">是否使用事务</param>
-        /// <param name="isOutSql">是否输出SQL语句</param>
-        /// <returns>删除操作结果</returns>
         public static WriteReturn Delete<T>(T model, DataContext db = null, string key = null, bool isTrans = false, bool isOutSql = false) where T : class, new()
         {
-            key = key ?? FastDb.CurrentKey;
-            var projectName = FastDb.GetProjectName();
-            ConfigModel config = null;
-            var result = new DataReturn<T>();
-            var stopwatch = new Stopwatch();
-
-            stopwatch.Start();
-
-            if (db == null)
-            {
-                using (var tempDb = new DataContext(key, projectName))
-                {
-                    result = tempDb.Delete(model, isTrans);
-                    config = tempDb.config;
-                }
-            }
-            else
-            {
-                result = db.Delete(model, isTrans);
-                config = db.config;
-            }
-
-            stopwatch.Stop();
-
-            config.IsOutSql = config.IsOutSql || isOutSql;
-            DbLog.LogSql(config.IsOutSql, result.Sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
-
-            return result.WriteReturn;
+            return ExecuteWriteTemplate<T>(key, db, isOutSql, ctx => ctx.Delete(model, isTrans));
         }
         #endregion
 
         #region 删除 异步
-        /// <summary>
-        /// 根据实体对象删除记录（异步）
-        /// </summary>
-        /// <typeparam name="T">实体类型</typeparam>
-        /// <param name="model">要删除的实体对象</param>
-        /// <param name="db">数据上下文（可选）</param>
-        /// <param name="key">数据库连接键（可选）</param>
-        /// <param name="isTrans">是否使用事务</param>
-        /// <param name="isOutSql">是否输出SQL语句</param>
-        /// <returns>删除操作结果任务</returns>
-        public static Task<WriteReturn> DeleteAsy<T>(T model, DataContext db = null, string key = null, bool isTrans = false, bool isOutSql = false) where T : class, new()
+        public static async Task<WriteReturn> DeleteAsy<T>(T model, DataContext db = null, string key = null, bool isTrans = false, bool isOutSql = false, CancellationToken cancellationToken = default) where T : class, new()
         {
-            return AsyncHelper.RunAsync(() => Delete<T>(model, db, key, isTrans, isOutSql));
+            return await ExecuteWriteTemplateAsync<T>(key, db, isOutSql,
+                async (ctx) => await ctx.DeleteAsync<T>(model, isTrans, cancellationToken).ConfigureAwait(false)).ConfigureAwait(false);
         }
         #endregion
-
 
         #region 修改(Lambda表达式)
         /// <summary>
         /// 根据Lambda表达式条件更新记录
         /// </summary>
-        /// <typeparam name="T">实体类型</typeparam>
-        /// <param name="model">包含更新数据的实体对象</param>
-        /// <param name="predicate">Lambda条件表达式</param>
-        /// <param name="field">需要更新的字段表达式（可选）</param>
-        /// <param name="db">数据上下文（可选）</param>
-        /// <param name="key">数据库连接键（可选）</param>
-        /// <param name="isOutSql">是否输出SQL语句</param>
-        /// <returns>更新操作结果</returns>
         public static WriteReturn Update<T>(T model, Expression<Func<T, bool>> predicate, Expression<Func<T, object>> field = null, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
-            key = key ?? FastDb.CurrentKey;
-            var projectName = FastDb.GetProjectName();
-            ConfigModel config = null;
-            var result = new DataReturn<T>();
-            var stopwatch = new Stopwatch();
-
-            stopwatch.Start();
-
             // 审计字段自动填充
             if (FastData.Config.FastDataOptions.Audit.Enabled)
-            {
                 AutoFillAuditFields(model, isUpdate: true);
-            }
 
-            if (db == null)
-            {
-                using (var tempDb = new DataContext(key, projectName))
-                {
-                    result = tempDb.Update<T>(model, predicate, field);
-                    config = tempDb.config;
-                }
-            }
-            else
-            {
-                result = db.Update<T>(model, predicate, field);
-                config = db.config;
-            }
-
-            stopwatch.Stop();
-
-            config.IsOutSql = config.IsOutSql || isOutSql;
-            DbLog.LogSql(config.IsOutSql, result.Sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
-
-            return result.WriteReturn;
+            return ExecuteWriteTemplate<T>(key, db, isOutSql, ctx => ctx.Update<T>(model, predicate, field));
         }
         #endregion
 
         #region 修改(Lambda表达式)异步
-        /// <summary>
-        /// 根据Lambda表达式条件更新记录（异步）
-        /// </summary>
-        /// <typeparam name="T">实体类型</typeparam>
-        /// <param name="model">包含更新数据的实体对象</param>
-        /// <param name="predicate">Lambda条件表达式</param>
-        /// <param name="field">需要更新的字段表达式（可选）</param>
-        /// <param name="db">数据上下文（可选）</param>
-        /// <param name="key">数据库连接键（可选）</param>
-        /// <param name="isOutSql">是否输出SQL语句</param>
-        /// <returns>更新操作结果任务</returns>
-        public static Task<WriteReturn> UpdateAsy<T>(T model, Expression<Func<T, bool>> predicate, Expression<Func<T, object>> field = null, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
+        public static async Task<WriteReturn> UpdateAsy<T>(T model, Expression<Func<T, bool>> predicate, Expression<Func<T, object>> field = null, DataContext db = null, string key = null, bool isOutSql = false, CancellationToken cancellationToken = default) where T : class, new()
         {
-            return AsyncHelper.RunAsync(() => Update<T>(model, predicate, field, db, key, isOutSql));
+            if (FastData.Config.FastDataOptions.Audit.Enabled)
+                AutoFillAuditFields(model, isUpdate: true);
+
+            return await ExecuteWriteTemplateAsync<T>(key, db, isOutSql,
+                async (ctx) => await ctx.UpdateAsync<T>(model, predicate, field, cancellationToken: cancellationToken).ConfigureAwait(false)).ConfigureAwait(false);
         }
         #endregion
-
 
         #region 修改
         /// <summary>
         /// 根据实体主键更新记录
         /// </summary>
-        /// <typeparam name="T">实体类型</typeparam>
-        /// <param name="model">包含更新数据的实体对象</param>
-        /// <param name="field">需要更新的字段表达式（可选）</param>
-        /// <param name="db">数据上下文（可选）</param>
-        /// <param name="key">数据库连接键（可选）</param>
-        /// <param name="isOutSql">是否输出SQL语句</param>
-        /// <returns>更新操作结果</returns>
         public static WriteReturn Update<T>(T model, Expression<Func<T, object>> field = null, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
-            key = key ?? FastDb.CurrentKey;
-            var projectName = FastDb.GetProjectName();
-            ConfigModel config = null;
-            var result = new DataReturn<T>();
-            var stopwatch = new Stopwatch();
-
-            stopwatch.Start();
-
-            if (db == null)
-            {
-                using (var tempDb = new DataContext(key, projectName))
-                {
-                    result = tempDb.Update(model, field);
-                    config = tempDb.config;
-                }
-            }
-            else
-            {
-                result = db.Update(model, field);
-                config = db.config;
-            }
-
-            stopwatch.Stop();
-
-            config.IsOutSql = config.IsOutSql || isOutSql;
-            DbLog.LogSql(config.IsOutSql, result.Sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
-
-            return result.WriteReturn;
+            return ExecuteWriteTemplate<T>(key, db, isOutSql, ctx => ctx.Update(model, field));
         }
         #endregion
 
         #region 修改 异步
-        /// <summary>
-        /// 根据实体主键更新记录（异步）
-        /// </summary>
-        /// <typeparam name="T">实体类型</typeparam>
-        /// <param name="model">包含更新数据的实体对象</param>
-        /// <param name="field">需要更新的字段表达式（可选）</param>
-        /// <param name="db">数据上下文（可选）</param>
-        /// <param name="key">数据库连接键（可选）</param>
-        /// <param name="isOutSql">是否输出SQL语句</param>
-        /// <returns>更新操作结果任务</returns>
-        public static Task<WriteReturn> UpdateAsy<T>(T model, Expression<Func<T, object>> field = null, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
+        public static async Task<WriteReturn> UpdateAsy<T>(T model, Expression<Func<T, object>> field = null, DataContext db = null, string key = null, bool isOutSql = false, CancellationToken cancellationToken = default) where T : class, new()
         {
-            return AsyncHelper.RunAsync(() => Update<T>(model, field, db, key, isOutSql));
+            return await ExecuteWriteTemplateAsync<T>(key, db, isOutSql,
+                async (ctx) => await ctx.UpdateAsync<T>(model, field, cancellationToken: cancellationToken).ConfigureAwait(false)).ConfigureAwait(false);
         }
         #endregion
-
 
         #region 修改列表
         /// <summary>
         /// 批量更新实体列表
         /// </summary>
-        /// <typeparam name="T">实体类型</typeparam>
-        /// <param name="list">要更新的实体列表</param>
-        /// <param name="field">需要更新的字段表达式（可选）</param>
-        /// <param name="db">数据上下文（可选）</param>
-        /// <param name="key">数据库连接键（可选）</param>
-        /// <param name="isOutSql">是否输出SQL语句</param>
-        /// <returns>批量更新操作结果</returns>
         public static WriteReturn UpdateList<T>(List<T> list, Expression<Func<T, object>> field = null, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
-            key = key ?? FastDb.CurrentKey;
-            var projectName = FastDb.GetProjectName();
-            ConfigModel config = null;
-            var result = new DataReturn<T>();
-            var stopwatch = new Stopwatch();
-
-            stopwatch.Start();
-
-            if (db == null)
-            {
-                using (var tempDb = new DataContext(key, projectName))
-                {
-                    result = tempDb.UpdateList(list, field);
-                    config = tempDb.config;
-                }
-            }
-            else
-            {
-                result = db.UpdateList(list, field);
-                config = db.config;
-            }
-
-            stopwatch.Stop();
-
-            config.IsOutSql = config.IsOutSql || isOutSql;
-            DbLog.LogSql(config.IsOutSql, result.Sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
-
-            return result.WriteReturn;
+            return ExecuteWriteTemplate<T>(key, db, isOutSql, ctx => ctx.UpdateList(list, field));
         }
         #endregion
 
         #region 修改列表 异步
-        /// <summary>
-        /// 批量更新实体列表（异步）
-        /// </summary>
-        /// <typeparam name="T">实体类型</typeparam>
-        /// <param name="list">要更新的实体列表</param>
-        /// <param name="field">需要更新的字段表达式（可选）</param>
-        /// <param name="db">数据上下文（可选）</param>
-        /// <param name="key">数据库连接键（可选）</param>
-        /// <param name="isOutSql">是否输出SQL语句</param>
-        /// <returns>批量更新操作结果任务</returns>
-        public static Task<WriteReturn> UpdateListAsy<T>(List<T> list, Expression<Func<T, object>> field = null, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
+        public static async Task<WriteReturn> UpdateListAsy<T>(List<T> list, Expression<Func<T, object>> field = null, DataContext db = null, string key = null, bool isOutSql = false, CancellationToken cancellationToken = default) where T : class, new()
         {
-            return AsyncHelper.RunAsync(() => UpdateList<T>(list, field, db, key, isOutSql));
+            return await ExecuteWriteTemplateAsync<T>(key, db, isOutSql,
+                async (ctx) => await Task.FromResult(ctx.UpdateList(list, field)).ConfigureAwait(false)).ConfigureAwait(false);
         }
         #endregion
-
 
         #region 执行sql
         /// <summary>
         /// 执行sql
         /// </summary>
-        /// <param name="sql">SQL语句</param>
-        /// <param name="param">数据库参数数组</param>
-        /// <param name="db">数据上下文</param>
-        /// <param name="key">配置键</param>
-        /// <param name="isOutSql">是否输出SQL</param>
-        /// <returns>写入返回对象</returns>
         public static WriteReturn ExecuteSql(string sql, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
-            key = key ?? FastDb.CurrentKey;
-            var projectName = FastDb.GetProjectName();
-            ConfigModel config = null;
-            var result = new DataReturn();
-            var stopwatch = new Stopwatch();
-
-            stopwatch.Start();
-
-            if (db == null)
+            return ExecuteWriteTemplate(key, db, isOutSql, ctx =>
             {
-                using (var tempDb = new DataContext(key, projectName))
-                {
-                    config = tempDb.config;
-                    config.IsOutSql = config.IsOutSql || isOutSql;
-                    result = tempDb.ExecuteSql(sql, param, false,config.IsOutSql);
-                }
-            }
-            else
-            {
-                config = db.config;
-                config.IsOutSql = config.IsOutSql || isOutSql;
-                result = db.ExecuteSql(sql, param, false, config.IsOutSql);
-            }
-
-            stopwatch.Stop();
-            DbLog.LogSql(config.IsOutSql, result.Sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
-
-            return result.WriteReturn;
+                ctx.config.IsOutSql = ctx.config.IsOutSql || isOutSql;
+                return ctx.ExecuteSql(sql, param, false, ctx.config.IsOutSql);
+            });
         }
         #endregion
 
         #region 执行sql 异步
-        /// <summary>
-        /// 执行SQL语句（异步）
-        /// </summary>
-        /// <param name="sql">SQL语句</param>
-        /// <param name="param">数据库参数数组</param>
-        /// <param name="db">数据上下文</param>
-        /// <param name="key">配置键</param>
-        /// <param name="isOutSql">是否输出SQL</param>
-        /// <returns>写入返回对象任务</returns>
-        public static Task<WriteReturn> ExecuteSqlAsync(string sql, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
+        public static async Task<WriteReturn> ExecuteSqlAsync(string sql, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false, CancellationToken cancellationToken = default)
         {
-            return AsyncHelper.RunAsync(() => ExecuteSql(sql, param, db, key, isOutSql));
+            return await ExecuteSqlWriteTemplateAsync(key, db, isOutSql, async ctx =>
+            {
+                ctx.config.IsOutSql = ctx.config.IsOutSql || isOutSql;
+                return await ctx.ExecuteSqlAsync(sql, param, isTrans: false, isAop: false, cancellationToken: cancellationToken).ConfigureAwait(false);
+            }).ConfigureAwait(false);
+        }
+
+        private static async Task<WriteReturn> ExecuteSqlWriteTemplateAsync(
+            string key, DataContext db, bool isOutSql,
+            Func<DataContext, Task<DataReturn>> execute)
+        {
+            var config = db?.config;
+            DataReturn result;
+            var stopwatch = Stopwatch.StartNew();
+
+            if (db != null)
+            {
+                result = await execute(db).ConfigureAwait(false);
+            }
+            else
+            {
+                using (var tempDb = new DataContext(key, FastDb.GetProjectName()))
+                {
+                    config = tempDb.config;
+                    result = await execute(tempDb).ConfigureAwait(false);
+                }
+            }
+
+            stopwatch.Stop();
+
+            if (config != null)
+            {
+                config.IsOutSql |= isOutSql;
+                DbLog.LogSql(config.IsOutSql, result.Sql, config.DbType, stopwatch.Elapsed.TotalMilliseconds);
+            }
+
+            return result.WriteReturn;
         }
         #endregion
 
@@ -700,44 +459,54 @@ namespace FastData
         /// <summary>
         /// 批量插入（高性能）
         /// </summary>
-        /// <typeparam name="T">实体类型</typeparam>
-        /// <param name="list">实体列表</param>
-        /// <param name="db">数据上下文（可选）</param>
-        /// <param name="key">数据库Key（可选）</param>
-        /// <returns>插入结果</returns>
         public static WriteReturn BulkInsert<T>(List<T> list, DataContext db = null, string key = null) where T : class, new()
         {
             if (list == null || list.Count == 0)
                 return new WriteReturn { IsSuccess = true };
 
-            key = key ?? FastDb.CurrentKey;
-            var projectName = FastDb.GetProjectName();
-            ConfigModel config = null;
-            var result = new DataReturn();
-            var stopwatch = new Stopwatch();
+            return BulkExecute(db, key, ctx => ctx.BulkInsert(list, ctx.config.IsOutSql));
+        }
 
-            stopwatch.Start();
+        /// <summary>
+        /// 批量插入异步（高性能）
+        /// </summary>
+        public static async Task<WriteReturn> BulkInsertAsync<T>(List<T> list, DataContext db = null, string key = null, CancellationToken cancellationToken = default) where T : class, new()
+        {
+            return await BulkExecuteAsync(db, key, async ctx => await ctx.BulkInsertAsync(list, cancellationToken: cancellationToken).ConfigureAwait(false)).ConfigureAwait(false);
+        }
+        #endregion
+
+        #region Code First
+
+        /// <summary>
+        /// 批量操作执行模板 - 封装 DataContext 生命周期、异常处理和日志记录
+        /// </summary>
+        private static WriteReturn BulkExecute(DataContext db, string key, Func<DataContext, DataReturn> execute)
+        {
+            key = key ?? FastDb.CurrentKey;
+            var config = db?.config;
+            DataReturn result;
+            var stopwatch = Stopwatch.StartNew();
 
             try
             {
-                if (db == null)
+                if (db != null)
                 {
-                    using (var tempDb = new DataContext(key, projectName))
-                    {
-                        config = tempDb.config;
-                        result = tempDb.BulkInsert(list, config.IsOutSql);
-                    }
+                    result = execute(db);
                 }
                 else
                 {
-                    config = db.config;
-                    result = db.BulkInsert(list, config.IsOutSql);
+                    using (var tempDb = new DataContext(key, FastDb.GetProjectName()))
+                    {
+                        config = tempDb.config;
+                        result = execute(tempDb);
+                    }
                 }
             }
             catch (Exception ex)
             {
-                result.WriteReturn.IsSuccess = false;
-                result.WriteReturn.Message = ex.Message;
+                DbLog.LogException(config?.IsOutSql ?? false, config?.DbType ?? DataDbType.SqlServer, ex, "BulkExecute", "");
+                result = new DataReturn { WriteReturn = new WriteReturn { IsSuccess = false, Message = ex.Message } };
             }
 
             stopwatch.Stop();
@@ -747,20 +516,41 @@ namespace FastData
         }
 
         /// <summary>
-        /// 批量插入异步（高性能）
+        /// 异步批量操作执行模板
         /// </summary>
-        /// <typeparam name="T">实体类型</typeparam>
-        /// <param name="list">实体列表</param>
-        /// <param name="db">数据上下文（可选）</param>
-        /// <param name="key">数据库Key（可选）</param>
-        /// <returns>插入结果</returns>
-        public static Task<WriteReturn> BulkInsertAsync<T>(List<T> list, DataContext db = null, string key = null) where T : class, new()
+        private static async Task<WriteReturn> BulkExecuteAsync(DataContext db, string key, Func<DataContext, Task<DataReturn>> execute)
         {
-            return AsyncHelper.RunAsync(() => BulkInsert(list, db, key));
-        }
-        #endregion
+            key = key ?? FastDb.CurrentKey;
+            var config = db?.config;
+            DataReturn result;
+            var stopwatch = Stopwatch.StartNew();
 
-        #region Code First
+            try
+            {
+                if (db != null)
+                {
+                    result = await execute(db).ConfigureAwait(false);
+                }
+                else
+                {
+                    using (var tempDb = new DataContext(key, FastDb.GetProjectName()))
+                    {
+                        config = tempDb.config;
+                        result = await execute(tempDb).ConfigureAwait(false);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                DbLog.LogException(config?.IsOutSql ?? false, config?.DbType ?? DataDbType.SqlServer, ex, "BulkExecuteAsync", "");
+                result = new DataReturn { WriteReturn = new WriteReturn { IsSuccess = false, Message = ex.Message } };
+            }
+
+            stopwatch.Stop();
+            DbLog.LogSql(config?.IsOutSql ?? false, result.Sql, config?.DbType ?? DataDbType.SqlServer, stopwatch.Elapsed.TotalMilliseconds);
+
+            return result.WriteReturn;
+        }
 
         /// <summary>
         /// Code First：根据 Model 创建数据库表
@@ -786,6 +576,7 @@ namespace FastData
             }
             catch (Exception ex)
             {
+                DbLog.LogException(true, DataDbType.SqlServer, ex, "CodeFirst", "");
                 return new WriteReturn { IsSuccess = false, Message = ex.Message };
             }
         }
@@ -834,9 +625,9 @@ namespace FastData
             return "NVARCHAR(MAX)";
         }
 
-        public static Task<WriteReturn> CodeFirstAsync<T>(string key = null, bool isDropExists = false) where T : class, new()
+        public static async Task<WriteReturn> CodeFirstAsync<T>(string key = null, bool isDropExists = false, CancellationToken cancellationToken = default) where T : class, new()
         {
-            return AsyncHelper.RunAsync(() => CodeFirst<T>(key, isDropExists));
+            return await Task.Run(() => CodeFirst<T>(key, isDropExists), cancellationToken).ConfigureAwait(false);
         }
 
 
@@ -849,92 +640,73 @@ namespace FastData
             var now = DateTime.Now;
             var currentUser = audit.GetCurrentUser?.Invoke() ?? "System";
 
-            // 创建时间
             if (!isUpdate)
-            {
-                var createdTimeProp = typeof(T).GetProperty(audit.CreatedTimeProperty);
-                if (createdTimeProp != null && createdTimeProp.CanWrite)
-                    createdTimeProp.SetValue(model, now);
+                SetIfWritable(model, audit.CreatedTimeProperty, now);
 
-                var createdByProp = typeof(T).GetProperty(audit.CreatedByProperty);
-                if (createdByProp != null && createdByProp.CanWrite)
-                    createdByProp.SetValue(model, currentUser);
-            }
+            if (!isUpdate)
+                SetIfWritable(model, audit.CreatedByProperty, currentUser);
 
-            // 更新时间
-            var updatedTimeProp = typeof(T).GetProperty(audit.UpdatedTimeProperty);
-            if (updatedTimeProp != null && updatedTimeProp.CanWrite)
-                updatedTimeProp.SetValue(model, now);
+            SetIfWritable(model, audit.UpdatedTimeProperty, now);
+            SetIfWritable(model, audit.UpdatedByProperty, currentUser);
+        }
 
-            var updatedByProp = typeof(T).GetProperty(audit.UpdatedByProperty);
-            if (updatedByProp != null && updatedByProp.CanWrite)
-                updatedByProp.SetValue(model, currentUser);
+        /// <summary>
+        /// 如果属性可写则设置值
+        /// </summary>
+        private static void SetIfWritable<T>(T model, string propertyName, object value) where T : class, new()
+        {
+            var prop = typeof(T).GetProperty(propertyName);
+            if (prop != null && prop.CanWrite)
+                prop.SetValue(model, value);
         }
         #endregion
 
         #region SqlBulkCopy 辅助方法
 
         /// <summary>
+        /// 获取实体可读写属性列表（过滤自增列）
+        /// </summary>
+        private static IEnumerable<PropertyInfo> GetBulkCopyProperties<T>(bool includeIdentity) where T : class, new()
+        {
+            return typeof(T).GetProperties()
+                .Where(p => p.CanRead && p.CanWrite && (includeIdentity || !IsIdentityProperty(p)));
+        }
+
+        private static bool IsIdentityProperty(System.Reflection.PropertyInfo prop)
+        {
+            return prop.GetCustomAttributes(typeof(Property.ColumnAttribute), false)
+                .FirstOrDefault() is Property.ColumnAttribute attr && attr.IsIdentity;
+        }
+
+        /// <summary>
         /// 创建用于 SqlBulkCopy 的 DataTable，自动包含实体所有属性对应的列
         /// </summary>
-        /// <typeparam name="T">实体类型</typeparam>
-        /// <param name="includeIdentity">是否包含自增列（默认为 true）</param>
-        /// <returns>配置好的 DataTable</returns>
         public static DataTable CreateBulkCopyDataTable<T>(bool includeIdentity = true) where T : class, new()
         {
             var dataTable = new DataTable();
-            var properties = typeof(T).GetProperties()
-                .Where(p => p.CanRead && p.CanWrite)
-                .ToList();
-
-            foreach (var prop in properties)
+            foreach (var prop in GetBulkCopyProperties<T>(includeIdentity))
             {
-                // 检查是否是自增列（通过 Column 特性）
-                var columnAttr = prop.GetCustomAttributes(typeof(Property.ColumnAttribute), false)
-                    .FirstOrDefault() as Property.ColumnAttribute;
-                
-                if (!includeIdentity && columnAttr?.IsIdentity == true)
-                    continue;
-
                 dataTable.Columns.Add(prop.Name, Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType);
             }
-
             return dataTable;
         }
 
         /// <summary>
         /// 将实体列表填充到 DataTable（用于 SqlBulkCopy）
         /// </summary>
-        /// <typeparam name="T">实体类型</typeparam>
-        /// <param name="list">实体列表</param>
-        /// <param name="dataTable">目标 DataTable</param>
-        /// <param name="includeIdentity">是否包含自增列</param>
         public static void FillBulkCopyDataTable<T>(List<T> list, DataTable dataTable, bool includeIdentity = true) where T : class, new()
         {
             if (list == null || list.Count == 0)
                 return;
 
-            var properties = typeof(T).GetProperties()
-                .Where(p => p.CanRead && p.CanWrite)
-                .ToList();
-
+            var properties = GetBulkCopyProperties<T>(includeIdentity).ToList();
             foreach (var item in list)
             {
                 var row = dataTable.NewRow();
                 foreach (var prop in properties)
                 {
-                    // 检查是否是自增列
-                    var columnAttr = prop.GetCustomAttributes(typeof(Property.ColumnAttribute), false)
-                        .FirstOrDefault() as Property.ColumnAttribute;
-                    
-                    if (!includeIdentity && columnAttr?.IsIdentity == true)
-                        continue;
-
                     if (dataTable.Columns.Contains(prop.Name))
-                    {
-                        var value = prop.GetValue(item);
-                        row[prop.Name] = value ?? DBNull.Value;
-                    }
+                        row[prop.Name] = prop.GetValue(item) ?? DBNull.Value;
                 }
                 dataTable.Rows.Add(row);
             }
@@ -947,113 +719,36 @@ namespace FastData
         /// <summary>
         /// 批量更新实体（使用 SQL UPDATE ... WHERE IN）
         /// </summary>
-        /// <typeparam name="T">实体类型</typeparam>
-        /// <param name="list">实体列表</param>
-        /// <param name="predicate">更新条件（通常使用 ID）</param>
-        /// <param name="db">数据上下文（可选）</param>
-        /// <param name="key">数据库Key（可选）</param>
-        /// <returns>更新结果</returns>
         public static WriteReturn BulkUpdate<T>(List<T> list, Expression<Func<T, bool>> predicate, DataContext db = null, string key = null) where T : class, new()
         {
             if (list == null || list.Count == 0)
                 return new WriteReturn { IsSuccess = true };
 
-            key = key ?? FastDb.CurrentKey;
-            var projectName = FastDb.GetProjectName();
-            ConfigModel config = null;
-            var result = new DataReturn();
-            var stopwatch = new Stopwatch();
-
-            stopwatch.Start();
-
-            try
-            {
-                if (db == null)
-                {
-                    using (var tempDb = new DataContext(key, projectName))
-                    {
-                        config = tempDb.config;
-                        result = tempDb.BulkUpdate(list, predicate, config.IsOutSql);
-                    }
-                }
-                else
-                {
-                    config = db.config;
-                    result = db.BulkUpdate(list, predicate, config.IsOutSql);
-                }
-            }
-            catch (Exception ex)
-            {
-                result.WriteReturn.IsSuccess = false;
-                result.WriteReturn.Message = ex.Message;
-            }
-
-            stopwatch.Stop();
-            DbLog.LogSql(config?.IsOutSql ?? false, result.Sql, config?.DbType ?? DataDbType.SqlServer, stopwatch.Elapsed.TotalMilliseconds);
-
-            return result.WriteReturn;
+            return BulkExecute(db, key, ctx => ctx.BulkUpdate(list, predicate, ctx.config.IsOutSql));
         }
 
         /// <summary>
         /// 批量删除实体（使用 SQL DELETE FROM ... WHERE IN）
         /// </summary>
-        /// <typeparam name="T">实体类型</typeparam>
-        /// <param name="predicate">删除条件</param>
-        /// <param name="db">数据上下文（可选）</param>
-        /// <param name="key">数据库Key（可选）</param>
-        /// <returns>删除结果</returns>
         public static WriteReturn BulkDelete<T>(Expression<Func<T, bool>> predicate, DataContext db = null, string key = null) where T : class, new()
         {
             if (predicate == null)
                 throw new ArgumentNullException(nameof(predicate), "删除条件不能为空");
 
-            key = key ?? FastDb.CurrentKey;
-            var projectName = FastDb.GetProjectName();
-            ConfigModel config = null;
-            var result = new DataReturn();
-            var stopwatch = new Stopwatch();
-
-            stopwatch.Start();
-
-            try
-            {
-                if (db == null)
-                {
-                    using (var tempDb = new DataContext(key, projectName))
-                    {
-                        config = tempDb.config;
-                        result = tempDb.BulkDelete(predicate, config.IsOutSql);
-                    }
-                }
-                else
-                {
-                    config = db.config;
-                    result = db.BulkDelete(predicate, config.IsOutSql);
-                }
-            }
-            catch (Exception ex)
-            {
-                result.WriteReturn.IsSuccess = false;
-                result.WriteReturn.Message = ex.Message;
-            }
-
-            stopwatch.Stop();
-            DbLog.LogSql(config?.IsOutSql ?? false, result.Sql, config?.DbType ?? DataDbType.SqlServer, stopwatch.Elapsed.TotalMilliseconds);
-
-            return result.WriteReturn;
+            return BulkExecute(db, key, ctx => ctx.BulkDelete(predicate, ctx.config.IsOutSql));
         }
 
         /// <summary>
         /// 批量更新/删除异步
         /// </summary>
-        public static Task<WriteReturn> BulkUpdateAsync<T>(List<T> list, Expression<Func<T, bool>> predicate, DataContext db = null, string key = null) where T : class, new()
+        public static async Task<WriteReturn> BulkUpdateAsync<T>(List<T> list, Expression<Func<T, bool>> predicate, DataContext db = null, string key = null, CancellationToken cancellationToken = default) where T : class, new()
         {
-            return AsyncHelper.RunAsync(() => BulkUpdate(list, predicate, db, key));
+            return await BulkExecuteAsync(db, key, async ctx => await ctx.BulkUpdateAsync(list, predicate, cancellationToken: cancellationToken).ConfigureAwait(false)).ConfigureAwait(false);
         }
 
-        public static Task<WriteReturn> BulkDeleteAsync<T>(Expression<Func<T, bool>> predicate, DataContext db = null, string key = null) where T : class, new()
+        public static async Task<WriteReturn> BulkDeleteAsync<T>(Expression<Func<T, bool>> predicate, DataContext db = null, string key = null, CancellationToken cancellationToken = default) where T : class, new()
         {
-            return AsyncHelper.RunAsync(() => BulkDelete(predicate, db, key));
+            return await BulkExecuteAsync(db, key, async ctx => await ctx.BulkDeleteAsync(predicate, cancellationToken: cancellationToken).ConfigureAwait(false)).ConfigureAwait(false);
         }
 
         #endregion

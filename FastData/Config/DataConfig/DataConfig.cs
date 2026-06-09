@@ -523,12 +523,12 @@ var item = list.Find(a => string.Equals(a.Key, defaultKey, StringComparison.Ordi
             if (value == null)
                 return defaultValue;
 
-            return value.ToStr().ToLower() == "true";
+            return string.Equals(value.ToStr(), "true", StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool IsTrue(string value)
         {
-            return value.ToStr().ToLower() == "true";
+            return string.Equals(value.ToStr(), "true", StringComparison.OrdinalIgnoreCase);
         }
 
         private static ConfigModel CreateProviderConfig(DataDbType dbType, string providerName = null)
@@ -600,7 +600,7 @@ var item = list.Find(a => string.Equals(a.Key, defaultKey, StringComparison.Ordi
         {
             try
             {
-                if (dbFile.ToLower() == "web.config")
+                if (string.Equals(dbFile, "web.config", StringComparison.OrdinalIgnoreCase))
                     return (DataConfig)ConfigurationManager.GetSection("DataConfig");
 
                 var configPath = string.Format("{0}{1}", AppDomain.CurrentDomain.BaseDirectory, dbFile);

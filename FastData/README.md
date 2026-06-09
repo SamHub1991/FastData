@@ -39,6 +39,14 @@ dotnet add package FastData
 | **FastWriteDb** | 绑定 Key 的写入 | 避免重复传递 key 参数 |
 | **ShardingReadHelper** | 分片读取 | 大数据量分表查询 |
 | **ShardingWriteHelper** | 分片写入 | 大数据量分表写入 |
+| **ConditionBuilder** | 条件动态拼接 | 安全的对象化 WHERE 条件构建，详见 [docs/CONDITION_BUILDER.md](./docs/CONDITION_BUILDER.md) |
+
+## 进阶文档
+
+| 文档 | 说明 |
+|------|------|
+| [条件动态拼接（Condition / ConditionBuilder）](./docs/CONDITION_BUILDER.md) | 17 种操作符的对象化拼接，参数化防 SQL 注入，可扩展 |
+| [数据库提供程序自动注册机制](./docs/AUTO_PROVIDER_REGISTRATION.md) | .NET Core/.NET 5+ 环境下 Provider 自动扫描注册 |
 
 ## 快速开始
 
@@ -165,6 +173,35 @@ dotnet add package FastData
 - MaxPoolSize = Min(CPU核心数 * 1.5, 内存MB * 0.1 / 2)，范围 10-200
 - MinPoolSize = Max(2, MaxPoolSize / 10)
 
+### 快速开始
+
+```csharp
+// 初始化（程序启动时调用一次）
+FastMap.InstanceMap();
+FastMap.InstanceTable();
+FastMap.InstanceProperties(nameSpace: "YourApp.Models");
+FastMap.InstanceCheck(nameSpace: "YourApp.Models");
+
+// 使用 FastDataClient（推荐）
+var db = new FastDataClient("DefaultDb");
+
+// 链式查询
+var users = db.Query<User>(u => u.IsActive)
+    .Where<User>(u => u.Age > 18)
+    .OrderBy<User>(u => u.CreateTime)
+    .ToList();
+
+// 新增
+db.Add(new User { Name = "张三", Age = 30 });
+
+// 更新
+db.Update(new User { Id = 1, Name = "李四" });
+db.Update(new User { Name = "新名字" }, u => u.Id == 1);
+
+// 删除
+db.Delete<User>(u => u.Id == 1);
+```
+
 ---
 
 ### 基础 CRUD
@@ -203,6 +240,37 @@ var page = client.Query<User>(u => u.IsActive)
     .OrderBy<User>(u => u.Id)
     .ToPage(new PageModel { PageIndex = 1, PageSize = 10 });
 ```
+
+### 条件动态拼接（ConditionBuilder）
+
+面向"配置驱动 / 规则化查询"场景，基于对象化方式构建 WHERE 子句，
+**所有值走参数化**，天然防 SQL 注入。完整文档见 [docs/CONDITION_BUILDER.md](./docs/CONDITION_BUILDER.md)，
+这里给出最小示例：
+
+```csharp
+using FastData.Base;
+
+var config = FastDataConfig.GetConfig("DefaultDb");
+
+// 链式构建：Age >= 18 AND Name 含"张" OR Status IN (1,2,3)
+var sql = new ConditionBuilder(config)
+    .Equal<User>(u => u.Age, 18)
+    .And()
+    .Contains<User>(u => u.Name, "张")
+    .Or()
+    .In<User>(u => u.Status, new object[] { 1, 2, 3 })
+    .Build(out var parameters);
+
+// sql ≈ "Age = @p0 AND Name LIKE @p1 OR Status IN (@p2,@p3,@p4)"
+// parameters : 5 个 DbParameter，按出现顺序填入
+```
+
+**支持的操作符**：`Equal` / `NotEqual` / `GreaterThan` / `GreaterThanOrEqual` /
+`LessThan` / `LessThanOrEqual` / `Like` / `NotLike` / `Contains` / `StartsWith` /
+`EndsWith` / `In` / `NotIn` / `Between` / `NotBetween` / `IsNull` / `IsNotNull`（17 种）。
+
+> **安全提示**：永远不要手工拼接带用户输入的 SQL 字符串。所有用户输入值必须走
+> `ConditionBuilder` / `Condition` 体系或显式 `DbParameter` 绑定。
 
 ### XML Map SQL
 

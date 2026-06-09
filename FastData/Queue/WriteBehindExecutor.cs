@@ -1,6 +1,8 @@
 #if !NETFRAMEWORK
 using System;
 using System.Collections.Generic;
+using System.Reflection;
+using System.Threading;
 using FastData.Model;
 using FastRedis.Messaging;
 using FastRedis.Services;
@@ -18,15 +20,22 @@ namespace FastData.Queue
     {
         private static MessageQueueIntegrationService _mqService;
         private static readonly object _lock = new object();
-        private static bool _initialized = false;
+        private static volatile bool _initialized = false;
 
         /// <summary>
-        /// 初始化执行器（使用默认 Redis 连接）
+        /// 初始化执行器（必须显式提供 Redis 连接）
         /// </summary>
         /// <param name="redisConnectionString">Redis 连接字符串</param>
         /// <param name="redisDb">Redis 数据库索引</param>
-        public static void Initialize(string redisConnectionString = "127.0.0.1:6379", int redisDb = 7)
+        /// <exception cref="ArgumentException">未提供 Redis 连接字符串时抛出</exception>
+        public static void Initialize(string redisConnectionString = null, int redisDb = 0)
         {
+            if (string.IsNullOrWhiteSpace(redisConnectionString))
+            {
+                XTrace.WriteLine("[WriteBehind] 警告: 未提供 Redis 连接字符串，使用默认连接 '127.0.0.1:6379'（仅适用于开发环境）");
+                redisConnectionString = "127.0.0.1:6379";
+            }
+
             lock (_lock)
             {
                 if (_initialized) return;
@@ -53,6 +62,81 @@ namespace FastData.Queue
                 if (_initialized) return;
                 _mqService = new MessageQueueIntegrationService(redis);
                 _initialized = true;
+            }
+        }
+
+        /// <summary>
+        /// 运行时重新配置执行器
+        /// 释放现有连接并使用新配置重新初始化
+        /// </summary>
+        /// <param name="redisConnectionString">新的 Redis 连接字符串</param>
+        /// <param name="redisDb">新的 Redis 数据库索引</param>
+        public static void Reconfigure(string redisConnectionString, int redisDb = 0)
+        {
+            if (string.IsNullOrWhiteSpace(redisConnectionString))
+                throw new ArgumentException("Redis 连接字符串不能为空", nameof(redisConnectionString));
+
+            Shutdown(); // 安全释放现有资源
+
+            lock (_lock)
+            {
+                var redis = new FullRedis
+                {
+                    Server = redisConnectionString,
+                    Db = redisDb,
+                    Timeout = 15000
+                };
+                _mqService = new MessageQueueIntegrationService(redis);
+                _initialized = true;
+                XTrace.WriteLine($"[WriteBehind] 已重新配置 Redis 连接: {redisConnectionString}");
+            }
+        }
+
+        /// <summary>
+        /// 运行时重新配置执行器（使用现有 Redis 实例）
+        /// </summary>
+        /// <param name="redis">新的 FullRedis 实例</param>
+        public static void Reconfigure(FullRedis redis)
+        {
+            if (redis == null)
+                throw new ArgumentNullException(nameof(redis));
+
+            Shutdown(); // 安全释放现有资源
+
+            lock (_lock)
+            {
+                _mqService = new MessageQueueIntegrationService(redis);
+                _initialized = true;
+                XTrace.WriteLine("[WriteBehind] 已重新配置 Redis 实例");
+            }
+        }
+
+        /// <summary>
+        /// 关闭执行器并释放资源
+        /// 线程安全，可多次调用
+        /// </summary>
+        public static void Shutdown()
+        {
+            MessageQueueIntegrationService serviceToDispose = null;
+
+            lock (_lock)
+            {
+                if (!_initialized) return;
+
+                serviceToDispose = _mqService;
+                _mqService = null;
+                _initialized = false;
+            }
+
+            // 在锁外执行释放操作，避免阻塞其他线程
+            try
+            {
+                serviceToDispose?.Dispose();
+                XTrace.WriteLine("[WriteBehind] 已关闭并释放资源");
+            }
+            catch (Exception ex)
+            {
+                XTrace.WriteLine($"[WriteBehind] 释放资源时发生异常: {ex.Message}");
             }
         }
 
@@ -243,20 +327,30 @@ namespace FastData.Queue
                 WriteReturn writeReturn;
                 var key = operation.DatabaseKey ?? databaseKey;
 
+                // 解析实体类型（支持程序集限定名）
+                var entityType = ResolveEntityType(operation.EntityType);
+                if (entityType == null)
+                {
+                    result.Success = false;
+                    result.ErrorMessage = $"无法解析实体类型: {operation.EntityType}";
+                    XTrace.WriteLine($"[WriteBehind] 类型解析失败: {operation.EntityType}");
+                    return result;
+                }
+
                 switch (operation.OperationType)
                 {
                     case WriteOperationType.Add:
-                        var model = JsonConvert.DeserializeObject(operation.Data, global::System.Type.GetType(operation.EntityType));
+                        var model = JsonConvert.DeserializeObject(operation.Data, entityType);
                         writeReturn = FastWrite.Add(model, key: key);
                         break;
 
                     case WriteOperationType.Update:
-                        var updateModel = JsonConvert.DeserializeObject(operation.Data, global::System.Type.GetType(operation.EntityType));
+                        var updateModel = JsonConvert.DeserializeObject(operation.Data, entityType);
                         writeReturn = FastWrite.Update(updateModel, key: key);
                         break;
 
                     case WriteOperationType.Delete:
-                        var deleteModel = JsonConvert.DeserializeObject(operation.Data, global::System.Type.GetType(operation.EntityType));
+                        var deleteModel = JsonConvert.DeserializeObject(operation.Data, entityType);
                         writeReturn = FastWrite.Delete(deleteModel, key: key);
                         break;
 
@@ -278,6 +372,31 @@ namespace FastData.Queue
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// 解析实体类型字符串为 Type 对象
+        /// 支持程序集限定名格式: "Namespace.TypeName, AssemblyName"
+        /// </summary>
+        private static Type ResolveEntityType(string typeName)
+        {
+            if (string.IsNullOrWhiteSpace(typeName))
+                return null;
+
+            // 尝试标准解析（包含程序集信息）
+            var type = Type.GetType(typeName, throwOnError: false, ignoreCase: true);
+            if (type != null)
+                return type;
+
+            // 如果失败，尝试在所有已加载的程序集中查找
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                type = assembly.GetType(typeName, throwOnError: false, ignoreCase: true);
+                if (type != null)
+                    return type;
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -317,12 +436,19 @@ namespace FastData.Queue
 
         /// <summary>
         /// 确保已初始化
+        /// 使用双重检查锁定模式确保线程安全
         /// </summary>
         private static void EnsureInitialized()
         {
             if (!_initialized)
             {
-                Initialize(); // 使用默认连接
+                lock (_lock)
+                {
+                    if (!_initialized)
+                    {
+                        Initialize(); // 使用默认连接
+                    }
+                }
             }
         }
     }

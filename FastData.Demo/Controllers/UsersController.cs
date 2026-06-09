@@ -145,6 +145,22 @@ namespace FastData.Demo.Controllers
                 user.IsActive = true;
                 var writeResult = await Task.Factory.StartNew(() => FastWrite.Add(user));
 
+                // 写入成功后，使用 IdentityValue 获取自增 ID
+                if (writeResult.IsSuccess && writeResult.IdentityValue > 0)
+                {
+                    user.Id = (int)writeResult.IdentityValue;
+                }
+                else if (writeResult.IsSuccess)
+                {
+                    // 如果 IdentityValue 为 0（如不支持自增的数据库），回退到查询方式
+                    var created = await Task.Factory.StartNew(() =>
+                        FastRead.Query<AppUser>(u => u.UserName == user.UserName && u.Email == user.Email)
+                            .OrderByDescending(u => u.Id)
+                            .ToItem<AppUser>());
+                    if (created != null)
+                        user.Id = created.Id;
+                }
+
                 return Ok(new
                 {
                     IsSuccess = writeResult.IsSuccess,

@@ -14,7 +14,14 @@ namespace FastData.Sharding.Strategies
     /// </summary>
     public class TimeShardingStrategy : IShardingStrategy
     {
+        /// <summary>
+        /// 获取分片策略的名称
+        /// </summary>
         public string Name => "TimeSharding";
+
+        /// <summary>
+        /// 获取分片策略的类型
+        /// </summary>
         public ShardingType Type => ShardingType.Time;
 
         /// <summary>

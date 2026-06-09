@@ -14,6 +14,8 @@ using System.Data;
 using FastData.Property;
 using FastData.Aop;
 using FastData.Core.Base;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace FastData.Context
 {
@@ -60,21 +62,20 @@ namespace FastData.Context
 
                 if (conn.State == ConnectionState.Closed)
                     conn.Open();
-                var dr = BaseExecute.ToDataReader(cmd, sql.ToString());
 
-                if (item.Take == 1)
+                using (var dr = BaseExecute.ToDataReader(cmd, sql.ToString()))
                 {
-                    result.Item = BaseDataReader.ToList<T>(dr, item.Config, item.Field).FirstOrDefault<T>();
-                    data = result.Item;
+                    if (item.Take == 1)
+                    {
+                        result.Item = BaseDataReader.ToList<T>(dr, item.Config, item.Field).FirstOrDefault<T>();
+                        data = result.Item;
+                    }
+                    else
+                    {
+                        result.List = BaseDataReader.ToList<T>(dr, item.Config, item.Field);
+                        data = result.List;
+                    }
                 }
-                else
-                {
-                    result.List = BaseDataReader.ToList<T>(dr, item.Config, item.Field);
-                    data = result.List;
-                }
-
-                dr.Close();
-                dr.Dispose();
 
                 AopAfter(item.Table, sql.ToString(), param, config, true, AopType.Query_List_Lambda, data);
 
@@ -84,7 +85,7 @@ namespace FastData.Context
             {
                 AopException(ex, "to List tableName:" + typeof(T).Name,config, AopType.Query_List_Lambda);
 
-                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                if (string.Equals(config?.SqlErrorType, SqlErrorType.Db, StringComparison.OrdinalIgnoreCase))
                     DbLogTable.LogException<T>(config, ex, "GetList<T>", "");
                 else
                     DbLog.LogException<T>(item.Config.IsOutError, item.Config.DbType, ex, "GetList<T>", result.Sql);
@@ -110,7 +111,8 @@ namespace FastData.Context
             {
                 pModel.StarId = (pModel.PageId - 1) * pModel.PageSize + 1;
                 pModel.EndId = pModel.PageId * pModel.PageSize;
-                DisposeCommand(cmd);
+                // 清理参数而非 dispose 命令对象（PostgreSQL/Npgsql 不支持对已 dispose 的命令重新使用）
+                cmd.Parameters.Clear();
                 if (conn.State == ConnectionState.Closed)
                     conn.Open();
                 pModel.TotalRecord = BaseExecute.ToPageCount(item, cmd, ref sql);
@@ -127,15 +129,18 @@ namespace FastData.Context
 
                     AopBefore(item.Table, sql.ToString(), param, config, true,AopType.Query_Page_Lambda_Model);
 
-                    DisposeCommand(cmd);
-                    var dr = BaseExecute.ToPageDataReader(item, cmd, pModel, ref sql);
-                    result.PageResult.list = BaseDataReader.ToList<T>(dr, item.Config, item.AsName);
+                    // 清理参数而非 dispose 命令对象
+                    cmd.Parameters.Clear();
+                    using (var dr = BaseExecute.ToPageDataReader(item, cmd, pModel, ref sql))
+                    {
+                        if (dr != null)
+                        {
+                            result.PageResult.list = BaseDataReader.ToList<T>(dr, item.Config, item.AsName);
+                        }
+                    }
                     result.Sql = sql;
 
                     AopAfter(item.Table, sql.ToString(), param, config, true, AopType.Query_Page_Lambda_Model, result.PageResult.list);
-
-                    dr.Close();
-                    dr.Dispose();
                 }
                 else
                     result.PageResult.list = new List<T>();
@@ -146,7 +151,7 @@ namespace FastData.Context
             {
                 AopException(ex, "to Page tableName:" + typeof(T).Name,config, AopType.Query_Page_Lambda_Model);
 
-                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                if (string.Equals(config?.SqlErrorType, SqlErrorType.Db, StringComparison.OrdinalIgnoreCase))
                     DbLogTable.LogException<T>(config, ex, "GetPage<T>", "");
                 else
                     DbLog.LogException<T>(item.Config.IsOutError, item.Config.DbType, ex, "GetPage<T>", result.Sql);
@@ -173,7 +178,8 @@ namespace FastData.Context
             {
                 pModel.StarId = (pModel.PageId - 1) * pModel.PageSize + 1;
                 pModel.EndId = pModel.PageId * pModel.PageSize;
-                DisposeCommand(cmd);
+                // 清理参数而非 dispose 命令对象（PostgreSQL/Npgsql 不支持对已 dispose 的命令重新使用）
+                cmd.Parameters.Clear();
                 if (conn.State == ConnectionState.Closed)
                     conn.Open();
                 pModel.TotalRecord = BaseExecute.ToPageCount(item, cmd, ref sql);
@@ -190,13 +196,16 @@ namespace FastData.Context
 
                     AopBefore(item.Table, sql.ToString(), param, config, true,AopType.Query_Page_Lambda_Dic);
 
-                    DisposeCommand(cmd);
-                    var dr = BaseExecute.ToPageDataReader(item, cmd, pModel, ref sql);
-                    result.PageResult.list = BaseJson.DataReaderToDic(dr, config.DbType == DataDbType.Oracle);
+                    // 清理参数而非 dispose 命令对象
+                    cmd.Parameters.Clear();
+                    using (var dr = BaseExecute.ToPageDataReader(item, cmd, pModel, ref sql))
+                    {
+                        if (dr != null)
+                        {
+                            result.PageResult.list = BaseJson.DataReaderToDic(dr, config.DbType == DataDbType.Oracle);
+                        }
+                    }
                     result.Sql = sql;
-
-                    dr.Close();
-                    dr.Dispose();
 
                     AopAfter(item.Table, sql.ToString(), param, config, true, AopType.Query_Page_Lambda_Dic, result.PageResult.list);
                 }
@@ -209,10 +218,10 @@ namespace FastData.Context
             {
                 AopException(ex, "to Page",config, AopType.Query_Page_Lambda_Dic);
 
-                if (item.Config.SqlErrorType.ToLower() == SqlErrorType.Db)
+                if (string.Equals(item.Config?.SqlErrorType, SqlErrorType.Db, StringComparison.OrdinalIgnoreCase))
                     DbLogTable.LogException(item.Config, ex, "GetPage", result.Sql);
                 else
-                    DbLog.LogException(item.Config.IsOutError, item.Config.DbType, ex, "GetPage", result.Sql);
+                    DbLog.LogException(item.Config?.IsOutError ?? false, item.Config?.DbType ?? DataDbType.SqlServer, ex, "GetPage", result.Sql);
             }
 
             return result;
@@ -238,7 +247,8 @@ namespace FastData.Context
             {
                 pModel.StarId = (pModel.PageId - 1) * pModel.PageSize + 1;
                 pModel.EndId = pModel.PageId * pModel.PageSize;
-                DisposeCommand(cmd);
+                // 清理参数而非 dispose 命令对象
+                cmd.Parameters.Clear();
                 if (conn.State == ConnectionState.Closed)
                     conn.Open();
                 pModel.TotalRecord = BaseExecute.ToPageCountSql(param, cmd, sql, config, ref countSql);
@@ -256,14 +266,16 @@ namespace FastData.Context
                     if (isAop)
                         AopBefore(null, sql.ToString(), param?.ToList(), config, true,AopType.Query_Page_Lambda_Dic);
 
-                    DisposeCommand(cmd);
-                    var dr = BaseExecute.ToPageDataReaderSql(param, cmd, pModel, sql, config, ref pageSql);
-
-                    result.PageResult.list = BaseJson.DataReaderToDic(dr, config.DbType == DataDbType.Oracle);
+                    // 清理参数而非 dispose 命令对象
+                    cmd.Parameters.Clear();
+                    using (var dr = BaseExecute.ToPageDataReaderSql(param, cmd, pModel, sql, config, ref pageSql))
+                    {
+                        if (dr != null)
+                        {
+                            result.PageResult.list = BaseJson.DataReaderToDic(dr, config.DbType == DataDbType.Oracle);
+                        }
+                    }
                     result.Sql = string.Format("count:{0},page:{1}", countSql, pageSql);
-
-                    dr.Close();
-                    dr.Dispose();
 
                     if(isAop)
                         AopAfter(null, sql.ToString(), param?.ToList(), config, true, AopType.Query_Page_Lambda_Dic, result.PageResult.list);
@@ -277,7 +289,7 @@ namespace FastData.Context
             {
                 AopException(ex, "to Page sql",config, AopType.Query_Page_Lambda_Dic);
 
-                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                if (string.Equals(config?.SqlErrorType, SqlErrorType.Db, StringComparison.OrdinalIgnoreCase))
                     DbLogTable.LogException(config, ex, "GetPageSql", result.Sql);
                 else
                     DbLog.LogException(config.IsOutError, config.DbType, ex, "GetPageSql", result.Sql);
@@ -306,7 +318,8 @@ namespace FastData.Context
             {
                 pModel.StarId = (pModel.PageId - 1) * pModel.PageSize + 1;
                 pModel.EndId = pModel.PageId * pModel.PageSize;
-                DisposeCommand(cmd);
+                // 清理参数而非 dispose 命令对象
+                cmd.Parameters.Clear();
                 if (conn.State == ConnectionState.Closed)
                     conn.Open();
                 pModel.TotalRecord = BaseExecute.ToPageCountSql(param, cmd, sql, config, ref countSql);
@@ -324,14 +337,16 @@ namespace FastData.Context
                     if (isAop)
                         AopBefore(null, sql.ToString(), param?.ToList(), config, true,AopType.Query_Page_Lambda_Model);
 
-                    DisposeCommand(cmd);
-                    var dr = BaseExecute.ToPageDataReaderSql(param, cmd, pModel, sql, config, ref pageSql);
-
-                    result.PageResult.list = BaseDataReader.ToList<T>(dr, config, null);
+                    // 清理参数而非 dispose 命令对象
+                    cmd.Parameters.Clear();
+                    using (var dr = BaseExecute.ToPageDataReaderSql(param, cmd, pModel, sql, config, ref pageSql))
+                    {
+                        if (dr != null)
+                        {
+                            result.PageResult.list = BaseDataReader.ToList<T>(dr, config, null);
+                        }
+                    }
                     result.Sql = string.Format("count:{0},page:{1}", countSql, pageSql);
-
-                    dr.Close();
-                    dr.Dispose();
 
                     if (isAop)
                         AopAfter(null, sql.ToString(), param?.ToList(), config, true, AopType.Query_Page_Lambda_Model, result.PageResult.list);
@@ -343,7 +358,7 @@ namespace FastData.Context
             {
                 AopException(ex, "to Page tableName:" + typeof(T).Name,config, AopType.Query_Page_Lambda_Model);
 
-                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                if (string.Equals(config?.SqlErrorType, SqlErrorType.Db, StringComparison.OrdinalIgnoreCase))
                     DbLogTable.LogException(config, ex, "GetPageSql", result.Sql);
                 else
                     DbLog.LogException(config.IsOutError, config.DbType, ex, "GetPageSql", result.Sql);
@@ -398,12 +413,10 @@ namespace FastData.Context
 
                 if (conn.State == ConnectionState.Closed)
                     conn.Open();
-                var dr = BaseExecute.ToDataReader(cmd, sql.ToString());
-
-                result.Json = BaseJson.DataReaderToJson(dr, config.DbType == DataDbType.Oracle);
-
-                dr.Close();
-                dr.Dispose();
+                using (var dr = BaseExecute.ToDataReader(cmd, sql.ToString()))
+                {
+                    result.Json = BaseJson.DataReaderToJson(dr, config.DbType == DataDbType.Oracle);
+                }
 
                 AopAfter(null, sql.ToString(), param?.ToList(), config, true, AopType.Query_Json_Lambda, result.Json);
 
@@ -413,7 +426,7 @@ namespace FastData.Context
             {
                 AopException(ex, "to Json",config, AopType.Query_Json_Lambda);
 
-                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                if (string.Equals(config?.SqlErrorType, SqlErrorType.Db, StringComparison.OrdinalIgnoreCase))
                     DbLogTable.LogException(config, ex, "GetJson", result.Sql);
                 else
                     DbLog.LogException(item.Config.IsOutError, item.Config.DbType, ex, "GetJson", result.Sql);
@@ -494,7 +507,7 @@ namespace FastData.Context
             {
                 AopException(ex, "to Count",config, AopType.Query_Json_Lambda);
 
-                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                if (string.Equals(config?.SqlErrorType, SqlErrorType.Db, StringComparison.OrdinalIgnoreCase))
                     DbLogTable.LogException(config, ex, "GetCount", result.Sql);
                 else
                     DbLog.LogException(item.Config.IsOutError, item.Config.DbType, ex, "GetCount", result.Sql);
@@ -529,12 +542,10 @@ namespace FastData.Context
 
                 if (conn.State == ConnectionState.Closed)
                     conn.Open();
-                var dr = BaseExecute.ToDataReader(cmd, sql);
-
-                result.List = BaseDataReader.ToList<T>(dr, config);
-
-                dr.Close();
-                dr.Dispose();
+                using (var dr = BaseExecute.ToDataReader(cmd, sql))
+                {
+                    result.List = BaseDataReader.ToList<T>(dr, config);
+                }
 
                 AopAfter(null, sql.ToString(), param?.ToList(), config, true, AopType.Execute_Sql_Model, result.List);
             }
@@ -542,7 +553,7 @@ namespace FastData.Context
             {
                 AopException(ex, "ExecuteSql tableName:" + typeof(T).Name,config, AopType.Execute_Sql_Model);
 
-                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                if (string.Equals(config?.SqlErrorType, SqlErrorType.Db, StringComparison.OrdinalIgnoreCase))
                     DbLogTable.LogException<T>(config, ex, "ExecuteSql<T>", "");
                 else
                     DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "ExecuteSql<T>", result.Sql);
@@ -583,13 +594,11 @@ namespace FastData.Context
 
                 if (conn.State == ConnectionState.Closed)
                     conn.Open();
-                var dr = BaseExecute.ToDataReader(cmd, sql);
-
-                result.DicList = BaseJson.DataReaderToDic(dr, config.DbType == DataDbType.Oracle);
+                using (var dr = BaseExecute.ToDataReader(cmd, sql))
+                {
+                    result.DicList = BaseJson.DataReaderToDic(dr, config.DbType == DataDbType.Oracle);
+                }
                 result.WriteReturn.IsSuccess = true;
-
-                dr.Close();
-                dr.Dispose();
 
                 if (isAop)
                     AopAfter(null, sql.ToString(), param?.ToList(), config, true, AopType.Execute_Sql_Dic, result.WriteReturn.IsSuccess);
@@ -601,7 +610,7 @@ namespace FastData.Context
                 result.WriteReturn.IsSuccess = false;
                 result.WriteReturn.Message = ex.Message;
 
-                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                if (string.Equals(config?.SqlErrorType, SqlErrorType.Db, StringComparison.OrdinalIgnoreCase))
                     DbLogTable.LogException(config, ex, "ExecuteSqlList", result.Sql);
                 else
                     DbLog.LogException(config.IsOutError, config.DbType, ex, "ExecuteSqlList", result.Sql);
@@ -643,21 +652,19 @@ namespace FastData.Context
 
                 if (conn.State == ConnectionState.Closed)
                     conn.Open();
-                var dr = BaseExecute.ToDataReader(cmd, sql.ToString());
-
-                if (item.Take == 1)
+                using (var dr = BaseExecute.ToDataReader(cmd, sql.ToString()))
                 {
-                    result.Dic = BaseJson.DataReaderToDic(dr, config.DbType == DataDbType.Oracle).FirstOrDefault() ?? new Dictionary<string, object>();
-                    data = result.Dic;
+                    if (item.Take == 1)
+                    {
+                        result.Dic = BaseJson.DataReaderToDic(dr, config.DbType == DataDbType.Oracle).FirstOrDefault() ?? new Dictionary<string, object>();
+                        data = result.Dic;
+                    }
+                    else
+                    {
+                        result.DicList = BaseJson.DataReaderToDic(dr, config.DbType == DataDbType.Oracle);
+                        data = result.DicList;
+                    }
                 }
-                else
-                {
-                    result.DicList = BaseJson.DataReaderToDic(dr, config.DbType == DataDbType.Oracle);
-                    data = result.DicList;
-                }
-
-                dr.Close();
-                dr.Dispose();
 
                 AopAfter(item.Table, sql.ToString(), param, config, true, AopType.Query_Dic_Lambda, data);
 
@@ -667,7 +674,7 @@ namespace FastData.Context
             {
                 AopException(ex, "to Dic",config, AopType.Query_Dic_Lambda);
 
-                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                if (string.Equals(config?.SqlErrorType, SqlErrorType.Db, StringComparison.OrdinalIgnoreCase))
                     DbLogTable.LogException(config, ex, "GetDic", result.Sql);
                 else
                     DbLog.LogException(item.Config.IsOutError, item.Config.DbType, ex, "GetDic", result.Sql);
@@ -707,12 +714,10 @@ namespace FastData.Context
 
                 if (conn.State == ConnectionState.Closed)
                     conn.Open();
-                var dr = BaseExecute.ToDataReader(cmd, sql.ToString());
-
-                result.Table.Load(dr);
-
-                dr.Close();
-                dr.Dispose();
+                using (var dr = BaseExecute.ToDataReader(cmd, sql.ToString()))
+                {
+                    result.Table.Load(dr);
+                }
 
                 AopAfter(item.Table, sql.ToString(), param, config, true, AopType.Query_DataTable_Lambda, result.Table);
 
@@ -722,7 +727,7 @@ namespace FastData.Context
             {
                 AopException(ex, "to DataTable",config, AopType.Query_DataTable_Lambda);
 
-                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                if (string.Equals(config?.SqlErrorType, SqlErrorType.Db, StringComparison.OrdinalIgnoreCase))
                     DbLogTable.LogException(config, ex, "GetDataTable", result.Sql);
                 else
                     DbLog.LogException(item.Config.IsOutError, item.Config.DbType, ex, "GetDataTable", result.Sql);
@@ -809,6 +814,700 @@ namespace FastData.Context
                      item.Config.DbType == DataDbType.SQLite)
             {
                 sql.AppendFormat(" limit {0}", item.Take);
+            }
+        }
+
+        #endregion
+
+        #region 异步读取操作
+
+        /// <summary>
+        /// 异步确保连接已打开
+        /// </summary>
+        private async Task EnsureConnectionOpenReadAsync(CancellationToken cancellationToken = default)
+        {
+            if (_disposed)
+                throw new ObjectDisposedException(nameof(DataContext));
+
+            if (_connection == null)
+                throw new InvalidOperationException("Connection is null. DataContext was not initialized properly.");
+
+            if (_connection.State != ConnectionState.Open)
+                await _connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// 异步获取列表
+        /// </summary>
+        public async Task<DataReturn<T>> GetListAsync<T>(DataQuery item, CancellationToken cancellationToken = default) where T : class, new()
+        {
+            var param = new List<DbParameter>();
+            var result = new DataReturn<T>();
+            var sql = new StringBuilder();
+            object data;
+
+            try
+            {
+                if (item.Config.DbType == DataDbType.SqlServer && item.Take != 0)
+                {
+                    sql.Append("select top ");
+                    sql.Append(item.Take);
+                    sql.Append(" ");
+                    for (int i = 0; i < item.Field.Count; i++)
+                    {
+                        if (i > 0) sql.Append(",");
+                        sql.Append(item.Field[i]);
+                    }
+                    sql.Append(" from ");
+                    sql.Append(item.Table[0]);
+                }
+                else
+                    BuildBaseSelectQuery(item, param, sql);
+
+                result.Sql = ParameterToSql.ObjectParamToSql(param, sql.ToString(), item.Config);
+
+                if (param.Count != 0)
+                    cmd.Parameters.AddRange(param.ToArray());
+
+                AopBefore(item.Table, sql.ToString(), param, config, true, AopType.Query_List_Lambda);
+
+                await EnsureConnectionOpenReadAsync(cancellationToken).ConfigureAwait(false);
+
+                using (var dr = await BaseExecute.ToDataReaderAsync(cmd, sql.ToString()).ConfigureAwait(false))
+                {
+                    if (item.Take == 1)
+                    {
+                        result.Item = BaseDataReader.ToList<T>(dr, item.Config, item.Field).FirstOrDefault<T>();
+                        data = result.Item;
+                    }
+                    else
+                    {
+                        result.List = BaseDataReader.ToList<T>(dr, item.Config, item.Field);
+                        data = result.List;
+                    }
+                }
+
+                AopAfter(item.Table, sql.ToString(), param, config, true, AopType.Query_List_Lambda, data);
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                AopException(ex, "GetListAsync tableName:" + typeof(T).Name, config, AopType.Query_List_Lambda);
+
+                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                    DbLogTable.LogException<T>(config, ex, "GetListAsync<T>", "");
+                else
+                    DbLog.LogException<T>(item.Config.IsOutError, item.Config.DbType, ex, "GetListAsync<T>", result.Sql);
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// 异步执行SQL查询(实体)
+        /// </summary>
+        public async Task<DataReturn<T>> ExecuteSqlAsync<T>(string sql, DbParameter[] param = null, CancellationToken cancellationToken = default) where T : class, new()
+        {
+            var result = new DataReturn<T>();
+            try
+            {
+                if (param != null)
+                    result.Sql = ParameterToSql.ObjectParamToSql(param.ToList(), sql, config);
+                else
+                    result.Sql = sql;
+
+                DisposeCommand(cmd);
+
+                if (param != null)
+                    cmd.Parameters.AddRange(param.ToArray());
+
+                AopBefore(null, sql.ToString(), param?.ToList(), config, true, AopType.Execute_Sql_Model);
+
+                await EnsureConnectionOpenReadAsync(cancellationToken).ConfigureAwait(false);
+                using (var dr = await BaseExecute.ToDataReaderAsync(cmd, sql).ConfigureAwait(false))
+                {
+                    result.List = BaseDataReader.ToList<T>(dr, config);
+                }
+
+                AopAfter(null, sql.ToString(), param?.ToList(), config, true, AopType.Execute_Sql_Model, result.List);
+            }
+            catch (Exception ex)
+            {
+                AopException(ex, "ExecuteSqlAsync tableName:" + typeof(T).Name, config, AopType.Execute_Sql_Model);
+
+                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                    DbLogTable.LogException<T>(config, ex, "ExecuteSqlAsync<T>", "");
+                else
+                    DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "ExecuteSqlAsync<T>", result.Sql);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// 异步执行SQL查询(字典)
+        /// </summary>
+        public async Task<DataReturn> ExecuteSqlListAsync(string sql, DbParameter[] param = null, bool isLog = false, bool isAop = true, CancellationToken cancellationToken = default)
+        {
+            var result = new DataReturn();
+            try
+            {
+                if (param != null)
+                    result.Sql = ParameterToSql.ObjectParamToSql(param.ToList(), sql, config);
+                else
+                    result.Sql = sql;
+
+                DbLog.LogSql(isLog, result.Sql, config.DbType, 0);
+
+                DisposeCommand(cmd);
+
+                if (param != null)
+                    cmd.Parameters.AddRange(param.ToArray());
+
+                if (isAop)
+                    AopBefore(null, sql.ToString(), param?.ToList(), config, true, AopType.Execute_Sql_Dic);
+
+                await EnsureConnectionOpenReadAsync(cancellationToken).ConfigureAwait(false);
+                using (var dr = await BaseExecute.ToDataReaderAsync(cmd, sql).ConfigureAwait(false))
+                {
+                    result.DicList = BaseJson.DataReaderToDic(dr, config.DbType == DataDbType.Oracle);
+                }
+                result.WriteReturn.IsSuccess = true;
+
+                if (isAop)
+                    AopAfter(null, sql.ToString(), param?.ToList(), config, true, AopType.Execute_Sql_Dic, result.WriteReturn.IsSuccess);
+            }
+            catch (Exception ex)
+            {
+                AopException(ex, "ExecuteSqlListAsync", config, AopType.Execute_Sql_Dic);
+
+                result.WriteReturn.IsSuccess = false;
+                result.WriteReturn.Message = ex.Message;
+
+                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                    DbLogTable.LogException(config, ex, "ExecuteSqlListAsync", result.Sql);
+                else
+                    DbLog.LogException(config.IsOutError, config.DbType, ex, "ExecuteSqlListAsync", result.Sql);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// 异步获取字典列表
+        /// </summary>
+        public async Task<DataReturn> GetDicAsync(DataQuery item, CancellationToken cancellationToken = default)
+        {
+            var param = new List<DbParameter>();
+            var result = new DataReturn();
+            var sql = new StringBuilder();
+            object data;
+
+            try
+            {
+                if (item.Config.DbType == DataDbType.SqlServer && item.Take != 0)
+                    sql.AppendFormat("select top {2} {0} from {1}", string.Join(",", item.Field), item.Table[0], item.Take);
+                else
+                    BuildBaseSelectQuery(item, param, sql);
+
+                result.Sql = ParameterToSql.ObjectParamToSql(param, sql.ToString(), item.Config);
+
+                DisposeCommand(cmd);
+
+                if (param.Count != 0)
+                    cmd.Parameters.AddRange(param.ToArray());
+
+                AopBefore(item.Table, sql.ToString(), param, config, true, AopType.Query_Dic_Lambda);
+
+                await EnsureConnectionOpenReadAsync(cancellationToken).ConfigureAwait(false);
+                using (var dr = await BaseExecute.ToDataReaderAsync(cmd, sql.ToString()).ConfigureAwait(false))
+                {
+                    if (item.Take == 1)
+                    {
+                        result.Dic = BaseJson.DataReaderToDic(dr, config.DbType == DataDbType.Oracle).FirstOrDefault() ?? new Dictionary<string, object>();
+                        data = result.Dic;
+                    }
+                    else
+                    {
+                        result.DicList = BaseJson.DataReaderToDic(dr, config.DbType == DataDbType.Oracle);
+                        data = result.DicList;
+                    }
+                }
+
+                AopAfter(item.Table, sql.ToString(), param, config, true, AopType.Query_Dic_Lambda, data);
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                AopException(ex, "GetDicAsync", config, AopType.Query_Dic_Lambda);
+
+                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                    DbLogTable.LogException(config, ex, "GetDicAsync", result.Sql);
+                else
+                    DbLog.LogException(item.Config.IsOutError, item.Config.DbType, ex, "GetDicAsync", result.Sql);
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// 异步获取DataTable
+        /// </summary>
+        public async Task<DataReturn> GetDataTableAsync(DataQuery item, CancellationToken cancellationToken = default)
+        {
+            var param = new List<DbParameter>();
+            var result = new DataReturn();
+            var sql = new StringBuilder();
+
+            try
+            {
+                if (item.Config.DbType == DataDbType.SqlServer && item.Take != 0)
+                    sql.AppendFormat("select top {2} {0} from {1}", string.Join(",", item.Field), item.Table[0], item.Take);
+                else
+                    BuildBaseSelectQuery(item, param, sql);
+
+                result.Sql = ParameterToSql.ObjectParamToSql(param, sql.ToString(), item.Config);
+
+                DisposeCommand(cmd);
+
+                if (param.Count != 0)
+                    cmd.Parameters.AddRange(param.ToArray());
+
+                AopBefore(item.Table, sql.ToString(), param, config, true, AopType.Query_DataTable_Lambda);
+
+                await EnsureConnectionOpenReadAsync(cancellationToken).ConfigureAwait(false);
+                using (var dr = await BaseExecute.ToDataReaderAsync(cmd, sql.ToString()).ConfigureAwait(false))
+                {
+                    result.Table.Load(dr);
+                }
+
+                AopAfter(item.Table, sql.ToString(), param, config, true, AopType.Query_DataTable_Lambda, result.Table);
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                AopException(ex, "GetDataTableAsync", config, AopType.Query_DataTable_Lambda);
+
+                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                    DbLogTable.LogException(config, ex, "GetDataTableAsync", result.Sql);
+                else
+                    DbLog.LogException(item.Config.IsOutError, item.Config.DbType, ex, "GetDataTableAsync", result.Sql);
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// 异步获取记录总数
+        /// </summary>
+        public async Task<DataReturn> GetCountAsync(DataQuery item, CancellationToken cancellationToken = default)
+        {
+            var sql = new StringBuilder();
+            var result = new DataReturn();
+            var param = new List<DbParameter>();
+
+            try
+            {
+                sql.AppendFormat("select count(0) from {0}", item.Table[0]);
+
+                for (var i = 1; i < item.Predicate.Count; i++)
+                {
+                    sql.AppendFormat(" {0} on {1}", item.Table[i], item.Predicate[i].Where);
+
+                    if (item.Predicate[i].Param.Count != 0)
+                        param.AddRange(item.Predicate[i].Param);
+                }
+
+                if (WhereBuilder.HasWhereClause(item))
+                {
+                    var whereClause = WhereBuilder.BuildWhereClause(item, ref param);
+                    sql.AppendFormat(" where {0}", whereClause);
+                }
+
+                if (item.GroupBy.Count > 0)
+                {
+                    sql.Append(" group by ");
+                    sql.Append(string.Join(",", item.GroupBy));
+                }
+
+                if (item.OrderBy.Count > 0)
+                {
+                    sql.Append(" order by ");
+                    sql.Append(string.Join(",", item.OrderBy));
+                }
+
+                if (item.Predicate.Count > 0 && item.Predicate[0].Param.Count != 0)
+                    param.AddRange(item.Predicate[0].Param);
+
+                result.Sql = ParameterToSql.ObjectParamToSql(param, sql.ToString(), item.Config);
+
+                DisposeCommand(cmd);
+
+                if (param.Count != 0)
+                    cmd.Parameters.AddRange(param.ToArray());
+
+                AopBefore(null, sql.ToString(), param?.ToList(), config, true, AopType.Query_Json_Lambda);
+
+                await EnsureConnectionOpenReadAsync(cancellationToken).ConfigureAwait(false);
+                var dt = await BaseExecute.ToDataTableAsync(cmd, sql.ToString()).ConfigureAwait(false);
+
+                if (dt.Rows.Count > 0)
+                    result.Count = dt.Rows[0][0].ToString().ToInt(0);
+                else
+                    result.Count = 0;
+
+                AopAfter(null, sql.ToString(), param?.ToList(), config, true, AopType.Query_Json_Lambda, result.Count);
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                AopException(ex, "GetCountAsync", config, AopType.Query_Json_Lambda);
+
+                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                    DbLogTable.LogException(config, ex, "GetCountAsync", result.Sql);
+                else
+                    DbLog.LogException(item.Config.IsOutError, item.Config.DbType, ex, "GetCountAsync", result.Sql);
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// 异步获取JSON
+        /// </summary>
+        public async Task<DataReturn> GetJsonAsync(DataQuery item, CancellationToken cancellationToken = default)
+        {
+            var param = new List<DbParameter>();
+            var result = new DataReturn();
+            var sql = new StringBuilder();
+
+            try
+            {
+                if (item.Config.DbType == DataDbType.SqlServer && item.Take != 0)
+                {
+                    sql.Append("select top ");
+                    sql.Append(item.Take);
+                    sql.Append(" ");
+                    for (int i = 0; i < item.Field.Count; i++)
+                    {
+                        if (i > 0) sql.Append(",");
+                        sql.Append(item.Field[i]);
+                    }
+                    sql.Append(" from ");
+                    sql.Append(item.Table[0]);
+                }
+                else
+                    BuildBaseSelectQuery(item, param, sql);
+
+                if (item.Predicate[0].Param.Count != 0)
+                    param.AddRange(item.Predicate[0].Param);
+
+                result.Sql = ParameterToSql.ObjectParamToSql(param, sql.ToString(), item.Config);
+
+                DisposeCommand(cmd);
+
+                if (param.Count != 0)
+                    cmd.Parameters.AddRange(param.ToArray());
+
+                AopBefore(null, sql.ToString(), param?.ToList(), config, true, AopType.Query_Json_Lambda);
+
+                await EnsureConnectionOpenReadAsync(cancellationToken).ConfigureAwait(false);
+                using (var dr = await BaseExecute.ToDataReaderAsync(cmd, sql.ToString()).ConfigureAwait(false))
+                {
+                    result.Json = BaseJson.DataReaderToJson(dr, config.DbType == DataDbType.Oracle);
+                }
+
+                AopAfter(null, sql.ToString(), param?.ToList(), config, true, AopType.Query_Json_Lambda, result.Json);
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                AopException(ex, "GetJsonAsync", config, AopType.Query_Json_Lambda);
+
+                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                    DbLogTable.LogException(config, ex, "GetJsonAsync", result.Sql);
+                else
+                    DbLog.LogException(item.Config.IsOutError, item.Config.DbType, ex, "GetJsonAsync", result.Sql);
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// 异步获取分页(实体)
+        /// </summary>
+        public async Task<DataReturn<T>> GetPageAsync<T>(DataQuery item, PageModel pModel, CancellationToken cancellationToken = default) where T : class, new()
+        {
+            var param = new List<DbParameter>();
+            var result = new DataReturn<T>();
+            var sql = "";
+
+            try
+            {
+                pModel.StarId = (pModel.PageId - 1) * pModel.PageSize + 1;
+                pModel.EndId = pModel.PageId * pModel.PageSize;
+                cmd.Parameters.Clear();
+                await EnsureConnectionOpenReadAsync(cancellationToken).ConfigureAwait(false);
+                var (count, countSql) = await ToPageCountAsync(item, cmd, sql, cancellationToken).ConfigureAwait(false);
+                pModel.TotalRecord = count;
+                sql = countSql;
+
+                if (pModel.TotalRecord > 0)
+                {
+                    if ((pModel.TotalRecord % pModel.PageSize) == 0)
+                        pModel.TotalPage = pModel.TotalRecord / pModel.PageSize;
+                    else
+                        pModel.TotalPage = (pModel.TotalRecord / pModel.PageSize) + 1;
+
+                    if (pModel.PageId > pModel.TotalPage)
+                        pModel.PageId = pModel.TotalPage;
+
+                    AopBefore(item.Table, sql.ToString(), param, config, true, AopType.Query_Page_Lambda_Model);
+
+                    cmd.Parameters.Clear();
+                    var (dr, pageSql) = await ToPageDataReaderAsync(item, cmd, pModel, sql, cancellationToken).ConfigureAwait(false);
+                    using (dr)
+                    {
+                        if (dr != null)
+                        {
+                            result.PageResult.list = BaseDataReader.ToList<T>(dr, item.Config, item.AsName);
+                        }
+                    }
+                    result.Sql = pageSql;
+                    sql = pageSql;
+
+                    AopAfter(item.Table, sql.ToString(), param, config, true, AopType.Query_Page_Lambda_Model, result.PageResult.list);
+                }
+                else
+                    result.PageResult.list = new List<T>();
+
+                result.PageResult.pModel = pModel;
+            }
+            catch (Exception ex)
+            {
+                AopException(ex, "GetPageAsync tableName:" + typeof(T).Name, config, AopType.Query_Page_Lambda_Model);
+
+                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
+                    DbLogTable.LogException<T>(config, ex, "GetPageAsync<T>", "");
+                else
+                    DbLog.LogException<T>(item.Config.IsOutError, item.Config.DbType, ex, "GetPageAsync<T>", result.Sql);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// 异步获取分页(字典)
+        /// </summary>
+        public async Task<DataReturn> GetPageAsync(DataQuery item, PageModel pModel, CancellationToken cancellationToken = default)
+        {
+            var param = new List<DbParameter>();
+            var result = new DataReturn();
+            var sql = "";
+
+            try
+            {
+                pModel.StarId = (pModel.PageId - 1) * pModel.PageSize + 1;
+                pModel.EndId = pModel.PageId * pModel.PageSize;
+                cmd.Parameters.Clear();
+                await EnsureConnectionOpenReadAsync(cancellationToken).ConfigureAwait(false);
+                var (count, countSql) = await ToPageCountAsync(item, cmd, sql, cancellationToken).ConfigureAwait(false);
+                pModel.TotalRecord = count;
+                sql = countSql;
+
+                if (pModel.TotalRecord > 0)
+                {
+                    if ((pModel.TotalRecord % pModel.PageSize) == 0)
+                        pModel.TotalPage = pModel.TotalRecord / pModel.PageSize;
+                    else
+                        pModel.TotalPage = (pModel.TotalRecord / pModel.PageSize) + 1;
+
+                    if (pModel.PageId > pModel.TotalPage)
+                        pModel.PageId = pModel.TotalPage;
+
+                    AopBefore(item.Table, sql.ToString(), param, config, true, AopType.Query_Page_Lambda_Dic);
+
+                    cmd.Parameters.Clear();
+                    var (dr, pageSql) = await ToPageDataReaderAsync(item, cmd, pModel, sql, cancellationToken).ConfigureAwait(false);
+                    using (dr)
+                    {
+                        if (dr != null)
+                        {
+                            result.PageResult.list = BaseJson.DataReaderToDic(dr, config.DbType == DataDbType.Oracle);
+                        }
+                    }
+                    result.Sql = pageSql;
+
+                    AopAfter(item.Table, sql.ToString(), param, config, true, AopType.Query_Page_Lambda_Dic, result.PageResult.list);
+                }
+                else
+                    result.PageResult.list = new List<Dictionary<string, object>>();
+
+                result.PageResult.pModel = pModel;
+            }
+            catch (Exception ex)
+            {
+                AopException(ex, "GetPageAsync", config, AopType.Query_Page_Lambda_Dic);
+
+                if (string.Equals(item.Config?.SqlErrorType, SqlErrorType.Db, StringComparison.OrdinalIgnoreCase))
+                    DbLogTable.LogException(item.Config, ex, "GetPageAsync", result.Sql);
+                else
+                    DbLog.LogException(item.Config?.IsOutError ?? false, item.Config?.DbType ?? DataDbType.SqlServer, ex, "GetPageAsync", result.Sql);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// 异步获取分页总记录数
+        /// </summary>
+        /// <param name="item">数据查询对象</param>
+        /// <param name="cmd">数据库命令对象</param>
+        /// <param name="sql">原始 SQL 语句</param>
+        /// <param name="cancellationToken">取消令牌</param>
+        /// <returns>总记录数和生成的 COUNT SQL</returns>
+        private async Task<(int count, string sql)> ToPageCountAsync(DataQuery item, DbCommand cmd, string sql, CancellationToken cancellationToken = default)
+        {
+            var param = new List<DbParameter>();
+            var countSql = string.Format("select count(0) from {0}", item.Table[0]);
+
+            for (var i = 1; i < item.Predicate.Count; i++)
+            {
+                sql = string.Format("{2} {0} on {1}", item.Table[i], item.Predicate[i].Where, sql);
+
+                if (item.Predicate[i].Param.Count != 0)
+                    param.AddRange(item.Predicate[i].Param);
+            }
+
+            if (!string.IsNullOrEmpty(item.Predicate[0].Where))
+                sql = string.Format("{1} where {0}", item.Predicate[0].Where, sql);
+
+            if (item.Predicate[0].Param.Count != 0)
+                param.AddRange(item.Predicate[0].Param);
+
+            if (param.Count != 0)
+                cmd.Parameters.AddRange(param.ToArray());
+
+            var dt = await BaseExecute.ToDataTableAsync(cmd, sql.ToString()).ConfigureAwait(false);
+
+            var count = int.Parse(dt.Rows[0][0].ToString());
+            return (count, sql);
+        }
+
+        /// <summary>
+        /// 异步获取分页DataReader
+        /// </summary>
+        private async Task<(DbDataReader reader, string sql)> ToPageDataReaderAsync(DataQuery item, DbCommand cmd, PageModel pModel, string sql, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var table = new StringBuilder();
+                var sb = new StringBuilder();
+                var param = new List<DbParameter>();
+
+                table.Append(item.Table[0]);
+                for (var i = 1; i < item.Predicate.Count; i++)
+                {
+                    table.AppendFormat(" {0} on {1}", item.Table[i], item.Predicate[i].Where);
+
+                    if (item.Predicate[i].Param.Count != 0)
+                        param.AddRange(item.Predicate[i].Param);
+                }
+
+                if (item.Predicate[0].Param.Count != 0)
+                    param.AddRange(item.Predicate[0].Param);
+
+                if (item.Config.DbType == DataDbType.SqlServer)
+                {
+                    var orderByLenght = item.Predicate[0].Where.IndexOf("order by");
+                    sb.AppendFormat(@"select top {0} * from (select row_number()over({5})temprownumber,* 
+                                        from (select tempcolumn=0,{3} from {1} where {4})t)tt where temprownumber>={2}"
+                                            , pModel.PageSize
+                                            , table
+                                            , pModel.StarId - 1
+                                            , string.Join(",", item.Field)
+                                            , orderByLenght == -1 ? item.Predicate[0].Where : item.Predicate[0].Where.Substring(0, orderByLenght)
+                                            , orderByLenght == -1 ? "order by tempcolumn" : item.Predicate[0].Where.Substring(orderByLenght, item.Predicate[0].Where.Length - orderByLenght));
+                }
+                else if (item.Config.DbType == DataDbType.Oracle)
+                {
+                    sb = new StringBuilder();
+                    if (item.Predicate.Count > 0)
+                    {
+                        sb.AppendFormat("select * from(select field.*,ROWNUM RN from(select {0} from {1} where {2}) field where rownum<={3}) where rn>={4}"
+                                        , string.Join(",", item.Field)
+                                        , table
+                                        , item.Predicate[0].Where
+                                        , pModel.EndId
+                                        , pModel.StarId);
+                    }
+                    else
+                    {
+                        sb.AppendFormat(@"select * from {3} 
+                                    where rowid in(select rid from 
+                                    (select rownum rn,rid from 
+                                    (select rowid rid from {3}) 
+                                    where rownum<={0}) where rn>{1}) and {4}"
+                                        , pModel.EndId
+                                        , (pModel.StarId - 1)
+                                        , string.Join(",", item.Field)
+                                        , table
+                                        , item.Predicate[0].Where);
+                    }
+                }
+                else if (item.Config.DbType == DataDbType.MySql)
+                {
+                    sb.AppendFormat("select {2} from {3} where {4} limit {0}, {1}"
+                                       , pModel.StarId
+                                       , pModel.PageSize
+                                       , string.Join(",", item.Field)
+                                       , table
+                                       , item.Predicate[0].Where);
+                }
+                else if (item.Config.DbType == DataDbType.DB2)
+                {
+                    var orderByLenght = item.Predicate[0].Where.IndexOf("order by");
+                    sb.AppendFormat("select * from (select row_number() over ({5}) as row_number,{2} from {3} where {4}) a where a.row_number>{0} and row_number<{1} "
+                                       , pModel.StarId
+                                       , pModel.EndId
+                                       , string.Join(",", item.Field)
+                                       , table
+                                       , item.Predicate[0].Where == "" ? "" : item.Predicate[0].Where
+                                       , orderByLenght == -1 ? "" : item.Predicate[0].Where.Substring(orderByLenght, item.Predicate[0].Where.Length - orderByLenght));
+                }
+                else if (item.Config.DbType == DataDbType.SQLite)
+                {
+                    sb.AppendFormat("select {2} from {3} where {4} limit {1} offset {0}"
+                                       , pModel.StarId
+                                       , pModel.PageSize
+                                       , string.Join(",", item.Field)
+                                       , table
+                                       , item.Predicate[0].Where);
+                }
+                else if (item.Config.DbType == DataDbType.PostgreSql)
+                {
+                    sb.AppendFormat("select {2} from {3} where {4} limit {1} offset {0}"
+                                       , pModel.StarId
+                                       , pModel.PageSize
+                                       , string.Join(",", item.Field)
+                                       , table
+                                       , item.Predicate[0].Where);
+                }
+
+                if (param.Count != 0)
+                    cmd.Parameters.AddRange(param.ToArray());
+                cmd.CommandText = sb.ToString();
+                sql = string.Format("count:{0},page:{1}", sql, ParameterToSql.ObjectParamToSql(param, sb.ToString(), item.Config));
+                var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+                return (reader, sql);
+            }
+            catch (Exception ex)
+            {
+                if (string.Equals(item.Config?.SqlErrorType, SqlErrorType.Db, StringComparison.OrdinalIgnoreCase))
+                    DbLogTable.LogException(item.Config, ex, "ToPageDataReaderAsync", "");
+                else
+                    DbLog.LogException(true, item.Config?.DbType ?? DataDbType.SqlServer, ex, "ToPageDataReaderAsync", "");
+                throw;
             }
         }
 

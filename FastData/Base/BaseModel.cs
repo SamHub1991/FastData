@@ -22,53 +22,22 @@ namespace FastData.Base
         /// <summary>
         /// 将实体转换为 UPDATE SQL 语句
         /// </summary>
-        /// <typeparam name="T">实体类型</typeparam>
-        /// <param name="entity">实体对象</param>
-        /// <param name="config">数据库配置模型</param>
-        /// <param name="fieldSelector">更新的字段表达式，为 null 时更新所有字段</param>
-        /// <param name="cmd">数据库命令对象</param>
-        /// <returns>操作结果模型</returns>
         public static OptionModel UpdateToSql<T>(T entity, ConfigModel config, Expression<Func<T, object>> fieldSelector = null, DbCommand cmd = null)
         {
             var result = new OptionModel();
             var entityGetter = new Property.DynamicGet<T>();
             result.IsCache = config.IsPropertyCache;
-            var primaryKeys = GetPrimaryKeys(config, cmd, TableNameHelper.GetTableName<T>(config));
+            var factory = DbProviderFactories.GetFactory(config.ProviderName);
 
             try
             {
-                var tableName = TableNameHelper.GetTableName<T>(config);
                 var sqlBuilder = new StringBuilder();
-                sqlBuilder.AppendFormat("update {0} set", tableName);
+                sqlBuilder.AppendFormat("update {0} set", TableNameHelper.GetTableName<T>(config));
 
-                if (fieldSelector == null)
-                {
-                    // 更新所有字段
-                    foreach (var property in PropertyCache.GetPropertyInfo<T>(config.IsPropertyCache))
-                    {
-                        sqlBuilder.AppendFormat(" {0}={1}{0},", property.Name, config.Flag);
-                        var propertyValue = entityGetter.GetValue(entity, property.Name, config.IsPropertyCache);
-                        var parameter = DbProviderFactories.GetFactory(config.ProviderName).CreateParameter();
-                        parameter.ParameterName = property.Name;
-                        parameter.Value = propertyValue ?? (object)DBNull.Value;
-                        result.Param.Add(parameter);
-                    }
-                }
-                else
-                {
-                    // 更新指定字段
-                    foreach (var member in (fieldSelector.Body as NewExpression).Members)
-                    {
-                        sqlBuilder.AppendFormat(" {0}={1}{0},", member.Name, config.Flag);
-                        var propertyValue = entityGetter.GetValue(entity, member.Name, config.IsPropertyCache);
-                        var parameter = DbProviderFactories.GetFactory(config.ProviderName).CreateParameter();
-                        parameter.ParameterName = member.Name;
-                        parameter.Value = propertyValue ?? (object)DBNull.Value;
-                        result.Param.Add(parameter);
-                    }
-                }
+                BuildSetClause(sqlBuilder, entity, config, fieldSelector, entityGetter, factory, result);
 
                 // 验证主键值不为空
+                var primaryKeys = GetPrimaryKeys(config, cmd, TableNameHelper.GetTableName<T>(config));
                 foreach (var primaryKey in primaryKeys)
                 {
                     if (result.Param.Exists(p => p.ParameterName == primaryKey))
@@ -100,12 +69,6 @@ namespace FastData.Base
         /// <summary>
         /// 将实体转换为 UPDATE SQL 语句（包含 WHERE 主键条件）
         /// </summary>
-        /// <typeparam name="T">实体类型</typeparam>
-        /// <param name="cmd">数据库命令对象</param>
-        /// <param name="entity">实体对象</param>
-        /// <param name="config">数据库配置模型</param>
-        /// <param name="fieldSelector">更新的字段表达式，为 null 时更新所有字段</param>
-        /// <returns>操作结果模型</returns>
         public static OptionModel UpdateToSql<T>(DbCommand cmd, T entity, ConfigModel config, Expression<Func<T, object>> fieldSelector = null)
         {
             var result = new OptionModel();
@@ -113,6 +76,7 @@ namespace FastData.Base
             result.IsCache = config.IsPropertyCache;
             var tableName = TableNameHelper.GetTableName<T>(config);
             var primaryKeys = GetPrimaryKeys(config, cmd, tableName);
+            var factory = DbProviderFactories.GetFactory(config.ProviderName);
 
             if (primaryKeys.Count == 0)
             {
@@ -126,61 +90,13 @@ namespace FastData.Base
                 var sqlBuilder = new StringBuilder();
                 sqlBuilder.AppendFormat("update {0} set", tableName);
 
-                if (fieldSelector == null)
-                {
-                    // 更新所有字段
-                    foreach (var property in PropertyCache.GetPropertyInfo<T>(config.IsPropertyCache))
-                    {
-                        sqlBuilder.AppendFormat(" {0}={1}{0},", property.Name, config.Flag);
-                        var propertyValue = entityGetter.GetValue(entity, property.Name, config.IsPropertyCache);
-                        var parameter = DbProviderFactories.GetFactory(config.ProviderName).CreateParameter();
-                        parameter.ParameterName = property.Name;
-                        parameter.Value = propertyValue ?? (object)DBNull.Value;
-                        result.Param.Add(parameter);
-                    }
-                }
-                else
-                {
-                    // 更新指定字段
-                    foreach (var member in (fieldSelector.Body as NewExpression).Members)
-                    {
-                        sqlBuilder.AppendFormat(" {0}={1}{0},", member.Name, config.Flag);
-                        var propertyValue = entityGetter.GetValue(entity, member.Name, config.IsPropertyCache);
-                        var parameter = DbProviderFactories.GetFactory(config.ProviderName).CreateParameter();
-                        parameter.ParameterName = member.Name;
-                        parameter.Value = propertyValue ?? (object)DBNull.Value;
-                        result.Param.Add(parameter);
-                    }
-                }
+                BuildSetClause(sqlBuilder, entity, config, fieldSelector, entityGetter, factory, result);
 
                 // 移除末尾逗号
                 result.Sql = sqlBuilder.ToString().Substring(0, sqlBuilder.Length - 1);
 
                 // 添加 WHERE 主键条件
-                var keyIndex = 1;
-                foreach (var primaryKey in primaryKeys)
-                {
-                    var primaryKeyValue = entityGetter.GetValue(entity, primaryKey, config.IsPropertyCache);
-
-                    if (primaryKeyValue == null)
-                    {
-                        result.IsSuccess = false;
-                        result.Message = string.Format("主键{0}值为空", primaryKey);
-                        return result;
-                    }
-
-                    if (keyIndex == 1)
-                        result.Sql = string.Format("{0} where {1}={2}{1}{3} ", result.Sql, primaryKey, config.Flag, keyIndex);
-                    else
-                        result.Sql = string.Format("{0} and {1}={2}{1}{3} ", result.Sql, primaryKey, config.Flag, keyIndex);
-
-                    var parameter = DbProviderFactories.GetFactory(config.ProviderName).CreateParameter();
-                    parameter.ParameterName = string.Format("{0}{1}", primaryKey, keyIndex);
-                    parameter.Value = primaryKeyValue ?? (object)DBNull.Value;
-                    result.Param.Add(parameter);
-
-                    keyIndex++;
-                }
+                AppendPrimaryKeyWhere(result, entity, config, entityGetter, factory, primaryKeys);
 
                 result.IsSuccess = true;
                 return result;
@@ -221,6 +137,7 @@ namespace FastData.Base
 
                 columnBuilder.AppendFormat("insert into {0} (", TableNameHelper.GetTableName<T>(config));
                 valueBuilder.Append(" values (");
+                var factory = DbProviderFactories.GetFactory(config.ProviderName);
 
                 var properties = PropertyCache.GetPropertyInfo<T>(config.IsPropertyCache);
 
@@ -243,7 +160,7 @@ namespace FastData.Base
                     valueBuilder.AppendFormat("{1}{0},", property.Name, config.Flag);
 
                     var propertyValue = entityGetter.GetValue(entity, property.Name, config.IsPropertyCache);
-                    var parameter = DbProviderFactories.GetFactory(config.ProviderName).CreateParameter();
+                    var parameter = factory.CreateParameter();
                     parameter.ParameterName = property.Name;
                     parameter.Value = propertyValue ?? (object)DBNull.Value;
                     result.Param.Add(parameter);
@@ -404,6 +321,7 @@ namespace FastData.Base
             var entityGetter = new Property.DynamicGet<T>();
             result.IsCache = config.IsPropertyCache;
             var primaryKeys = GetPrimaryKeys(config, cmd, TableNameHelper.GetTableName<T>(config));
+            var factory = DbProviderFactories.GetFactory(config.ProviderName);
 
             if (primaryKeys.Count == 0)
             {
@@ -414,35 +332,8 @@ namespace FastData.Base
 
             try
             {
-                var sqlBuilder = new StringBuilder();
-                sqlBuilder.AppendFormat("delete {0} ", TableNameHelper.GetTableName<T>(config));
-
-                var keyIndex = 1;
-                foreach (var primaryKey in primaryKeys)
-                {
-                    var primaryKeyValue = entityGetter.GetValue(entity, primaryKey, config.IsPropertyCache);
-
-                    if (primaryKeyValue == null)
-                    {
-                        result.IsSuccess = false;
-                        result.Message = string.Format("主键{0}值为空", primaryKey);
-                        return result;
-                    }
-
-                    if (keyIndex == 1)
-                        sqlBuilder.AppendFormat("where {0}={1}{0} ", primaryKey, config.Flag);
-                    else
-                        sqlBuilder.AppendFormat("and {0}={1}{0} ", primaryKey, config.Flag);
-
-                    var parameter = DbProviderFactories.GetFactory(config.ProviderName).CreateParameter();
-                    parameter.ParameterName = primaryKey;
-                    parameter.Value = primaryKeyValue ?? (object)DBNull.Value;
-                    result.Param.Add(parameter);
-
-                    keyIndex++;
-                }
-
-                result.Sql = sqlBuilder.ToString();
+                result.Sql = string.Format("delete {0} ", TableNameHelper.GetTableName<T>(config));
+                AppendPrimaryKeyWhere(result, entity, config, entityGetter, factory, primaryKeys, useKeyIndex: false);
                 result.IsSuccess = true;
                 return result;
             }
@@ -535,6 +426,72 @@ namespace FastData.Base
             }
 
             return primaryKeys;
+        }
+        #endregion
+
+        #region 私有辅助方法
+        /// <summary>
+        /// 构建 UPDATE SET 子句（字段名=参数名）
+        /// </summary>
+        private static void BuildSetClause<T>(StringBuilder sqlBuilder, T entity, ConfigModel config,
+            Expression<Func<T, object>> fieldSelector, Property.DynamicGet<T> entityGetter,
+            DbProviderFactory factory, OptionModel result)
+        {
+            if (fieldSelector == null)
+            {
+                foreach (var property in PropertyCache.GetPropertyInfo<T>(config.IsPropertyCache))
+                {
+                    sqlBuilder.AppendFormat(" {0}={1}{0},", property.Name, config.Flag);
+                    var parameter = factory.CreateParameter();
+                    parameter.ParameterName = property.Name;
+                    parameter.Value = entityGetter.GetValue(entity, property.Name, config.IsPropertyCache) ?? (object)DBNull.Value;
+                    result.Param.Add(parameter);
+                }
+            }
+            else
+            {
+                foreach (var member in (fieldSelector.Body as NewExpression).Members)
+                {
+                    sqlBuilder.AppendFormat(" {0}={1}{0},", member.Name, config.Flag);
+                    var parameter = factory.CreateParameter();
+                    parameter.ParameterName = member.Name;
+                    parameter.Value = entityGetter.GetValue(entity, member.Name, config.IsPropertyCache) ?? (object)DBNull.Value;
+                    result.Param.Add(parameter);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 追加 WHERE 主键条件到 SQL
+        /// </summary>
+        /// <param name="useKeyIndex">是否在参数名后追加序号（UPDATE 场景需要，DELETE 场景不需要）</param>
+        private static void AppendPrimaryKeyWhere<T>(OptionModel result, T entity, ConfigModel config,
+            Property.DynamicGet<T> entityGetter, DbProviderFactory factory, List<string> primaryKeys,
+            bool useKeyIndex = true)
+        {
+            var keyIndex = 1;
+            foreach (var primaryKey in primaryKeys)
+            {
+                var primaryKeyValue = entityGetter.GetValue(entity, primaryKey, config.IsPropertyCache);
+
+                if (primaryKeyValue == null)
+                {
+                    result.IsSuccess = false;
+                    result.Message = string.Format("主键{0}值为空", primaryKey);
+                    return;
+                }
+
+                var prefix = keyIndex == 1 ? "where" : "and";
+                result.Sql = string.Format("{0} {1} {2}={3}{2}{4} ", result.Sql, prefix, primaryKey, config.Flag,
+                    useKeyIndex ? keyIndex.ToString() : "");
+
+                var parameter = factory.CreateParameter();
+                parameter.ParameterName = useKeyIndex ? string.Format("{0}{1}", primaryKey, keyIndex) : primaryKey;
+                parameter.Value = primaryKeyValue ?? (object)DBNull.Value;
+                result.Param.Add(parameter);
+
+                keyIndex++;
+            }
         }
         #endregion
 

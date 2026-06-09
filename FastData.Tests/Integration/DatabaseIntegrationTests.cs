@@ -24,7 +24,7 @@ namespace FastData.Tests.Integration
         /// <summary>
         /// 主键
         /// </summary>
-        [Column(IsIdentity = true)]
+        [Column(IsKey = true, IsIdentity = true)]
         public int Id { get; set; }
 
         /// <summary>

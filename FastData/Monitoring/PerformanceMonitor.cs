@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace FastData.Monitoring
@@ -21,6 +22,11 @@ namespace FastData.Monitoring
         }
 
         /// <summary>
+        /// 最近 SQL 记录最大保留条数
+        /// </summary>
+        private const int MaxRecentSqlCount = 100;
+
+        /// <summary>
         /// 记录操作执行
         /// </summary>
         public void RecordOperation(string operationType, string sql, TimeSpan duration, bool success)
@@ -28,14 +34,16 @@ namespace FastData.Monitoring
             var key = operationType;
             var metrics = _metrics.GetOrAdd(key, _ => new OperationMetrics { OperationType = operationType });
 
-            lock (metrics)
-            {
-                metrics.TotalOperations++;
-                if (success)
-                    metrics.SuccessfulOperations++;
-                else
-                    metrics.FailedOperations++;
+            // 使用 Interlocked 无锁更新计数器（热路径，高频调用）
+            Interlocked.Increment(ref metrics.TotalOperations);
+            if (success)
+                Interlocked.Increment(ref metrics.SuccessfulOperations);
+            else
+                Interlocked.Increment(ref metrics.FailedOperations);
 
+            // 仅对持续时间统计加锁（低频更新区域）
+            lock (metrics.DurationLock)
+            {
                 metrics.TotalDuration += duration.TotalMilliseconds;
 
                 if (duration.TotalMilliseconds > metrics.MaxDuration)
@@ -46,18 +54,20 @@ namespace FastData.Monitoring
 
                 metrics.LastExecutionTime = DateTime.UtcNow;
                 metrics.AverageDuration = metrics.TotalDuration / metrics.TotalOperations;
-
-                // 记录最近执行的 SQL（最多保存 100 条）
-                if (metrics.RecentSqls.Count >= 100)
-                    metrics.RecentSqls.RemoveAt(0);
-                metrics.RecentSqls.Add(new SqlExecution
-                {
-                    Sql = sql,
-                    Duration = duration,
-                    Success = success,
-                    Timestamp = DateTime.UtcNow
-                });
             }
+
+            // 使用 ConcurrentQueue 无锁记录最近 SQL
+            metrics.RecentSqls.Enqueue(new SqlExecution
+            {
+                Sql = sql,
+                Duration = duration,
+                Success = success,
+                Timestamp = DateTime.UtcNow
+            });
+
+            // 超出限制时通过 TryDequeue 循环裁剪，无需加锁
+            while (metrics.RecentSqls.Count > MaxRecentSqlCount)
+                metrics.RecentSqls.TryDequeue(out _);
         }
 
         /// <summary>
@@ -113,22 +123,20 @@ namespace FastData.Monitoring
 
             foreach (var metrics in _metrics.Values)
             {
-                lock (metrics)
-                {
-                    var sqlExecutions = metrics.RecentSqls
-                        .Where(s => s.Duration.TotalMilliseconds > thresholdMs)
-                        .ToList();
+                // ConcurrentQueue 支持线程安全枚举，无需加锁
+                var sqlExecutions = metrics.RecentSqls
+                    .Where(s => s.Duration.TotalMilliseconds > thresholdMs)
+                    .ToList();
 
-                    foreach (var sql in sqlExecutions)
+                foreach (var sql in sqlExecutions)
+                {
+                    slowQueries.Add(new SlowQuery
                     {
-                        slowQueries.Add(new SlowQuery
-                        {
-                            OperationType = metrics.OperationType,
-                            Sql = sql.Sql,
-                            Duration = sql.Duration,
-                            Timestamp = sql.Timestamp
-                        });
-                    }
+                        OperationType = metrics.OperationType,
+                        Sql = sql.Sql,
+                        Duration = sql.Duration,
+                        Timestamp = sql.Timestamp
+                    });
                 }
             }
 
@@ -141,23 +149,45 @@ namespace FastData.Monitoring
     /// </summary>
     public class OperationMetrics
     {
+        /// <summary>
+        /// 持续时间统计专用锁（仅用于 min/max/average/total 等低频更新）
+        /// </summary>
+        internal object DurationLock { get; } = new object();
+
         public string OperationType { get; set; }
-        public long TotalOperations { get; set; }
-        public long SuccessfulOperations { get; set; }
-        public long FailedOperations { get; set; }
+
+        /// <summary>
+        /// 总操作数（使用 Interlocked 无锁更新）
+        /// </summary>
+        public long TotalOperations;
+
+        /// <summary>
+        /// 成功操作数（使用 Interlocked 无锁更新）
+        /// </summary>
+        public long SuccessfulOperations;
+
+        /// <summary>
+        /// 失败操作数（使用 Interlocked 无锁更新）
+        /// </summary>
+        public long FailedOperations;
+
         public double TotalDuration { get; set; }
         public double AverageDuration { get; set; }
         public double MaxDuration { get; set; }
         public double MinDuration { get; set; }
         public DateTime LastExecutionTime { get; set; }
-        public List<SqlExecution> RecentSqls { get; set; } = new List<SqlExecution>();
 
-        public double SuccessRate => TotalOperations > 0 
-            ? (double)SuccessfulOperations / TotalOperations * 100 
+        /// <summary>
+        /// 最近执行的 SQL 记录（使用 ConcurrentQueue 支持无锁并发读写）
+        /// </summary>
+        public ConcurrentQueue<SqlExecution> RecentSqls { get; set; } = new ConcurrentQueue<SqlExecution>();
+
+        public double SuccessRate => TotalOperations > 0
+            ? (double)SuccessfulOperations / TotalOperations * 100
             : 0;
 
-        public double FailureRate => TotalOperations > 0 
-            ? (double)FailedOperations / TotalOperations * 100 
+        public double FailureRate => TotalOperations > 0
+            ? (double)FailedOperations / TotalOperations * 100
             : 0;
     }
 

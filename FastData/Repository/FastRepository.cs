@@ -399,16 +399,32 @@ namespace FastData.Repository
             return DbCache.Exists(DataConfig.GetConfig().CacheType, name.ToLower());
         }
 
+        /// <summary>
+        /// 获取Map的备注信息
+        /// </summary>
+        /// <param name="name">Map名称</param>
+        /// <returns>Map备注信息</returns>
         public string MapRemark(string name)
         {
             return DbCache.Get(DataConfig.GetConfig().CacheType, string.Format("{0}.remark", name.ToLower()));
         }
 
+        /// <summary>
+        /// 判断Map是否开启日志记录
+        /// </summary>
+        /// <param name="name">Map名称</param>
+        /// <returns>是否开启日志记录</returns>
         public bool IsMapLog(string name)
         {
             return DbCache.Get(DataConfig.GetConfig().CacheType, string.Format("{0}.log", name.ToLower())).ToStr().ToLower() == "true";
         }
 
+        /// <summary>
+        /// 获取Map参数的备注信息
+        /// </summary>
+        /// <param name="name">Map名称</param>
+        /// <param name="param">参数名称</param>
+        /// <returns>参数备注信息</returns>
         public string MapParamRemark(string name, string param)
         {
             return DbCache.Get(DataConfig.GetConfig().CacheType, string.Format("{0}.{1}.remark", name.ToLower(), param.ToLower()));
@@ -469,6 +485,11 @@ namespace FastData.Repository
             return DbCache.Get(DataConfig.GetConfig().CacheType, string.Format("{0}.{1}.existsmap", name.ToLower(), param.ToLower()));
         }
 
+        /// <summary>
+        /// 获取指定名称的数据库配置
+        /// </summary>
+        /// <param name="name">配置名称</param>
+        /// <returns>数据库配置模型</returns>
         public ConfigModel DbConfig(string name)
         {
             return DataConfig.GetConfig(name);
@@ -849,7 +870,8 @@ namespace FastData.Repository
             }
 
             var queryField = BaseField.QueryField<T>(predicate, field, query.Data.Config);
-            query.Data.Field.Add(queryField.Field);
+            // queryField.Field 是逗号分隔的字符串，需要分割成列表
+            query.Data.Field.AddRange(queryField.Field.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries));
             query.Data.AsName.AddRange(queryField.AsName);
 
             var condtion = VisitExpression.LambdaWhere<T>(predicate, query.Data.Config);

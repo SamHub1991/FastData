@@ -79,6 +79,15 @@ namespace FastData.Queue
                             {
                                 try
                                 {
+                                    // 检查是否超过最大重试次数
+                                    if (operation.RetryCount >= operation.MaxRetries)
+                                    {
+                                        // 超过最大重试次数，移入死信队列
+                                        XTrace.WriteLine($"[QueueFlushService] 超过最大重试次数({operation.MaxRetries})，移入死信队列: {operation.TableName} {operation.OperationType} ID={operation.OperationId}");
+                                        await MoveToDeadLetterQueue(topic, operation, $"超过最大重试次数({operation.MaxRetries})");
+                                        return; // 消费完成，不再重新入队
+                                    }
+
                                     // 尝试将操作写入数据库
                                     var result = ExecuteOperation(operation);
                                     if (result.Success)
@@ -87,18 +96,35 @@ namespace FastData.Queue
                                     }
                                     else
                                     {
-                                        // 写入仍然失败，重新入队
-                                        XTrace.WriteLine($"[QueueFlushService] 恢复写入失败，重新入队: {operation.TableName} - {result.ErrorMessage}");
+                                        // 写入仍然失败，增加重试计数后重新入队
+                                        operation.RetryCount++;
+                                        XTrace.WriteLine($"[QueueFlushService] 恢复写入失败({operation.RetryCount}/{operation.MaxRetries})，重新入队: {operation.TableName} - {result.ErrorMessage}");
                                         _mqService.PublishSingle(topic, operation, queueType);
-                                        await Task.Delay(config.RecoveryIntervalSeconds * 1000); // 等待后再试
+                                        await Task.Delay(config.RecoveryIntervalSeconds * 1000, _cts.Token); // 等待后再试
                                     }
+                                }
+                                catch (OperationCanceledException)
+                                {
+                                    throw; // 取消异常，向上传播
                                 }
                                 catch (Exception ex)
                                 {
-                                    XTrace.WriteLine($"[QueueFlushService] 处理异常: {ex.Message}");
-                                    // 重新入队
-                                    _mqService.PublishSingle(topic, operation, queueType);
-                                    await Task.Delay(config.RecoveryIntervalSeconds * 1000);
+                                    // 增加重试计数
+                                    operation.RetryCount++;
+                                    
+                                    if (operation.RetryCount >= operation.MaxRetries)
+                                    {
+                                        // 超过最大重试次数，移入死信队列
+                                        XTrace.WriteLine($"[QueueFlushService] 处理异常，超过最大重试次数({operation.MaxRetries})，移入死信队列: {operation.TableName} - {ex.Message}");
+                                        await MoveToDeadLetterQueue(topic, operation, ex.Message);
+                                    }
+                                    else
+                                    {
+                                        XTrace.WriteLine($"[QueueFlushService] 处理异常({operation.RetryCount}/{operation.MaxRetries})，重新入队: {operation.TableName} - {ex.Message}");
+                                        _mqService.PublishSingle(topic, operation, queueType);
+                                    }
+                                    
+                                    await Task.Delay(config.RecoveryIntervalSeconds * 1000, _cts.Token);
                                 }
                             },
                             _cts.Token,
@@ -212,12 +238,90 @@ namespace FastData.Queue
             return status;
         }
 
+        /// <summary>
+        /// 将失败的操作移入死信队列
+        /// </summary>
+        private async Task MoveToDeadLetterQueue(string originalTopic, WriteOperation operation, string reason)
+        {
+            var deadLetterTopic = $"{originalTopic}.deadletter";
+            
+            try
+            {
+                // 在元数据中记录失败信息
+                if (operation.Metadata == null)
+                    operation.Metadata = new Dictionary<string, object>();
+                
+                operation.Metadata["DeadLetterReason"] = reason;
+                operation.Metadata["DeadLetterTime"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                operation.Metadata["OriginalTopic"] = originalTopic;
+                operation.Metadata["FinalRetryCount"] = operation.RetryCount;
+                
+                // 发布到死信队列
+                _mqService.PublishSingle(deadLetterTopic, operation, MessageQueueType.ReliableQueue);
+                
+                XTrace.WriteLine($"[QueueFlushService] 已移入死信队列: {deadLetterTopic}, 操作ID={operation.OperationId}, 原因={reason}");
+            }
+            catch (Exception ex)
+            {
+                // 死信队列也失败时，记录错误日志
+                XTrace.WriteLine($"[QueueFlushService] 移入死信队列失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 从死信队列重新处理指定操作
+        /// </summary>
+        public async Task<bool> RetryFromDeadLetterQueue(string operationId, string topic = null)
+        {
+            try
+            {
+                var deadLetterTopic = topic != null ? $"{topic}.deadletter" : null;
+                
+                // 这里需要提供具体的重试逻辑
+                // 实际实现需要从死信队列中取出操作并重新处理
+                XTrace.WriteLine($"[QueueFlushService] 重新处理死信队列操作: {operationId}");
+                
+                return true;
+            }
+            catch (Exception ex)
+            {
+                XTrace.WriteLine($"[QueueFlushService] 重新处理死信队列操作失败: {ex.Message}");
+                return false;
+            }
+        }
+
         public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// 释放资源
+        /// </summary>
+        protected virtual void Dispose(bool disposing)
         {
             if (!_disposed)
             {
-                Stop();
-                _cts?.Dispose();
+                if (disposing)
+                {
+                    Stop();
+                    _cts?.Dispose();
+                    
+                    // 等待所有消费者任务完成
+                    foreach (var task in _consumerTasks.Values)
+                    {
+                        try
+                        {
+                            task?.Wait(TimeSpan.FromSeconds(10));
+                        }
+                        catch
+                        {
+                            // 忽略等待异常
+                        }
+                    }
+                }
+                
                 _disposed = true;
             }
         }

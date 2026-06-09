@@ -32,6 +32,12 @@ namespace FastData.Property
         private static readonly ConcurrentDictionary<string, object> _dynamicSetDelegateCache =
             new ConcurrentDictionary<string, object>();
 
+        /// <summary>
+        /// DynamicGet 委托缓存（替代 DbCache，统一使用 ConcurrentDictionary）
+        /// </summary>
+        private static readonly ConcurrentDictionary<string, Func<object, string, object>> _dynamicGetDelegateCache =
+            new ConcurrentDictionary<string, Func<object, string, object>>();
+
         private static readonly BindingFlags _bindingFlags =
             BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly;
 
@@ -223,6 +229,14 @@ namespace FastData.Property
             var result = factory();
             _dynamicSetDelegateCache[key] = result;
             return result;
+        }
+
+        /// <summary>
+        /// 获取或添加 DynamicGet 委托（使用 ConcurrentDictionary 替代 DbCache/MemoryCache）
+        /// </summary>
+        internal static Func<object, string, object> GetOrAddDynamicGetDelegate(string key, Func<Func<object, string, object>> factory)
+        {
+            return _dynamicGetDelegateCache.GetOrAdd(key, _ => factory());
         }
         #endregion
     }

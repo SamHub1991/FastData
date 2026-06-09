@@ -72,6 +72,11 @@ namespace FastData.Sharding
         /// 数据库连接 Key
         /// </summary>
         public string DatabaseKey { get; set; }
+
+        /// <summary>
+        /// 缓存的分片策略实例（由 ShardingManager.Configure 设置，避免每次查询重复查找策略字典）
+        /// </summary>
+        internal IShardingStrategy CachedStrategy { get; set; }
     }
 
     /// <summary>

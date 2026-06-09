@@ -83,7 +83,7 @@ namespace FastData.Model
         }
 
         /// <summary>
-        /// 链式 Like 条件
+        /// 链式 Like 条件（参数化查询，防 SQL 注入）
         /// </summary>
         public DataQuery<T> Like(Expression<Func<T, object>> field, string value)
         {
@@ -94,38 +94,151 @@ namespace FastData.Model
             ChainedConditions.Add(new ChainedCondition
             {
                 Operator = "AND",
-                Where = string.Format("{0} like '{1}'", fieldName, value)
+                Where = string.Empty,
+                Param = new List<DbParameter>(),
+                Conditions = new List<FastData.Base.Condition>
+                {
+                    new FastData.Base.Condition(fieldName, FastData.Base.ConditionOperator.Like, value, FastData.Base.ConditionLogic.And)
+                }
             });
 
             return this;
         }
 
         /// <summary>
-        /// 链式 Contains 条件（IN 查询）
+        /// 链式 NotLike 条件（参数化查询）
         /// </summary>
-        public DataQuery<T> In(Expression<Func<T, object>> field, IEnumerable<object> values)
+        public DataQuery<T> NotLike(Expression<Func<T, object>> field, string value)
         {
-            if (field == null || values == null)
+            if (field == null || string.IsNullOrEmpty(value))
                 return this;
 
             var fieldName = GetMemberName(field);
-            var valueList = values.ToList();
-            if (valueList.Count == 0)
-                return this;
+            ChainedConditions.Add(new ChainedCondition
+            {
+                Operator = "AND",
+                Where = string.Empty,
+                Param = new List<DbParameter>(),
+                Conditions = new List<FastData.Base.Condition>
+                {
+                    new FastData.Base.Condition(fieldName, FastData.Base.ConditionOperator.NotLike, value, FastData.Base.ConditionLogic.And)
+                }
+            });
+            return this;
+        }
 
-            var inClause = string.Join(",", valueList.Select(v => string.Format("'{0}'", v)));
+        /// <summary>
+        /// 链式 Contains 条件（LIKE '%value%'，参数化）
+        /// </summary>
+        public DataQuery<T> Contains(Expression<Func<T, object>> field, string value)
+        {
+            if (field == null || value == null) return this;
+            var fieldName = GetMemberName(field);
+            ChainedConditions.Add(new ChainedCondition
+            {
+                Operator = "AND",
+                Where = string.Empty,
+                Param = new List<DbParameter>(),
+                Conditions = new List<FastData.Base.Condition>
+                {
+                    new FastData.Base.Condition(fieldName, FastData.Base.ConditionOperator.Contains, value, FastData.Base.ConditionLogic.And)
+                }
+            });
+            return this;
+        }
+
+        /// <summary>
+        /// 链式 StartsWith 条件（LIKE 'value%'，参数化）
+        /// </summary>
+        public DataQuery<T> StartsWith(Expression<Func<T, object>> field, string value)
+        {
+            if (field == null || value == null) return this;
+            var fieldName = GetMemberName(field);
+            ChainedConditions.Add(new ChainedCondition
+            {
+                Operator = "AND",
+                Where = string.Empty,
+                Param = new List<DbParameter>(),
+                Conditions = new List<FastData.Base.Condition>
+                {
+                    new FastData.Base.Condition(fieldName, FastData.Base.ConditionOperator.StartsWith, value, FastData.Base.ConditionLogic.And)
+                }
+            });
+            return this;
+        }
+
+        /// <summary>
+        /// 链式 EndsWith 条件（LIKE '%value'，参数化）
+        /// </summary>
+        public DataQuery<T> EndsWith(Expression<Func<T, object>> field, string value)
+        {
+            if (field == null || value == null) return this;
+            var fieldName = GetMemberName(field);
+            ChainedConditions.Add(new ChainedCondition
+            {
+                Operator = "AND",
+                Where = string.Empty,
+                Param = new List<DbParameter>(),
+                Conditions = new List<FastData.Base.Condition>
+                {
+                    new FastData.Base.Condition(fieldName, FastData.Base.ConditionOperator.EndsWith, value, FastData.Base.ConditionLogic.And)
+                }
+            });
+            return this;
+        }
+
+        /// <summary>
+        /// 链式 In 条件（参数化查询）
+        /// </summary>
+        public DataQuery<T> In(Expression<Func<T, object>> field, IEnumerable<object> values)
+        {
+            if (field == null || values == null) return this;
+
+            var fieldName = GetMemberName(field);
+            var list = new List<object>();
+            foreach (var v in values) list.Add(v);
+            if (list.Count == 0) return this;
 
             ChainedConditions.Add(new ChainedCondition
             {
                 Operator = "AND",
-                Where = string.Format("{0} IN ({1})", fieldName, inClause)
+                Where = string.Empty,
+                Param = new List<DbParameter>(),
+                Conditions = new List<FastData.Base.Condition>
+                {
+                    new FastData.Base.Condition(fieldName, FastData.Base.ConditionOperator.In, list, FastData.Base.ConditionLogic.And)
+                }
             });
-
             return this;
         }
 
         /// <summary>
-        /// 链式 Between 条件
+        /// 链式 NotIn 条件（参数化查询）
+        /// </summary>
+        public DataQuery<T> NotIn(Expression<Func<T, object>> field, IEnumerable<object> values)
+        {
+            if (field == null || values == null) return this;
+
+            var fieldName = GetMemberName(field);
+            var list = new List<object>();
+            foreach (var v in values) list.Add(v);
+            if (list.Count == 0) return this;
+
+            ChainedConditions.Add(new ChainedCondition
+            {
+                Operator = "AND",
+                Where = string.Empty,
+                Param = new List<DbParameter>(),
+                Conditions = new List<FastData.Base.Condition>
+                {
+                    new FastData.Base.Condition(fieldName, FastData.Base.ConditionOperator.NotIn, list, FastData.Base.ConditionLogic.And)
+                }
+            });
+            return this;
+        }
+
+        /// <summary>
+        /// 链式 Between 条件（参数化查询）
         /// </summary>
         /// <param name="field">字段表达式</param>
         /// <param name="start">起始值</param>
@@ -133,17 +246,73 @@ namespace FastData.Model
         /// <returns>DataQuery泛型对象</returns>
         public DataQuery<T> Between(Expression<Func<T, object>> field, object start, object end)
         {
-            if (field == null)
-                return this;
+            if (field == null) return this;
 
             var fieldName = GetMemberName(field);
-
             ChainedConditions.Add(new ChainedCondition
             {
                 Operator = "AND",
-                Where = string.Format("{0} BETWEEN '{1}' AND '{2}'", fieldName, start, end)
+                Where = string.Empty,
+                Param = new List<DbParameter>(),
+                Conditions = new List<FastData.Base.Condition>
+                {
+                    new FastData.Base.Condition(fieldName, FastData.Base.ConditionOperator.Between, new List<object> { start, end }, FastData.Base.ConditionLogic.And)
+                }
             });
+            return this;
+        }
 
+        /// <summary>链式 NotBetween 条件</summary>
+        public DataQuery<T> NotBetween(Expression<Func<T, object>> field, object start, object end)
+        {
+            if (field == null) return this;
+            var fieldName = GetMemberName(field);
+            ChainedConditions.Add(new ChainedCondition
+            {
+                Operator = "AND",
+                Where = string.Empty,
+                Param = new List<DbParameter>(),
+                Conditions = new List<FastData.Base.Condition>
+                {
+                    new FastData.Base.Condition(fieldName, FastData.Base.ConditionOperator.NotBetween, new List<object> { start, end }, FastData.Base.ConditionLogic.And)
+                }
+            });
+            return this;
+        }
+
+        /// <summary>链式 IsNull 条件</summary>
+        public DataQuery<T> IsNull(Expression<Func<T, object>> field)
+        {
+            if (field == null) return this;
+            var fieldName = GetMemberName(field);
+            ChainedConditions.Add(new ChainedCondition
+            {
+                Operator = "AND",
+                Where = string.Empty,
+                Param = new List<DbParameter>(),
+                Conditions = new List<FastData.Base.Condition>
+                {
+                    new FastData.Base.Condition(fieldName, FastData.Base.ConditionOperator.IsNull, null, FastData.Base.ConditionLogic.And)
+                }
+            });
+            return this;
+        }
+
+        /// <summary>链式 IsNotNull 条件</summary>
+        public DataQuery<T> IsNotNull(Expression<Func<T, object>> field)
+        {
+            if (field == null) return this;
+            var fieldName = GetMemberName(field);
+            ChainedConditions.Add(new ChainedCondition
+            {
+                Operator = "AND",
+                Where = string.Empty,
+                Param = new List<DbParameter>(),
+                Conditions = new List<FastData.Base.Condition>
+                {
+                    new FastData.Base.Condition(fieldName, FastData.Base.ConditionOperator.IsNotNull, null, FastData.Base.ConditionLogic.And)
+                }
+            });
             return this;
         }
 

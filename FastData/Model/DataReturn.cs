@@ -100,5 +100,14 @@ namespace FastData.Model
         /// 出错信息
         /// </summary>
         public string Message { get; set; }
+
+        /// <summary>
+        /// 自增主键值（仅 INSERT 操作，跨数据库兼容）
+        /// SQL Server: SCOPE_IDENTITY()
+        /// MySQL: LAST_INSERT_ID()
+        /// SQLite: last_insert_rowid()
+        /// PostgreSQL: lastval()
+        /// </summary>
+        public long IdentityValue { get; set; }
     }
 }

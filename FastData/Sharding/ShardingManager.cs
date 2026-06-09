@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data.Common;
 using System.Linq;
@@ -50,9 +51,8 @@ namespace FastData.Sharding
     /// </summary>
     public class ShardingManager
     {
-        private static readonly Dictionary<ShardingType, IShardingStrategy> _strategies = new Dictionary<ShardingType, IShardingStrategy>();
-        private static readonly Dictionary<System.Type, ShardingConfig> _configs = new Dictionary<System.Type, ShardingConfig>();
-        private static readonly object _lock = new object();
+        private static readonly ConcurrentDictionary<ShardingType, IShardingStrategy> _strategies = new ConcurrentDictionary<ShardingType, IShardingStrategy>();
+        private static readonly ConcurrentDictionary<System.Type, ShardingConfig> _configs = new ConcurrentDictionary<System.Type, ShardingConfig>();
 
         static ShardingManager()
         {
@@ -72,10 +72,7 @@ namespace FastData.Sharding
             if (strategy == null)
                 throw new ArgumentNullException(nameof(strategy));
 
-            lock (_lock)
-            {
-                _strategies[strategy.Type] = strategy;
-            }
+            _strategies[strategy.Type] = strategy;
         }
 
         /// <summary>
@@ -91,10 +88,11 @@ namespace FastData.Sharding
             if (string.IsNullOrEmpty(config.BaseTableName))
                 config.BaseTableName = Base.TableNameHelper.GetTableName<T>();
 
-            lock (_lock)
-            {
-                _configs[typeof(T)] = config;
-            }
+            // 缓存策略引用，避免后续每次查询时重复查找
+            if (_strategies.TryGetValue(config.ShardingType, out var strategy))
+                config.CachedStrategy = strategy;
+
+            _configs[typeof(T)] = config;
         }
 
         /// <summary>
@@ -110,11 +108,8 @@ namespace FastData.Sharding
         /// </summary>
         public static ShardingConfig GetConfig(System.Type entityType)
         {
-            lock (_lock)
-            {
-                _configs.TryGetValue(entityType, out var config);
-                return config;
-            }
+            _configs.TryGetValue(entityType, out var config);
+            return config;
         }
 
         /// <summary>
@@ -142,7 +137,7 @@ namespace FastData.Sharding
             if (config == null)
                 return Base.TableNameHelper.GetTableName<T>();
 
-            var strategy = GetStrategy(config.ShardingType);
+            var strategy = config.CachedStrategy ?? GetStrategy(config.ShardingType);
             return strategy.GetTableName(config, entity);
         }
 
@@ -155,7 +150,7 @@ namespace FastData.Sharding
             if (config == null)
                 return new List<string> { Base.TableNameHelper.GetTableName<T>() };
 
-            var strategy = GetStrategy(config.ShardingType);
+            var strategy = config.CachedStrategy ?? GetStrategy(config.ShardingType);
             return strategy.GetTableNames(config, queryParams);
         }
 
@@ -168,7 +163,7 @@ namespace FastData.Sharding
             if (config == null)
                 return new List<string> { Base.TableNameHelper.GetTableName<T>() };
 
-            var strategy = GetStrategy(config.ShardingType);
+            var strategy = config.CachedStrategy ?? GetStrategy(config.ShardingType);
             return strategy.GetAllTableNames(config);
         }
 
@@ -177,13 +172,10 @@ namespace FastData.Sharding
         /// </summary>
         public static IShardingStrategy GetStrategy(ShardingType type)
         {
-            lock (_lock)
-            {
-                if (_strategies.TryGetValue(type, out var strategy))
-                    return strategy;
+            if (_strategies.TryGetValue(type, out var strategy))
+                return strategy;
 
-                throw new InvalidOperationException(string.Format("未注册的分表策略类型: {0}", type));
-            }
+            throw new InvalidOperationException(string.Format("未注册的分表策略类型: {0}", type));
         }
 
         /// <summary>
@@ -316,10 +308,7 @@ namespace FastData.Sharding
         /// </summary>
         public static void Clear()
         {
-            lock (_lock)
-            {
-                _configs.Clear();
-            }
+            _configs.Clear();
         }
     }
 }

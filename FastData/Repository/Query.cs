@@ -1,4 +1,4 @@
-﻿using FastData.Base;
+using FastData.Base;
 using FastData.Config;
 using FastData.Context;
 using FastData.Model;
@@ -29,7 +29,8 @@ namespace FastData.Repository
         private IQuery JoinType<T, T1>(string joinType, Expression<Func<T, T1, bool>> predicate, Expression<Func<T1, object>> field = null, bool isDblink = false)
         {
             var queryField = BaseField.QueryField<T, T1>(predicate, field, this.Data.Config);
-            this.Data.Field.Add(queryField.Field);
+            // queryField.Field 是逗号分隔的字符串，需要分割成列表
+            this.Data.Field.AddRange(queryField.Field.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries));
             this.Data.AsName.AddRange(queryField.AsName);
 
             var condtion = VisitExpression.LambdaWhere<T, T1>(predicate, this.Data.Config);

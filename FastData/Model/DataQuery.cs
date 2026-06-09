@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Data.Common;
 
@@ -90,23 +90,30 @@ namespace FastData.Model
     #region 链式条件
     /// <summary>
     /// 链式条件（用于 Where/Or 链式调用）
+    /// <para>
+    /// 为了同时支持"老字符串+参数列表"形式与新的"条件片段（<see cref="FastData.Base.Condition"/>）列表"
+    /// 形式，本类同时保留 <see cref="Where"/> + <see cref="Param"/> 字段以及
+    /// <see cref="Conditions"/> 列表。优先使用 <see cref="Conditions"/>（新机制），
+    /// 旧字段在 <see cref="FastData.Base.WhereBuilder"/> 渲染时作为兜底。
+    /// </para>
     /// </summary>
     public class ChainedCondition
     {
-        /// <summary>
-        /// 逻辑运算符（AND/OR）
-        /// </summary>
+        /// <summary>逻辑运算符（AND/OR）</summary>
         public string Operator { get; set; }
 
-        /// <summary>
-        /// WHERE 条件字符串
-        /// </summary>
+        /// <summary>WHERE 条件字符串（兼容老 API）</summary>
         public string Where { get; set; }
 
-        /// <summary>
-        /// 参数列表
-        /// </summary>
+        /// <summary>参数列表（兼容老 API）</summary>
         public List<DbParameter> Param { get; set; } = new List<DbParameter>();
+
+        /// <summary>
+        /// 新的条件片段列表（推荐使用）。
+        /// 当该列表非空时，<see cref="FastData.Base.WhereBuilder"/> 会按 <see cref="FastData.Base.Condition.Render"/>
+        /// 渲染；为空时回退到 <see cref="Where"/> + <see cref="Param"/>。
+        /// </summary>
+        public List<FastData.Base.Condition> Conditions { get; set; }
     }
     #endregion
 }
