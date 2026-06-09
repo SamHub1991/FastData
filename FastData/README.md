@@ -45,6 +45,7 @@ dotnet add package FastData
 
 | 文档 | 说明 |
 |------|------|
+| **[ORM 最佳实践](./docs/ORM_BEST_PRACTICES.md)** | 推荐 API 用法、过时 API 迁移指南 |
 | [条件动态拼接（Condition / ConditionBuilder）](./docs/CONDITION_BUILDER.md) | 17 种操作符的对象化拼接，参数化防 SQL 注入，可扩展 |
 | [数据库提供程序自动注册机制](./docs/AUTO_PROVIDER_REGISTRATION.md) | .NET Core/.NET 5+ 环境下 Provider 自动扫描注册 |
 

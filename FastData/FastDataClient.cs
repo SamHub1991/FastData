@@ -369,7 +369,30 @@ namespace FastData
         /// <summary>
         /// 添加单条数据（异步）
         /// </summary>
+        /// <remarks>
+        /// <para><strong>过时方法：</strong>请使用 <see cref="AddAsync{T}"/> 代替。</para>
+        /// <para>示例：<c>await client.AddAsync(user);</c></para>
+        /// </remarks>
+        [Obsolete("请使用 AddAsync 代替，本方法将在未来版本移除")]
         public Task<WriteReturn> AddAsy<T>(T model, DataContext db = null) where T : class, new()
+        {
+            return FastWrite.AddAsy<T>(model, db, _key, _enableSqlLog);
+        }
+
+        /// <summary>
+        /// 添加单条数据（异步）
+        /// </summary>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="model">实体对象</param>
+        /// <param name="db">数据上下文（可选）</param>
+        /// <returns>写入结果</returns>
+        /// <example>
+        /// <code>
+        /// var user = new User { Name = "张三", Age = 25 };
+        /// var result = await client.AddAsync(user);
+        /// </code>
+        /// </example>
+        public Task<WriteReturn> AddAsync<T>(T model, DataContext db = null) where T : class, new()
         {
             return FastWrite.AddAsy<T>(model, db, _key, _enableSqlLog);
         }
@@ -399,7 +422,29 @@ namespace FastData
         /// <summary>
         /// 批量添加数据（异步）
         /// </summary>
+        /// <remarks>
+        /// <para><strong>过时方法：</strong>请使用 <see cref="AddListAsync{T}"/> 代替。</para>
+        /// </remarks>
+        [Obsolete("请使用 AddListAsync 代替，本方法将在未来版本移除")]
         public Task<WriteReturn> AddListAsy<T>(List<T> list, bool isTrans = true) where T : class, new()
+        {
+            return FastWrite.AddListAsy<T>(list, _key, isTrans, _enableSqlLog);
+        }
+
+        /// <summary>
+        /// 批量添加数据（异步）
+        /// </summary>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="list">实体列表</param>
+        /// <param name="isTrans">是否使用事务（默认 true）</param>
+        /// <returns>写入结果</returns>
+        /// <example>
+        /// <code>
+        /// var users = new List&lt;User&gt; { ... };
+        /// var result = await client.AddListAsync(users);
+        /// </code>
+        /// </example>
+        public Task<WriteReturn> AddListAsync<T>(List<T> list, bool isTrans = true) where T : class, new()
         {
             return FastWrite.AddListAsy<T>(list, _key, isTrans, _enableSqlLog);
         }
@@ -429,7 +474,24 @@ namespace FastData
         /// <summary>
         /// 更新数据（异步）
         /// </summary>
+        /// <remarks>
+        /// <para><strong>过时方法：</strong>请使用 <see cref="UpdateAsync{T}(T, Expression{Func{T, object}}, DataContext)"/> 代替。</para>
+        /// </remarks>
+        [Obsolete("请使用 UpdateAsync 代替，本方法将在未来版本移除")]
         public Task<WriteReturn> UpdateAsy<T>(T model, Expression<Func<T, object>> field = null, DataContext db = null) where T : class, new()
+        {
+            return FastWrite.UpdateAsy<T>(model, field, db, _key, _enableSqlLog);
+        }
+
+        /// <summary>
+        /// 更新数据（异步，根据主键）
+        /// </summary>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="model">实体对象</param>
+        /// <param name="field">更新的字段表达式（可选）</param>
+        /// <param name="db">数据上下文（可选）</param>
+        /// <returns>写入结果</returns>
+        public Task<WriteReturn> UpdateAsync<T>(T model, Expression<Func<T, object>> field = null, DataContext db = null) where T : class, new()
         {
             return FastWrite.UpdateAsy<T>(model, field, db, _key, _enableSqlLog);
         }
@@ -457,7 +519,25 @@ namespace FastData
         /// <summary>
         /// 更新数据（根据条件，异步）
         /// </summary>
+        /// <remarks>
+        /// <para><strong>过时方法：</strong>请使用 <see cref="UpdateAsync{T}(T, Expression{Func{T, bool}}, Expression{Func{T, object}}, DataContext)"/> 代替。</para>
+        /// </remarks>
+        [Obsolete("请使用 UpdateAsync 代替，本方法将在未来版本移除")]
         public Task<WriteReturn> UpdateAsy<T>(T model, Expression<Func<T, bool>> predicate, Expression<Func<T, object>> field = null, DataContext db = null) where T : class, new()
+        {
+            return FastWrite.UpdateAsy<T>(model, predicate, field, db, _key, _enableSqlLog);
+        }
+
+        /// <summary>
+        /// 更新数据（异步，根据条件）
+        /// </summary>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="model">实体对象（包含要更新的值）</param>
+        /// <param name="predicate">更新条件</param>
+        /// <param name="field">更新的字段表达式（可选）</param>
+        /// <param name="db">数据上下文（可选）</param>
+        /// <returns>写入结果</returns>
+        public Task<WriteReturn> UpdateAsync<T>(T model, Expression<Func<T, bool>> predicate, Expression<Func<T, object>> field = null, DataContext db = null) where T : class, new()
         {
             return FastWrite.UpdateAsy<T>(model, predicate, field, db, _key, _enableSqlLog);
         }
@@ -478,7 +558,24 @@ namespace FastData
         /// <summary>
         /// 批量更新数据（异步）
         /// </summary>
+        /// <remarks>
+        /// <para><strong>过时方法：</strong>请使用 <see cref="UpdateListAsync{T}"/> 代替。</para>
+        /// </remarks>
+        [Obsolete("请使用 UpdateListAsync 代替，本方法将在未来版本移除")]
         public Task<WriteReturn> UpdateListAsy<T>(List<T> list, Expression<Func<T, object>> field = null, DataContext db = null) where T : class, new()
+        {
+            return FastWrite.UpdateListAsy<T>(list, field, db, _key, _enableSqlLog);
+        }
+
+        /// <summary>
+        /// 批量更新数据（异步）
+        /// </summary>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="list">实体列表</param>
+        /// <param name="field">更新的字段表达式（可选）</param>
+        /// <param name="db">数据上下文（可选）</param>
+        /// <returns>写入结果</returns>
+        public Task<WriteReturn> UpdateListAsync<T>(List<T> list, Expression<Func<T, object>> field = null, DataContext db = null) where T : class, new()
         {
             return FastWrite.UpdateListAsy<T>(list, field, db, _key, _enableSqlLog);
         }
@@ -503,7 +600,23 @@ namespace FastData
         /// <summary>
         /// 删除数据（根据条件，异步）
         /// </summary>
+        /// <remarks>
+        /// <para><strong>过时方法：</strong>请使用 <see cref="DeleteAsync{T}(Expression{Func{T, bool}}, DataContext)"/> 代替。</para>
+        /// </remarks>
+        [Obsolete("请使用 DeleteAsync 代替，本方法将在未来版本移除")]
         public Task<WriteReturn> DeleteAsy<T>(Expression<Func<T, bool>> predicate, DataContext db = null) where T : class, new()
+        {
+            return FastWrite.DeleteAsy<T>(predicate, db, _key, _enableSqlLog);
+        }
+
+        /// <summary>
+        /// 删除数据（异步，根据条件）
+        /// </summary>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="predicate">删除条件</param>
+        /// <param name="db">数据上下文（可选）</param>
+        /// <returns>写入结果</returns>
+        public Task<WriteReturn> DeleteAsync<T>(Expression<Func<T, bool>> predicate, DataContext db = null) where T : class, new()
         {
             return FastWrite.DeleteAsy<T>(predicate, db, _key, _enableSqlLog);
         }

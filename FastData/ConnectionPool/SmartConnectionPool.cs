@@ -634,8 +634,8 @@ namespace FastData.ConnectionPool
             return new ConnectionPoolMetrics
             {
                 TotalConnections = _totalCount,
-                ActiveConnections = _activeCount,
-                IdleConnections = Math.Max(0, _totalCount - _activeCount),
+                ActiveConnections = _inUseConnections.Count,
+                IdleConnections = Math.Max(0, _totalCount - _inUseConnections.Count),
                 WaitingRequests = Math.Max(0, _config.MaxPoolSize - _semaphore.CurrentCount),
                 TotalRequests = _totalRequests,
                 SuccessfulRequests = _successfulRequests,
@@ -721,6 +721,11 @@ namespace FastData.ConnectionPool
         {
             try
             {
+                // 从使用中连接集合中移除（仅当连接在使用中时）
+                if (_inUseConnections.ContainsKey(connection.Id))
+                {
+                    _inUseConnections.TryRemove(connection.Id, out _);
+                }
                 connection.Connection?.Close();
                 connection.Connection?.Dispose();
                 Interlocked.Decrement(ref _totalCount);
