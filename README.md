@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![NuGet](https://img.shields.io/badge/NuGet-Fast.Data-blue.svg)](https://www.nuget.org/packages/Fast.Data/)
-[![.NET](https://img.shields.io/badge/.NET-4.5%20%7C%208.0%20%7C%2010.0-blueviolet)]()
+[![.NET](https://img.shields.io/badge/.NET-4.5.2%20%7C%208.0%20%7C%2010.0-blueviolet)]()
 
 **FastData** 是一个企业级 ORM 框架，支持 .NET Framework 4.5.2 至 .NET 10，提供 Lambda 查询、XML Map SQL、Code First、Db First、AOP、智能连接池、Redis 缓存、消息队列和数据同步等功能。
 
