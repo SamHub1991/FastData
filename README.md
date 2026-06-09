@@ -47,7 +47,7 @@ var (items, total) = FastRead.Read.Query<User>()
 | [FastData.Untility](FastData.Untility/) | 通用工具库（日志/加密/HTTP/Excel） | net452;net8.0;net10.0 |
 | [FastData.ModelGenerator.WinForms](FastData.ModelGenerator.WinForms/) | 代码生成工具 | net8.0-windows+ |
 | [FastData.SyncTool.WinForms](FastData.SyncTool.WinForms/) | 数据同步工具 | net8.0-windows+ |
-| [FastData.Tests](FastData.Tests/) | 单元测试 | net462;net8.0;net10.0 |
+| [FastData.Tests](FastData.Tests/) | 单元测试 | net452;net8.0;net10.0 |
 | [FastData.Demo](FastData.Demo/) | Web API 示例 | net10.0 |
 | [FastData.Example](FastData.Example/) | 控制台示例 | net452;net8.0;net10.0 |
 
