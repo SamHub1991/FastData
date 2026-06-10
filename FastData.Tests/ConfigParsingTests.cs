@@ -1,5 +1,5 @@
 using System;
-using FastData.Model;
+using System.Reflection;
 using Xunit;
 
 namespace FastData.Tests
@@ -13,9 +13,7 @@ namespace FastData.Tests
         public void TestIsTrue_WithTrueValue()
         {
             // Arrange & Act
-            var result = typeof(FastData.Config.DataConfig.DataConfig)
-                .GetMethod("IsTrue", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
-                .Invoke(null, new object[] { "true" }) as bool?;
+            var result = InvokeIsTrue("true");
             
             // Assert
             Assert.True(result);
@@ -25,9 +23,7 @@ namespace FastData.Tests
         public void TestIsTrue_WithFalseValue()
         {
             // Arrange & Act
-            var result = typeof(FastData.Config.DataConfig.DataConfig)
-                .GetMethod("IsTrue", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
-                .Invoke(null, new object[] { "false" }) as bool?;
+            var result = InvokeIsTrue("false");
             
             // Assert
             Assert.False(result);
@@ -37,13 +33,9 @@ namespace FastData.Tests
         public void TestIsTrue_WithCaseInsensitive()
         {
             // Arrange & Act
-            var resultTrue = typeof(FastData.Config.DataConfig.DataConfig)
-                .GetMethod("IsTrue", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
-                .Invoke(null, new object[] { "TRUE" }) as bool?;
+            var resultTrue = InvokeIsTrue("TRUE");
             
-            var resultMixed = typeof(FastData.Config.DataConfig.DataConfig)
-                .GetMethod("IsTrue", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
-                .Invoke(null, new object[] { "TrUe" }) as bool?;
+            var resultMixed = InvokeIsTrue("TrUe");
             
             // Assert
             Assert.True(resultTrue);
@@ -54,17 +46,20 @@ namespace FastData.Tests
         public void TestIsTrue_WithNullOrEmpty()
         {
             // Arrange & Act
-            var resultNull = typeof(FastData.Config.DataConfig.DataConfig)
-                .GetMethod("IsTrue", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
-                .Invoke(null, new object[] { null }) as bool?;
+            var resultNull = InvokeIsTrue(null);
             
-            var resultEmpty = typeof(FastData.Config.DataConfig.DataConfig)
-                .GetMethod("IsTrue", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
-                .Invoke(null, new object[] { "" }) as bool?;
+            var resultEmpty = InvokeIsTrue("");
             
             // Assert
             Assert.False(resultNull);
             Assert.False(resultEmpty);
+        }
+
+        private static bool InvokeIsTrue(string value)
+        {
+            var type = typeof(FastData.Config.FastDataConfig).Assembly.GetType("FastData.Config.DataConfig");
+            var method = type.GetMethod("IsTrue", BindingFlags.NonPublic | BindingFlags.Static);
+            return (bool)method.Invoke(null, new object[] { value });
         }
     }
 }

@@ -13,7 +13,7 @@ FastData.Tests 是 FastData ORM 生态系统的单元测试项目。
 |------|------|
 | xUnit | 2.6.2 |
 | Microsoft.NET.Test.Sdk | 17.8.0 |
-| 目标框架 | net462, net8.0, net10.0 |
+| 目标框架 | net452, net8.0, net10.0 |
 
 ## 测试结构
 

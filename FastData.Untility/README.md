@@ -12,7 +12,7 @@ FastData.Untility 是 FastData 生态系统的通用工具库，提供日志、�
 
 | 框架 | 说明 |
 |------|------|
-| `net45` | .NET Framework 4.5 |
+| `net452` | .NET Framework 4.5.2 |
 | `net8.0` / `net10.0` | Modern .NET |
 
 ## 安装
@@ -243,7 +243,7 @@ result.ToApiResponse(); // 转为 ApiResponse
 
 - Newtonsoft.Json 13.0.3
 - NPOI 2.5.6 / 2.7.0
-- NServiceKit.Redis 1.0.17 (net45)
+- NServiceKit.Redis 1.0.17 (net452)
 - NewLife.Redis 6.0.2024.1006 (net6.0+)
 
 ## 许可证

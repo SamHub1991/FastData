@@ -16,7 +16,7 @@ namespace FastData.Tests
             var config = new ConnectionPoolConfig();
 
             // Act
-            config.AutoCalculate();
+            config.AdjustByEnvironment();
 
             // Assert
             Assert.True(config.MinPoolSize >= 2);
@@ -36,7 +36,7 @@ namespace FastData.Tests
             };
 
             // Act
-            config.AutoCalculate();
+            config.AdjustByEnvironment();
 
             // Assert
             Assert.Equal(5, config.MinPoolSize);
@@ -50,7 +50,7 @@ namespace FastData.Tests
             var config = new ConnectionPoolConfig();
 
             // Assert
-            Assert.Equal(30, config.ConnectionTimeoutSeconds);
+            Assert.Equal(30, config.ConnectionTimeout);
         }
 
         [Fact]
@@ -60,7 +60,7 @@ namespace FastData.Tests
             var config = new ConnectionPoolConfig();
 
             // Assert
-            Assert.Equal(60, config.HealthCheckIntervalSeconds);
+            Assert.Equal(60, config.HealthCheckInterval);
         }
     }
 }

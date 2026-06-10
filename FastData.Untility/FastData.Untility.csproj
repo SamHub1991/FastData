@@ -79,7 +79,7 @@
     <Compile Remove="Base\BasePdf.cs" />
   </ItemGroup>
 
-  <!-- 排除 net45 专用文件（.NET 6+ 不编译） -->
+  <!-- 排除 net452 专用文件（.NET 6+ 不编译） -->
   <ItemGroup Condition="'$(TargetFramework)' != 'net452'">
     <Compile Remove="RedisInfo.cs" />
     <Compile Remove="Repository\RedisRepository.cs" />

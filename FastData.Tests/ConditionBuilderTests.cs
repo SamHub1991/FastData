@@ -1,6 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Data.Common;
+using FastData.Base;
+using FastData.DbTypes;
 using FastData.Model;
+using Microsoft.Data.SqlClient;
 using Xunit;
 
 namespace FastData.Tests
@@ -14,17 +18,15 @@ namespace FastData.Tests
         public void TestConditionBuilder_Contains()
         {
             // Arrange
-            var values = new List<string> { "admin", "user", "guest" };
-            var param = new List<DbParameter>();
-            var dbType = DataDbType.SqlServer;
-            
+            var config = CreateConfig();
+
             // Act
-            var sql = ConditionBuilder.BuildInSql("@role", values, param, dbType);
+            var sql = new ConditionBuilder(config)
+                .In<ConditionBuilderTestUser>(x => x.Role, new[] { "admin", "user", "guest" })
+                .Build(out var param);
             
             // Assert
-            Assert.Contains("@role_p0", sql);
-            Assert.Contains("@role_p1", sql);
-            Assert.Contains("@role_p2", sql);
+            Assert.Contains("Role IN (@p0,@p1,@p2)", sql);
             Assert.Equal(3, param.Count);
         }
 
@@ -32,30 +34,44 @@ namespace FastData.Tests
         public void TestConditionBuilder_ContainsEmpty()
         {
             // Arrange
-            var values = new List<string>();
-            var param = new List<DbParameter>();
-            var dbType = DataDbType.SqlServer;
-            
+            var config = CreateConfig();
+
             // Act
-            var sql = ConditionBuilder.BuildInSql("@role", values, param, dbType);
+            var sql = new ConditionBuilder(config)
+                .In<ConditionBuilderTestUser>(x => x.Role, new string[0])
+                .Build(out var param);
             
             // Assert
-            Assert.Null(sql);
+            Assert.Equal("1=0", sql);
+            Assert.Empty(param);
         }
 
         [Fact]
         public void TestConditionBuilder_ContainsNull()
         {
             // Arrange
-            List<string> values = null;
-            var param = new List<DbParameter>();
-            var dbType = DataDbType.SqlServer;
-            
-            // Act
-            var sql = ConditionBuilder.BuildInSql("@role", values, param, dbType);
-            
-            // Assert
-            Assert.Null(sql);
+            var config = CreateConfig();
+
+            // Act + Assert
+            Assert.Throws<ArgumentNullException>(() => new ConditionBuilder(config)
+                .In<ConditionBuilderTestUser>(x => x.Role, null));
+        }
+
+        private static ConfigModel CreateConfig()
+        {
+            DbProviderFactories.RegisterFactory("Microsoft.Data.SqlClient", SqlClientFactory.Instance);
+
+            return new ConfigModel
+            {
+                DbType = DataDbType.SqlServer,
+                Flag = "@",
+                ProviderName = "Microsoft.Data.SqlClient"
+            };
+        }
+
+        private class ConditionBuilderTestUser
+        {
+            public string Role { get; set; }
         }
     }
 }
