@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
 using FastData.Model;
+using FastData.Property;
 
 namespace FastData.Extensions
 {
@@ -261,7 +262,7 @@ namespace FastData.Extensions
             if (entity == null)
                 return dict;
 
-            foreach (var prop in typeof(T).GetProperties())
+            foreach (var prop in PropertyCache.GetPropertiesCached<T>())
             {
                 if (prop.CanRead)
                 {

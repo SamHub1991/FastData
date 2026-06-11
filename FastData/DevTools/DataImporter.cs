@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using FastData.Model;
+using FastData.Property;
 
 namespace FastData.DevTools
 {
@@ -32,7 +33,7 @@ namespace FastData.DevTools
                 }
 
                 var headers = lines[0].Split(',');
-                var properties = typeof(T).GetProperties();
+                var properties = PropertyCache.GetPropertiesCached<T>();
 
                 for (int i = 1; i < lines.Length; i++)
                 {
@@ -97,7 +98,7 @@ namespace FastData.DevTools
                     throw new Exception("没有可导出的数据");
                 }
 
-                var properties = typeof(T).GetProperties();
+                var properties = PropertyCache.GetPropertiesCached<T>();
                 var csv = new StringBuilder();
 
                 // 写入表头
@@ -292,7 +293,7 @@ namespace FastData.DevTools
                     throw new Exception("没有可导出的数据");
                 }
 
-                var properties = typeof(T).GetProperties();
+                var properties = PropertyCache.GetPropertiesCached<T>();
                 var csv = new StringBuilder();
 
                 // 写入表头

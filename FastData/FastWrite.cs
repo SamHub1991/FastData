@@ -603,7 +603,7 @@ namespace FastData
         private static List<(string Name, string Type, bool IsPrimary, bool IsIdentity, bool IsNull)> GetModelColumns<T>() where T : class, new()
         {
             var list = new List<(string, string, bool, bool, bool)>();
-            foreach (var p in typeof(T).GetProperties())
+            foreach (var p in PropertyCache.GetPropertiesCached<T>())
             {
                 var col = p.GetCustomAttribute<Property.ColumnAttribute>();
                 var pri = p.GetCustomAttribute<Property.PrimaryAttribute>() != null;
@@ -668,7 +668,7 @@ namespace FastData
         /// </summary>
         private static IEnumerable<PropertyInfo> GetBulkCopyProperties<T>(bool includeIdentity) where T : class, new()
         {
-            return typeof(T).GetProperties()
+            return PropertyCache.GetPropertiesCached<T>()
                 .Where(p => p.CanRead && p.CanWrite && (includeIdentity || !IsIdentityProperty(p)));
         }
 

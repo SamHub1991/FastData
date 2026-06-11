@@ -3,6 +3,7 @@ using FastData.Context;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using FastData.Property;
 
 namespace FastData.DevTools
 {
@@ -74,14 +75,14 @@ namespace FastData.DevTools
 
         private string GetEntityChanges<T>(T entity) where T : class, new()
         {
-            var props = typeof(T).GetProperties();
+            var props = PropertyCache.GetPropertiesCached<T>();
             var changes = props.Select(p => string.Format("{0}={1}", p.Name, p.GetValue(entity)));
             return string.Join(", ", changes);
         }
 
         private string GetEntityDiff<T>(T oldEntity, T newEntity) where T : class, new()
         {
-            var props = typeof(T).GetProperties();
+            var props = PropertyCache.GetPropertiesCached<T>();
             var changes = new List<string>();
 
             foreach (var prop in props)
@@ -176,14 +177,14 @@ namespace FastData.DevTools
 
         private string GetEntityChanges<T>(T entity) where T : class, new()
         {
-            var props = typeof(T).GetProperties();
+            var props = PropertyCache.GetPropertiesCached<T>();
             var changes = props.Select(p => string.Format("{0}={1}", p.Name, p.GetValue(entity)));
             return string.Join(", ", changes);
         }
 
         private string GetEntityDiff<T>(T oldEntity, T newEntity) where T : class, new()
         {
-            var props = typeof(T).GetProperties();
+            var props = PropertyCache.GetPropertiesCached<T>();
             var changes = new List<string>();
 
             foreach (var prop in props)
