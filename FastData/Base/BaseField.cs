@@ -41,14 +41,10 @@ namespace FastData.Base
                     var propDict = new Dictionary<string, PropertyModel>(properties.Length, StringComparer.OrdinalIgnoreCase);
                     foreach (var p in properties)
                         propDict[p.Name] = new PropertyModel { Name = p.Name, PropertyType = p.PropertyType };
-                    var list = propDict.Values.ToList();
 
                     foreach (var p in properties)
                     {
-                        if (list.Exists(a => a.Name == p.Name))
-                            queryFields.Add(string.Format("{0}.{1}", predicate.Parameters[0].Name, p.Name));
-                        else
-                            queryFields.Add(p.Name);
+                        queryFields.Add(string.Format("{0}.{1}", predicate.Parameters[0].Name, p.Name));
                         result.AsName.Add(p.Name);
                     }
 
