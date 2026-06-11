@@ -59,7 +59,7 @@ namespace FastData.Base
                 else
                 {
                     #region 有返回列
-                    (field.Body as NewExpression).Arguments.ToList().ForEach(a =>
+                    foreach (var a in (field.Body as NewExpression).Arguments)
                     {
                         if (a is MethodCallExpression)
                         {
@@ -101,7 +101,7 @@ namespace FastData.Base
                             result.AsName.Add((a as MemberExpression).Member.Name);
                         }
                         i++;
-                    });
+                    }
                     #endregion
                 }
 
@@ -165,7 +165,7 @@ namespace FastData.Base
                 }
 
                 var i = 0;
-                (field.Body as NewExpression).Arguments.ToList().ForEach(a =>
+                foreach (var a in (field.Body as NewExpression).Arguments)
                 {
                     if (a is MethodCallExpression)
                     {
@@ -210,7 +210,7 @@ namespace FastData.Base
                         }
                     }
                     i++;
-                });
+                }
 
                 result.Field = string.Join(",", queryFields);
                 return result;
@@ -241,11 +241,11 @@ namespace FastData.Base
             try
             {
                 var result = new List<string>();
-                (field.Body as NewExpression).Arguments.ToList().ForEach(a =>
+                foreach (var a in (field.Body as NewExpression).Arguments)
                 {
                     var asName = ((a as MemberExpression).Expression as ParameterExpression).Name;
                     result.Add(string.Format("{0}.{1}", asName, (a as MemberExpression).Member.Name));
-                });
+                }
 
                 return result;
             }
@@ -276,11 +276,11 @@ namespace FastData.Base
             try
             {
                 var result = new List<string>();
-                (field.Body as NewExpression).Arguments.ToList().ForEach(a =>
+                foreach (var a in (field.Body as NewExpression).Arguments)
                 {
                     var asName = ((a as MemberExpression).Expression as ParameterExpression).Name;
                     result.Add(string.Format("{0}.{1} {2}", asName, (a as MemberExpression).Member.Name, isDesc ? "desc" : "asc"));
-                });
+                }
 
                 return result;
             }
@@ -314,7 +314,7 @@ namespace FastData.Base
             var meExp = (MethodCallExpression)(item.ReduceExtensions().Reduce());
             var count = 0;
 
-            meExp.Arguments.ToList().ForEach(a => {
+            foreach (var a in meExp.Arguments) {
                 count++;
                 if (a is UnaryExpression)
                 {
@@ -353,7 +353,7 @@ namespace FastData.Base
 
                 if (a is ConstantExpression && count == meExp.Arguments.Count)
                     _ower = (a as ConstantExpression).Value.ToString();
-            });
+            }
 
             ower = _ower;
             return string.Join(",", result);

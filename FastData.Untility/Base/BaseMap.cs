@@ -55,13 +55,14 @@ namespace FastUntility.Base
                                 var leafModel = Activator.CreateInstance(property.PropertyType.GetGenericArguments()[0]);
                                 var propertyList = leafModel.GetType().GetProperties().ToList();
 
-                                temp.GetType().GetProperties().ToList().ForEach(p => {
+                                foreach (var p in temp.GetType().GetProperties())
+                                {
                                     if (propertyList.Exists(a => a.Name == p.Name))
                                     {
                                         var tempProperty = propertyList.Find(a => a.Name.ToLower() == p.Name.ToLower());
                                         tempProperty.SetValue(leafModel, p.GetValue(temp));
                                     }
-                                });
+                                }
 
                                 var method = leafList.GetType().GetMethod("Add", BindingFlags.Instance | BindingFlags.Public);
                                 method.Invoke(leafList, new object[] { leafModel });
@@ -83,22 +84,23 @@ namespace FastUntility.Base
                         var leafModel = Activator.CreateInstance(property.PropertyType);
                         var propertyList = (property.PropertyType as TypeInfo).GetProperties().ToList();
 
-                        (m.PropertyType as TypeInfo).GetProperties().ToList().ForEach(p => {
+                        foreach (var p in (m.PropertyType as TypeInfo).GetProperties())
+                        {
                             if (propertyList.Exists(a => a.Name == p.Name))
                             {
                                 var temp = propertyList.Find(a => a.Name.ToLower() == p.Name.ToLower());
                                 temp.SetValue(leafModel, p.GetValue(tempModel));
                             }
-                        });
+                        }
 
                         dynSet.SetValue(result, property.Name, leafModel, true);
                     }
                 }
                 else
                 {
-                    if (dic.ToList().Exists(n => (n.Value as MemberExpression).Member.Name.ToLower() == m.Name.ToLower()))
+                    if (dic.Any(n => (n.Value as MemberExpression).Member.Name.ToLower() == m.Name.ToLower()))
                     {
-                        var temp = dic.ToList().Find(n => (n.Value as MemberExpression).Member.Name.ToLower() == m.Name.ToLower());
+                        var temp = dic.FirstOrDefault(n => (n.Value as MemberExpression).Member.Name.ToLower() == m.Name.ToLower());
                         if (m.Name == "Nullable`1" && temp.Key.DeclaringType.GetGenericTypeDefinition() == typeof(Nullable<>))
                             dynSet.SetValue(result, temp.Key.Name, dynGet.GetValue(model, (temp.Value as MemberExpression).Member.Name, true), true);
                         else
@@ -136,7 +138,7 @@ namespace FastUntility.Base
                 dic.Add(name[i].Name, value[i]);
             }
 
-            dic.ToList().ForEach(a =>
+            foreach (var a in dic)
             {
                 var param = new Result();
                 dynResult.SetValue(param, "ParameterName", a.Key, true);
@@ -155,7 +157,7 @@ namespace FastUntility.Base
                     dynResult.SetValue(param, "Value", dyn.GetValue(item, a.Value.ToStr(), true), true);
 
                 result.Add(param);
-            });
+            }
 
             return result;
         }
