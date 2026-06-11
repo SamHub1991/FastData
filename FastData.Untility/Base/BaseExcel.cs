@@ -86,7 +86,7 @@ namespace FastUntility.Base
                 {
                     var step = 0;
                     result.row = result.sheet.CreateRow(1);
-                    title1.ToList().ForEach(a =>
+                    foreach (var a in title1)
                     {
                         if (i == 0)
                             result.cell = result.row.CreateCell(i++);
@@ -97,17 +97,18 @@ namespace FastUntility.Base
                         result.sheet.AddMergedRegion(new CellRangeAddress(1, 1, step, step + a.GetValue("step").ToStr().ToInt(0) - 1));
                         result.cell.CellStyle = GetStyle(result.workbook, true);
                         step = step + a.GetValue("step").ToStr().ToInt(0);
-                    });
+                    }
                 }
 
                 result.row = result.sheet.CreateRow(2);
                 i = 0;
-                title2.ToList().ForEach(a => {
+                foreach (var a in title2)
+                {
                     result.cell = result.row.CreateCell(i++);
                     result.cell.Row.Height = 420;
                     result.cell.SetCellValue(a.Value.ToStr());
                     result.cell.CellStyle = GetStyle(result.workbook, true);
-                });
+                }
 
                 return result;
             }
@@ -150,19 +151,20 @@ namespace FastUntility.Base
 
                 result.row = result.sheet.CreateRow(1);
                 int i = 0;
-                title1.ToList().ForEach(a => {
+                foreach (var a in title1)
+                {
                     result.cell = result.row.CreateCell(i++);
                     result.cell.Row.Height = 420;
                     result.cell.SetCellValue(a.Value.ToStr());
                     result.cell.CellStyle = GetStyle(result.workbook, true);
-                });
+                }
 
                 if (title2 != null)
                 {
                     var step = 0;
                     i = 0;
                     result.row = result.sheet.CreateRow(2);
-                    title2.ToList().ForEach(a =>
+                    foreach (var a in title2)
                     {
                         if (i == 0)
                             result.cell = result.row.CreateCell(i++);
@@ -173,7 +175,7 @@ namespace FastUntility.Base
                         result.sheet.AddMergedRegion(new CellRangeAddress(2, 2, step, step + a.GetValue("step").ToStr().ToInt(0) - 1));
                         result.cell.CellStyle = GetStyle(result.workbook, true);
                         step = step + a.GetValue("step").ToStr().ToInt(0);
-                    });
+                    }
                 }
 
                 return result;
@@ -260,12 +262,12 @@ namespace FastUntility.Base
             {
                 //自动列宽
                 var i = 0;
-                title.ToList().ForEach(a =>
+                foreach (var a in title)
                 {
                     model.sheet.AutoSizeColumn(i++, true);
                     model.sheet.Autobreaks = true;
                     model.sheet.HorizontallyCenter = true;
-                });
+                }
 
                 for (int rowNum = 2; rowNum <= model.sheet.LastRowNum; rowNum++)
                 {
