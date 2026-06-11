@@ -405,7 +405,8 @@ namespace FastData.Base
             var field = DbCache.Get(config.CacheType, string.Format("{0}.foreach.field.{1}", name.ToLower(), i));
             var sql = DbCache.Get(config.CacheType, string.Format("{0}.foreach.sql.{1}", name.ToLower(), i));
 
-            data.ForEach(a => {
+            foreach (var a in data)
+            {
                 param.Clear();
                 if (field.IndexOf(',') > 0)
                 {
@@ -427,7 +428,7 @@ namespace FastData.Base
 
                 a.Add(dicName, FastRead.ExecuteSql(sql, param.ToArray(), db, key));
                 result.Add(a);
-            });
+            }
 
             return result;
         }
@@ -637,44 +638,51 @@ namespace FastData.Base
             }
 
             var apilist = new List<string>();
-            result.db.ToList().ForEach(a => {
+            foreach (var a in result.db)
+            {
                 DbCache.Set(config.CacheType, string.Format("{0}.db", a.Key.ToLower()), a.Value.ToStr());
                 apilist.Add(a.Key.ToLower());
-            });
+            }
 
             map.Remove(fileName);
             map.Add(fileName, apilist);
             DbCache.Set<Dictionary<string, object>>(config.CacheType, "FastMap.Api", map);
 
-            result.type.ToList().ForEach(a => {
+            foreach (var a in result.type)
+            {
                 DbCache.Set(config.CacheType, string.Format("{0}.type", a.Key.ToLower()), a.Value.ToStr());
                 result.key.Add(string.Format("{0}.type", a.Key.ToLower()));
-            });
+            }
 
-            result.view.ToList().ForEach(a => {
+            foreach (var a in result.view)
+            {
                 DbCache.Set(config.CacheType, string.Format("{0}.view", a.Key.ToLower()), a.Value.ToStr());
                 result.key.Add(string.Format("{0}.view", a.Key.ToLower()));
-            });
+            }
 
-            result.param.ToList().ForEach(a => {
+            foreach (var a in result.param)
+            {
                 DbCache.Set<List<string>>(config.CacheType, string.Format("{0}.param", a.Key.ToLower()), a.Value as List<string>);
                 result.key.Add(string.Format("{0}.param", a.Key.ToLower()));
-            });
+            }
 
-            result.check.ToList().ForEach(a => {
+            foreach (var a in result.check)
+            {
                 DbCache.Set(config.CacheType, a.Key, a.Value.ToStr());
                 result.key.Add(a.Key);
-            });
+            }
 
-            result.name.ToList().ForEach(a => {
+            foreach (var a in result.name)
+            {
                 DbCache.Set(config.CacheType, a.Key, a.Value.ToStr());
                 result.key.Add(a.Key);
-            });
+            }
 
-            result.parameName.ToList().ForEach(a => {
+            foreach (var a in result.parameName)
+            {
                 DbCache.Set(config.CacheType, a.Key, a.Value.ToStr());
                 result.key.Add(a.Key);
-            });
+            }
 
             return result.key;
         }

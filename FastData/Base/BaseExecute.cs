@@ -503,7 +503,8 @@ namespace FastData.Base
                     sql.Add(a.Name);
             }
             else
-                (field.Body as NewExpression).Members.ToList().ForEach(a => { sql.Add(a.Name); });
+                foreach (var a in (field.Body as NewExpression).Members)
+                    sql.Add(a.Name);
 
             where.ForEach(a => { sql.Add(a); });
 
