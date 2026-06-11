@@ -17,10 +17,10 @@ namespace FastData
         /// </summary>
         public static async Task<Result<WriteReturn>> AddAsync<T>(T model, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
-            var result = FastWrite.Add(model, db, key, isOutSql);
-            return await Task.FromResult(result.IsSuccess 
+            var result = await FastWrite.AddAsy(model, db, key, isOutSql).ConfigureAwait(false);
+            return result.IsSuccess 
                 ? Result<WriteReturn>.Ok(result) 
-                : Result<WriteReturn>.Fail(result.Message ?? "添加失败"));
+                : Result<WriteReturn>.Fail(result.Message ?? "添加失败");
         }
 
         /// <summary>
@@ -28,10 +28,10 @@ namespace FastData
         /// </summary>
         public static async Task<Result<WriteReturn>> UpdateFieldsAsync<T>(T model, Expression<Func<T, bool>> predicate, Expression<Func<T, object>> field, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
-            var result = FastWrite.Update(model, predicate, field, db, key, isOutSql);
-            return await Task.FromResult(result.IsSuccess 
+            var result = await FastWrite.UpdateAsy(model, predicate, field, db, key, isOutSql).ConfigureAwait(false);
+            return result.IsSuccess 
                 ? Result<WriteReturn>.Ok(result) 
-                : Result<WriteReturn>.Fail(result.Message ?? "更新失败"));
+                : Result<WriteReturn>.Fail(result.Message ?? "更新失败");
         }
 
         /// <summary>
@@ -39,10 +39,10 @@ namespace FastData
         /// </summary>
         public static async Task<Result<WriteReturn>> UpdateEntityAsync<T>(T model, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
-            var result = FastWrite.Update(model, null, db, key, isOutSql);
-            return await Task.FromResult(result.IsSuccess 
+            var result = await FastWrite.UpdateAsy(model, null, db, key, isOutSql).ConfigureAwait(false);
+            return result.IsSuccess 
                 ? Result<WriteReturn>.Ok(result) 
-                : Result<WriteReturn>.Fail(result.Message ?? "更新失败"));
+                : Result<WriteReturn>.Fail(result.Message ?? "更新失败");
         }
 
         /// <summary>
@@ -50,10 +50,10 @@ namespace FastData
         /// </summary>
         public static async Task<Result<WriteReturn>> DeleteAsync<T>(Expression<Func<T, bool>> predicate, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
-            var result = FastWrite.Delete(predicate, db, key, isOutSql);
-            return await Task.FromResult(result.IsSuccess 
+            var result = await FastWrite.DeleteAsy(predicate, db, key, isOutSql).ConfigureAwait(false);
+            return result.IsSuccess 
                 ? Result<WriteReturn>.Ok(result) 
-                : Result<WriteReturn>.Fail(result.Message ?? "删除失败"));
+                : Result<WriteReturn>.Fail(result.Message ?? "删除失败");
         }
 
         /// <summary>
@@ -61,10 +61,10 @@ namespace FastData
         /// </summary>
         public static async Task<Result<WriteReturn>> AddListAsync<T>(List<T> list, string key = null, bool IsTrans = false, bool isLog = true) where T : class, new()
         {
-            var result = FastWrite.AddList(list, key, IsTrans, isLog);
-            return await Task.FromResult(result.IsSuccess 
+            var result = await FastWrite.AddListAsy(list, key, IsTrans, isLog).ConfigureAwait(false);
+            return result.IsSuccess 
                 ? Result<WriteReturn>.Ok(result) 
-                : Result<WriteReturn>.Fail(result.Message ?? "批量添加失败"));
+                : Result<WriteReturn>.Fail(result.Message ?? "批量添加失败");
         }
 
         /// <summary>
@@ -72,10 +72,10 @@ namespace FastData
         /// </summary>
         public static async Task<Result<WriteReturn>> UpdateListAsync<T>(List<T> list, Expression<Func<T, object>> field = null, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
-            var result = FastWrite.UpdateList(list, field, db, key, isOutSql);
-            return await Task.FromResult(result.IsSuccess 
+            var result = await FastWrite.UpdateListAsy(list, field, db, key, isOutSql).ConfigureAwait(false);
+            return result.IsSuccess 
                 ? Result<WriteReturn>.Ok(result) 
-                : Result<WriteReturn>.Fail(result.Message ?? "批量更新失败"));
+                : Result<WriteReturn>.Fail(result.Message ?? "批量更新失败");
         }
 
         /// <summary>

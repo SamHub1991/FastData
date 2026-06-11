@@ -214,6 +214,6 @@ namespace FastData.Repository
         /// <param name="key">数据库 key</param>
         /// <param name="dbFile">配置文件</param>
         /// <returns>查询对象</returns>
-        IQuery Query<T>(System.Linq.Expressions.Expression<Func<T, bool>> predicate, System.Linq.Expressions.Expression<Func<T, object>> field = null, string key = null, string dbFile = "db.config");
+        IQuery Query<T>(System.Linq.Expressions.Expression<Func<T, bool>> predicate, System.Linq.Expressions.Expression<Func<T, object>> field = null, string key = null, string dbFile = "db.config") where T : class;
     }
 }

@@ -88,7 +88,7 @@ namespace FastData
         /// <summary>
         /// 内部 Join 查询
         /// </summary>
-        private static DataQuery JoinType<T, T1>(string joinType, DataQuery item, Expression<Func<T, T1, bool>> predicate, Expression<Func<T1, object>> field = null, bool isDblink = false)
+        private static DataQuery JoinType<T, T1>(string joinType, DataQuery item, Expression<Func<T, T1, bool>> predicate, Expression<Func<T1, object>> field = null, bool isDblink = false) where T : class where T1 : class
         {
             var queryField = BaseField.QueryField<T, T1>(predicate, field, item.Config);
             // queryField.Field 是逗号分隔的字符串，需要分割成列表
@@ -422,19 +422,19 @@ namespace FastData
         }
 
         /// <summary>Left Join 查询</summary>
-        public static DataQuery LeftJoin<T, T1>(this DataQuery item, Expression<Func<T, T1, bool>> predicate, Expression<Func<T1, object>> field = null, bool isDblink = false)
+        public static DataQuery LeftJoin<T, T1>(this DataQuery item, Expression<Func<T, T1, bool>> predicate, Expression<Func<T1, object>> field = null, bool isDblink = false) where T : class where T1 : class
         {
             return JoinType("left join", item, predicate, field);
         }
 
         /// <summary>Right Join 查询</summary>
-        public static DataQuery RightJoin<T, T1>(this DataQuery item, Expression<Func<T, T1, bool>> predicate, Expression<Func<T1, object>> field = null, bool isDblink = false) where T1 : class, new()
+        public static DataQuery RightJoin<T, T1>(this DataQuery item, Expression<Func<T, T1, bool>> predicate, Expression<Func<T1, object>> field = null, bool isDblink = false) where T : class where T1 : class
         {
             return JoinType("right join", item, predicate, field);
         }
 
         /// <summary>Inner Join 查询</summary>
-        public static DataQuery InnerJoin<T, T1>(this DataQuery item, Expression<Func<T, T1, bool>> predicate, Expression<Func<T1, object>> field = null, bool isDblink = false) where T1 : class, new()
+        public static DataQuery InnerJoin<T, T1>(this DataQuery item, Expression<Func<T, T1, bool>> predicate, Expression<Func<T1, object>> field = null, bool isDblink = false) where T : class where T1 : class
         {
             return JoinType("inner join", item, predicate, field);
         }
@@ -590,9 +590,14 @@ namespace FastData
         }
 
         /// <summary>返回分页结果（实体，异步）</summary>
-        public static Task<PageResult<T>> ToPageAsync<T>(this DataQuery item, PageModel pModel, DataContext db = null, bool isOutSql = false) where T : class, new()
+        public static async Task<PageResult<T>> ToPageAsync<T>(this DataQuery item, PageModel pModel, DataContext db = null, bool isOutSql = false, CancellationToken cancellationToken = default) where T : class, new()
         {
-            return AsyncHelper.RunAsync(() => ToPage<T>(item, pModel, db, isOutSql));
+            return await ExecutePageTemplateAsync<T, DataReturn<T>>(
+                item, db, isOutSql,
+                async (ctx, q, ct) => await ctx.GetPageAsync<T>(q, pModel, ct).ConfigureAwait(false),
+                () => item.Predicate.Exists(a => a.IsSuccess == false),
+                r => r.PageResult,
+                cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>返回分页结果（实体，延迟加载）</summary>
@@ -613,9 +618,14 @@ namespace FastData
         }
 
         /// <summary>返回分页结果（字典，异步）</summary>
-        public static Task<PageResult> ToPageAsync(this DataQuery item, PageModel pModel, DataContext db = null, bool isOutSql = false)
+        public static async Task<PageResult> ToPageAsync(this DataQuery item, PageModel pModel, DataContext db = null, bool isOutSql = false, CancellationToken cancellationToken = default)
         {
-            return AsyncHelper.RunAsync(() => ToPage(item, pModel, db, isOutSql));
+            return await ExecutePageTemplateAsync<DataReturn>(
+                item, db, isOutSql,
+                async (ctx, q, ct) => await ctx.GetPageAsync(q, pModel, ct).ConfigureAwait(false),
+                () => item.Predicate.Exists(a => a.IsSuccess == false),
+                r => r.PageResult,
+                cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>返回分页结果（字典，延迟加载）</summary>
@@ -651,9 +661,28 @@ namespace FastData
         }
 
         /// <summary>分页查询（简化API，异步）</summary>
-        public static Task<PaginationResult<T>> ToPaginationAsync<T>(this DataQuery item, int page, int pageSize, DataContext db = null, bool isOutSql = false) where T : class, new()
+        public static async Task<PaginationResult<T>> ToPaginationAsync<T>(this DataQuery item, int page, int pageSize, DataContext db = null, bool isOutSql = false, CancellationToken cancellationToken = default) where T : class, new()
         {
-            return Task.Run(() => ToPagination<T>(item, page, pageSize, db, isOutSql));
+            page = page < 1 ? 1 : page;
+            pageSize = pageSize < 1 ? 10 : pageSize;
+
+            var pModel = new PageModel
+            {
+                PageId = page,
+                PageSize = pageSize
+            };
+
+            var pageResult = await ToPageAsync<T>(item, pModel, db, isOutSql, cancellationToken).ConfigureAwait(false);
+            var total = pageResult.pModel.TotalRecord;
+
+            return new PaginationResult<T>
+            {
+                Total = total,
+                TotalPages = (int)Math.Ceiling(total / (double)pageSize),
+                Page = page,
+                PageSize = pageSize,
+                Data = pageResult.list
+            };
         }
 
         /// <summary>分页查询（使用 PaginationRequest）</summary>
@@ -663,9 +692,9 @@ namespace FastData
         }
 
         /// <summary>分页查询（使用 PaginationRequest，异步）</summary>
-        public static Task<PaginationResult<T>> ToPaginationAsync<T>(this DataQuery item, PaginationRequest request, DataContext db = null, bool isOutSql = false) where T : class, new()
+        public static Task<PaginationResult<T>> ToPaginationAsync<T>(this DataQuery item, PaginationRequest request, DataContext db = null, bool isOutSql = false, CancellationToken cancellationToken = default) where T : class, new()
         {
-            return Task.Run(() => ToPagination<T>(item, request, db, isOutSql));
+            return ToPaginationAsync<T>(item, request.Page, request.PageSize, db, isOutSql, cancellationToken);
         }
 
         /// <summary>分页查询（字典格式）</summary>
@@ -685,9 +714,19 @@ namespace FastData
         }
 
         /// <summary>分页查询（字典格式，异步）</summary>
-        public static Task<PaginationResult> ToPaginationAsync(this DataQuery item, int page, int pageSize, DataContext db = null, bool isOutSql = false)
+        public static async Task<PaginationResult> ToPaginationAsync(this DataQuery item, int page, int pageSize, DataContext db = null, bool isOutSql = false, CancellationToken cancellationToken = default)
         {
-            return Task.Run(() => ToPagination(item, page, pageSize, db, isOutSql));
+            page = page < 1 ? 1 : page;
+            pageSize = pageSize < 1 ? 10 : pageSize;
+
+            var pModel = new PageModel
+            {
+                PageId = page,
+                PageSize = pageSize
+            };
+
+            var pageResult = await ToPageAsync(item, pModel, db, isOutSql, cancellationToken).ConfigureAwait(false);
+            return PaginationResult.FromPageResult(pageResult, page, pageSize);
         }
 
 
@@ -702,9 +741,13 @@ namespace FastData
         }
 
         /// <summary>执行 SQL 查询（实体，异步）</summary>
-        public static Task<List<T>> ExecuteSqlAsync<T>(string sql, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
+        public static async Task<List<T>> ExecuteSqlAsync<T>(string sql, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false) where T : class, new()
         {
-            return AsyncHelper.RunAsync(() => ExecuteSql<T>(sql, param, db, key, isOutSql));
+            key = key ?? FastDb.CurrentKey;
+            return await ExecuteSqlTemplateAsync<List<T>, DataReturn<T>>(
+                key, db, isOutSql,
+                async (ctx, ct) => await ctx.ExecuteSqlAsync<T>(sql, param, ct).ConfigureAwait(false),
+                r => r.List).ConfigureAwait(false);
         }
 
 
@@ -720,9 +763,15 @@ namespace FastData
         }
 
         /// <summary>返回字典列表（异步）</summary>
-        public static Task<List<Dictionary<string, object>>> ToDicsAsync(this DataQuery item, DataContext db = null, bool isOutSql = false)
+        public static async Task<List<Dictionary<string, object>>> ToDicsAsync(this DataQuery item, DataContext db = null, bool isOutSql = false, CancellationToken cancellationToken = default)
         {
-            return AsyncHelper.RunAsync(() => ToDics(item, db, isOutSql));
+            return await ExecuteQueryTemplateAsync<List<Dictionary<string, object>>, DataReturn>(
+                item, db, isOutSql,
+                async (ctx, q, ct) => await ctx.GetDicAsync(q, ct).ConfigureAwait(false),
+                () => item.Predicate.Exists(a => a.IsSuccess == false),
+                r => r.DicList,
+                r => r.Sql,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>返回字典列表（延迟加载）</summary>
@@ -745,9 +794,16 @@ namespace FastData
         }
 
         /// <summary>返回单个字典（异步）</summary>
-        public static Task<Dictionary<string, object>> ToDicAsync(this DataQuery item, DataContext db = null, bool isOutSql = false)
+        public static async Task<Dictionary<string, object>> ToDicAsync(this DataQuery item, DataContext db = null, bool isOutSql = false, CancellationToken cancellationToken = default)
         {
-            return AsyncHelper.RunAsync(() => ToDic(item, db, isOutSql));
+            return await ExecuteQueryTemplateAsync<Dictionary<string, object>, DataReturn>(
+                item, db, isOutSql,
+                async (ctx, q, ct) => await ctx.GetDicAsync(q, ct).ConfigureAwait(false),
+                () => item.Predicate.Exists(a => a.IsSuccess == false),
+                r => r.Dic,
+                r => r.Sql,
+                () => item.Take = 1,
+                cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>返回单个字典（延迟加载）</summary>
@@ -770,9 +826,16 @@ namespace FastData
         }
 
         /// <summary>返回 DataTable（异步）</summary>
-        public static Task<DataTable> ToDataTableAsync(this DataQuery item, DataContext db = null, bool isOutSql = false)
+        public static async Task<DataTable> ToDataTableAsync(this DataQuery item, DataContext db = null, bool isOutSql = false, CancellationToken cancellationToken = default)
         {
-            return AsyncHelper.RunAsync(() => ToDataTable(item, db, isOutSql));
+            return await ExecuteQueryTemplateAsync<DataTable, DataReturn>(
+                item, db, isOutSql,
+                async (ctx, q, ct) => await ctx.GetDataTableAsync(q, ct).ConfigureAwait(false),
+                () => item.Predicate.Exists(a => a.IsSuccess == false),
+                r => r.Table,
+                r => r.Sql,
+                () => item.Take = 1,
+                cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>返回 DataTable（延迟加载）</summary>
@@ -793,9 +856,13 @@ namespace FastData
         }
 
         /// <summary>执行 SQL 查询（字典，异步）</summary>
-        public static Task<List<Dictionary<string, object>>> ExecuteSqlAsync(string sql, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
+        public static async Task<List<Dictionary<string, object>>> ExecuteSqlAsync(string sql, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false)
         {
-            return AsyncHelper.RunAsync(() => ExecuteSql(sql, param, db, key, isOutSql));
+            key = key ?? FastDb.CurrentKey;
+            return await ExecuteSqlTemplateAsync<List<Dictionary<string, object>>, DataReturn>(
+                key, db, isOutSql,
+                async (ctx, ct) => await ctx.ExecuteSqlListAsync(sql, param, false, false, ct).ConfigureAwait(false),
+                r => r.DicList).ConfigureAwait(false);
         }
 
         #region 私有模板方法
@@ -882,6 +949,84 @@ namespace FastData
 
             if (result == null)
                 return default(TResult);
+
+            return resultSelector(result);
+        }
+
+        /// <summary>
+        /// 异步分页查询执行模板
+        /// </summary>
+        private static async Task<PageResult> ExecutePageTemplateAsync<TReturn>(
+            DataQuery item, DataContext db, bool isOutSql,
+            Func<DataContext, DataQuery, CancellationToken, Task<TReturn>> execute,
+            Func<bool> predicateFailed,
+            Func<TReturn, PageResult> resultSelector,
+            CancellationToken cancellationToken = default)
+        {
+            if (predicateFailed())
+                return new PageResult();
+
+            var stopwatch = new Stopwatch();
+            TReturn result;
+
+            stopwatch.Start();
+
+            if (db == null)
+            {
+                using (var tempDb = new DataContext(item.Key))
+                {
+                    result = await execute(tempDb, item, cancellationToken).ConfigureAwait(false);
+                }
+            }
+            else
+                result = await execute(db, item, cancellationToken).ConfigureAwait(false);
+
+            stopwatch.Stop();
+
+            var shouldLog = item.IsSqlLogEnabled || FastDb.EnableSqlLog || item.Config.IsOutSql || isOutSql;
+            DbLog.LogSql(shouldLog, GetSqlFromResult(result), item.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
+
+            if (result == null)
+                return new PageResult();
+
+            return resultSelector(result);
+        }
+
+        /// <summary>
+        /// 异步分页查询执行模板（泛型版本）
+        /// </summary>
+        private static async Task<PageResult<T>> ExecutePageTemplateAsync<T, TReturn>(
+            DataQuery item, DataContext db, bool isOutSql,
+            Func<DataContext, DataQuery, CancellationToken, Task<TReturn>> execute,
+            Func<bool> predicateFailed,
+            Func<TReturn, PageResult<T>> resultSelector,
+            CancellationToken cancellationToken = default) where T : class, new()
+        {
+            if (predicateFailed())
+                return new PageResult<T>();
+
+            var stopwatch = new Stopwatch();
+            TReturn result;
+
+            stopwatch.Start();
+
+            if (db == null)
+            {
+                using (var tempDb = new DataContext(item.Key))
+                {
+                    result = await execute(tempDb, item, cancellationToken).ConfigureAwait(false);
+                }
+            }
+            else
+                result = await execute(db, item, cancellationToken).ConfigureAwait(false);
+
+            stopwatch.Stop();
+
+            var shouldLog = item.IsSqlLogEnabled || FastDb.EnableSqlLog || item.Config.IsOutSql || isOutSql;
+            DbLog.LogSql(shouldLog, GetSqlFromResult(result), item.Config.DbType, stopwatch.Elapsed.TotalMilliseconds);
+
+            if (result == null)
+                return new PageResult<T>();
 
             return resultSelector(result);
         }

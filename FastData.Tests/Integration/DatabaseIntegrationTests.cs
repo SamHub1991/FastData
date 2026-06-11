@@ -131,11 +131,6 @@ namespace FastData.Tests.Integration
     /// </summary>
     public class DatabaseIntegrationTests
     {
-        private static int _successCount = 0;
-        private static int _errorCount = 0;
-        private static List<string> _errors = new List<string>();
-        private static readonly object _lockObj = new object();
-
         public DatabaseIntegrationTests()
         {
             // 注册数据库工厂

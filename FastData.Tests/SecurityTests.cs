@@ -106,15 +106,15 @@ namespace FastData.Tests
             var token = JwtHelper.GenerateToken(payload, secret);
 
             Assert.NotNull(token);
-            Assert.True(token.Split('.').Length == 3);
+            Assert.Equal(3, token.Split('.').Length);
 
             var validatedPayload = JwtHelper.ValidateToken(token, secret);
 
             Assert.Equal("user123", validatedPayload.Sub);
             Assert.Equal("FastData", validatedPayload.Iss);
             Assert.Equal("FastDataApp", validatedPayload.Aud);
-            Assert.True(validatedPayload.Claims.ContainsKey("role"));
-            Assert.True(validatedPayload.Claims.ContainsKey("email"));
+            Assert.Contains("role", validatedPayload.Claims.Keys);
+            Assert.Contains("email", validatedPayload.Claims.Keys);
         }
 
         /// <summary>

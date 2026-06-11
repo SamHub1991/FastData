@@ -15,8 +15,7 @@ namespace FastData
         /// </summary>
         public static T FirstOrDefault<T>(this DataQuery<T> query) where T : class, new()
         {
-            var list = FastRead.ToList<T>(query);
-            return list.Count > 0 ? list[0] : null;
+            return FastRead.ToItem<T>(query);
         }
 
         /// <summary>
@@ -33,10 +32,10 @@ namespace FastData
         /// </summary>
         public static T First<T>(this DataQuery<T> query) where T : class, new()
         {
-            var list = FastRead.ToList<T>(query);
-            if (list.Count == 0)
+            var item = FastRead.ToItem<T>(query);
+            if (item == null)
                 throw new InvalidOperationException("Sequence contains no elements");
-            return list[0];
+            return item;
         }
 
         /// <summary>
@@ -44,7 +43,13 @@ namespace FastData
         /// </summary>
         public static T Single<T>(this DataQuery<T> query) where T : class, new()
         {
+            var originalTake = query.Take;
+            if (query.Take == 0 || query.Take > 2)
+                query.Take = 2;
+
             var list = FastRead.ToList<T>(query);
+            query.Take = originalTake;
+
             if (list.Count == 0)
                 throw new InvalidOperationException("Sequence contains no elements");
             if (list.Count > 1)
@@ -57,7 +62,13 @@ namespace FastData
         /// </summary>
         public static T SingleOrDefault<T>(this DataQuery<T> query) where T : class, new()
         {
+            var originalTake = query.Take;
+            if (query.Take == 0 || query.Take > 2)
+                query.Take = 2;
+
             var list = FastRead.ToList<T>(query);
+            query.Take = originalTake;
+
             if (list.Count > 1)
                 throw new InvalidOperationException("Sequence contains more than one element");
             return list.Count > 0 ? list[0] : null;
@@ -68,8 +79,7 @@ namespace FastData
         /// </summary>
         public static int Count<T>(this DataQuery<T> query) where T : class, new()
         {
-            var list = FastRead.ToList<T>(query);
-            return list.Count;
+            return FastRead.ToCount(query);
         }
 
         /// <summary>
@@ -86,8 +96,7 @@ namespace FastData
         /// </summary>
         public static bool Any<T>(this DataQuery<T> query) where T : class, new()
         {
-            var list = FastRead.ToList<T>(query);
-            return list.Count > 0;
+            return FastRead.ToItem<T>(query) != null;
         }
 
         /// <summary>

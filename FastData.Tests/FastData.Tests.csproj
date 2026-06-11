@@ -30,4 +30,8 @@
     <ProjectReference Include="..\FastData\FastData.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="db*.config" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

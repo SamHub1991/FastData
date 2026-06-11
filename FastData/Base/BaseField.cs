@@ -6,6 +6,7 @@ using FastData.Property;
 using FastData.DbTypes;
 using FastData.Model;
 using System.Linq;
+using FastData.CacheModel;
 
 namespace FastData.Base
 {
@@ -25,7 +26,7 @@ namespace FastData.Base
         /// <param name="field">返回字段表达式，为 null 时返回所有字段</param>
         /// <param name="config">数据库配置模型</param>
         /// <returns>字段模型（包含字段列表和别名列表）</returns>
-        public static FieldModel QueryField<T>(Expression<Func<T, bool>> predicate, Expression<Func<T, object>> field, ConfigModel config)
+        public static FieldModel QueryField<T>(Expression<Func<T, bool>> predicate, Expression<Func<T, object>> field, ConfigModel config) where T : class
         {
             try
             {
@@ -36,16 +37,20 @@ namespace FastData.Base
                 if (field == null)
                 {
                     #region 无返回列
-                    var list = PropertyCache.GetPropertyInfo<T>(config.IsPropertyCache);
+                    var properties = PropertyCache.GetPropertiesCached<T>();
+                    var propDict = new Dictionary<string, PropertyModel>(properties.Length, StringComparer.OrdinalIgnoreCase);
+                    foreach (var p in properties)
+                        propDict[p.Name] = new PropertyModel { Name = p.Name, PropertyType = p.PropertyType };
+                    var list = propDict.Values.ToList();
 
-                    PropertyCache.GetPropertyInfo<T>(config.IsPropertyCache).ForEach(p =>
+                    foreach (var p in properties)
                     {
                         if (list.Exists(a => a.Name == p.Name))
                             queryFields.Add(string.Format("{0}.{1}", predicate.Parameters[0].Name, p.Name));
                         else
                             queryFields.Add(p.Name);
                         result.AsName.Add(p.Name);
-                    });
+                    }
 
                     result.Field = string.Join(",", queryFields);
 
@@ -131,7 +136,7 @@ namespace FastData.Base
         /// <param name="field">返回字段表达式</param>
         /// <param name="config">配置模型</param>
         /// <returns>字段模型</returns>
-        public static FieldModel QueryField<T, T1>(Expression<Func<T, T1, bool>> predicate, Expression<Func<T1, object>> field, ConfigModel config)
+        public static FieldModel QueryField<T, T1>(Expression<Func<T, T1, bool>> predicate, Expression<Func<T1, object>> field, ConfigModel config) where T : class where T1 : class
         {
             try
             {
@@ -140,17 +145,20 @@ namespace FastData.Base
 
                 if (field == null)
                 {
-                    var list = PropertyCache.GetPropertyInfo<T1>(config.IsPropertyCache);
+                    var properties = PropertyCache.GetPropertiesCached<T1>();
+                    var list = new Dictionary<string, bool>(properties.Length, StringComparer.OrdinalIgnoreCase);
+                    foreach (var p in properties)
+                        list[p.Name] = true;
 
-                    PropertyCache.GetPropertyInfo<T1>(config.IsPropertyCache).ForEach(p =>
+                    foreach (var p in properties)
                     {
-                        if (list.Exists(a => a.Name == a.Name))
+                        if (list.ContainsKey(p.Name))
                             queryFields.Add(string.Format("{0}.{1}", predicate.Parameters[1].Name, p.Name));
                         else
                             queryFields.Add(p.Name);
 
                         result.AsName.Add(p.Name);
-                    });
+                    }
 
                     result.Field = string.Join(",", queryFields);
                     return result;

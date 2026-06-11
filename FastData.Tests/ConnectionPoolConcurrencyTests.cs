@@ -148,7 +148,7 @@ namespace FastData.Tests
         /// 多线程并发获取连接测试：验证连接池在并发场景下不会泄漏连接
         /// </summary>
         [Fact]
-        public void Concurrent_GetConnection_NoLeak()
+        public async Task Concurrent_GetConnection_NoLeak()
         {
             var poolConfig = new ConnectionPoolConfig
             {
@@ -213,7 +213,7 @@ namespace FastData.Tests
                     })
                 ).ToArray();
 
-                Task.WaitAll(tasks);
+                await Task.WhenAll(tasks);
             }
 
             var totalOps = threadCount * opsPerThread;

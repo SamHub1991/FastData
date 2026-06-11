@@ -211,9 +211,12 @@ namespace FastData.Config
 
             if (DbCache.Exists(CacheType.Web, cacheKey))
             {
-                list = new List<ConfigModel>(DbCache.Get<List<ConfigModel>>(CacheType.Web, cacheKey));
+                var cachedConfig = DbCache.Get<List<ConfigModel>>(CacheType.Web, cacheKey);
+                if (cachedConfig != null)
+                    list = new List<ConfigModel>(cachedConfig);
             }
-            else if (projectName == null)
+
+            if (list.Count == 0 && projectName == null)
             {
                 // Load db.config to get Active value
                 var baseConfig = TryLoadConfig(dbFile);
@@ -740,22 +743,16 @@ var item = list.Find(a => string.Equals(a.Key, defaultKey, StringComparison.Ordi
 
         public static bool DataType(string key = null, string projectName = null, string dbFile = "db.config")
         {
-            var result = new List<bool>();
             var cacheKey = "FastData.db.config";
 
             if (!DbCache.Exists(CacheType.Web, cacheKey))
                 DataConfig.GetConfig(key, projectName, dbFile);
 
             var list = DbCache.Get<List<ConfigModel>>(CacheType.Web, cacheKey);
+            if (list == null || list.Count == 0)
+                return false;
 
-            result.Add(list.Count(a => a.DbType == DataDbType.Oracle) > 0);
-            result.Add(list.Count(a => a.DbType == DataDbType.DB2) > 0);
-            result.Add(list.Count(a => a.DbType == DataDbType.SQLite) > 0);
-            result.Add(list.Count(a => a.DbType == DataDbType.SqlServer) > 0);
-            result.Add(list.Count(a => a.DbType == DataDbType.PostgreSql) > 0);
-            result.Add(list.Count(a => a.DbType == DataDbType.MySql) > 0);
-
-            return result.Count(a => a == true) > 1;
+            return list.Select(a => a.DbType).Distinct().Take(2).Count() > 1;
         }
 
         /// <summary>

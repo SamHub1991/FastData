@@ -72,16 +72,15 @@ namespace FastData.Base
             if (dr == null)
                 return list;
 
-            var propertyList = PropertyCache.GetPropertyInfo<T>(config.IsPropertyCache);
+            var propertyList = PropertyCache.GetPropertiesCached<T>();
 
-            // 构建字段名 → PropertyModel 的 O(1) 查找字典（忽略大小写）
             Dictionary<string, PropertyModel> propertyDict = null;
             if (field != null && field.Count > 0)
             {
-                propertyDict = new Dictionary<string, PropertyModel>(propertyList.Count, StringComparer.OrdinalIgnoreCase);
+                propertyDict = new Dictionary<string, PropertyModel>(propertyList.Length, StringComparer.OrdinalIgnoreCase);
                 foreach (var info in propertyList)
                 {
-                    propertyDict[info.Name] = info;
+                    propertyDict[info.Name] = new PropertyModel { Name = info.Name, PropertyType = info.PropertyType };
                 }
             }
 
@@ -91,18 +90,17 @@ namespace FastData.Base
 
                 if (propertyDict == null)
                 {
-                    // 读取全部字段
                     foreach (var info in propertyList)
                     {
                         if (info.PropertyType.IsGenericType && info.PropertyType.GetGenericTypeDefinition() != typeof(Nullable<>))
                             continue;
 
-                        item = SetValue<T>(item, dynSet, dr, info, config);
+                        var propModel = new PropertyModel { Name = info.Name, PropertyType = info.PropertyType };
+                        item = SetValue<T>(item, dynSet, dr, propModel, config);
                     }
                 }
                 else
                 {
-                    // 按指定字段读取（O(1) 字典查找替代 O(n) List.Find）
                     for (var i = 0; i < field.Count; i++)
                     {
                         var fieldName = field[i];

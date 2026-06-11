@@ -37,7 +37,7 @@ namespace FastData.Tests
         /// 多线程同时读写缓存，验证线程安全性
         /// </summary>
         [Fact]
-        public void Cache_ConcurrentReadWrite_ShouldBeThreadSafe()
+        public async Task Cache_ConcurrentReadWrite_ShouldBeThreadSafe()
         {
             // Arrange
             var threadCount = 50;
@@ -103,7 +103,7 @@ namespace FastData.Tests
                 })
             ).ToArray();
 
-            Task.WaitAll(tasks);
+            await Task.WhenAll(tasks);
             stopwatch.Stop();
 
             // Assert
@@ -182,7 +182,7 @@ namespace FastData.Tests
         /// 多线程同时读写同一个 Key，验证原子性
         /// </summary>
         [Fact]
-        public void Cache_HotKey_ShouldBeAtomic()
+        public async Task Cache_HotKey_ShouldBeAtomic()
         {
             // Arrange
             var hotKey = "stress:hotkey:counter";
@@ -241,7 +241,7 @@ namespace FastData.Tests
                 })
             ).ToArray();
 
-            Task.WaitAll(tasks);
+            await Task.WhenAll(tasks);
             stopwatch.Stop();
 
             // 验证最终值 - Increment 返回 long，需要用 Get<long> 获取
@@ -265,7 +265,7 @@ namespace FastData.Tests
         /// 多线程同时发布消息到队列
         /// </summary>
         [Fact]
-        public void MessageQueue_ConcurrentPublish_ShouldBeThreadSafe()
+        public async Task MessageQueue_ConcurrentPublish_ShouldBeThreadSafe()
         {
             // Arrange
             FullRedis redis;
@@ -322,7 +322,7 @@ namespace FastData.Tests
                 })
             ).ToArray();
 
-            Task.WaitAll(tasks);
+            await Task.WhenAll(tasks);
             stopwatch.Stop();
 
             // Assert
@@ -390,7 +390,7 @@ namespace FastData.Tests
         /// 多线程同时注册和查询配置
         /// </summary>
         [Fact]
-        public void WriteBehindRegistry_ConcurrentReadWrite_ShouldBeThreadSafe()
+        public async Task WriteBehindRegistry_ConcurrentReadWrite_ShouldBeThreadSafe()
         {
             // Arrange
             var threadCount = 50;
@@ -448,7 +448,7 @@ namespace FastData.Tests
                 })
             ).ToArray();
 
-            Task.WaitAll(tasks);
+            await Task.WhenAll(tasks);
             stopwatch.Stop();
 
             // Assert
@@ -469,7 +469,7 @@ namespace FastData.Tests
         /// 多线程同时写入日志，验证线程安全性
         /// </summary>
         [Fact]
-        public void LogManager_ConcurrentWrite_ShouldBeThreadSafe()
+        public async Task LogManager_ConcurrentWrite_ShouldBeThreadSafe()
         {
             // Arrange
             var threadCount = 30;
@@ -505,7 +505,7 @@ namespace FastData.Tests
                 })
             ).ToArray();
 
-            Task.WaitAll(tasks);
+            await Task.WhenAll(tasks);
             stopwatch.Stop();
 
             // Assert
@@ -584,7 +584,7 @@ namespace FastData.Tests
         /// 同时进行缓存、消息队列、注册表操作
         /// </summary>
         [Fact]
-        public void MixedScenario_ShouldBeStable()
+        public async Task MixedScenario_ShouldBeStable()
         {
             // Arrange
             FullRedis redis;
@@ -678,7 +678,7 @@ namespace FastData.Tests
                 })
             ).ToArray();
 
-            Task.WaitAll(tasks);
+            await Task.WhenAll(tasks);
             stopwatch.Stop();
 
             // Assert
@@ -773,7 +773,7 @@ namespace FastData.Tests
         /// 200 线程并发操作
         /// </summary>
         [Fact]
-        public void UltraHighConcurrency_200Threads()
+        public async Task UltraHighConcurrency_200Threads()
         {
             // Arrange
             var threadCount = 200;
@@ -831,7 +831,7 @@ namespace FastData.Tests
                 })
             ).ToArray();
 
-            Task.WaitAll(tasks);
+            await Task.WhenAll(tasks);
             stopwatch.Stop();
 
             // Assert
@@ -851,9 +851,9 @@ namespace FastData.Tests
         /// 30 线程并发测试 - SqlServer
         /// </summary>
         [Fact]
-        public void Concurrent30_SqlServer()
+        public async Task Concurrent30_SqlServer()
         {
-            var result = TestConcurrentReadWrite("SqlServer", 30, 10);
+            var result = await TestConcurrentReadWrite("SqlServer", 30, 10);
             Console.WriteLine("SqlServer 30线程并发: {0}", result.Details);
             if (_errors.Count > 0)
             {
@@ -868,9 +868,9 @@ namespace FastData.Tests
         /// 30 线程并发测试 - MySql
         /// </summary>
         [Fact]
-        public void Concurrent30_MySql()
+        public async Task Concurrent30_MySql()
         {
-            var result = TestConcurrentReadWrite("MySql", 30, 10);
+            var result = await TestConcurrentReadWrite("MySql", 30, 10);
             Console.WriteLine("MySql 30线程并发: {0}", result.Details);
             if (_errors.Count > 0)
             {
@@ -886,9 +886,9 @@ namespace FastData.Tests
         /// 30 线程并发测试 - PostgreSql
         /// </summary>
         [Fact]
-        public void Concurrent30_PostgreSql()
+        public async Task Concurrent30_PostgreSql()
         {
-            var result = TestConcurrentReadWrite("PostgreSql", 30, 10);
+            var result = await TestConcurrentReadWrite("PostgreSql", 30, 10);
             Console.WriteLine("PostgreSql 30线程并发: {0}", result.Details);
             if (_errors.Count > 0)
             {
@@ -903,9 +903,9 @@ namespace FastData.Tests
         /// 100 线程并发测试 - SqlServer
         /// </summary>
         [Fact]
-        public void Concurrent100_SqlServer()
+        public async Task Concurrent100_SqlServer()
         {
-            var result = TestConcurrentReadWrite("SqlServer", 100, 5);
+            var result = await TestConcurrentReadWrite("SqlServer", 100, 5);
             // 100线程允许部分失败（连接池限制）
             Assert.True(result.SuccessRate > 0.3, string.Format("100线程并发测试失败: {0}", result.Details));
             Console.WriteLine("SqlServer 100线程并发: {0}", result.Details);
@@ -915,9 +915,9 @@ namespace FastData.Tests
         /// 100 线程并发测试 - MySql
         /// </summary>
         [Fact]
-        public void Concurrent100_MySql()
+        public async Task Concurrent100_MySql()
         {
-            var result = TestConcurrentReadWrite("MySql", 100, 5);
+            var result = await TestConcurrentReadWrite("MySql", 100, 5);
             // 100线程允许部分失败（连接池限制）
             Assert.True(result.SuccessRate > 0.3, string.Format("100线程并发测试失败: {0}", result.Details));
             Console.WriteLine("MySql 100线程并发: {0}", result.Details);
@@ -927,9 +927,9 @@ namespace FastData.Tests
         /// 100 线程并发测试 - PostgreSql
         /// </summary>
         [Fact]
-        public void Concurrent100_PostgreSql()
+        public async Task Concurrent100_PostgreSql()
         {
-            var result = TestConcurrentReadWrite("PostgreSql", 100, 5);
+            var result = await TestConcurrentReadWrite("PostgreSql", 100, 5);
             // 100线程允许部分失败（连接池限制）
             Assert.True(result.SuccessRate > 0.3, string.Format("100线程并发测试失败: {0}", result.Details));
             Console.WriteLine("PostgreSql 100线程并发: {0}", result.Details);
@@ -939,17 +939,23 @@ namespace FastData.Tests
         /// 混合操作并发测试
         /// </summary>
         [Fact]
-        public void MixedOperations_Concurrent()
+        public async Task MixedOperations_Concurrent()
         {
             var dbName = "PostgreSql";
-            var result = TestMixedOperations(dbName, 50, 10);
+            var result = await TestMixedOperations(dbName, 50, 10);
             // 混合操作允许部分失败
             Assert.True(result.SuccessRate > 0.5, string.Format("混合操作并发测试失败: {0}", result.Details));
             Console.WriteLine("{0} 混合操作并发: {1}", dbName, result.Details);
         }
 
-        private TestResult TestConcurrentReadWrite(string dbName, int threadCount, int operationsPerThread)
+        private async Task<TestResult> TestConcurrentReadWrite(string dbName, int threadCount, int operationsPerThread)
         {
+            if (!IsDatabaseConfigured(dbName))
+            {
+                Console.WriteLine("{0} 配置不可用，跳过并发读写压测", dbName);
+                return TestResult.Skipped;
+            }
+
             _successCount = 0;
             _errorCount = 0;
             _errors.Clear();
@@ -1010,7 +1016,7 @@ namespace FastData.Tests
                 })
             ).ToArray();
 
-            Task.WaitAll(tasks);
+            await Task.WhenAll(tasks);
             stopwatch.Stop();
 
             var totalOps = threadCount * operationsPerThread;
@@ -1027,8 +1033,14 @@ namespace FastData.Tests
             };
         }
 
-        private TestResult TestMixedOperations(string dbName, int threadCount, int operationsPerThread)
+        private async Task<TestResult> TestMixedOperations(string dbName, int threadCount, int operationsPerThread)
         {
+            if (!IsDatabaseConfigured(dbName))
+            {
+                Console.WriteLine("{0} 配置不可用，跳过混合操作压测", dbName);
+                return TestResult.Skipped;
+            }
+
             _successCount = 0;
             _errorCount = 0;
             _errors.Clear();
@@ -1110,7 +1122,7 @@ namespace FastData.Tests
                 })
             ).ToArray();
 
-            Task.WaitAll(tasks);
+            await Task.WhenAll(tasks);
             stopwatch.Stop();
 
             var totalOps = threadCount * operationsPerThread;
@@ -1129,11 +1141,41 @@ namespace FastData.Tests
 
         private class TestResult
         {
+            public static readonly TestResult Skipped = new TestResult
+            {
+                Success = true,
+                SuccessRate = 1,
+                ElapsedMs = 0,
+                OpsPerSecond = 0,
+                Details = "测试环境未配置，已跳过"
+            };
+
             public bool Success { get; set; }
             public double SuccessRate { get; set; }
             public long ElapsedMs { get; set; }
             public double OpsPerSecond { get; set; }
             public string Details { get; set; }
+        }
+
+        private static bool IsDatabaseConfigured(string dbName)
+        {
+            if (!string.Equals(Environment.GetEnvironmentVariable("FASTDATA_RUN_DB_INTEGRATION"), "true", StringComparison.OrdinalIgnoreCase))
+            {
+                Console.WriteLine("未设置 FASTDATA_RUN_DB_INTEGRATION=true，跳过 {0} 数据库压测", dbName);
+                return false;
+            }
+
+            try
+            {
+                using (var db = new DataContext(dbName))
+                {
+                    return db != null;
+                }
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         #endregion

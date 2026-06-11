@@ -28,8 +28,8 @@ namespace FastData.Tests.Sync
             var json = DataRowSerializer.Serialize(table, row);
             
             Assert.NotNull(json);
-            Assert.True(json.Contains("\"Columns\""));
-            Assert.True(json.Contains("\"Values\""));
+            Assert.Contains("\"Columns\"", json);
+            Assert.Contains("\"Values\"", json);
         }
 
         /// <summary>
@@ -51,9 +51,9 @@ namespace FastData.Tests.Sync
             var json = DataRowSerializer.Serialize(table, row);
             
             Assert.NotNull(json);
-            Assert.True(json.Contains("Id"));
-            Assert.True(json.Contains("张三"));
-            Assert.True(json.Contains("zhangsan@test.com"));
+            Assert.Contains("Id", json);
+            Assert.Contains("张三", json);
+            Assert.Contains("zhangsan@test.com", json);
         }
 
         /// <summary>
@@ -74,7 +74,7 @@ namespace FastData.Tests.Sync
             
             Assert.NotNull(json);
             Console.WriteLine("JSON with null: " + json);
-            Assert.True(json.Contains("\"Name\":null"));
+            Assert.Contains("\"Name\":null", json);
         }
 
         /// <summary>
@@ -96,7 +96,7 @@ namespace FastData.Tests.Sync
             
             Assert.NotNull(json);
             Console.WriteLine("JSON with DateTime: " + json);
-            Assert.True(json.Contains("CreatedAt"));
+            Assert.Contains("CreatedAt", json);
         }
 
         /// <summary>
@@ -121,9 +121,9 @@ namespace FastData.Tests.Sync
             
             Assert.NotNull(deserializedTable);
             Assert.Equal(3, deserializedTable.Columns.Count);
-            Assert.True(deserializedTable.Columns.Contains("Id"));
-            Assert.True(deserializedTable.Columns.Contains("Name"));
-            Assert.True(deserializedTable.Columns.Contains("Email"));
+            Assert.NotNull(deserializedTable.Columns["Id"]);
+            Assert.NotNull(deserializedTable.Columns["Name"]);
+            Assert.NotNull(deserializedTable.Columns["Email"]);
         }
 
         /// <summary>
@@ -144,7 +144,7 @@ namespace FastData.Tests.Sync
             var json = DataRowSerializer.Serialize(originalTable, row);
             var deserializedTable = DataRowSerializer.Deserialize(json);
             
-            Assert.Equal(1, deserializedTable.Rows.Count);
+            Assert.Single(deserializedTable.Rows);
             Assert.Equal(42, Convert.ToInt32(deserializedTable.Rows[0]["Id"]));
             Assert.Equal("王五", deserializedTable.Rows[0]["Name"].ToString());
         }
@@ -157,12 +157,12 @@ namespace FastData.Tests.Sync
         {
             var result = DataRowSerializer.Deserialize("");
             Assert.NotNull(result);
-            Assert.Equal(0, result.Columns.Count);
-            Assert.Equal(0, result.Rows.Count);
+            Assert.Empty(result.Columns);
+            Assert.Empty(result.Rows);
             
             result = DataRowSerializer.Deserialize(null);
             Assert.NotNull(result);
-            Assert.Equal(0, result.Columns.Count);
+            Assert.Empty(result.Columns);
         }
 
         /// <summary>
@@ -207,10 +207,10 @@ namespace FastData.Tests.Sync
             
             Assert.NotNull(json);
             Console.WriteLine("Batch JSON: " + json);
-            Assert.True(json.Contains("[{"));
-            Assert.True(json.Contains("}]"));
-            Assert.True(json.Contains("\"Id\":1"));
-            Assert.True(json.Contains("\"Id\":2"));
+            Assert.Contains("[{", json);
+            Assert.Contains("}]", json);
+            Assert.Contains("\"Id\":1", json);
+            Assert.Contains("\"Id\":2", json);
         }
 
         /// <summary>
@@ -254,11 +254,11 @@ namespace FastData.Tests.Sync
         {
             var result = DataRowSerializer.DeserializeBatch("[]");
             Assert.NotNull(result);
-            Assert.Equal(0, result.Rows.Count);
+            Assert.Empty(result.Rows);
             
             result = DataRowSerializer.DeserializeBatch("");
             Assert.NotNull(result);
-            Assert.Equal(0, result.Rows.Count);
+            Assert.Empty(result.Rows);
         }
 
         /// <summary>

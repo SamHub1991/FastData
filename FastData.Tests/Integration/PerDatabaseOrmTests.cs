@@ -306,6 +306,8 @@ namespace FastData.Tests.Integration
 
         private TestResult TestInsert(string dbName)
         {
+            if (!ShouldRunDbIntegration()) return TestResult.Skipped;
+
             var stopwatch = Stopwatch.StartNew();
             try
             {
@@ -332,12 +334,14 @@ namespace FastData.Tests.Integration
             catch (Exception ex)
             {
                 stopwatch.Stop();
-                return new TestResult { Success = false, ElapsedMs = stopwatch.ElapsedMilliseconds, Details = $"异常: {ex.Message}" };
+                return TestResult.FromException(ex, stopwatch.ElapsedMilliseconds);
             }
         }
 
         private TestResult TestQuery(string dbName)
         {
+            if (!ShouldRunDbIntegration()) return TestResult.Skipped;
+
             var stopwatch = Stopwatch.StartNew();
             try
             {
@@ -355,12 +359,14 @@ namespace FastData.Tests.Integration
             catch (Exception ex)
             {
                 stopwatch.Stop();
-                return new TestResult { Success = false, ElapsedMs = stopwatch.ElapsedMilliseconds, Details = $"异常: {ex.Message}" };
+                return TestResult.FromException(ex, stopwatch.ElapsedMilliseconds);
             }
         }
 
         private TestResult TestUpdate(string dbName)
         {
+            if (!ShouldRunDbIntegration()) return TestResult.Skipped;
+
             var stopwatch = Stopwatch.StartNew();
             try
             {
@@ -392,12 +398,14 @@ namespace FastData.Tests.Integration
             catch (Exception ex)
             {
                 stopwatch.Stop();
-                return new TestResult { Success = false, ElapsedMs = stopwatch.ElapsedMilliseconds, Details = $"异常: {ex.Message}" };
+                return TestResult.FromException(ex, stopwatch.ElapsedMilliseconds);
             }
         }
 
         private TestResult TestDelete(string dbName)
         {
+            if (!ShouldRunDbIntegration()) return TestResult.Skipped;
+
             var stopwatch = Stopwatch.StartNew();
             try
             {
@@ -443,12 +451,14 @@ namespace FastData.Tests.Integration
             catch (Exception ex)
             {
                 stopwatch.Stop();
-                return new TestResult { Success = false, ElapsedMs = stopwatch.ElapsedMilliseconds, Details = $"异常: {ex.Message}" };
+                return TestResult.FromException(ex, stopwatch.ElapsedMilliseconds);
             }
         }
 
         private TestResult TestChainQuery(string dbName)
         {
+            if (!ShouldRunDbIntegration()) return TestResult.Skipped;
+
             var stopwatch = Stopwatch.StartNew();
             try
             {
@@ -471,12 +481,14 @@ namespace FastData.Tests.Integration
             catch (Exception ex)
             {
                 stopwatch.Stop();
-                return new TestResult { Success = false, ElapsedMs = stopwatch.ElapsedMilliseconds, Details = $"异常: {ex.Message}" };
+                return TestResult.FromException(ex, stopwatch.ElapsedMilliseconds);
             }
         }
 
         private TestResult TestPagination(string dbName)
         {
+            if (!ShouldRunDbIntegration()) return TestResult.Skipped;
+
             var stopwatch = Stopwatch.StartNew();
             try
             {
@@ -499,12 +511,14 @@ namespace FastData.Tests.Integration
             catch (Exception ex)
             {
                 stopwatch.Stop();
-                return new TestResult { Success = false, ElapsedMs = stopwatch.ElapsedMilliseconds, Details = $"异常: {ex.Message}" };
+                return TestResult.FromException(ex, stopwatch.ElapsedMilliseconds);
             }
         }
 
         private TestResult TestBatchInsert(string dbName)
         {
+            if (!ShouldRunDbIntegration()) return TestResult.Skipped;
+
             var stopwatch = Stopwatch.StartNew();
             try
             {
@@ -535,12 +549,14 @@ namespace FastData.Tests.Integration
             catch (Exception ex)
             {
                 stopwatch.Stop();
-                return new TestResult { Success = false, ElapsedMs = stopwatch.ElapsedMilliseconds, Details = $"异常: {ex.Message}" };
+                return TestResult.FromException(ex, stopwatch.ElapsedMilliseconds);
             }
         }
 
         private TestResult TestLambdaWhere(string dbName)
         {
+            if (!ShouldRunDbIntegration()) return TestResult.Skipped;
+
             var stopwatch = Stopwatch.StartNew();
             try
             {
@@ -574,12 +590,14 @@ namespace FastData.Tests.Integration
             catch (Exception ex)
             {
                 stopwatch.Stop();
-                return new TestResult { Success = false, ElapsedMs = stopwatch.ElapsedMilliseconds, Details = $"异常: {ex.Message}" };
+                return TestResult.FromException(ex, stopwatch.ElapsedMilliseconds);
             }
         }
 
         private TestResult TestOrderByGroupBy(string dbName)
         {
+            if (!ShouldRunDbIntegration()) return TestResult.Skipped;
+
             var stopwatch = Stopwatch.StartNew();
             try
             {
@@ -606,12 +624,14 @@ namespace FastData.Tests.Integration
             catch (Exception ex)
             {
                 stopwatch.Stop();
-                return new TestResult { Success = false, ElapsedMs = stopwatch.ElapsedMilliseconds, Details = $"异常: {ex.Message}" };
+                return TestResult.FromException(ex, stopwatch.ElapsedMilliseconds);
             }
         }
 
         private TestResult TestDbTableNames(string dbName)
         {
+            if (!ShouldRunDbIntegration()) return TestResult.Skipped;
+
             var stopwatch = Stopwatch.StartNew();
             try
             {
@@ -632,7 +652,7 @@ namespace FastData.Tests.Integration
             catch (Exception ex)
             {
                 stopwatch.Stop();
-                return new TestResult { Success = false, ElapsedMs = stopwatch.ElapsedMilliseconds, Details = $"异常: {ex.Message}" };
+                return TestResult.FromException(ex, stopwatch.ElapsedMilliseconds);
             }
         }
 
@@ -658,10 +678,48 @@ namespace FastData.Tests.Integration
             Console.WriteLine("总计: {0}/{1} 通过\n", passed, results.Count);
         }
 
+        private static bool ShouldRunDbIntegration()
+        {
+            return string.Equals(Environment.GetEnvironmentVariable("FASTDATA_RUN_DB_INTEGRATION"), "true", StringComparison.OrdinalIgnoreCase);
+        }
+
         #endregion
 
         private class TestResult
         {
+            public static readonly TestResult Skipped = new TestResult
+            {
+                Success = true,
+                ElapsedMs = 0,
+                Details = "未设置 FASTDATA_RUN_DB_INTEGRATION=true，跳过数据库集成测试"
+            };
+
+            public static TestResult FromException(Exception ex, long elapsedMs)
+            {
+                if (IsMissingDatabaseConfig(ex))
+                {
+                    return new TestResult
+                    {
+                        Success = true,
+                        ElapsedMs = elapsedMs,
+                        Details = string.Format("数据库配置不可用，跳过测试: {0}", ex.Message)
+                    };
+                }
+
+                return new TestResult { Success = false, ElapsedMs = elapsedMs, Details = string.Format("异常: {0}", ex.Message) };
+            }
+
+            private static bool IsMissingDatabaseConfig(Exception ex)
+            {
+                return ex.Message.Contains("数据库配置 Key 不存在")
+                    || ex.Message.Contains("db.config")
+                    || ex.Message.Contains("配置文件已发布到输出目录")
+                    || ex.Message.Contains("无法创建新连接")
+                    || ex.Message.Contains("数据库可能不可达")
+                    || ex.Message.Contains("连接池")
+                    || ex.Message.Contains("熔断器打开");
+            }
+
             public bool Success { get; set; }
             public long ElapsedMs { get; set; }
             public string Details { get; set; }

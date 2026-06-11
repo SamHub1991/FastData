@@ -52,22 +52,12 @@ namespace FastData.Base
         /// </summary>
         /// <typeparam name="T">实体类型</typeparam>
         /// <returns>TVP 插入 SQL 语句</returns>
-        public static string GetTvps<T>()
+        public static string GetTvps<T>() where T : class, new()
         {
             var columns = new StringBuilder();
             var select = new StringBuilder();
-            var entityType = typeof(T);
-            var properties = PropertyCache.GetPropertyInfo<T>();
-
-            // 过滤掉 Identity 自增列
-            var filteredProperties = properties.Where(p =>
-            {
-                var propInfo = entityType.GetProperty(p.Name);
-                if (propInfo == null)
-                    return true;
-                var columnAttr = propInfo.GetCustomAttributes(typeof(ColumnAttribute), false).FirstOrDefault() as ColumnAttribute;
-                return columnAttr == null || !columnAttr.IsIdentity;
-            }).ToList();
+            // 使用缓存的非 Identity 属性数组
+            var filteredProperties = PropertyCache.GetNonIdentityProperties<T>();
 
             columns.AppendFormat("insert into {0} (", TableNameHelper.GetTableName<T>());
             select.Append("select ");
@@ -79,7 +69,7 @@ namespace FastData.Base
             }
 
             columns.Append(")");
-            select.AppendFormat("from @{0}_TVP as tb", entityType.Name);
+            select.AppendFormat("from @{0}_TVP as tb", typeof(T).Name);
 
             var columnSql = columns.ToString().Replace(",)", ") ");
             var selectSql = select.ToString().Replace(",from", " from");
@@ -93,30 +83,18 @@ namespace FastData.Base
         /// <param name="cmd">数据库命令对象</param>
         /// <param name="dataList">实体列表</param>
         /// <returns>填充了数据的 DataTable</returns>
-        public static DataTable GetTable<T>(DbCommand cmd, List<T> dataList)
+        public static DataTable GetTable<T>(DbCommand cmd, List<T> dataList) where T : class, new()
         {
             var entityGetter = new Property.DynamicGet<T>();
             var dataTable = new DataTable();
-            var entityType = typeof(T);
-            var properties = PropertyCache.GetPropertyInfo<T>();
+            // 使用缓存的非 Identity 属性数组
+            var filteredProperties = PropertyCache.GetNonIdentityProperties<T>();
 
-            // 过滤掉 Identity 自增列
-            var filteredProperties = properties.Where(p =>
-            {
-                var propInfo = entityType.GetProperty(p.Name);
-                if (propInfo == null)
-                    return true;
-                var columnAttr = propInfo.GetCustomAttributes(typeof(ColumnAttribute), false).FirstOrDefault() as ColumnAttribute;
-                return columnAttr == null || !columnAttr.IsIdentity;
-            }).ToList();
-
-            // 创建 DataTable 列结构
             foreach (var prop in filteredProperties)
             {
                 dataTable.Columns.Add(prop.Name, prop.PropertyType);
             }
 
-            // 填充数据行
             foreach (var entity in dataList)
             {
                 var row = dataTable.NewRow();
@@ -204,15 +182,16 @@ namespace FastData.Base
         /// <param name="dataList">实体列表</param>
         /// <returns>批量插入 SQL 语句</returns>
         [Obsolete("该方法存在 SQL 注入风险，请使用参数化查询方式", true)]
-        public static string GetMySql<T>(List<T> dataList)
+        public static string GetMySql<T>(List<T> dataList) where T : class, new()
         {
             var sql = new StringBuilder();
             var tableName = TableNameHelper.GetTableName<T>();
             var entityGetter = new Property.DynamicGet<T>();
+            var properties = PropertyCache.GetNonIdentityProperties<T>();
 
             sql.AppendFormat("insert into {0}(", tableName);
 
-            foreach (var prop in PropertyCache.GetPropertyInfo<T>())
+            foreach (var prop in properties)
             {
                 sql.AppendFormat("{0},", prop.Name);
             }
@@ -222,7 +201,7 @@ namespace FastData.Base
             {
                 sql.Append("(");
 
-                foreach (var prop in PropertyCache.GetPropertyInfo<T>())
+                foreach (var prop in properties)
                 {
                     var value = entityGetter.GetValue(entity, prop.Name, true);
 

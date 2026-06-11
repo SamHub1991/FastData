@@ -849,7 +849,7 @@ namespace FastData.Repository
         /// <param name="field">字段</param>
         /// <param name="Key"></param>
         /// <returns></returns>
-        public IQuery Query<T>(Expression<Func<T, bool>> predicate, Expression<Func<T, object>> field = null, string key = null, string dbFile = "db.config")
+        public IQuery Query<T>(Expression<Func<T, bool>> predicate, Expression<Func<T, object>> field = null, string key = null, string dbFile = "db.config") where T : class
         {
             var projectName = Assembly.GetCallingAssembly().GetName().Name;
             if (DataConfig.DataType(key, projectName, dbFile) && key == null)

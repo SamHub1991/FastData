@@ -95,7 +95,7 @@ namespace FastData.Tests
 
             // Assert
             Assert.NotNull(operation.Metadata);
-            Assert.True(operation.Metadata.ContainsKey("DeadLetterReason"));
+            Assert.Contains("DeadLetterReason", operation.Metadata.Keys);
             Assert.Equal("超时", operation.Metadata["DeadLetterReason"]);
         }
     }

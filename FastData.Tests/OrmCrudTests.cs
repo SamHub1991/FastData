@@ -33,6 +33,12 @@ namespace FastData.Tests
 
         public OrmCrudTests()
         {
+            if (!string.Equals(Environment.GetEnvironmentVariable("FASTDATA_RUN_DB_INTEGRATION"), "true", StringComparison.OrdinalIgnoreCase))
+            {
+                _dbAvailable = false;
+                return;
+            }
+
             try
             {
                 var users = FastRead.Query<PerfUser>(u => true, key: _key)

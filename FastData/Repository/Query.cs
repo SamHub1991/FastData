@@ -26,7 +26,7 @@ namespace FastData.Repository
         /// <param name="field">字段表达式</param>
         /// <param name="isDblink">是否跨库查询</param>
         /// <returns>查询对象</returns>
-        private IQuery JoinType<T, T1>(string joinType, Expression<Func<T, T1, bool>> predicate, Expression<Func<T1, object>> field = null, bool isDblink = false)
+        private IQuery JoinType<T, T1>(string joinType, Expression<Func<T, T1, bool>> predicate, Expression<Func<T1, object>> field = null, bool isDblink = false) where T : class where T1 : class
         {
             var queryField = BaseField.QueryField<T, T1>(predicate, field, this.Data.Config);
             // queryField.Field 是逗号分隔的字符串，需要分割成列表
@@ -50,7 +50,7 @@ namespace FastData.Repository
         /// <param name="field">字段表达式</param>
         /// <param name="isDblink">是否跨库查询</param>
         /// <returns>查询对象</returns>
-        public override IQuery LeftJoin<T, T1>(Expression<Func<T, T1, bool>> predicate, Expression<Func<T1, object>> field = null, bool isDblink = false)
+        public override IQuery LeftJoin<T, T1>(Expression<Func<T, T1, bool>> predicate, Expression<Func<T1, object>> field = null, bool isDblink = false) where T : class where T1 : class
         {
             return JoinType("left join", predicate, field);
         }
@@ -64,7 +64,7 @@ namespace FastData.Repository
         /// <param name="field">字段表达式</param>
         /// <param name="isDblink">是否跨库查询</param>
         /// <returns>查询对象</returns>
-        public override IQuery RightJoin<T, T1>(Expression<Func<T, T1, bool>> predicate, Expression<Func<T1, object>> field = null, bool isDblink = false)
+        public override IQuery RightJoin<T, T1>(Expression<Func<T, T1, bool>> predicate, Expression<Func<T1, object>> field = null, bool isDblink = false) where T : class where T1 : class
         {
             return JoinType("right join", predicate, field);
         }
@@ -78,7 +78,7 @@ namespace FastData.Repository
         /// <param name="field">字段表达式</param>
         /// <param name="isDblink">是否跨库查询</param>
         /// <returns>查询对象</returns>
-        public override IQuery InnerJoin<T, T1>(Expression<Func<T, T1, bool>> predicate, Expression<Func<T1, object>> field = null, bool isDblink = false)
+        public override IQuery InnerJoin<T, T1>(Expression<Func<T, T1, bool>> predicate, Expression<Func<T1, object>> field = null, bool isDblink = false) where T : class where T1 : class
         {
             return JoinType("inner join", predicate, field);
         }
@@ -166,7 +166,7 @@ namespace FastData.Repository
         /// <returns></returns>
         public override Task<List<T>> ToListAsync<T>(DataContext db = null, bool isOutSql = false)
         {
-            return AsyncHelper.RunAsync(() => ToList<T>(db, isOutSql));
+            return FastRead.ToListAsync<T>(this.Data, db, isOutSql);
         }
 
         /// <summary>
@@ -188,7 +188,7 @@ namespace FastData.Repository
         /// <returns></returns>
         public override Task<Lazy<List<T>>> ToLazyListAsync<T>(DataContext db = null, bool isOutSql = false)
         {
-            return AsyncHelper.RunAsync(() => new Lazy<List<T>>(() => ToList<T>(db, isOutSql)));
+            return Task.FromResult(new Lazy<List<T>>(() => ToList<T>(db, isOutSql)));
         }
 
 
@@ -231,7 +231,7 @@ namespace FastData.Repository
         /// <returns></returns>
         public override Task<string> ToJsonAsync(DataContext db = null, bool isOutSql = false)
         {
-            return AsyncHelper.RunAsync(() => ToJson(db, isOutSql));
+            return FastRead.ToJsonAsync(this.Data, db, isOutSql);
         }
 
         /// <summary>
@@ -251,7 +251,7 @@ namespace FastData.Repository
         /// <returns></returns>
         public override Task<Lazy<string>> ToLazyJsonAsync(DataContext db = null, bool isOutSql = false)
         {
-            return AsyncHelper.RunAsync(() => AsyncHelper.ToLazy(() => ToJson(db, isOutSql)));
+            return Task.FromResult(AsyncHelper.ToLazy(() => ToJson(db, isOutSql)));
         }
 
 
@@ -298,7 +298,7 @@ namespace FastData.Repository
         /// <returns></returns>
         public override Task<T> ToItemAsync<T>(DataContext db = null, bool isOutSql = false)
         {
-            return AsyncHelper.RunAsync(() => ToItem<T>(db, isOutSql));
+            return FastRead.ToItemAsync<T>(this.Data, db, isOutSql);
         }
 
         /// <summary>
@@ -320,7 +320,7 @@ namespace FastData.Repository
         /// <returns></returns>
         public override Task<Lazy<T>> ToLazyItemAsync<T>(DataContext db = null, bool isOutSql = false)
         {
-            return AsyncHelper.RunAsync(() => AsyncHelper.ToLazy(() => ToItem<T>(db, isOutSql)));
+            return Task.FromResult(AsyncHelper.ToLazy(() => ToItem<T>(db, isOutSql)));
         }
 
 
@@ -364,7 +364,7 @@ namespace FastData.Repository
         /// <returns></returns>
         public override Task<int> ToCountAsync<T, T1>(DataContext db = null, bool isOutSql = false)
         {
-            return AsyncHelper.RunAsync(() => ToCount(db, isOutSql));
+            return FastRead.ToCountAsync(this.Data, db, isOutSql);
         }
 
 
@@ -411,7 +411,7 @@ namespace FastData.Repository
         /// <returns></returns>
         public override Task<PageResult<T>> ToPageAsync<T>(PageModel pModel, DataContext db = null, bool isOutSql = false)
         {
-            return AsyncHelper.RunAsync(() => ToPage<T>(pModel, db, isOutSql));
+            return FastRead.ToPageAsync<T>(this.Data, pModel, db, isOutSql);
         }
 
         /// <summary>
@@ -435,7 +435,7 @@ namespace FastData.Repository
         /// <returns></returns>
         public override Task<Lazy<PageResult<T>>> ToLazyPageAsync<T>(PageModel pModel, DataContext db = null, bool isOutSql = false)
         {
-            return AsyncHelper.RunAsync(() => new Lazy<PageResult<T>>(() => ToPage<T>(pModel, db, isOutSql)));
+            return Task.FromResult(new Lazy<PageResult<T>>(() => ToPage<T>(pModel, db, isOutSql)));
         }
 
 
@@ -480,7 +480,7 @@ namespace FastData.Repository
         /// <returns></returns>
         public override Task<PageResult> ToPageAsync(PageModel pModel, DataContext db = null, bool isOutSql = false)
         {
-            return AsyncHelper.RunAsync(() => ToPage(pModel, db, isOutSql));
+            return FastRead.ToPageAsync(this.Data, pModel, db, isOutSql);
         }
 
         /// <summary>
@@ -503,7 +503,7 @@ namespace FastData.Repository
         /// <returns></returns>
         public override Task<Lazy<PageResult>> ToLazyPageAsync(PageModel pModel, DataContext db = null, bool isOutSql = false)
         {
-            return AsyncHelper.RunAsync(() => AsyncHelper.ToLazy(() => ToPage(pModel, db, isOutSql)));
+            return Task.FromResult(AsyncHelper.ToLazy(() => ToPage(pModel, db, isOutSql)));
         }
 
 
@@ -547,7 +547,7 @@ namespace FastData.Repository
         /// <returns></returns>
         public override Task<DataTable> ToDataTableAsync(DataContext db = null, bool isOutSql = false)
         {
-            return AsyncHelper.RunAsync(() => ToDataTable(db, isOutSql));
+            return FastRead.ToDataTableAsync(this.Data, db, isOutSql);
         }
 
         /// <summary>
@@ -567,7 +567,7 @@ namespace FastData.Repository
         /// <returns></returns>
         public override Task<Lazy<DataTable>> ToLazyDataTableAsync(DataContext db = null, bool isOutSql = false)
         {
-            return AsyncHelper.RunAsync(() => AsyncHelper.ToLazy(() => ToDataTable(db, isOutSql)));
+            return Task.FromResult(AsyncHelper.ToLazy(() => ToDataTable(db, isOutSql)));
         }
 
 
@@ -610,7 +610,7 @@ namespace FastData.Repository
         /// <returns></returns>
         public override Task<List<Dictionary<string, object>>> ToDicsAsync(DataContext db = null, bool isOutSql = false)
         {
-            return AsyncHelper.RunAsync(() => ToDics(db, isOutSql));
+            return FastRead.ToDicsAsync(this.Data, db, isOutSql);
         }
 
         /// <summary>
@@ -630,7 +630,7 @@ namespace FastData.Repository
         /// <returns></returns>
         public override Task<Lazy<List<Dictionary<string, object>>>> ToLazyDicsAsync(DataContext db = null, bool isOutSql = false)
         {
-            return AsyncHelper.RunAsync(() => new Lazy<List<Dictionary<string, object>>>(() => ToDics(db, isOutSql)));
+            return Task.FromResult(new Lazy<List<Dictionary<string, object>>>(() => ToDics(db, isOutSql)));
         }
 
 
@@ -674,7 +674,7 @@ namespace FastData.Repository
         /// <returns></returns>
         public override Task<Dictionary<string, object>> ToDicAsync(DataContext db = null, bool isOutSql = false)
         {
-            return AsyncHelper.RunAsync(() => ToDic(db, isOutSql));
+            return FastRead.ToDicAsync(this.Data, db, isOutSql);
         }
 
         /// <summary>
@@ -694,7 +694,7 @@ namespace FastData.Repository
         /// <returns></returns>
         public override Task<Lazy<Dictionary<string, object>>> ToLazyDicAsync(DataContext db = null, bool isOutSql = false)
         {
-            return AsyncHelper.RunAsync(() => new Lazy<Dictionary<string, object>>(() => ToDic(db, isOutSql)));
+            return Task.FromResult(new Lazy<Dictionary<string, object>>(() => ToDic(db, isOutSql)));
         }
     }
 }

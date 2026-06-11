@@ -212,6 +212,12 @@ namespace FastData.Tests
         [Fact]
         public void SingleQuery_Performance_ShouldBeFast()
         {
+            if (!_dbAvailable)
+            {
+                _output.WriteLine("SKIP: SingleQuery - database unavailable");
+                return;
+            }
+
             var tag = string.Format("query_{0:N}", Guid.NewGuid()).Substring(0, 20);
             var user = CreatePerfUser(tag);
             FastWrite.Add(user, key: _key);
@@ -226,6 +232,12 @@ namespace FastData.Tests
         [Fact]
         public void SingleUpdate_Performance_ShouldBeFast()
         {
+            if (!_dbAvailable)
+            {
+                _output.WriteLine("SKIP: SingleUpdate - database unavailable");
+                return;
+            }
+
             var tag = string.Format("update_{0:N}", Guid.NewGuid()).Substring(0, 20);
             var user = CreatePerfUser(tag);
             FastWrite.Add(user, key: _key);
@@ -270,6 +282,12 @@ namespace FastData.Tests
         [Fact]
         public void BatchQuery_Performance_ShouldBeEfficient()
         {
+            if (!_dbAvailable)
+            {
+                _output.WriteLine("SKIP: BatchQuery - database unavailable");
+                return;
+            }
+
             var prefix = string.Format("bq_{0:N}", Guid.NewGuid()).Substring(0, 10);
             var users = CreatePerfUsers(BatchSize, prefix);
             FastWrite.AddList(users, key: _key);
@@ -398,7 +416,7 @@ namespace FastData.Tests
         [Fact]
         public void PropertyCache_DirectAccess_Performance()
         {
-            if (!_dbAvailable)
+            if (!EnsureDatabaseAvailable())
             {
                 _output.WriteLine("SKIP: database unavailable");
                 return;
@@ -421,6 +439,15 @@ namespace FastData.Tests
             var metric = PerformanceProfiler.GetMetric("PropertyCache_Reflection");
             _output.WriteLine(string.Format("PropertyCache 反射缓存查询 x{0}: Avg={1:F4}ms/call", iterations, metric.AverageExecutionTime));
             _output.WriteLine(string.Format("PropertyCache 总耗时: {0}ms ({1}次调用)", metric.TotalExecutionTime, iterations));
+        }
+
+        private bool EnsureDatabaseAvailable()
+        {
+            if (!_dbAvailable)
+                return false;
+
+            _dbAvailable = CheckDatabaseAvailability();
+            return _dbAvailable;
         }
 
         #endregion

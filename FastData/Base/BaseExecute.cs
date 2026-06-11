@@ -491,13 +491,17 @@ namespace FastData.Base
         /// <typeparam name="T"></typeparam>
         /// <param name="cmd"></param>
         /// <returns></returns>
-        public static DataTable ToDataTable<T>(DbCommand cmd, ConfigModel config, List<string> where, Expression<Func<T, object>> field = null)
+        public static DataTable ToDataTable<T>(DbCommand cmd, ConfigModel config, List<string> where, Expression<Func<T, object>> field = null) where T : class
         {
             var dt = new DataTable();
             var sql = new List<string>();
 
             if (field == null)
-                PropertyCache.GetPropertyInfo<T>(config.IsPropertyCache).ForEach(a => { sql.Add(a.Name); });
+            {
+                var properties = PropertyCache.GetPropertiesCached<T>();
+                foreach (var a in properties)
+                    sql.Add(a.Name);
+            }
             else
                 (field.Body as NewExpression).Members.ToList().ForEach(a => { sql.Add(a.Name); });
 

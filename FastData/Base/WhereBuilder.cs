@@ -31,7 +31,7 @@ namespace FastData.Base
                 return string.Empty;
 
             var sb = new StringBuilder();
-            var paramIndex = 0;
+            var paramIndex = param.Count;
 
             // 1. 渲染初始条件（来自 Query 入口的 Lambda 表达式）
             if (hasInitial)
@@ -41,6 +41,7 @@ namespace FastData.Base
                 {
                     // 初始条件来自 VisitExpression，它内部已经处理好参数名
                     param.AddRange(query.Predicate[0].Param);
+                    paramIndex = param.Count;
                 }
             }
 

@@ -22,7 +22,7 @@ namespace FastData.Base
         /// <summary>
         /// 将实体转换为 UPDATE SQL 语句
         /// </summary>
-        public static OptionModel UpdateToSql<T>(T entity, ConfigModel config, Expression<Func<T, object>> fieldSelector = null, DbCommand cmd = null)
+        public static OptionModel UpdateToSql<T>(T entity, ConfigModel config, Expression<Func<T, object>> fieldSelector = null, DbCommand cmd = null) where T : class
         {
             var result = new OptionModel();
             var entityGetter = new Property.DynamicGet<T>();
@@ -69,7 +69,7 @@ namespace FastData.Base
         /// <summary>
         /// 将实体转换为 UPDATE SQL 语句（包含 WHERE 主键条件）
         /// </summary>
-        public static OptionModel UpdateToSql<T>(DbCommand cmd, T entity, ConfigModel config, Expression<Func<T, object>> fieldSelector = null)
+        public static OptionModel UpdateToSql<T>(DbCommand cmd, T entity, ConfigModel config, Expression<Func<T, object>> fieldSelector = null) where T : class
         {
             var result = new OptionModel();
             var entityGetter = new Property.DynamicGet<T>();
@@ -118,7 +118,7 @@ namespace FastData.Base
         /// <param name="entity">实体对象</param>
         /// <param name="config">数据库配置模型</param>
         /// <returns>操作结果模型</returns>
-        public static OptionModel InsertToSql<T>(T entity, ConfigModel config)
+        public static OptionModel InsertToSql<T>(T entity, ConfigModel config) where T : class, new()
         {
             var columnBuilder = new StringBuilder();
             var valueBuilder = new StringBuilder();
@@ -139,21 +139,11 @@ namespace FastData.Base
                 valueBuilder.Append(" values (");
                 var factory = DbProviderFactories.GetFactory(config.ProviderName);
 
-                var properties = PropertyCache.GetPropertyInfo<T>(config.IsPropertyCache);
+                var properties = PropertyCache.GetNonIdentityProperties<T>();
 
                 foreach (var property in properties)
                 {
                     if (processedColumns.Exists(p => p.Name == property.Name))
-                        continue;
-
-                    // 跳过 Identity 自增列
-                    var propertyInfo = typeof(T).GetProperty(property.Name);
-                    var columnAttribute = propertyInfo != null
-                        ? propertyInfo.GetCustomAttributes(typeof(Property.ColumnAttribute), true)
-                            .OfType<Property.ColumnAttribute>().FirstOrDefault()
-                        : null;
-
-                    if (columnAttribute != null && columnAttribute.IsIdentity)
                         continue;
 
                     columnBuilder.AppendFormat("{0},", property.Name);
@@ -196,7 +186,7 @@ namespace FastData.Base
         /// <param name="config">数据库配置模型</param>
         /// <param name="fieldSelector">更新的字段表达式，为 null 时更新所有字段</param>
         /// <returns>操作结果模型</returns>
-        public static OptionModel UpdateListToSql<T>(DbCommand cmd, List<T> entityList, ConfigModel config, Expression<Func<T, object>> fieldSelector = null)
+        public static OptionModel UpdateListToSql<T>(DbCommand cmd, List<T> entityList, ConfigModel config, Expression<Func<T, object>> fieldSelector = null) where T : class
         {
             var entityGetter = new Property.DynamicGet<T>();
             var result = new OptionModel();
@@ -217,10 +207,12 @@ namespace FastData.Base
                 var sqlBuilder = new StringBuilder();
                 sqlBuilder.AppendFormat("update {0} set", TableNameHelper.GetTableName<T>(config));
 
+                // 使用缓存的属性数组替代 GetPropertyInfo
+                var properties = PropertyCache.GetPropertiesCached<T>();
+
                 if (fieldSelector == null)
                 {
-                    // 更新所有非主键字段
-                    foreach (var property in PropertyCache.GetPropertyInfo<T>(config.IsPropertyCache))
+                    foreach (var property in properties)
                     {
                         if (primaryKeys.Exists(k => k == property.Name))
                             continue;
@@ -278,7 +270,7 @@ namespace FastData.Base
 
                     if (fieldSelector == null)
                     {
-                        foreach (var property in PropertyCache.GetPropertyInfo<T>())
+                        foreach (var property in properties)
                         {
                             row[property.Name] = entityGetter.GetValue(entity, property.Name, true);
                         }
@@ -435,11 +427,12 @@ namespace FastData.Base
         /// </summary>
         private static void BuildSetClause<T>(StringBuilder sqlBuilder, T entity, ConfigModel config,
             Expression<Func<T, object>> fieldSelector, Property.DynamicGet<T> entityGetter,
-            DbProviderFactory factory, OptionModel result)
+            DbProviderFactory factory, OptionModel result) where T : class
         {
             if (fieldSelector == null)
             {
-                foreach (var property in PropertyCache.GetPropertyInfo<T>(config.IsPropertyCache))
+                var properties = PropertyCache.GetPropertiesCached<T>();
+                foreach (var property in properties)
                 {
                     sqlBuilder.AppendFormat(" {0}={1}{0},", property.Name, config.Flag);
                     var parameter = factory.CreateParameter();

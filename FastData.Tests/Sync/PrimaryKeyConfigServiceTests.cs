@@ -30,7 +30,7 @@ namespace FastData.Tests.Sync
             var result = service.GetTableConfig("orders");
             Assert.NotNull(result);
             Assert.Equal("orders", result.TableName);
-            Assert.Equal(1, result.PrimaryKeyColumns.Count);
+            Assert.Single(result.PrimaryKeyColumns);
             Assert.Equal("order_id", result.PrimaryKeyColumns[0]);
             Assert.True(result.IsAutoIncrement);
         }
@@ -45,7 +45,7 @@ namespace FastData.Tests.Sync
             service.AddTableConfig(null);
 
             var all = service.GetAllConfigs();
-            Assert.Equal(0, all.Count);
+            Assert.Empty(all);
         }
 
         /// <summary>
@@ -58,7 +58,7 @@ namespace FastData.Tests.Sync
             service.AddTableConfig(new TablePrimaryKeyConfig { TableName = "" });
 
             var all = service.GetAllConfigs();
-            Assert.Equal(0, all.Count);
+            Assert.Empty(all);
         }
 
         /// <summary>

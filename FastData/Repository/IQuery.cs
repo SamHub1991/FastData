@@ -24,7 +24,7 @@ namespace FastData.Repository
         /// <param name="field">连接表字段选择</param>
         /// <param name="isDblink">是否使用数据库链接</param>
         /// <returns>查询对象</returns>
-        public abstract IQuery LeftJoin<T, T1>(Expression<Func<T, T1, bool>> predicate, Expression<Func<T1, object>> field = null, bool isDblink = false);
+        public abstract IQuery LeftJoin<T, T1>(Expression<Func<T, T1, bool>> predicate, Expression<Func<T1, object>> field = null, bool isDblink = false) where T : class where T1 : class;
 
         /// <summary>
         /// 右连接
@@ -35,7 +35,7 @@ namespace FastData.Repository
         /// <param name="field">连接表字段选择</param>
         /// <param name="isDblink">是否使用数据库链接</param>
         /// <returns>查询对象</returns>
-        public abstract IQuery RightJoin<T, T1>(Expression<Func<T, T1, bool>> predicate, Expression<Func<T1, object>> field = null, bool isDblink = false) where T1 : class, new();
+        public abstract IQuery RightJoin<T, T1>(Expression<Func<T, T1, bool>> predicate, Expression<Func<T1, object>> field = null, bool isDblink = false) where T : class where T1 : class;
 
         /// <summary>
         /// 内连接
@@ -46,7 +46,7 @@ namespace FastData.Repository
         /// <param name="field">连接表字段选择</param>
         /// <param name="isDblink">是否使用数据库链接</param>
         /// <returns>查询对象</returns>
-        public abstract IQuery InnerJoin<T, T1>(Expression<Func<T, T1, bool>> predicate, Expression<Func<T1, object>> field = null, bool isDblink = false) where T1 : class, new();
+        public abstract IQuery InnerJoin<T, T1>(Expression<Func<T, T1, bool>> predicate, Expression<Func<T1, object>> field = null, bool isDblink = false) where T : class where T1 : class;
 
         /// <summary>
         /// 排序

@@ -504,26 +504,27 @@ namespace FastData.Context
                         cmd.ExecuteNonQuery();
                     }
 
-                    cmd.GetType().GetMethods().ToList().ForEach(a =>
-                    {
-                        if (a.Name == "set_ArrayBindCount")
-                        {
-                            var param = new object[1];
-                            param[0] = list.Count;
-                            a.Invoke(cmd, param);
-                        }
+                    var oracleCmdType = cmd.GetType();
+                    var setArrayBindCount = PropertyCache.GetSetterMethodCached(oracleCmdType, "set_ArrayBindCount");
+                    var setBindByName = PropertyCache.GetSetterMethodCached(oracleCmdType, "set_BindByName");
 
-                        if (a.Name == "set_BindByName")
-                        {
-                            var param = new object[1];
-                            param[0] = true;
-                            a.Invoke(cmd, param);
-                        }
-                    });
+                    if (setArrayBindCount != null)
+                    {
+                        var param = new object[1] { list.Count };
+                        setArrayBindCount.Invoke(cmd, param);
+                    }
+
+                    if (setBindByName != null)
+                    {
+                        var param = new object[1] { true };
+                        setBindByName.Invoke(cmd, param);
+                    }
 
                     sql.AppendFormat("insert into {0} values(", TableNameHelper.GetTableName<T>());
 
-                    PropertyCache.GetPropertyInfo<T>().ForEach(a =>
+                    // 使用缓存的非 Identity 属性数组
+                    var oracleProperties = PropertyCache.GetNonIdentityProperties<T>();
+                    foreach (var a in oracleProperties)
                     {
                         var pValue = new List<object>();
                         var param = DbProviderFactories.GetFactory(config.ProviderName).CreateParameter();
@@ -547,7 +548,7 @@ namespace FastData.Context
 
                         param.Value = pValue.ToArray();
                         cmd.Parameters.Add(param);
-                    });
+                    }
 
                     sql.Append(")");
                     cmd.CommandText = sql.ToString().Replace(",)", ")");
@@ -576,33 +577,32 @@ namespace FastData.Context
                         conn.Open();
                     
                     CommandParam.InitTvps<T>(cmd);
-                    foreach (var method in cmd.Parameters.GetType().GetMethods())
+                    
+                    var parametersType = cmd.Parameters.GetType();
+                    var addWithValueMethod = PropertyCache.GetSetterMethodCached(parametersType, "AddWithValue");
+                    
+                    if (addWithValueMethod != null)
                     {
-                        if (method.Name == "AddWithValue")
+                        var param = new object[2];
+                        param[0] = string.Format("@{0}_TVP", typeof(T).Name);
+                        param[1] = CommandParam.GetTable<T>(cmd, list);
+                        var sqlParam = addWithValueMethod.Invoke(cmd.Parameters, param);
+
+                        var sqlParamType = sqlParam.GetType();
+                        var setSqlDbType = PropertyCache.GetSetterMethodCached(sqlParamType, "set_SqlDbType");
+                        var setSelectedTypeName = PropertyCache.GetSetterMethodCached(sqlParamType, "set_TypeName");
+
+                        if (setSqlDbType != null)
                         {
-                            var param = new object[2];
-                            param[0] = string.Format("@{0}_TVP", typeof(T).Name);
-                            param[1] = CommandParam.GetTable<T>(cmd, list);
-                            var sqlParam = method.Invoke(cmd.Parameters, param);
-
-                            sqlParam.GetType().GetMethods().ToList().ForEach(a =>
-                            {
-                                if (a.Name == "set_SqlDbType")
-                                {
-                                    param = new object[1];
-                                    param[0] = SqlDbType.Structured;
-                                    a.Invoke(sqlParam, param);
-                                }
-                                if (a.Name == "set_TypeName")
-                                {
-                                    param = new object[1];
-                                    // 使用新的 TVP 类型名称（排除 Identity 列）
-                                    param[0] = string.Format("{0}_TVP", typeof(T).Name);
-                                    a.Invoke(sqlParam, param);
-                                }
-                            });
-
-                            break;
+                            param = new object[1];
+                            param[0] = SqlDbType.Structured;
+                            setSqlDbType.Invoke(sqlParam, param);
+                        }
+                        if (setSelectedTypeName != null)
+                        {
+                            param = new object[1];
+                            param[0] = string.Format("{0}_TVP", typeof(T).Name);
+                            setSelectedTypeName.Invoke(sqlParam, param);
                         }
                     }
 
@@ -621,20 +621,11 @@ namespace FastData.Context
                     // 清理参数而非 dispose 命令对象
                     cmd.Parameters.Clear();
                     
-                    // 获取属性信息，排除 Identity 列
-                    var mysqlProperties = PropertyCache.GetPropertyInfo<T>();
-                    var mysqlEntityType = typeof(T);
-                    var nonIdentityProperties = mysqlProperties.Where(p => 
-                    {
-                        var propInfo = mysqlEntityType.GetProperty(p.Name);
-                        if (propInfo == null) return true;
-                        var columnAttr = propInfo.GetCustomAttributes(typeof(ColumnAttribute), false)
-                            .FirstOrDefault() as ColumnAttribute;
-                        return columnAttr == null || !columnAttr.IsIdentity;
-                    }).ToList();
+                    // 使用缓存的非 Identity 属性数组
+                    var mysqlProperties = PropertyCache.GetNonIdentityProperties<T>();
                     
                     var mysqlTableName = TableNameHelper.GetTableName<T>(config);
-                    var mysqlColumns = string.Join(", ", nonIdentityProperties.Select(p => p.Name));
+                    var mysqlColumns = string.Join(", ", mysqlProperties.Select(p => p.Name));
                     
                     // 使用参数化查询防止 SQL 注入
                     var paramIndex = 0;
@@ -643,7 +634,7 @@ namespace FastData.Context
                     foreach (var item in list)
                     {
                         var itemParams = new List<string>();
-                        foreach (var prop in nonIdentityProperties)
+                        foreach (var prop in mysqlProperties)
                         {
                             var paramName = string.Format("@mysql_p{0}", paramIndex++);
                             itemParams.Add(paramName);
@@ -676,18 +667,9 @@ namespace FastData.Context
                     cmd.Parameters.Clear();
                     
                     var pgTableName = TableNameHelper.GetTableName<T>(config);
-                    var pgProperties = PropertyCache.GetPropertyInfo<T>();
                     
-                    // 排除 Identity 列
-                    var pgEntityType = typeof(T);
-                    var pgNonIdentityProperties = pgProperties.Where(p => 
-                    {
-                        var propInfo = pgEntityType.GetProperty(p.Name);
-                        if (propInfo == null) return true;
-                        var columnAttr = propInfo.GetCustomAttributes(typeof(ColumnAttribute), false)
-                            .FirstOrDefault() as ColumnAttribute;
-                        return columnAttr == null || !columnAttr.IsIdentity;
-                    }).ToList();
+                    // 使用缓存的非 Identity 属性数组
+                    var pgNonIdentityProperties = PropertyCache.GetNonIdentityProperties<T>();
                     
                     var pgColumns = string.Join(", ", pgNonIdentityProperties.Select(p => p.Name));
                     var pgPlaceholders = string.Join(", ", pgNonIdentityProperties.Select((p, i) => string.Format("{0}{1}", config.Flag, p.Name)));
@@ -739,9 +721,10 @@ namespace FastData.Context
                     cmd.Parameters.Clear();
                     
                     var sqliteTableName = TableNameHelper.GetTableName<T>();
-                    var properties = PropertyCache.GetPropertyInfo<T>();
-                    var columns = string.Join(", ", properties.Select(p => p.Name));
-                    var placeholders = string.Join(", ", properties.Select(p => string.Format("{0}{1}", config.Flag, p.Name)));
+                    // 使用缓存的非 Identity 属性数组
+                    var sqliteProperties = PropertyCache.GetNonIdentityProperties<T>();
+                    var columns = string.Join(", ", sqliteProperties.Select(p => p.Name));
+                    var placeholders = string.Join(", ", sqliteProperties.Select(p => string.Format("{0}{1}", config.Flag, p.Name)));
                     var insertSql = string.Format("INSERT INTO {0} ({1}) VALUES ({2})", sqliteTableName, columns, placeholders);
                     
                     AopBefore(new List<string> { sqliteTableName }, insertSql, null, config, false, AopType.AddList);
@@ -755,7 +738,7 @@ namespace FastData.Context
                     foreach (var item in list)
                     {
                         cmd.Parameters.Clear();
-                        foreach (var prop in properties)
+                        foreach (var prop in sqliteProperties)
                         {
                             var param = cmd.CreateParameter();
                             param.ParameterName = string.Format("{0}{1}", config.Flag, prop.Name);
@@ -925,7 +908,7 @@ namespace FastData.Context
 
                     if (conn.State == ConnectionState.Closed)
                         conn.Open();
-                    cmd.ExecuteNonQuery();
+                    _command.ExecuteNonQuery();
                 }
 
                 result.Sql = string.Format("{0} (x{1})", insertSql, list.Count);
@@ -1472,26 +1455,27 @@ namespace FastData.Context
                         await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
                     }
 
-                    cmd.GetType().GetMethods().ToList().ForEach(a =>
-                    {
-                        if (a.Name == "set_ArrayBindCount")
-                        {
-                            var param = new object[1];
-                            param[0] = list.Count;
-                            a.Invoke(cmd, param);
-                        }
+                    var oracleCmdType = cmd.GetType();
+                    var setArrayBindCount = PropertyCache.GetSetterMethodCached(oracleCmdType, "set_ArrayBindCount");
+                    var setBindByName = PropertyCache.GetSetterMethodCached(oracleCmdType, "set_BindByName");
 
-                        if (a.Name == "set_BindByName")
-                        {
-                            var param = new object[1];
-                            param[0] = true;
-                            a.Invoke(cmd, param);
-                        }
-                    });
+                    if (setArrayBindCount != null)
+                    {
+                        var param = new object[1] { list.Count };
+                        setArrayBindCount.Invoke(cmd, param);
+                    }
+
+                    if (setBindByName != null)
+                    {
+                        var param = new object[1] { true };
+                        setBindByName.Invoke(cmd, param);
+                    }
 
                     sql.AppendFormat("insert into {0} values(", TableNameHelper.GetTableName<T>());
 
-                    PropertyCache.GetPropertyInfo<T>().ForEach(a =>
+                    // 使用缓存的非 Identity 属性数组
+                    var oracleProperties = PropertyCache.GetNonIdentityProperties<T>();
+                    foreach (var a in oracleProperties)
                     {
                         var pValue = new List<object>();
                         var param = DbProviderFactories.GetFactory(config.ProviderName).CreateParameter();
@@ -1515,7 +1499,7 @@ namespace FastData.Context
 
                         param.Value = pValue.ToArray();
                         cmd.Parameters.Add(param);
-                    });
+                    }
 
                     sql.Append(")");
                     cmd.CommandText = sql.ToString().Replace(",)", ")");
@@ -1539,32 +1523,32 @@ namespace FastData.Context
                     await EnsureConnectionOpenAsync(cancellationToken).ConfigureAwait(false);
 
                     CommandParam.InitTvps<T>(cmd);
-                    foreach (var method in cmd.Parameters.GetType().GetMethods())
+                    
+                    var parametersType = cmd.Parameters.GetType();
+                    var addWithValueMethod = PropertyCache.GetSetterMethodCached(parametersType, "AddWithValue");
+                    
+                    if (addWithValueMethod != null)
                     {
-                        if (method.Name == "AddWithValue")
+                        var param = new object[2];
+                        param[0] = string.Format("@{0}_TVP", typeof(T).Name);
+                        param[1] = CommandParam.GetTable<T>(cmd, list);
+                        var sqlParam = addWithValueMethod.Invoke(cmd.Parameters, param);
+
+                        var sqlParamType = sqlParam.GetType();
+                        var setSqlDbType = PropertyCache.GetSetterMethodCached(sqlParamType, "set_SqlDbType");
+                        var setSelectedTypeName = PropertyCache.GetSetterMethodCached(sqlParamType, "set_TypeName");
+
+                        if (setSqlDbType != null)
                         {
-                            var param = new object[2];
-                            param[0] = string.Format("@{0}_TVP", typeof(T).Name);
-                            param[1] = CommandParam.GetTable<T>(cmd, list);
-                            var sqlParam = method.Invoke(cmd.Parameters, param);
-
-                            sqlParam.GetType().GetMethods().ToList().ForEach(a =>
-                            {
-                                if (a.Name == "set_SqlDbType")
-                                {
-                                    param = new object[1];
-                                    param[0] = SqlDbType.Structured;
-                                    a.Invoke(sqlParam, param);
-                                }
-                                if (a.Name == "set_TypeName")
-                                {
-                                    param = new object[1];
-                                    param[0] = string.Format("{0}_TVP", typeof(T).Name);
-                                    a.Invoke(sqlParam, param);
-                                }
-                            });
-
-                            break;
+                            param = new object[1];
+                            param[0] = SqlDbType.Structured;
+                            setSqlDbType.Invoke(sqlParam, param);
+                        }
+                        if (setSelectedTypeName != null)
+                        {
+                            param = new object[1];
+                            param[0] = string.Format("{0}_TVP", typeof(T).Name);
+                            setSelectedTypeName.Invoke(sqlParam, param);
                         }
                     }
 
@@ -1580,19 +1564,11 @@ namespace FastData.Context
                 {
                     cmd.Parameters.Clear();
 
-                    var mysqlProperties = PropertyCache.GetPropertyInfo<T>();
-                    var mysqlEntityType = typeof(T);
-                    var nonIdentityProperties = mysqlProperties.Where(p =>
-                    {
-                        var propInfo = mysqlEntityType.GetProperty(p.Name);
-                        if (propInfo == null) return true;
-                        var columnAttr = propInfo.GetCustomAttributes(typeof(ColumnAttribute), false)
-                            .FirstOrDefault() as ColumnAttribute;
-                        return columnAttr == null || !columnAttr.IsIdentity;
-                    }).ToList();
+                    // 使用缓存的非 Identity 属性数组
+                    var mysqlProperties = PropertyCache.GetNonIdentityProperties<T>();
 
                     var mysqlTableName = TableNameHelper.GetTableName<T>(config);
-                    var mysqlColumns = string.Join(", ", nonIdentityProperties.Select(p => p.Name));
+                    var mysqlColumns = string.Join(", ", mysqlProperties.Select(p => p.Name));
 
                     var paramIndex = 0;
                     var valuePlaceholders = new List<string>();
@@ -1600,7 +1576,7 @@ namespace FastData.Context
                     foreach (var item in list)
                     {
                         var itemParams = new List<string>();
-                        foreach (var prop in nonIdentityProperties)
+                        foreach (var prop in mysqlProperties)
                         {
                             var paramName = string.Format("@mysql_p{0}", paramIndex++);
                             itemParams.Add(paramName);
@@ -1629,17 +1605,9 @@ namespace FastData.Context
                     cmd.Parameters.Clear();
 
                     var pgTableName = TableNameHelper.GetTableName<T>(config);
-                    var pgProperties = PropertyCache.GetPropertyInfo<T>();
 
-                    var pgEntityType = typeof(T);
-                    var pgNonIdentityProperties = pgProperties.Where(p =>
-                    {
-                        var propInfo = pgEntityType.GetProperty(p.Name);
-                        if (propInfo == null) return true;
-                        var columnAttr = propInfo.GetCustomAttributes(typeof(ColumnAttribute), false)
-                            .FirstOrDefault() as ColumnAttribute;
-                        return columnAttr == null || !columnAttr.IsIdentity;
-                    }).ToList();
+                    // 使用缓存的非 Identity 属性数组
+                    var pgNonIdentityProperties = PropertyCache.GetNonIdentityProperties<T>();
 
                     var pgColumns = string.Join(", ", pgNonIdentityProperties.Select(p => p.Name));
                     var pgPlaceholders = string.Join(", ", pgNonIdentityProperties.Select((p, i) => string.Format("{0}{1}", config.Flag, p.Name)));
@@ -1685,9 +1653,12 @@ namespace FastData.Context
                     cmd.Parameters.Clear();
 
                     var sqliteTableName = TableNameHelper.GetTableName<T>();
-                    var properties = PropertyCache.GetPropertyInfo<T>();
-                    var columns = string.Join(", ", properties.Select(p => p.Name));
-                    var placeholders = string.Join(", ", properties.Select(p => string.Format("{0}{1}", config.Flag, p.Name)));
+
+                    // 使用缓存的非 Identity 属性数组
+                    var sqliteProperties = PropertyCache.GetNonIdentityProperties<T>();
+
+                    var columns = string.Join(", ", sqliteProperties.Select(p => p.Name));
+                    var placeholders = string.Join(", ", sqliteProperties.Select(p => string.Format("{0}{1}", config.Flag, p.Name)));
                     var insertSql = string.Format("INSERT INTO {0} ({1}) VALUES ({2})", sqliteTableName, columns, placeholders);
 
                     AopBefore(new List<string> { sqliteTableName }, insertSql, null, config, false, AopType.AddList);
@@ -1700,7 +1671,7 @@ namespace FastData.Context
                     foreach (var item in list)
                     {
                         cmd.Parameters.Clear();
-                        foreach (var prop in properties)
+                        foreach (var prop in sqliteProperties)
                         {
                             var param = cmd.CreateParameter();
                             param.ParameterName = string.Format("{0}{1}", config.Flag, prop.Name);

@@ -38,6 +38,24 @@ namespace FastData.Property
         private static readonly ConcurrentDictionary<string, Func<object, string, object>> _dynamicGetDelegateCache =
             new ConcurrentDictionary<string, Func<object, string, object>>();
 
+        /// <summary>
+        /// 类型的 MethodInfo[] 缓存（避免重复 GetMethods() 扫描）
+        /// </summary>
+        private static readonly ConcurrentDictionary<string, MethodInfo[]> _methodInfoCache =
+            new ConcurrentDictionary<string, MethodInfo[]>();
+
+        /// <summary>
+        /// 类型的非 Identity 属性缓存（避免每次检查 ColumnAttribute.IsIdentity）
+        /// </summary>
+        private static readonly ConcurrentDictionary<string, PropertyInfo[]> _nonIdentityPropertiesCache =
+            new ConcurrentDictionary<string, PropertyInfo[]>();
+
+        /// <summary>
+        /// 类型的 setter MethodInfo 缓存（避免重复遍历找 setter）
+        /// </summary>
+        private static readonly ConcurrentDictionary<string, Dictionary<string, MethodInfo>> _setterMethodCache =
+            new ConcurrentDictionary<string, Dictionary<string, MethodInfo>>();
+
         private static readonly BindingFlags _bindingFlags =
             BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly;
 
@@ -237,6 +255,52 @@ namespace FastData.Property
         internal static Func<object, string, object> GetOrAddDynamicGetDelegate(string key, Func<Func<object, string, object>> factory)
         {
             return _dynamicGetDelegateCache.GetOrAdd(key, _ => factory());
+        }
+
+        /// <summary>
+        /// 获取类型的 MethodInfo[]（带缓存）
+        /// </summary>
+        internal static MethodInfo[] GetMethodsCached(Type type)
+        {
+            return _methodInfoCache.GetOrAdd(type.FullName, _ => type.GetMethods(BindingFlags.Public | BindingFlags.Instance));
+        }
+
+        /// <summary>
+        /// 获取非 Identity 属性数组（带缓存，避免每次检查 ColumnAttribute）
+        /// </summary>
+        internal static PropertyInfo[] GetNonIdentityProperties<T>() where T : class, new()
+        {
+            return _nonIdentityPropertiesCache.GetOrAdd(typeof(T).FullName, _ =>
+            {
+                var properties = GetPropertiesCached<T>();
+                var entityType = typeof(T);
+                return System.Linq.Enumerable.ToArray(
+                    System.Linq.Enumerable.Where(properties, p =>
+                    {
+                        var propInfo = entityType.GetProperty(p.Name, _bindingFlags);
+                        if (propInfo == null) return true;
+                        var columnAttr = System.Linq.Enumerable.FirstOrDefault(
+                            System.Linq.Enumerable.Cast<ColumnAttribute>(propInfo.GetCustomAttributes(typeof(ColumnAttribute), false)));
+                        return columnAttr == null || !columnAttr.IsIdentity;
+                    }));
+            });
+        }
+
+        /// <summary>
+        /// 获取指定名称的 setter MethodInfo（带缓存）
+        /// </summary>
+        internal static MethodInfo GetSetterMethodCached(Type type, string methodName)
+        {
+            var key = $"{type.FullName}_{methodName}";
+            var cache = _setterMethodCache.GetOrAdd(type.FullName, _ => new Dictionary<string, MethodInfo>(StringComparer.OrdinalIgnoreCase));
+            
+            if (cache.TryGetValue(methodName, out var method))
+                return method;
+
+            var methods = GetMethodsCached(type);
+            var setter = Array.Find(methods, m => m.Name == methodName);
+            cache[methodName] = setter;
+            return setter;
         }
         #endregion
     }

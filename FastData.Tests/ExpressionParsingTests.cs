@@ -662,9 +662,8 @@ namespace FastData.Tests
 
             // Assert - 验证 DataQuery 对象创建成功
             Assert.NotNull(query);
-            // 注意：如果 LambdaWhere 解析返回 IsSuccess=false，条件不会添加到 ChainedConditions
-            // 这是一个已知的行为：当表达式解析失败时静默跳过
-            Assert.True(query.ChainedConditions.Count >= 0);
+            Assert.Single(query.Predicate);
+            Assert.Single(query.Table);
         }
 
         [Fact]
@@ -693,10 +692,7 @@ namespace FastData.Tests
 
             // Assert
             Assert.NotNull(query);
-            Assert.True(query.ChainedConditions.Count >= 1);
-            var likeCondition = query.ChainedConditions.FirstOrDefault(c => c.Where.Contains("like"));
-            Assert.NotNull(likeCondition);
-            Assert.Contains("like", likeCondition.Where.ToLower());
+            AssertStructuredCondition(query, ConditionOperator.Like, "Name");
         }
 
         [Fact]
@@ -712,9 +708,7 @@ namespace FastData.Tests
 
             // Assert
             Assert.NotNull(query);
-            Assert.True(query.ChainedConditions.Count >= 1);
-            var inCondition = query.ChainedConditions.FirstOrDefault(c => c.Where.ToUpper().Contains("IN"));
-            Assert.NotNull(inCondition);
+            AssertStructuredCondition(query, ConditionOperator.In, "Name");
         }
 
         [Fact]
@@ -729,10 +723,7 @@ namespace FastData.Tests
 
             // Assert
             Assert.NotNull(query);
-            Assert.True(query.ChainedConditions.Count >= 1);
-            var betweenCondition = query.ChainedConditions.FirstOrDefault(c => c.Where.ToUpper().Contains("BETWEEN"));
-            Assert.NotNull(betweenCondition);
-            Assert.Contains("BETWEEN", betweenCondition.Where.ToUpper());
+            AssertStructuredCondition(query, ConditionOperator.Between, "Age");
         }
 
         [Fact]
@@ -752,7 +743,9 @@ namespace FastData.Tests
 
             // Assert - 验证链式调用不会抛出异常且返回有效对象
             Assert.NotNull(query);
-            Assert.True(query.ChainedConditions.Count >= 0);
+            AssertStructuredCondition(query, ConditionOperator.Like, "Name");
+            AssertStructuredCondition(query, ConditionOperator.In, "Name");
+            AssertStructuredCondition(query, ConditionOperator.Between, "Age");
         }
 
         #endregion
@@ -770,6 +763,16 @@ namespace FastData.Tests
                 index += substring.Length;
             }
             return count;
+        }
+
+        private static void AssertStructuredCondition(DataQuery<TestEntity> query, ConditionOperator expectedOperator, string expectedField)
+        {
+            var condition = query.ChainedConditions
+                .Where(c => c.Conditions != null)
+                .SelectMany(c => c.Conditions)
+                .FirstOrDefault(c => c.Operator == expectedOperator && c.Field == expectedField);
+
+            Assert.NotNull(condition);
         }
     }
 }

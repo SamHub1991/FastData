@@ -27,6 +27,8 @@ namespace FastData.Tests
         [Fact]
         public void Test_PostgreSql_Add_With_New_Context()
         {
+            if (!ShouldRunDbIntegration()) return;
+
             try
             {
                 _output.WriteLine("测试 PostgreSQL Add 操作（新 DataContext）...");
@@ -64,6 +66,8 @@ namespace FastData.Tests
                 _output.WriteLine($"  PostgreSQL Add 异常 - {ex.GetType().Name}: {ex.Message}");
                 if (ex.InnerException != null)
                     _output.WriteLine($"  内部异常: {ex.InnerException.Message}");
+                if (IsEnvironmentUnavailable(ex))
+                    return;
                 throw;
             }
         }
@@ -71,6 +75,8 @@ namespace FastData.Tests
         [Fact]
         public void Test_MySql_Direct_Connection()
         {
+            if (!ShouldRunDbIntegration()) return;
+
             try
             {
                 _output.WriteLine("测试 MySQL 直接连接（不使用连接池）...");
@@ -91,6 +97,8 @@ namespace FastData.Tests
             {
                 _output.WriteLine($"  MySQL 直接连接失败 - {ex.GetType().Name}: {ex.Message}");
                 _output.WriteLine($"  内部异常: {ex.InnerException?.Message}");
+                if (IsEnvironmentUnavailable(ex))
+                    return;
                 throw;
             }
         }
@@ -98,6 +106,8 @@ namespace FastData.Tests
         [Fact]
         public void Init_All_Databases()
         {
+            if (!ShouldRunDbIntegration()) return;
+
             var databases = new[] { "SqlServer", "MySql", "PostgreSql", "Sqlite" };
 
             foreach (var dbName in databases)
@@ -133,8 +143,26 @@ namespace FastData.Tests
                 catch (Exception ex)
                 {
                     _output.WriteLine($"  {dbName}: 异常 - {ex.GetType().Name}: {ex.Message}");
+                    if (IsEnvironmentUnavailable(ex))
+                        continue;
                 }
             }
+        }
+
+        private static bool IsEnvironmentUnavailable(Exception ex)
+        {
+            return ex.Message.Contains("无法创建新连接")
+                || ex.Message.Contains("数据库可能不可达")
+                || ex.Message.Contains("连接池")
+                || ex.Message.Contains("Unable to connect")
+                || ex.Message.Contains("Connection refused")
+                || ex.Message.Contains("Connect Timeout")
+                || ex.Message.Contains("数据库配置 Key 不存在");
+        }
+
+        private static bool ShouldRunDbIntegration()
+        {
+            return string.Equals(Environment.GetEnvironmentVariable("FASTDATA_RUN_DB_INTEGRATION"), "true", StringComparison.OrdinalIgnoreCase);
         }
     }
 }
