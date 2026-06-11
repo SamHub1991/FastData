@@ -538,13 +538,13 @@ namespace FastData.Context
                         param.ParameterName = a.Name;
                         sql.AppendFormat("{0}{1},", config.Flag, a.Name);
 
-                        list.ForEach(l =>
+                        foreach (var l in list)
                         {
                             var value = dyn.GetValue(l, a.Name, true);
                             if (value == null)
                                 value = DBNull.Value;
                             pValue.Add(value);
-                        });
+                        }
 
                         param.Value = pValue.ToArray();
                         cmd.Parameters.Add(param);
@@ -1489,13 +1489,13 @@ namespace FastData.Context
                         param.ParameterName = a.Name;
                         sql.AppendFormat("{0}{1},", config.Flag, a.Name);
 
-                        list.ForEach(l =>
+                        foreach (var l in list)
                         {
                             var value = dyn.GetValue(l, a.Name, true);
                             if (value == null)
                                 value = DBNull.Value;
                             pValue.Add(value);
-                        });
+                        }
 
                         param.Value = pValue.ToArray();
                         cmd.Parameters.Add(param);

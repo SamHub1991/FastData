@@ -8,6 +8,42 @@ using Newtonsoft.Json.Linq;
 namespace FastUntility.Base
 {
     /// <summary>
+    /// Oracle 反射方法缓存（避免每次 GetMethods() 扫描）
+    /// </summary>
+    internal static class OracleJsonMethodCache
+    {
+        public static readonly System.Reflection.MethodInfo GetOracleClob;
+        public static readonly System.Reflection.MethodInfo GetClobValue;
+        public static readonly System.Reflection.MethodInfo GetOracleBlob;
+        public static readonly System.Reflection.MethodInfo GetBlobValue;
+
+        static OracleJsonMethodCache()
+        {
+            try
+            {
+                var readerType = typeof(DbDataReader).Assembly
+                    .GetType("System.Data.OracleClient.OracleDataReader");
+                if (readerType == null) return;
+
+                foreach (var m in readerType.GetMethods())
+                {
+                    if (m.Name == "GetOracleClob") GetOracleClob = m;
+                    else if (m.Name == "GetOracleBlob") GetOracleBlob = m;
+                }
+
+                if (GetOracleClob != null)
+                    foreach (var m in GetOracleClob.ReturnType.GetMethods())
+                        if (m.Name == "get_Value") GetClobValue = m;
+
+                if (GetOracleBlob != null)
+                    foreach (var m in GetOracleBlob.ReturnType.GetMethods())
+                        if (m.Name == "get_Value") GetBlobValue = m;
+            }
+            catch { }
+        }
+    }
+
+    /// <summary>
     /// JSON 操作类
     /// 提供 JSON 序列化、反序列化和转换功能
     /// </summary>
@@ -372,34 +408,15 @@ namespace FastUntility.Base
 
             try
             {
-                var methods = reader.GetType().GetMethods();
-
-                foreach (var method in methods)
+                if (OracleJsonMethodCache.GetOracleClob != null)
                 {
-                    if (method.Name == "GetOracleClob")
-                    {
-                        var parameters = new object[] { ordinal };
-                        var clobObject = method.Invoke(reader, parameters);
-
-                        if (clobObject == null)
-                            return string.Empty;
-
-                        var clobType = clobObject.GetType();
-                        var clobMethods = clobType.GetMethods();
-
-                        foreach (var getMethod in clobMethods)
-                        {
-                            if (getMethod.Name == "get_Value")
-                            {
-                                return getMethod.Invoke(clobObject, null);
-                            }
-                        }
-                    }
+                    var clobObject = OracleJsonMethodCache.GetOracleClob.Invoke(reader, new object[] { ordinal });
+                    if (clobObject != null && OracleJsonMethodCache.GetClobValue != null)
+                        return OracleJsonMethodCache.GetClobValue.Invoke(clobObject, null);
                 }
             }
             catch
             {
-                // 忽略反射异常
             }
 
             return string.Empty;
@@ -415,34 +432,15 @@ namespace FastUntility.Base
 
             try
             {
-                var methods = reader.GetType().GetMethods();
-
-                foreach (var method in methods)
+                if (OracleJsonMethodCache.GetOracleBlob != null)
                 {
-                    if (method.Name == "GetOracleBlob")
-                    {
-                        var parameters = new object[] { ordinal };
-                        var blobObject = method.Invoke(reader, parameters);
-
-                        if (blobObject == null)
-                            return null;
-
-                        var blobType = blobObject.GetType();
-                        var blobMethods = blobType.GetMethods();
-
-                        foreach (var getMethod in blobMethods)
-                        {
-                            if (getMethod.Name == "get_Value")
-                            {
-                                return getMethod.Invoke(blobObject, null);
-                            }
-                        }
-                    }
+                    var blobObject = OracleJsonMethodCache.GetOracleBlob.Invoke(reader, new object[] { ordinal });
+                    if (blobObject != null && OracleJsonMethodCache.GetBlobValue != null)
+                        return OracleJsonMethodCache.GetBlobValue.Invoke(blobObject, null);
                 }
             }
             catch
             {
-                // 忽略反射异常
             }
 
             return null;
