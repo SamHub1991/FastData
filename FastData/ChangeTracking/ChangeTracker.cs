@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using FastData.Property;
 
 namespace FastData.ChangeTracking
 {
@@ -100,8 +101,7 @@ namespace FastData.ChangeTracking
 
         private EntitySnapshot CreateSnapshot<T>(T entity) where T : class
         {
-            var properties = entity.GetType()
-                .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            var properties = PropertyCache.GetPropertiesCached<T>()
                 .Where(p => p.CanRead && p.CanWrite)
                 .ToDictionary(p => p.Name, p => p.GetValue(entity));
 

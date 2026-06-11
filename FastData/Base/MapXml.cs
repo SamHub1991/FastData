@@ -504,7 +504,7 @@ namespace FastData.Base
 
                         foreach (var temp in tempData.DicList)
                         {
-                            foreach (var info in model.GetType().GetProperties())
+                            foreach (var info in PropertyCache.GetPropertiesCached(model.GetType()))
                             {
                                 if (temp.GetValue(info.Name).ToStr() == "" && info.PropertyType.Name == "Nullable`1")
                                     continue;
