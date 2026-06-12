@@ -44,11 +44,30 @@ namespace FastData.Context
         private PooledConnection _pooledConnection;
         private bool _usePool;
 
+        /// <summary>
+        /// Gets the resolved database configuration for this context.
+        /// </summary>
         public ConfigModel Config => _config;
+
+        /// <summary>
+        /// Gets the resolved database configuration. Kept for compatibility with earlier FastData APIs.
+        /// </summary>
         public ConfigModel config => _config;
+
+        /// <summary>
+        /// Gets the command object owned by this context. Kept for compatibility with earlier FastData APIs.
+        /// </summary>
         public DbCommand cmd => _command;
+
+        /// <summary>
+        /// Gets the connection object owned by this context. Kept for compatibility with earlier FastData APIs.
+        /// </summary>
         public DbConnection conn => _connection;
 
+        /// <summary>
+        /// Disposes a command and clears its parameters.
+        /// </summary>
+        /// <param name="command">Command to dispose.</param>
         public void DisposeCommand(DbCommand command)
         {
             if (command == null) return;
@@ -125,17 +144,27 @@ namespace FastData.Context
             }
         }
 
+        /// <summary>
+        /// Finalizes the context and releases unmanaged resources if Dispose was not called.
+        /// </summary>
         ~DataContext()
         {
             Dispose(false);
         }
 
+        /// <summary>
+        /// Releases the command, connection, transaction and pooled connection resources.
+        /// </summary>
         public void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
         }
 
+        /// <summary>
+        /// Releases resources held by this context.
+        /// </summary>
+        /// <param name="disposing">True when called from Dispose; false when called from the finalizer.</param>
         protected virtual void Dispose(bool disposing)
         {
             if (_disposed) return;
@@ -169,6 +198,9 @@ namespace FastData.Context
             _disposed = true;
         }
 
+        /// <summary>
+        /// Opens the underlying connection if it is not already open.
+        /// </summary>
         public void EnsureConnectionOpen()
         {
             if (_disposed)
@@ -227,15 +259,16 @@ namespace FastData.Context
                 }
                 else
                 {
-                    var factory = DbProviderFactories.GetFactory(_config.ProviderName);
+                    var factory = Infrastructure.DbProviderAutoRegistrar.GetFactory(_config.ProviderName);
                     if (factory == null)
                         throw new InvalidOperationException(string.Format("DbProviderFactory not found for provider: {0}", _config.ProviderName));
 
                     if (poolConfig != null)
                     {
                         _usePool = true;
+                        var poolKey = string.IsNullOrEmpty(_config.Key) ? "default" : _config.Key;
                         var pool = ConnectionPoolFactory.Instance.GetOrCreatePool(
-                            key ?? "default",
+                            poolKey,
                             () =>
                             {
                                 var c = factory.CreateConnection();
@@ -269,6 +302,9 @@ namespace FastData.Context
             }
         }
 
+        /// <summary>
+        /// Begins a database transaction and binds it to the context command.
+        /// </summary>
         public void BeginTransaction()
         {
             EnsureConnectionOpen();
@@ -284,18 +320,35 @@ namespace FastData.Context
                 _command.Transaction = _transaction;
         }
 
+        /// <summary>
+        /// Commits the current transaction if one exists.
+        /// </summary>
         public void CommitTransaction()
         {
             _transaction?.Commit();
         }
 
+        /// <summary>
+        /// Rolls back the current transaction if one exists.
+        /// </summary>
         public void RollbackTransaction()
         {
             _transaction?.Rollback();
         }
 
+        /// <summary>
+        /// Begins a transaction. Compatibility alias for BeginTransaction.
+        /// </summary>
         public void BeginTrans() => BeginTransaction();
+
+        /// <summary>
+        /// Commits the current transaction. Compatibility alias for CommitTransaction.
+        /// </summary>
         public void SubmitTrans() => CommitTransaction();
+
+        /// <summary>
+        /// Rolls back the current transaction. Compatibility alias for RollbackTransaction.
+        /// </summary>
         public void RollbackTrans() => RollbackTransaction();
         #endregion
     }

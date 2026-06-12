@@ -155,6 +155,8 @@ namespace FastData.Config
         /// 连接池配置（内部存储为字典，由 ParseXmlConfig 填充）
         /// </summary>
         private Dictionary<string, int> _connectionPoolSettings = new Dictionary<string, int>();
+        private Dictionary<string, string> _connectionPoolStringSettings = new Dictionary<string, string>();
+        private bool _usesUnifiedConnections;
 
         /// <summary>
         /// 获取连接池配置
@@ -177,6 +179,10 @@ namespace FastData.Config
             if (_connectionPoolSettings.TryGetValue("MaxExpandCount", out var mec)) poolConfig.MaxExpandCount = mec;
             if (_connectionPoolSettings.TryGetValue("MaxShrinkCount", out var msc)) poolConfig.MaxShrinkCount = msc;
             if (_connectionPoolSettings.TryGetValue("EnableSmartAdjustment", out var esa)) poolConfig.EnableSmartAdjustment = esa == 1;
+            if (_connectionPoolSettings.TryGetValue("ErrorShrinkThreshold", out var est)) poolConfig.ErrorShrinkThreshold = est;
+            if (_connectionPoolSettings.TryGetValue("ErrorShrinkPercentage", out var esp)) poolConfig.ErrorShrinkPercentage = esp;
+            if (_connectionPoolSettings.TryGetValue("EnableRedisCheck", out var erc)) poolConfig.EnableRedisCheck = erc == 1;
+            if (_connectionPoolStringSettings.TryGetValue("RedisConnectionString", out var rcs)) poolConfig.RedisConnectionString = rcs;
             
             // 熔断器配置
             var cbConfig = new CircuitBreakerConfig();
@@ -297,79 +303,82 @@ namespace FastData.Config
                     }
                 }
 
-                #region Db2
-                if (config.DB2 != null && config.DB2.Count != 0)
+                if (!config._usesUnifiedConnections)
                 {
-                    foreach (var temp in config.DB2)
+                    #region Db2
+                    if (config.DB2 != null && config.DB2.Count != 0)
                     {
-                        var item = CreateConfigModel(temp as ElementConfig, DataDbType.DB2);
-                        if (item != null)
-                            list.Add(item);
+                        foreach (var temp in config.DB2)
+                        {
+                            var item = CreateConfigModel(temp as ElementConfig, DataDbType.DB2);
+                            if (item != null)
+                                list.Add(item);
+                        }
                     }
-                }
-                #endregion
+                    #endregion
 
-                #region oracle
-                if (config.Oracle != null && config.Oracle.Count != 0)
-                {
-                    foreach (var temp in config.Oracle)
+                    #region oracle
+                    if (config.Oracle != null && config.Oracle.Count != 0)
                     {
-                        var item = CreateConfigModel(temp as ElementConfig, DataDbType.Oracle);
-                        if (item != null)
-                            list.Add(item);
+                        foreach (var temp in config.Oracle)
+                        {
+                            var item = CreateConfigModel(temp as ElementConfig, DataDbType.Oracle);
+                            if (item != null)
+                                list.Add(item);
+                        }
                     }
-                }
-                #endregion
+                    #endregion
 
-                #region mysql
-                if (config.MySql != null && config.MySql.Count != 0)
-                {
-                    foreach (var temp in config.MySql)
+                    #region mysql
+                    if (config.MySql != null && config.MySql.Count != 0)
                     {
-                        var item = CreateConfigModel(temp as ElementConfig, DataDbType.MySql);
-                        if (item != null)
-                            list.Add(item);
+                        foreach (var temp in config.MySql)
+                        {
+                            var item = CreateConfigModel(temp as ElementConfig, DataDbType.MySql);
+                            if (item != null)
+                                list.Add(item);
+                        }
                     }
-                }
-                #endregion
+                    #endregion
 
-                #region sqlserver
-                if (config.SqlServer != null && config.SqlServer.Count != 0)
-                {
-                    foreach (var temp in config.SqlServer)
+                    #region sqlserver
+                    if (config.SqlServer != null && config.SqlServer.Count != 0)
                     {
-                        var item = CreateConfigModel(temp as ElementConfig, DataDbType.SqlServer);
-                        if (item != null)
-                            list.Add(item);
+                        foreach (var temp in config.SqlServer)
+                        {
+                            var item = CreateConfigModel(temp as ElementConfig, DataDbType.SqlServer);
+                            if (item != null)
+                                list.Add(item);
+                        }
                     }
-                }
-                #endregion
+                    #endregion
 
-                #region sqlite
-                if (config.SQLite != null && config.SQLite.Count != 0)
-                {
-                    foreach (var temp in config.SQLite)
+                    #region sqlite
+                    if (config.SQLite != null && config.SQLite.Count != 0)
                     {
-                        var item = CreateConfigModel(temp as ElementConfig, DataDbType.SQLite);
-                        if (item != null)
-                            list.Add(item);
+                        foreach (var temp in config.SQLite)
+                        {
+                            var item = CreateConfigModel(temp as ElementConfig, DataDbType.SQLite);
+                            if (item != null)
+                                list.Add(item);
+                        }
                     }
-                }
-                #endregion
+                    #endregion
 
-                #region PostgreSql
-                if (config.PostgreSql != null && config.PostgreSql.Count != 0)
-                {
-                    foreach (var temp in config.PostgreSql)
+                    #region PostgreSql
+                    if (config.PostgreSql != null && config.PostgreSql.Count != 0)
                     {
-                        var item = CreateConfigModel(temp as ElementConfig, DataDbType.PostgreSql);
-                        if (item != null)
-                            list.Add(item);
+                        foreach (var temp in config.PostgreSql)
+                        {
+                            var item = CreateConfigModel(temp as ElementConfig, DataDbType.PostgreSql);
+                            if (item != null)
+                                list.Add(item);
+                        }
                     }
+                    #endregion
                 }
-                #endregion
             }
-            else
+            else if (list.Count == 0)
             {
                 // Use file-based approach (same as projectName == null case)
                 // This handles environment resolution correctly
@@ -417,6 +426,7 @@ namespace FastData.Config
 
             // Apply environment variable overrides
             ApplyEnvironmentOverrides(list);
+            EnsureUniqueKeys(list);
 
             list = SetDefaultFirst(new List<ConfigModel>(list), defaultKey);
             DbCache.Set<List<ConfigModel>>(CacheType.Web, cacheKey, list);
@@ -467,6 +477,17 @@ var item = list.Find(a => string.Equals(a.Key, defaultKey, StringComparison.Ordi
                 return null;
 
             return list.First();
+        }
+
+        private static void EnsureUniqueKeys(List<ConfigModel> list)
+        {
+            var duplicate = list
+                .Where(a => !string.IsNullOrEmpty(a.Key))
+                .GroupBy(a => a.Key, StringComparer.OrdinalIgnoreCase)
+                .FirstOrDefault(a => a.Count() > 1);
+
+            if (duplicate != null)
+                throw new ConfigurationErrorsException(string.Format("Duplicate FastData connection key '{0}'. Connection keys must be unique.", duplicate.Key));
         }
 
         private static ConfigModel CreateConfigModel(ElementConfig element, DataDbType dbType)
@@ -875,8 +896,8 @@ var item = list.Find(a => string.Equals(a.Key, defaultKey, StringComparison.Ordi
                         element.Provider = addNode.Attributes?["Provider"]?.Value ?? "";
                         element.ConnStr = addNode.Attributes?["ConnStr"]?.Value ?? "";
                         element.IsDefault = addNode.Attributes?["IsDefault"]?.Value?.ToLower() == "true";
-                        element.IsOutSql = addNode.Attributes?["IsOutSql"]?.Value?.ToLower() == "true";
-                        element.IsOutError = addNode.Attributes?["IsOutError"]?.Value?.ToLower() == "true";
+                        element.IsOutSql = GetBool(addNode, "IsOutSql", true);
+                        element.IsOutError = GetBool(addNode, "IsOutError", true);
                         element.IsPropertyCache = addNode.Attributes?["IsPropertyCache"]?.Value?.ToLower() != "false";
                         element.SqlErrorType = addNode.Attributes?["SqlErrorType"]?.Value ?? "db";
                         element.CacheType = addNode.Attributes?["CacheType"]?.Value ?? "web";
@@ -888,6 +909,7 @@ var item = list.Find(a => string.Equals(a.Key, defaultKey, StringComparison.Ordi
                         collection.AddElement(element);
                     }
                     config["Connections"] = collection;
+                    config._usesUnifiedConnections = true;
                 }
 
                 // Read Redis
@@ -909,12 +931,15 @@ var item = list.Find(a => string.Equals(a.Key, defaultKey, StringComparison.Ordi
                 {
                     var poolSettings = new Dictionary<string, int>();
                     var boolSettings = new Dictionary<string, bool>();
+                    var stringSettings = new Dictionary<string, string>();
 
                     foreach (System.Xml.XmlAttribute attr in poolNode.Attributes)
                     {
                         var name = attr.Name;
-                        if (name == "EnableSmartAdjustment")
+                        if (name == "EnableSmartAdjustment" || name == "EnableRedisCheck")
                             boolSettings[name] = attr.Value.ToLower() == "true";
+                        else if (name == "RedisConnectionString")
+                            stringSettings[name] = attr.Value;
                         else if (int.TryParse(attr.Value, out var val))
                             poolSettings[name] = val;
                     }
@@ -933,8 +958,11 @@ var item = list.Find(a => string.Equals(a.Key, defaultKey, StringComparison.Ordi
                     }
 
                     config._connectionPoolSettings = poolSettings;
+                    config._connectionPoolStringSettings = stringSettings;
                     if (boolSettings.TryGetValue("EnableSmartAdjustment", out var enableSmart))
                         poolSettings["EnableSmartAdjustment"] = enableSmart ? 1 : 0;
+                    if (boolSettings.TryGetValue("EnableRedisCheck", out var enableRedisCheck))
+                        poolSettings["EnableRedisCheck"] = enableRedisCheck ? 1 : 0;
                     if (boolSettings.TryGetValue("CircuitBreakerEnabled", out var cbEnabled))
                         poolSettings["CircuitBreakerEnabled"] = cbEnabled ? 1 : 0;
                 }

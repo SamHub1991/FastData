@@ -7,9 +7,12 @@ namespace FastData.Migrations.Examples
     /// </summary>
     public class CreateUsersTable_20260101_001 : Migration
     {
+        /// <inheritdoc />
         public override string Version => "20260101_001";
+        /// <inheritdoc />
         public override string Description => "创建用户表";
 
+        /// <inheritdoc />
         public override void Up()
         {
             var builder = new SqlMigrationBuilder();
@@ -35,6 +38,7 @@ namespace FastData.Migrations.Examples
             }
         }
 
+        /// <inheritdoc />
         public override void Down()
         {
             var builder = new SqlMigrationBuilder();
@@ -61,9 +65,12 @@ namespace FastData.Migrations.Examples
     /// </summary>
     public class AddUserAvatar_20260102_001 : Migration
     {
+        /// <inheritdoc />
         public override string Version => "20260102_001";
+        /// <inheritdoc />
         public override string Description => "添加用户头像字段";
 
+        /// <inheritdoc />
         public override void Up()
         {
             var builder = new SqlMigrationBuilder();
@@ -75,6 +82,7 @@ namespace FastData.Migrations.Examples
             }
         }
 
+        /// <inheritdoc />
         public override void Down()
         {
             var builder = new SqlMigrationBuilder();
@@ -97,6 +105,9 @@ namespace FastData.Migrations.Examples
     /// </summary>
     public class ChangeTrackingExample
     {
+        /// <summary>
+        /// Runs the change-tracking example.
+        /// </summary>
         public void Example()
         {
             var tracker = new ChangeTracking.ChangeTracker();
@@ -138,6 +149,9 @@ namespace FastData.Migrations.Examples
     /// </summary>
     public class MigrationExample
     {
+        /// <summary>
+        /// Runs the migration example.
+        /// </summary>
         public void Example()
         {
             var connectionString = "Server=localhost;Database=MyDb;User Id=sa;Password=123;";

@@ -43,26 +43,68 @@ namespace FastData
         }
 #endif
 
+        /// <summary>
+        /// Creates a query object bound to this instance's database key.
+        /// </summary>
+        /// <typeparam name="T">Entity type.</typeparam>
+        /// <param name="predicate">Optional filter expression.</param>
+        /// <param name="field">Optional projection fields.</param>
+        /// <param name="dbFile">Configuration file name.</param>
+        /// <returns>A query object for the entity type.</returns>
         public DataQuery<T> Query<T>(Expression<Func<T, bool>> predicate, Expression<Func<T, object>> field = null, string dbFile = "db.config") where T : class, new()
         {
             return FastRead.Query(predicate, field, key, dbFile);
         }
 
+        /// <summary>
+        /// Executes SQL and maps rows to entity instances using this instance's database key.
+        /// </summary>
+        /// <typeparam name="T">Entity type.</typeparam>
+        /// <param name="sql">SQL text.</param>
+        /// <param name="param">SQL parameters.</param>
+        /// <param name="db">Optional existing data context.</param>
+        /// <param name="isOutSql">Whether to output SQL logging.</param>
+        /// <returns>Mapped entity list.</returns>
         public List<T> ExecuteSql<T>(string sql, DbParameter[] param, DataContext db = null, bool isOutSql = false) where T : class, new()
         {
             return FastRead.ExecuteSql<T>(sql, param, db, key, isOutSql);
         }
 
+        /// <summary>
+        /// Executes SQL asynchronously and maps rows to entity instances using this instance's database key.
+        /// </summary>
+        /// <typeparam name="T">Entity type.</typeparam>
+        /// <param name="sql">SQL text.</param>
+        /// <param name="param">SQL parameters.</param>
+        /// <param name="db">Optional existing data context.</param>
+        /// <param name="isOutSql">Whether to output SQL logging.</param>
+        /// <returns>Mapped entity list.</returns>
         public Task<List<T>> ExecuteSqlAsync<T>(string sql, DbParameter[] param, DataContext db = null, bool isOutSql = false) where T : class, new()
         {
             return FastRead.ExecuteSqlAsync<T>(sql, param, db, key, isOutSql);
         }
 
+        /// <summary>
+        /// Executes SQL and returns rows as dictionaries using this instance's database key.
+        /// </summary>
+        /// <param name="sql">SQL text.</param>
+        /// <param name="param">SQL parameters.</param>
+        /// <param name="db">Optional existing data context.</param>
+        /// <param name="isOutSql">Whether to output SQL logging.</param>
+        /// <returns>Row dictionaries.</returns>
         public List<Dictionary<string, object>> ExecuteSql(string sql, DbParameter[] param, DataContext db = null, bool isOutSql = false)
         {
             return FastRead.ExecuteSql(sql, param, db, key, isOutSql);
         }
 
+        /// <summary>
+        /// Executes SQL asynchronously and returns rows as dictionaries using this instance's database key.
+        /// </summary>
+        /// <param name="sql">SQL text.</param>
+        /// <param name="param">SQL parameters.</param>
+        /// <param name="db">Optional existing data context.</param>
+        /// <param name="isOutSql">Whether to output SQL logging.</param>
+        /// <returns>Row dictionaries.</returns>
         public Task<List<Dictionary<string, object>>> ExecuteSqlAsync(string sql, DbParameter[] param, DataContext db = null, bool isOutSql = false)
         {
             return FastRead.ExecuteSqlAsync(sql, param, db, key, isOutSql);

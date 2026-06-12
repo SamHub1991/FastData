@@ -193,6 +193,10 @@ namespace FastData.ChangeTracking
         /// </summary>
         public ChangeType ChangeType { get; set; }
 
+        /// <summary>
+        /// Returns a readable description of the property change.
+        /// </summary>
+        /// <returns>Property change text.</returns>
         public override string ToString()
         {
             return string.Format("{0}: {1} → {2}", PropertyName, OriginalValue, CurrentValue);

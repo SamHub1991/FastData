@@ -177,8 +177,11 @@ namespace FastData.ConnectionPool
     /// </summary>
     public enum CircuitState
     {
+        /// <summary>The circuit is closed and requests are allowed.</summary>
         Closed,      // 正常状态
+        /// <summary>The circuit is open and requests are blocked.</summary>
         Open,        // 熔断状态
+        /// <summary>The circuit is testing whether the dependency has recovered.</summary>
         HalfOpen     // 半开状态（测试恢复）
     }
 
@@ -216,12 +219,19 @@ namespace FastData.ConnectionPool
         private readonly SmartConnectionPool _pool;
         private bool _disposed;
 
+        /// <summary>Gets the underlying database connection.</summary>
         public DbConnection Connection { get; }
+        /// <summary>Gets the pooled connection identifier.</summary>
         public Guid Id { get; } = Guid.NewGuid();
+        /// <summary>Gets the UTC creation time.</summary>
         public DateTime CreatedAt { get; } = DateTime.UtcNow;
+        /// <summary>Gets the UTC time when the connection was last used.</summary>
         public DateTime LastUsedAt { get; private set; } = DateTime.UtcNow;
+        /// <summary>Gets how many times the connection has been checked out.</summary>
         public int UseCount { get; private set; }
+        /// <summary>Gets whether the connection is currently checked out.</summary>
         public bool IsInUse { get; internal set; }
+        /// <summary>Gets the last caller recorded for leak diagnostics.</summary>
         public string LastUsedBy { get; private set; }
 
         internal PooledConnection(DbConnection connection, SmartConnectionPool pool)
@@ -232,6 +242,7 @@ namespace FastData.ConnectionPool
 
         internal void MarkUsed(string caller = null)
         {
+            _disposed = false;
             LastUsedAt = DateTime.UtcNow;
             UseCount++;
             IsInUse = true;
@@ -252,18 +263,28 @@ namespace FastData.ConnectionPool
             Dispose(false);
         }
 
+        /// <summary>
+        /// Returns the connection to its owning pool.
+        /// </summary>
         public void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
         }
 
+        /// <summary>
+        /// Releases this pooled connection.
+        /// </summary>
+        /// <param name="disposing">True when called from Dispose; false from the finalizer.</param>
         protected virtual void Dispose(bool disposing)
         {
             if (!_disposed)
             {
                 _disposed = true;
-                _pool.ReturnConnection(this);
+                if (disposing)
+                    _pool.ReturnConnection(this);
+                else
+                    Connection.Dispose();
             }
         }
     }
@@ -273,17 +294,29 @@ namespace FastData.ConnectionPool
     /// </summary>
     public class ConnectionPoolMetrics
     {
+        /// <summary>Gets or sets total connections owned by the pool.</summary>
         public int TotalConnections { get; set; }
+        /// <summary>Gets or sets checked-out connection count.</summary>
         public int ActiveConnections { get; set; }
+        /// <summary>Gets or sets idle connection count.</summary>
         public int IdleConnections { get; set; }
+        /// <summary>Gets or sets waiting request count.</summary>
         public int WaitingRequests { get; set; }
+        /// <summary>Gets or sets total checkout request count.</summary>
         public long TotalRequests { get; set; }
+        /// <summary>Gets or sets successful checkout request count.</summary>
         public long SuccessfulRequests { get; set; }
+        /// <summary>Gets or sets failed checkout request count.</summary>
         public long FailedRequests { get; set; }
+        /// <summary>Gets or sets detected leaked connection count.</summary>
         public long LeakedConnections { get; set; }
+        /// <summary>Gets or sets average wait time in milliseconds.</summary>
         public double AverageWaitTimeMs { get; set; }
+        /// <summary>Gets or sets average checked-out duration in milliseconds.</summary>
         public double AverageUseTimeMs { get; set; }
+        /// <summary>Gets or sets the last health-check timestamp.</summary>
         public DateTime LastHealthCheck { get; set; }
+        /// <summary>Gets or sets pool uptime.</summary>
         public TimeSpan Uptime { get; set; }
     }
 
@@ -380,6 +413,12 @@ namespace FastData.ConnectionPool
         /// </summary>
         public ConnectionPoolMetrics Metrics => GetMetrics();
 
+        /// <summary>
+        /// Initializes a smart connection pool.
+        /// </summary>
+        /// <param name="name">Pool name.</param>
+        /// <param name="connectionFactory">Factory used to create database connections.</param>
+        /// <param name="config">Optional pool configuration.</param>
         public SmartConnectionPool(string name, Func<DbConnection> connectionFactory, ConnectionPoolConfig config = null)
         {
             _name = name ?? throw new ArgumentNullException(nameof(name));
@@ -1079,6 +1118,10 @@ namespace FastData.ConnectionPool
             GC.SuppressFinalize(this);
         }
 
+        /// <summary>
+        /// Releases resources held by the connection pool.
+        /// </summary>
+        /// <param name="disposing">True when called from Dispose; false from the finalizer.</param>
         protected virtual void Dispose(bool disposing)
         {
             if (!_disposed)
@@ -1219,6 +1262,10 @@ namespace FastData.ConnectionPool
     /// </summary>
     public class CircuitBreakerOpenException : Exception
     {
+        /// <summary>
+        /// Initializes a circuit-breaker-open exception.
+        /// </summary>
+        /// <param name="message">Exception message.</param>
         public CircuitBreakerOpenException(string message) : base(message) { }
     }
 
@@ -1238,6 +1285,11 @@ namespace FastData.ConnectionPool
         /// </summary>
         public int WaitTimeoutSeconds { get; }
 
+        /// <summary>
+        /// Initializes a connection-pool exhausted exception.
+        /// </summary>
+        /// <param name="poolName">Pool name.</param>
+        /// <param name="waitTimeoutSeconds">Wait timeout in seconds.</param>
         public ConnectionPoolExhaustedException(string poolName, int waitTimeoutSeconds)
             : base(string.Format("连接池 {0} 已耗尽，等待 {1} 秒后超时", poolName, waitTimeoutSeconds))
         {
@@ -1245,6 +1297,11 @@ namespace FastData.ConnectionPool
             WaitTimeoutSeconds = waitTimeoutSeconds;
         }
 
+        /// <summary>
+        /// Initializes a connection-pool exhausted exception with a custom message.
+        /// </summary>
+        /// <param name="poolName">Pool name.</param>
+        /// <param name="message">Exception message.</param>
         public ConnectionPoolExhaustedException(string poolName, string message)
             : base(message)
         {

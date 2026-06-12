@@ -16,6 +16,10 @@ namespace FastData.Monitoring
         private readonly ConcurrentDictionary<string, OperationMetrics> _metrics = new ConcurrentDictionary<string, OperationMetrics>();
         private readonly int _maxMetricsHistory;
 
+        /// <summary>
+        /// Initializes a performance monitor.
+        /// </summary>
+        /// <param name="maxMetricsHistory">Maximum metric history length.</param>
         public PerformanceMonitor(int maxMetricsHistory = 1000)
         {
             _maxMetricsHistory = maxMetricsHistory;
@@ -154,6 +158,7 @@ namespace FastData.Monitoring
         /// </summary>
         internal object DurationLock { get; } = new object();
 
+        /// <summary>Gets or sets the operation type name.</summary>
         public string OperationType { get; set; }
 
         /// <summary>
@@ -171,10 +176,15 @@ namespace FastData.Monitoring
         /// </summary>
         public long FailedOperations;
 
+        /// <summary>Gets or sets total duration in milliseconds.</summary>
         public double TotalDuration { get; set; }
+        /// <summary>Gets or sets average duration in milliseconds.</summary>
         public double AverageDuration { get; set; }
+        /// <summary>Gets or sets maximum duration in milliseconds.</summary>
         public double MaxDuration { get; set; }
+        /// <summary>Gets or sets minimum duration in milliseconds.</summary>
         public double MinDuration { get; set; }
+        /// <summary>Gets or sets the last execution timestamp.</summary>
         public DateTime LastExecutionTime { get; set; }
 
         /// <summary>
@@ -182,10 +192,12 @@ namespace FastData.Monitoring
         /// </summary>
         public ConcurrentQueue<SqlExecution> RecentSqls { get; set; } = new ConcurrentQueue<SqlExecution>();
 
+        /// <summary>Gets the success rate percentage.</summary>
         public double SuccessRate => TotalOperations > 0
             ? (double)SuccessfulOperations / TotalOperations * 100
             : 0;
 
+        /// <summary>Gets the failure rate percentage.</summary>
         public double FailureRate => TotalOperations > 0
             ? (double)FailedOperations / TotalOperations * 100
             : 0;
@@ -196,9 +208,13 @@ namespace FastData.Monitoring
     /// </summary>
     public class SqlExecution
     {
+        /// <summary>Gets or sets the executed SQL text.</summary>
         public string Sql { get; set; }
+        /// <summary>Gets or sets the execution duration.</summary>
         public TimeSpan Duration { get; set; }
+        /// <summary>Gets or sets whether execution succeeded.</summary>
         public bool Success { get; set; }
+        /// <summary>Gets or sets the execution timestamp.</summary>
         public DateTime Timestamp { get; set; }
     }
 
@@ -207,9 +223,13 @@ namespace FastData.Monitoring
     /// </summary>
     public class SlowQuery
     {
+        /// <summary>Gets or sets the operation type.</summary>
         public string OperationType { get; set; }
+        /// <summary>Gets or sets the SQL text.</summary>
         public string Sql { get; set; }
+        /// <summary>Gets or sets the slow-query duration.</summary>
         public TimeSpan Duration { get; set; }
+        /// <summary>Gets or sets the timestamp.</summary>
         public DateTime Timestamp { get; set; }
     }
 
@@ -218,19 +238,29 @@ namespace FastData.Monitoring
     /// </summary>
     public class PerformanceSummary
     {
+        /// <summary>Gets or sets total operation count.</summary>
         public long TotalOperations { get; set; }
+        /// <summary>Gets or sets successful operation count.</summary>
         public long TotalSuccessfulOperations { get; set; }
+        /// <summary>Gets or sets failed operation count.</summary>
         public long TotalFailedOperations { get; set; }
+        /// <summary>Gets or sets average duration in milliseconds.</summary>
         public double AverageDuration { get; set; }
+        /// <summary>Gets or sets maximum duration in milliseconds.</summary>
         public double MaxDuration { get; set; }
+        /// <summary>Gets or sets minimum duration in milliseconds.</summary>
         public double MinDuration { get; set; }
+        /// <summary>Gets or sets operation types included in the summary.</summary>
         public List<string> OperationTypes { get; set; } = new List<string>();
+        /// <summary>Gets or sets the last execution timestamp.</summary>
         public DateTime? LastExecutionTime { get; set; }
 
+        /// <summary>Gets the success rate percentage.</summary>
         public double SuccessRate => TotalOperations > 0 
             ? (double)TotalSuccessfulOperations / TotalOperations * 100 
             : 0;
 
+        /// <summary>Gets the failure rate percentage.</summary>
         public double FailureRate => TotalOperations > 0 
             ? (double)TotalFailedOperations / TotalOperations * 100 
             : 0;

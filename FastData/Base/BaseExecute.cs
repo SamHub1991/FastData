@@ -284,7 +284,7 @@ namespace FastData.Base
                 {
                     #region MySql
                     sb.AppendFormat("select {2} from {3} where {4} limit {0}, {1}"
-                                       , pModel.StarId
+                                       , pModel.StarId - 1
                                        , pModel.PageSize
                                        , string.Join(",", item.Field)
                                        , table
@@ -308,7 +308,7 @@ namespace FastData.Base
                 {
                     #region sqlite
                     sb.AppendFormat("select {2} from {3} where {4} limit {1} offset {0}"
-                                       , pModel.StarId
+                                       , pModel.StarId - 1
                                        , pModel.PageSize
                                        , string.Join(",", item.Field)
                                        , table
@@ -319,7 +319,7 @@ namespace FastData.Base
                 {
                     #region PostgreSql
                     sb.AppendFormat("select {2} from {3} where {4} limit {1} offset {0}"
-                                       , pModel.StarId
+                                       , pModel.StarId - 1
                                        , pModel.PageSize
                                        , string.Join(",", item.Field)
                                        , table

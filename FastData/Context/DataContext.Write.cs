@@ -22,6 +22,54 @@ namespace FastData.Context
 {
     public partial class DataContext : IDisposable
     {
+        private static string BuildLambdaWhereClause<T>(Expression<Func<T, bool>> predicate, VisitModel visitModel) where T : class, new()
+        {
+            if (string.IsNullOrEmpty(visitModel.Where))
+                return string.Empty;
+
+            var parameterPrefix = string.Format("{0}.", predicate.Parameters[0].Name);
+            return string.Format("where {0}", visitModel.Where.Replace(parameterPrefix, string.Empty));
+        }
+
+        private void SetCommandParameters(IEnumerable<DbParameter> parameters)
+        {
+            cmd.Parameters.Clear();
+
+            if (parameters != null)
+            {
+                var list = parameters.ToArray();
+                if (list.Length != 0)
+                    cmd.Parameters.AddRange(list);
+            }
+        }
+
+        private void FinishWriteTransaction(bool isTrans, bool isSuccess)
+        {
+            if (!isTrans)
+                return;
+
+            if (isSuccess)
+                SubmitTrans();
+            else
+                RollbackTrans();
+        }
+
+        private void LogDeleteException<T>(Exception ex, string operation, string sql) where T : class, new()
+        {
+            if (string.Equals(config?.SqlErrorType, SqlErrorType.Db, StringComparison.OrdinalIgnoreCase))
+                DbLogTable.LogException<T>(config, ex, operation, string.Empty);
+            else
+                DbLog.LogException<T>(config.IsOutError, config.DbType, ex, operation, sql);
+        }
+
+        private void LogUpdateException<T>(Exception ex, string operation, string sql) where T : class, new()
+        {
+            if (string.Equals(config?.SqlErrorType, SqlErrorType.Db, StringComparison.OrdinalIgnoreCase))
+                DbLogTable.LogException<T>(config, ex, operation, string.Empty);
+            else
+                DbLog.LogException<T>(config.IsOutError, config.DbType, ex, operation, sql);
+        }
+
         #region 删除(Lambda表达式)
         /// <summary>
         /// 删除(Lambda表达式)
@@ -44,44 +92,36 @@ namespace FastData.Context
 
                 visitModel = VisitExpression.LambdaWhere<T>(predicate, config);
 
-                sql.AppendFormat("delete from {0} {1}", TableNameHelper.GetTableName<T>(config)
-                    , string.IsNullOrEmpty(visitModel.Where) ? "" : string.Format("where {0}", visitModel.Where.Replace(string.Format("{0}.", predicate.Parameters[0].Name), "")));
+                var entityTableName = TableNameHelper.GetTableName<T>(config);
+                var whereClause = BuildLambdaWhereClause(predicate, visitModel);
+                sql.AppendFormat("delete from {0} {1}", entityTableName, whereClause);
+                var commandText = sql.ToString();
 
-                result.Sql = ParameterToSql.ObjectParamToSql(visitModel.Param, sql.ToString(), config);
+                result.Sql = ParameterToSql.ObjectParamToSql(visitModel.Param, commandText, config);
 
-                // 清理参数而非 dispose 命令对象（PostgreSQL/Npgsql 不支持对已 dispose 的命令重新使用）
-                cmd.Parameters.Clear();
+                SetCommandParameters(visitModel.Param);
 
-                if (visitModel.Param.Count != 0)
-                    cmd.Parameters.AddRange(visitModel.Param.ToArray());
-
-                tableName.Add(TableNameHelper.GetTableName<T>(config));
-                    AopBefore(tableName, sql.ToString(), visitModel.Param, config, false,AopType.Delete_Lambda);
+                tableName.Add(entityTableName);
+                    AopBefore(tableName, commandText, visitModel.Param, config, false,AopType.Delete_Lambda);
 
                 if (visitModel.IsSuccess)
                 {
                     if (conn.State == ConnectionState.Closed)
                         conn.Open();
-                    result.WriteReturn.IsSuccess = BaseExecute.ToBool(cmd, sql.ToString());
+                    result.WriteReturn.IsSuccess = BaseExecute.ToBool(cmd, commandText);
                 }
                 else
                     result.WriteReturn.IsSuccess = false;
 
-                if (isTrans && result.WriteReturn.IsSuccess)
-                    SubmitTrans();
-                else if (isTrans && result.WriteReturn.IsSuccess == false)
-                    RollbackTrans();
+                FinishWriteTransaction(isTrans, result.WriteReturn.IsSuccess);
 
-                AopAfter(tableName, sql.ToString(), visitModel.Param, config, false, AopType.Delete_Lambda, result.WriteReturn.IsSuccess);
+                AopAfter(tableName, commandText, visitModel.Param, config, false, AopType.Delete_Lambda, result.WriteReturn.IsSuccess);
             }
             catch (Exception ex)
             {
                 AopException(ex, "Delete by Lambda tableName"+typeof(T).Name,config, AopType.Delete_Lambda);
 
-                if (string.Equals(config?.SqlErrorType, SqlErrorType.Db, StringComparison.OrdinalIgnoreCase))
-                    DbLogTable.LogException<T>(config, ex, "Delete<T>", "");
-                else
-                    DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "Delete<T>", result.Sql);
+                LogDeleteException<T>(ex, "Delete<T>", result.Sql);
 
                 if (isTrans)
                     RollbackTrans();
@@ -117,13 +157,9 @@ namespace FastData.Context
 
                 result.Sql = ParameterToSql.ObjectParamToSql(optionModel.Param, optionModel.Sql, config);
 
-                // 清理参数而非 dispose 命令对象（PostgreSQL/Npgsql 不支持对已 dispose 的命令重新使用）
-                cmd.Parameters.Clear();
+                SetCommandParameters(optionModel.Param);
 
-                if (optionModel.Param.Count != 0)
-                    cmd.Parameters.AddRange(optionModel.Param.ToArray());
-
-                tableName.Add(TableNameHelper.GetTableName<T>());
+                tableName.Add(TableNameHelper.GetTableName<T>(config));
                 AopBefore(tableName, optionModel.Sql, optionModel.Param, config, false,AopType.Delete_PrimaryKey);
 
                 if (optionModel.IsSuccess)
@@ -138,10 +174,7 @@ namespace FastData.Context
                     result.WriteReturn.Message = optionModel.Message;
                 }
 
-                if (isTrans && result.WriteReturn.IsSuccess)
-                    SubmitTrans();
-                else if (isTrans && result.WriteReturn.IsSuccess == false)
-                    RollbackTrans();
+                FinishWriteTransaction(isTrans, result.WriteReturn.IsSuccess);
 
                 AopAfter(tableName, optionModel.Sql, optionModel.Param, config, false, AopType.Delete_PrimaryKey, result.WriteReturn.IsSuccess);
             }
@@ -152,10 +185,7 @@ namespace FastData.Context
                 if (isTrans)
                     RollbackTrans();
 
-                if (string.Equals(config?.SqlErrorType, SqlErrorType.Db, StringComparison.OrdinalIgnoreCase))
-                    DbLogTable.LogException<T>(config, ex, "Delete<T>", "");
-                else
-                    DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "Delete<T>", result.Sql);
+                LogDeleteException<T>(ex, "Delete<T>", result.Sql);
 
                 result.WriteReturn.IsSuccess = false;
                 result.WriteReturn.Message = ex.Message;
@@ -196,19 +226,13 @@ namespace FastData.Context
 
                     sql = string.Format("{0} {1}", update.Sql, string.IsNullOrEmpty(visitModel.Where) ? "" : string.Format("where {0}", visitModel.Where.Replace(string.Format("{0}.", predicate.Parameters[0].Name), "")));
 
-                    // 清理参数而非 dispose 命令对象（PostgreSQL/Npgsql 不支持对已 dispose 的命令重新使用）
-                    cmd.Parameters.Clear();
+                    SetCommandParameters(System.Linq.Enumerable.Concat(update.Param, visitModel.Param));
 
-                    if (update.Param.Count != 0)
-                        cmd.Parameters.AddRange(update.Param.ToArray());
+                    var mergedParams = Parameter.ParamMerge(update.Param, visitModel.Param);
+                    result.Sql = ParameterToSql.ObjectParamToSql(mergedParams, sql, config);
 
-                    if (visitModel.Param.Count != 0)
-                        cmd.Parameters.AddRange(visitModel.Param.ToArray());
-
-                    result.Sql = ParameterToSql.ObjectParamToSql(Parameter.ParamMerge(update.Param, visitModel.Param), sql, config);
-
-                    tableName.Add(TableNameHelper.GetTableName<T>());
-                    AopBefore(tableName, sql, Parameter.ParamMerge(update.Param, visitModel.Param), config, false,AopType.Update_Lambda);
+                    tableName.Add(TableNameHelper.GetTableName<T>(config));
+                    AopBefore(tableName, sql, mergedParams, config, false, AopType.Update_Lambda);
 
                     if (visitModel.IsSuccess)
                     {
@@ -225,21 +249,15 @@ namespace FastData.Context
                     result.WriteReturn.IsSuccess = false;
                 }
 
-                if (isTrans && result.WriteReturn.IsSuccess)
-                    SubmitTrans();
-                else if (isTrans && result.WriteReturn.IsSuccess == false)
-                    RollbackTrans();
+                FinishWriteTransaction(isTrans, result.WriteReturn.IsSuccess);
 
                 AopAfter(tableName, sql, Parameter.ParamMerge(update.Param, visitModel.Param), config, false, AopType.Update_Lambda, result.WriteReturn.IsSuccess);
             }
             catch (Exception ex)
             {
-                AopException(ex, "Update by Lambda tableName:" + typeof(T).Name,config, AopType.Update_Lambda);
+                AopException(ex, "Update by Lambda tableName:" + typeof(T).Name, config, AopType.Update_Lambda);
 
-                if (string.Equals(config?.SqlErrorType, SqlErrorType.Db, StringComparison.OrdinalIgnoreCase))
-                    DbLogTable.LogException<T>(config, ex, "Update<T>", "");
-                else
-                    DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "Update<T>", result.Sql);
+                LogUpdateException<T>(ex, "Update<T>", result.Sql);
                 result.WriteReturn.IsSuccess = false;
                 result.WriteReturn.Message = ex.Message;
 
@@ -273,16 +291,12 @@ namespace FastData.Context
                     BeginTrans();
                 if (update.IsSuccess)
                 {
-                    // 清理参数而非 dispose 命令对象（PostgreSQL/Npgsql 不支持对已 dispose 的命令重新使用）
-                    cmd.Parameters.Clear();
-
-                    if (update.Param.Count != 0)
-                        cmd.Parameters.AddRange(update.Param.ToArray());
+                    SetCommandParameters(update.Param);
 
                     result.Sql = ParameterToSql.ObjectParamToSql(update.Param, update.Sql, config);
 
-                    tableName.Add(TableNameHelper.GetTableName<T>());
-                    AopBefore(tableName, update.Sql, update.Param, config, false,AopType.Update_PrimaryKey);
+                    tableName.Add(TableNameHelper.GetTableName<T>(config));
+                    AopBefore(tableName, update.Sql, update.Param, config, false, AopType.Update_PrimaryKey);
 
                     if (conn.State == ConnectionState.Closed)
                         conn.Open();
@@ -294,24 +308,18 @@ namespace FastData.Context
                     result.WriteReturn.IsSuccess = false;
                 }
 
-                if (isTrans && result.WriteReturn.IsSuccess)
-                    SubmitTrans();
-                else if (isTrans && result.WriteReturn.IsSuccess == false)
-                    RollbackTrans();
+                FinishWriteTransaction(isTrans, result.WriteReturn.IsSuccess);
 
                 AopAfter(tableName, update.Sql, update.Param, config, false, AopType.Update_PrimaryKey, result.WriteReturn.IsSuccess);
             }
             catch (Exception ex)
             {
-                AopException(ex, "Update by Primary Key tableName:" + typeof(T).Name,config, AopType.Update_PrimaryKey);
+                AopException(ex, "Update by Primary Key tableName:" + typeof(T).Name, config, AopType.Update_PrimaryKey);
 
                 if (isTrans)
                     RollbackTrans();
 
-                if (string.Equals(config?.SqlErrorType, SqlErrorType.Db, StringComparison.OrdinalIgnoreCase))
-                    DbLogTable.LogException<T>(config, ex, "UpdateModel<T>", "");
-                else
-                    DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "UpdateModel<T>", result.Sql);
+                LogUpdateException<T>(ex, "UpdateModel<T>", result.Sql);
                 result.WriteReturn.IsSuccess = false;
                 result.WriteReturn.Message = ex.Message;
             }
@@ -432,7 +440,7 @@ namespace FastData.Context
                     if (insert.Param.Count != 0)
                         cmd.Parameters.AddRange(insert.Param.ToArray());
 
-                    tableName.Add(TableNameHelper.GetTableName<T>());
+                    tableName.Add(TableNameHelper.GetTableName<T>(config));
                     AopBefore(tableName, insert.Sql, insert.Param, config, false,AopType.Add);
 
                     if (conn.State == ConnectionState.Closed)
@@ -812,7 +820,7 @@ namespace FastData.Context
 
                 DbLog.LogSql(isLog, result.Sql, config.DbType, 0);
 
-                DisposeCommand(cmd);
+                cmd.Parameters.Clear();
 
                 if (param != null)
                     cmd.Parameters.AddRange(param);
@@ -1124,42 +1132,35 @@ namespace FastData.Context
 
                 visitModel = VisitExpression.LambdaWhere<T>(predicate, config);
 
-                sql.AppendFormat("delete from {0} {1}", TableNameHelper.GetTableName<T>(config)
-                    , string.IsNullOrEmpty(visitModel.Where) ? "" : string.Format("where {0}", visitModel.Where.Replace(string.Format("{0}.", predicate.Parameters[0].Name), "")));
+                var entityTableName = TableNameHelper.GetTableName<T>(config);
+                var whereClause = BuildLambdaWhereClause(predicate, visitModel);
+                sql.AppendFormat("delete from {0} {1}", entityTableName, whereClause);
+                var commandText = sql.ToString();
 
-                result.Sql = ParameterToSql.ObjectParamToSql(visitModel.Param, sql.ToString(), config);
+                result.Sql = ParameterToSql.ObjectParamToSql(visitModel.Param, commandText, config);
 
-                cmd.Parameters.Clear();
+                SetCommandParameters(visitModel.Param);
 
-                if (visitModel.Param.Count != 0)
-                    cmd.Parameters.AddRange(visitModel.Param.ToArray());
-
-                tableName.Add(TableNameHelper.GetTableName<T>(config));
-                AopBefore(tableName, sql.ToString(), visitModel.Param, config, false, AopType.Delete_Lambda);
+                tableName.Add(entityTableName);
+                AopBefore(tableName, commandText, visitModel.Param, config, false, AopType.Delete_Lambda);
 
                 if (visitModel.IsSuccess)
                 {
                     await EnsureConnectionOpenAsync(cancellationToken).ConfigureAwait(false);
-                    result.WriteReturn.IsSuccess = await BaseExecute.ToBoolAsync(cmd, sql.ToString()).ConfigureAwait(false);
+                    result.WriteReturn.IsSuccess = await BaseExecute.ToBoolAsync(cmd, commandText).ConfigureAwait(false);
                 }
                 else
                     result.WriteReturn.IsSuccess = false;
 
-                if (isTrans && result.WriteReturn.IsSuccess)
-                    SubmitTrans();
-                else if (isTrans && !result.WriteReturn.IsSuccess)
-                    RollbackTrans();
+                FinishWriteTransaction(isTrans, result.WriteReturn.IsSuccess);
 
-                AopAfter(tableName, sql.ToString(), visitModel.Param, config, false, AopType.Delete_Lambda, result.WriteReturn.IsSuccess);
+                AopAfter(tableName, commandText, visitModel.Param, config, false, AopType.Delete_Lambda, result.WriteReturn.IsSuccess);
             }
             catch (Exception ex)
             {
                 AopException(ex, "DeleteAsync by Lambda tableName" + typeof(T).Name, config, AopType.Delete_Lambda);
 
-                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
-                    DbLogTable.LogException<T>(config, ex, "DeleteAsync<T>", "");
-                else
-                    DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "DeleteAsync<T>", result.Sql);
+                LogDeleteException<T>(ex, "DeleteAsync<T>", result.Sql);
 
                 if (isTrans)
                     RollbackTrans();
@@ -1189,12 +1190,9 @@ namespace FastData.Context
 
                 result.Sql = ParameterToSql.ObjectParamToSql(optionModel.Param, optionModel.Sql, config);
 
-                cmd.Parameters.Clear();
+                SetCommandParameters(optionModel.Param);
 
-                if (optionModel.Param.Count != 0)
-                    cmd.Parameters.AddRange(optionModel.Param.ToArray());
-
-                tableName.Add(TableNameHelper.GetTableName<T>());
+                tableName.Add(TableNameHelper.GetTableName<T>(config));
                 AopBefore(tableName, optionModel.Sql, optionModel.Param, config, false, AopType.Delete_PrimaryKey);
 
                 if (optionModel.IsSuccess)
@@ -1208,10 +1206,7 @@ namespace FastData.Context
                     result.WriteReturn.Message = optionModel.Message;
                 }
 
-                if (isTrans && result.WriteReturn.IsSuccess)
-                    SubmitTrans();
-                else if (isTrans && !result.WriteReturn.IsSuccess)
-                    RollbackTrans();
+                FinishWriteTransaction(isTrans, result.WriteReturn.IsSuccess);
 
                 AopAfter(tableName, optionModel.Sql, optionModel.Param, config, false, AopType.Delete_PrimaryKey, result.WriteReturn.IsSuccess);
             }
@@ -1222,10 +1217,7 @@ namespace FastData.Context
                 if (isTrans)
                     RollbackTrans();
 
-                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
-                    DbLogTable.LogException<T>(config, ex, "DeleteAsync<T>", "");
-                else
-                    DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "DeleteAsync<T>", result.Sql);
+                LogDeleteException<T>(ex, "DeleteAsync<T>", result.Sql);
 
                 result.WriteReturn.IsSuccess = false;
                 result.WriteReturn.Message = ex.Message;
@@ -1258,18 +1250,13 @@ namespace FastData.Context
 
                     sql = string.Format("{0} {1}", update.Sql, string.IsNullOrEmpty(visitModel.Where) ? "" : string.Format("where {0}", visitModel.Where.Replace(string.Format("{0}.", predicate.Parameters[0].Name), "")));
 
-                    cmd.Parameters.Clear();
+                    SetCommandParameters(System.Linq.Enumerable.Concat(update.Param, visitModel.Param));
 
-                    if (update.Param.Count != 0)
-                        cmd.Parameters.AddRange(update.Param.ToArray());
+                    var mergedParams = Parameter.ParamMerge(update.Param, visitModel.Param);
+                    result.Sql = ParameterToSql.ObjectParamToSql(mergedParams, sql, config);
 
-                    if (visitModel.Param.Count != 0)
-                        cmd.Parameters.AddRange(visitModel.Param.ToArray());
-
-                    result.Sql = ParameterToSql.ObjectParamToSql(Parameter.ParamMerge(update.Param, visitModel.Param), sql, config);
-
-                    tableName.Add(TableNameHelper.GetTableName<T>());
-                    AopBefore(tableName, sql, Parameter.ParamMerge(update.Param, visitModel.Param), config, false, AopType.Update_Lambda);
+                    tableName.Add(TableNameHelper.GetTableName<T>(config));
+                    AopBefore(tableName, sql, mergedParams, config, false, AopType.Update_Lambda);
 
                     if (visitModel.IsSuccess)
                     {
@@ -1285,10 +1272,7 @@ namespace FastData.Context
                     result.WriteReturn.IsSuccess = false;
                 }
 
-                if (isTrans && result.WriteReturn.IsSuccess)
-                    SubmitTrans();
-                else if (isTrans && !result.WriteReturn.IsSuccess)
-                    RollbackTrans();
+                FinishWriteTransaction(isTrans, result.WriteReturn.IsSuccess);
 
                 AopAfter(tableName, sql, Parameter.ParamMerge(update.Param, visitModel.Param), config, false, AopType.Update_Lambda, result.WriteReturn.IsSuccess);
             }
@@ -1296,15 +1280,12 @@ namespace FastData.Context
             {
                 AopException(ex, "UpdateAsync by Lambda tableName:" + typeof(T).Name, config, AopType.Update_Lambda);
 
-                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
-                    DbLogTable.LogException<T>(config, ex, "UpdateAsync<T>", "");
-                else
-                    DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "UpdateAsync<T>", result.Sql);
-                result.WriteReturn.IsSuccess = false;
-                result.WriteReturn.Message = ex.Message;
-
                 if (isTrans)
                     RollbackTrans();
+
+                LogUpdateException<T>(ex, "UpdateAsync<T>", result.Sql);
+                result.WriteReturn.IsSuccess = false;
+                result.WriteReturn.Message = ex.Message;
             }
 
             return result;
@@ -1325,14 +1306,11 @@ namespace FastData.Context
                     BeginTrans();
                 if (update.IsSuccess)
                 {
-                    cmd.Parameters.Clear();
-
-                    if (update.Param.Count != 0)
-                        cmd.Parameters.AddRange(update.Param.ToArray());
+                    SetCommandParameters(update.Param);
 
                     result.Sql = ParameterToSql.ObjectParamToSql(update.Param, update.Sql, config);
 
-                    tableName.Add(TableNameHelper.GetTableName<T>());
+                    tableName.Add(TableNameHelper.GetTableName<T>(config));
                     AopBefore(tableName, update.Sql, update.Param, config, false, AopType.Update_PrimaryKey);
 
                     await EnsureConnectionOpenAsync(cancellationToken).ConfigureAwait(false);
@@ -1344,10 +1322,7 @@ namespace FastData.Context
                     result.WriteReturn.IsSuccess = false;
                 }
 
-                if (isTrans && result.WriteReturn.IsSuccess)
-                    SubmitTrans();
-                else if (isTrans && !result.WriteReturn.IsSuccess)
-                    RollbackTrans();
+                FinishWriteTransaction(isTrans, result.WriteReturn.IsSuccess);
 
                 AopAfter(tableName, update.Sql, update.Param, config, false, AopType.Update_PrimaryKey, result.WriteReturn.IsSuccess);
             }
@@ -1358,10 +1333,7 @@ namespace FastData.Context
                 if (isTrans)
                     RollbackTrans();
 
-                if (config?.SqlErrorType?.ToLower() == SqlErrorType.Db)
-                    DbLogTable.LogException<T>(config, ex, "UpdateModelAsync<T>", "");
-                else
-                    DbLog.LogException<T>(config.IsOutError, config.DbType, ex, "UpdateModelAsync<T>", result.Sql);
+                LogUpdateException<T>(ex, "UpdateModelAsync<T>", result.Sql);
                 result.WriteReturn.IsSuccess = false;
                 result.WriteReturn.Message = ex.Message;
             }
@@ -1735,7 +1707,7 @@ namespace FastData.Context
 
                 DbLog.LogSql(isLog, result.Sql, config.DbType, 0);
 
-                DisposeCommand(cmd);
+                cmd.Parameters.Clear();
 
                 if (param != null)
                     cmd.Parameters.AddRange(param);

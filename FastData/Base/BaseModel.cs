@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using FastData.DbTypes;
+using FastData.Infrastructure;
 using FastData.Model;
 using FastData.Property;
 
@@ -18,6 +19,12 @@ namespace FastData.Base
     /// </summary>
     internal static class BaseModel
     {
+        /// <summary>
+        /// 主键缓存（表名 → 主键字段列表）
+        /// </summary>
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, List<string>> _primaryKeyCache =
+            new System.Collections.Concurrent.ConcurrentDictionary<string, List<string>>();
+
         #region 实体转 Update SQL
         /// <summary>
         /// 将实体转换为 UPDATE SQL 语句
@@ -27,17 +34,18 @@ namespace FastData.Base
             var result = new OptionModel();
             var entityGetter = new Property.DynamicGet<T>();
             result.IsCache = config.IsPropertyCache;
-            var factory = DbProviderFactories.GetFactory(config.ProviderName);
+            var tableName = TableNameHelper.GetTableName<T>(config);
+            var factory = DbProviderAutoRegistrar.GetFactory(config.ProviderName);
 
             try
             {
                 var sqlBuilder = new StringBuilder();
-                sqlBuilder.AppendFormat("update {0} set", TableNameHelper.GetTableName<T>(config));
+                sqlBuilder.AppendFormat("update {0} set", tableName);
 
                 BuildSetClause(sqlBuilder, entity, config, fieldSelector, entityGetter, factory, result);
 
                 // 验证主键值不为空
-                var primaryKeys = GetPrimaryKeys(config, cmd, TableNameHelper.GetTableName<T>(config));
+                var primaryKeys = GetPrimaryKeys(config, cmd, tableName);
                 foreach (var primaryKey in primaryKeys)
                 {
                     if (result.Param.Exists(p => p.ParameterName == primaryKey))
@@ -76,7 +84,7 @@ namespace FastData.Base
             result.IsCache = config.IsPropertyCache;
             var tableName = TableNameHelper.GetTableName<T>(config);
             var primaryKeys = GetPrimaryKeys(config, cmd, tableName);
-            var factory = DbProviderFactories.GetFactory(config.ProviderName);
+            var factory = DbProviderAutoRegistrar.GetFactory(config.ProviderName);
 
             if (primaryKeys.Count == 0)
             {
@@ -137,7 +145,7 @@ namespace FastData.Base
 
                 columnBuilder.AppendFormat("insert into {0} (", TableNameHelper.GetTableName<T>(config));
                 valueBuilder.Append(" values (");
-                var factory = DbProviderFactories.GetFactory(config.ProviderName);
+                var factory = DbProviderAutoRegistrar.GetFactory(config.ProviderName);
 
                 var properties = PropertyCache.GetNonIdentityProperties<T>();
 
@@ -191,7 +199,9 @@ namespace FastData.Base
             var entityGetter = new Property.DynamicGet<T>();
             var result = new OptionModel();
             result.IsCache = config.IsPropertyCache;
-            var primaryKeys = GetPrimaryKeys(config, cmd, TableNameHelper.GetTableName<T>(config));
+            var tableName = TableNameHelper.GetTableName<T>(config);
+            var primaryKeys = GetPrimaryKeys(config, cmd, tableName);
+            var factory = DbProviderAutoRegistrar.GetFactory(config.ProviderName);
 
             if (primaryKeys.Count == 0)
             {
@@ -205,7 +215,7 @@ namespace FastData.Base
                 result.table = BaseExecute.ToDataTable<T>(cmd, config, primaryKeys, fieldSelector);
 
                 var sqlBuilder = new StringBuilder();
-                sqlBuilder.AppendFormat("update {0} set", TableNameHelper.GetTableName<T>(config));
+                sqlBuilder.AppendFormat("update {0} set", tableName);
 
                 // 使用缓存的属性数组替代 GetPropertyInfo
                 var properties = PropertyCache.GetPropertiesCached<T>();
@@ -218,7 +228,7 @@ namespace FastData.Base
                             continue;
 
                         sqlBuilder.AppendFormat(" {0}={1}{0},", property.Name, config.Flag);
-                        var parameter = DbProviderFactories.GetFactory(config.ProviderName).CreateParameter();
+                        var parameter = factory.CreateParameter();
                         parameter.ParameterName = property.Name;
                         parameter.SourceColumn = property.Name;
                         result.Param.Add(parameter);
@@ -233,7 +243,7 @@ namespace FastData.Base
                             continue;
 
                         sqlBuilder.AppendFormat(" {0}={1}{0},", member.Name, config.Flag);
-                        var parameter = DbProviderFactories.GetFactory(config.ProviderName).CreateParameter();
+                        var parameter = factory.CreateParameter();
                         parameter.ParameterName = member.Name;
                         parameter.SourceColumn = member.Name;
                         result.Param.Add(parameter);
@@ -252,7 +262,7 @@ namespace FastData.Base
                     else
                         result.Sql = string.Format("{0} and {1}={2}{1} ", result.Sql, primaryKey, config.Flag);
 
-                    var parameter = DbProviderFactories.GetFactory(config.ProviderName).CreateParameter();
+                    var parameter = factory.CreateParameter();
                     parameter.ParameterName = primaryKey;
                     parameter.SourceColumn = primaryKey;
                     result.Param.Add(parameter);
@@ -312,8 +322,9 @@ namespace FastData.Base
             var result = new OptionModel();
             var entityGetter = new Property.DynamicGet<T>();
             result.IsCache = config.IsPropertyCache;
-            var primaryKeys = GetPrimaryKeys(config, cmd, TableNameHelper.GetTableName<T>(config));
-            var factory = DbProviderFactories.GetFactory(config.ProviderName);
+            var tableName = TableNameHelper.GetTableName<T>(config);
+            var primaryKeys = GetPrimaryKeys(config, cmd, tableName);
+            var factory = DbProviderAutoRegistrar.GetFactory(config.ProviderName);
 
             if (primaryKeys.Count == 0)
             {
@@ -324,7 +335,7 @@ namespace FastData.Base
 
             try
             {
-                result.Sql = string.Format("delete {0} ", TableNameHelper.GetTableName<T>(config));
+                result.Sql = string.Format("delete {0} ", tableName);
                 AppendPrimaryKeyWhere(result, entity, config, entityGetter, factory, primaryKeys, useKeyIndex: false);
                 result.IsSuccess = true;
                 return result;
@@ -348,7 +359,15 @@ namespace FastData.Base
         /// <returns>主键字段名列表</returns>
         public static List<string> GetPrimaryKeys(ConfigModel config, DbCommand cmd, string tableName)
         {
+            var cacheKey = string.Format("{0}|{1}|{2}|{3}", config.Key, config.DbType, config.ConnStr, tableName);
+            if (_primaryKeyCache.TryGetValue(cacheKey, out var cached))
+                return cached;
+
             var primaryKeys = new List<string>();
+            var savedCommandText = cmd.CommandText;
+            var savedParameters = new List<DbParameter>();
+            foreach (DbParameter parameter in cmd.Parameters)
+                savedParameters.Add(parameter);
 
             // 根据不同数据库类型生成查询主键的 SQL
             switch (config.DbType)
@@ -393,11 +412,6 @@ namespace FastData.Base
             if (string.IsNullOrEmpty(cmd.CommandText))
                 return primaryKeys;
 
-            // 保存并恢复命令状态
-            var savedCommandText = cmd.CommandText;
-            var savedParameters = new List<DbParameter>();
-            foreach (DbParameter parameter in cmd.Parameters)
-                savedParameters.Add(parameter);
             cmd.Parameters.Clear();
 
             try
@@ -417,7 +431,19 @@ namespace FastData.Base
                     cmd.Parameters.Add(parameter);
             }
 
+            _primaryKeyCache[cacheKey] = primaryKeys;
             return primaryKeys;
+        }
+
+        /// <summary>
+        /// 预热主键缓存
+        /// </summary>
+        public static void WarmupPrimaryKeyCache(ConfigModel config, DbCommand cmd, params string[] tableNames)
+        {
+            foreach (var tableName in tableNames)
+            {
+                GetPrimaryKeys(config, cmd, tableName);
+            }
         }
         #endregion
 
@@ -463,6 +489,7 @@ namespace FastData.Base
             bool useKeyIndex = true)
         {
             var keyIndex = 1;
+            var sqlBuilder = new StringBuilder(result.Sql);
             foreach (var primaryKey in primaryKeys)
             {
                 var primaryKeyValue = entityGetter.GetValue(entity, primaryKey, config.IsPropertyCache);
@@ -475,7 +502,7 @@ namespace FastData.Base
                 }
 
                 var prefix = keyIndex == 1 ? "where" : "and";
-                result.Sql = string.Format("{0} {1} {2}={3}{2}{4} ", result.Sql, prefix, primaryKey, config.Flag,
+                sqlBuilder.AppendFormat(" {0} {1}={2}{1}{3} ", prefix, primaryKey, config.Flag,
                     useKeyIndex ? keyIndex.ToString() : "");
 
                 var parameter = factory.CreateParameter();
@@ -485,6 +512,8 @@ namespace FastData.Base
 
                 keyIndex++;
             }
+
+            result.Sql = sqlBuilder.ToString();
         }
         #endregion
 

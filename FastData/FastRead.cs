@@ -30,6 +30,11 @@ namespace FastData
     /// </summary>
     public static class FastRead
     {
+        /// <summary>
+        /// Creates a read API instance bound to a database key.
+        /// </summary>
+        /// <param name="key">FastData connection key.</param>
+        /// <returns>A key-bound read API.</returns>
         public static FastReadDb Use(string key)
         {
             return new FastReadDb(key);
@@ -121,7 +126,7 @@ namespace FastData
 
             var condtion = VisitExpression.LambdaWhere<T>(predicate, result.Config);
             result.Predicate.Add(condtion);
-            result.Table.Add(string.Format("{0} {1}", TableNameHelper.GetTableName<T>(), predicate.Parameters[0].Name));
+            result.Table.Add(string.Format("{0} {1}", TableNameHelper.GetTableName<T>(result.Config), predicate.Parameters[0].Name));
 
             return result;
         }

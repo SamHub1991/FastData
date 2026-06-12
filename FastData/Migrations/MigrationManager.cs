@@ -12,6 +12,10 @@ namespace FastData.Migrations
         private readonly string _connectionString;
         private readonly List<IMigration> _migrations = new List<IMigration>();
 
+        /// <summary>
+        /// Initializes a migration manager.
+        /// </summary>
+        /// <param name="connectionString">Database connection string.</param>
         public MigrationManager(string connectionString)
         {
             _connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
@@ -147,10 +151,14 @@ namespace FastData.Migrations
     /// </summary>
     public abstract class Migration : IMigration
     {
+        /// <inheritdoc />
         public abstract string Version { get; }
+        /// <inheritdoc />
         public abstract string Description { get; }
 
+        /// <inheritdoc />
         public abstract void Up();
+        /// <inheritdoc />
         public abstract void Down();
     }
 
@@ -159,8 +167,11 @@ namespace FastData.Migrations
     /// </summary>
     public class MigrationInfo
     {
+        /// <summary>Gets or sets the migration version.</summary>
         public string Version { get; set; }
+        /// <summary>Gets or sets the migration description.</summary>
         public string Description { get; set; }
+        /// <summary>Gets or sets when the migration was applied.</summary>
         public DateTime? AppliedAt { get; set; }
     }
 
@@ -169,21 +180,34 @@ namespace FastData.Migrations
     /// </summary>
     public class MigrationException : Exception
     {
+        /// <summary>Gets the migration version associated with the exception.</summary>
         public string MigrationVersion { get; }
 
+        /// <summary>Initializes a migration exception.</summary>
+        /// <param name="message">Exception message.</param>
         public MigrationException(string message) : base(message)
         {
         }
 
+        /// <summary>Initializes a migration exception with an inner exception.</summary>
+        /// <param name="message">Exception message.</param>
+        /// <param name="innerException">Inner exception.</param>
         public MigrationException(string message, Exception innerException) : base(message, innerException)
         {
         }
 
+        /// <summary>Initializes a migration exception for a specific migration version.</summary>
+        /// <param name="migrationVersion">Migration version.</param>
+        /// <param name="message">Exception message.</param>
         public MigrationException(string migrationVersion, string message) : base(message)
         {
             MigrationVersion = migrationVersion;
         }
 
+        /// <summary>Initializes a migration exception for a specific migration version with an inner exception.</summary>
+        /// <param name="migrationVersion">Migration version.</param>
+        /// <param name="message">Exception message.</param>
+        /// <param name="innerException">Inner exception.</param>
         public MigrationException(string migrationVersion, string message, Exception innerException) 
             : base(message, innerException)
         {
@@ -214,6 +238,9 @@ namespace FastData.Migrations
         /// </summary>
         public void CreateTable(string tableName, Action<TableBuilder> configure)
         {
+            if (configure == null)
+                throw new ArgumentNullException(nameof(configure));
+
             var builder = new TableBuilder(tableName);
             configure(builder);
             _sqlStatements.Add(builder.ToSql());
@@ -260,6 +287,10 @@ namespace FastData.Migrations
             _sqlStatements.Add(string.Format("DROP INDEX IF EXISTS {0};", indexName));
         }
 
+        /// <summary>
+        /// Gets the SQL statements collected by the builder.
+        /// </summary>
+        /// <returns>A copy of collected SQL statements.</returns>
         public List<string> GetSqlStatements()
         {
             return new List<string>(_sqlStatements);
@@ -275,11 +306,23 @@ namespace FastData.Migrations
         private readonly List<ColumnDefinition> _columns = new List<ColumnDefinition>();
         private string _primaryKey;
 
+        /// <summary>
+        /// Initializes a table builder.
+        /// </summary>
+        /// <param name="tableName">Table name.</param>
         public TableBuilder(string tableName)
         {
             _tableName = tableName ?? throw new ArgumentNullException(nameof(tableName));
         }
 
+        /// <summary>
+        /// Adds a column definition.
+        /// </summary>
+        /// <param name="name">Column name.</param>
+        /// <param name="type">Column SQL type.</param>
+        /// <param name="nullable">Whether the column allows null values.</param>
+        /// <param name="defaultValue">Optional default value SQL.</param>
+        /// <returns>The current table builder.</returns>
         public TableBuilder Column(string name, string type, bool nullable = true, string defaultValue = null)
         {
             _columns.Add(new ColumnDefinition
@@ -292,12 +335,21 @@ namespace FastData.Migrations
             return this;
         }
 
+        /// <summary>
+        /// Sets the primary key column.
+        /// </summary>
+        /// <param name="columnName">Primary key column name.</param>
+        /// <returns>The current table builder.</returns>
         public TableBuilder PrimaryKey(string columnName)
         {
             _primaryKey = columnName;
             return this;
         }
 
+        /// <summary>
+        /// Builds the CREATE TABLE SQL statement.
+        /// </summary>
+        /// <returns>CREATE TABLE SQL.</returns>
         public string ToSql()
         {
             var columnsSql = string.Join(",\n    ", _columns.Select(c =>

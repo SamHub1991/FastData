@@ -1,8 +1,7 @@
-using System.Data.Common;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
 using System;
+using System.Collections.Generic;
+using System.Data.Common;
+using System.Reflection;
 #if NETFRAMEWORK
 using FastData.Base;
 #endif
@@ -32,6 +31,7 @@ public static class DbProviderAutoRegistrar
 
     private static readonly List<(string AssemblyKeyword, string FactoryTypeName, string InvariantName)> KnownProviders = new()
     {
+        ("System.Data.SqlClient", "System.Data.SqlClient.SqlClientFactory", "System.Data.SqlClient"),
         ("Microsoft.Data.SqlClient", "Microsoft.Data.SqlClient.SqlClientFactory", "Microsoft.Data.SqlClient"),
         ("MySql.Data", "MySql.Data.MySqlClient.MySqlClientFactory", "MySql.Data.MySqlClient"),
         ("Pomelo", "MySql.Data.MySqlClient.MySqlClientFactory", "MySql.Data.MySqlClient"),
@@ -41,6 +41,63 @@ public static class DbProviderAutoRegistrar
         ("Oracle.ManagedDataAccess", "Oracle.ManagedDataAccess.Client.OracleClientFactory", "Oracle.ManagedDataAccess.Client"),
     };
 
+    private static readonly Dictionary<string, string> ProviderPackages = new(StringComparer.OrdinalIgnoreCase)
+    {
+        { "System.Data.SqlClient", "System.Data.SqlClient" },
+        { "Microsoft.Data.SqlClient", "Microsoft.Data.SqlClient" },
+        { "MySql.Data.MySqlClient", "MySql.Data" },
+        { "Npgsql", "Npgsql" },
+        { "Microsoft.Data.Sqlite", "Microsoft.Data.Sqlite" },
+        { "System.Data.SQLite", "System.Data.SQLite.Core" },
+        { "Oracle.ManagedDataAccess.Client", "Oracle.ManagedDataAccess" },
+        { "IBM.Data.DB2.Core", "IBM.Data.DB2.Core" },
+    };
+
+    /// <summary>
+    /// 获取 DbProviderFactory。若驱动缺失，会返回包含 NuGet 安装命令的异常信息。
+    /// </summary>
+    /// <param name="providerName">ADO.NET Provider invariant name。</param>
+    /// <returns>已注册的 DbProviderFactory。</returns>
+    public static DbProviderFactory GetFactory(string providerName)
+    {
+        if (string.IsNullOrWhiteSpace(providerName))
+            throw new InvalidOperationException("ProviderName 为空，请检查数据库配置。");
+
+        Register();
+
+        try
+        {
+            return DbProviderFactories.GetFactory(providerName);
+        }
+        catch (Exception ex)
+        {
+            throw CreateMissingProviderException(providerName, ex);
+        }
+    }
+
+    /// <summary>
+    /// 检查指定 Provider 是否可用。驱动已在应用运行目录或依赖图中存在时会自动注册。
+    /// </summary>
+    /// <param name="providerName">ADO.NET Provider invariant name。</param>
+    public static void EnsureProvider(string providerName)
+    {
+        GetFactory(providerName);
+    }
+
+    /// <summary>
+    /// 获取指定 Provider 对应的 NuGet 安装命令。
+    /// </summary>
+    /// <param name="providerName">ADO.NET Provider invariant name。</param>
+    /// <returns>dotnet add package 命令。</returns>
+    public static string GetInstallCommand(string providerName)
+    {
+        var packageId = GetPackageId(providerName);
+        return string.Format("dotnet add package {0}", packageId);
+    }
+
+    /// <summary>
+    /// 扫描并注册当前应用中已存在的数据库驱动程序集。
+    /// </summary>
     public static void Register()
     {
         if (_isRegistered) return;
@@ -57,14 +114,14 @@ public static class DbProviderAutoRegistrar
                 var assemblies = AppDomain.CurrentDomain.GetAssemblies();
                 foreach (var (assemblyKeyword, factoryTypeName, invariantName) in KnownProviders)
                 {
-                    if (TryRegisterFromAssemblies(assemblies, assemblyKeyword, factoryTypeName, invariantName))
+                    if (!IsProviderRegistered(invariantName) && TryRegisterFromAssemblies(assemblies, assemblyKeyword, factoryTypeName, invariantName))
                         registeredCount++;
                 }
 
                 // 第二遍：对未注册的提供程序，显式加载程序集
                 foreach (var (assemblyKeyword, factoryTypeName, invariantName) in KnownProviders)
                 {
-                    if (TryRegisterByAssemblyLoad(assemblyKeyword, factoryTypeName, invariantName))
+                    if (!IsProviderRegistered(invariantName) && TryRegisterByAssemblyLoad(assemblyKeyword, factoryTypeName, invariantName))
                         registeredCount++;
                 }
 
@@ -80,6 +137,28 @@ public static class DbProviderAutoRegistrar
         }
     }
 
+    private static InvalidOperationException CreateMissingProviderException(string providerName, Exception innerException)
+    {
+        var packageId = GetPackageId(providerName);
+        var message = string.Format(
+            "DbProviderFactory 未找到或驱动程序集未加载：{0}。" +
+            "FastData 已尝试自动注册当前 AppDomain 中存在的数据库驱动，但没有找到匹配程序集。" +
+            "请在应用项目中引用对应 NuGet 包，或在裸 DLL 部署时把匹配版本的驱动 DLL 一起复制到运行目录。" +
+            "建议命令：dotnet add package {1}",
+            providerName,
+            packageId);
+
+        return new InvalidOperationException(message, innerException);
+    }
+
+    private static string GetPackageId(string providerName)
+    {
+        if (!string.IsNullOrWhiteSpace(providerName) && ProviderPackages.TryGetValue(providerName, out var packageId))
+            return packageId;
+
+        return providerName;
+    }
+
     private static bool TryRegisterFromAssemblies(IEnumerable<Assembly> assemblies, string assemblyKeyword, string factoryTypeName, string invariantName)
     {
         try
@@ -89,7 +168,8 @@ public static class DbProviderAutoRegistrar
                 if (!ContainsIgnoreCase(assembly.GetName().Name, assemblyKeyword))
                     continue;
 
-                return TryRegisterFromAssembly(assembly, factoryTypeName, invariantName);
+                if (TryRegisterFromAssembly(assembly, factoryTypeName, invariantName))
+                    return true;
             }
         }
         catch { }
@@ -101,13 +181,8 @@ public static class DbProviderAutoRegistrar
     {
         try
         {
-            // 先检查是否已注册
-            try
-            {
-                var existing = DbProviderFactories.GetFactory(invariantName);
-                if (existing != null) return true;
-            }
-            catch { }
+            if (IsProviderRegistered(invariantName))
+                return true;
 
             // 尝试按关键词加载程序集
             Assembly assembly = null;
@@ -163,13 +238,8 @@ public static class DbProviderAutoRegistrar
             
             if (factoryInstance == null) return false;
 
-            // 检查是否已注册
-            try
-            {
-                var existingFactory = DbProviderFactories.GetFactory(invariantName);
-                if (existingFactory != null) return true;
-            }
-            catch { }
+            if (IsProviderRegistered(invariantName))
+                return true;
 
 #if !NETFRAMEWORK
             // .NET Core/5+ 支持运行时注册
@@ -192,6 +262,7 @@ public static class DbProviderAutoRegistrar
         return keyword switch
         {
             "Microsoft.Data.SqlClient" => new[] { "Microsoft.Data.SqlClient" },
+            "System.Data.SqlClient" => new[] { "System.Data.SqlClient" },
             "MySql.Data" => new[] { "MySql.Data", "MySqlConnector" },
             "Pomelo" => new[] { "MySqlConnector", "MySql.Data" },
             "Npgsql" => new[] { "Npgsql" },
@@ -200,6 +271,18 @@ public static class DbProviderAutoRegistrar
             "Oracle.ManagedDataAccess" => new[] { "Oracle.ManagedDataAccess", "Oracle.ManagedDataAccess.Core" },
             _ => new[] { keyword }
         };
+    }
+
+    private static bool IsProviderRegistered(string invariantName)
+    {
+        try
+        {
+            return DbProviderFactories.GetFactory(invariantName) != null;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
 #if NETFRAMEWORK

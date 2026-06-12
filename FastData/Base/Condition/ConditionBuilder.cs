@@ -13,7 +13,7 @@ namespace FastData.Base
     /// <para>
     /// 借鉴 Dos.ORM 的 WhereClipBuilder 思路：维护一个 <see cref="Condition"/> 列表，
     /// 提供链式 API（Equal/And/Or/Like/In/Between/IsNull 等）按需添加条件，
-    /// 最终通过 <see cref="Build"/> 统一渲染为带参数的 SQL 子句。
+    /// 最终通过 <see cref="Build(out List{DbParameter})"/> 统一渲染为带参数的 SQL 子句。
     /// </para>
     /// <para>
     /// 优势：

@@ -244,21 +244,37 @@ namespace FastData
         private readonly T _value;
         private readonly bool _hasValue;
 
+        /// <summary>
+        /// Initializes a nullable result wrapper.
+        /// </summary>
+        /// <param name="value">Wrapped value.</param>
         public NullableResult(T value)
         {
             _value = value;
             _hasValue = value != null;
         }
 
+        /// <summary>Gets the wrapped value.</summary>
         public T Value => _value;
 
+        /// <summary>Gets whether the wrapped value is not null.</summary>
         public bool HasValue => _hasValue;
 
+        /// <summary>
+        /// Returns the wrapped value or a default value when null.
+        /// </summary>
+        /// <param name="defaultValue">Default value.</param>
+        /// <returns>The wrapped value or default value.</returns>
         public T OrDefault(T defaultValue = default)
         {
             return _hasValue ? _value : defaultValue;
         }
 
+        /// <summary>
+        /// Returns the wrapped value or throws when null.
+        /// </summary>
+        /// <param name="exception">Optional exception to throw.</param>
+        /// <returns>The wrapped value.</returns>
         public T OrThrow(Exception exception = null)
         {
             if (!_hasValue)
@@ -266,11 +282,19 @@ namespace FastData
             return _value;
         }
 
+        /// <summary>
+        /// Converts a nullable result to its wrapped value.
+        /// </summary>
+        /// <param name="result">Nullable result.</param>
         public static implicit operator T(NullableResult<T> result)
         {
             return result._value;
         }
 
+        /// <summary>
+        /// Wraps a value in a nullable result.
+        /// </summary>
+        /// <param name="value">Value to wrap.</param>
         public static implicit operator NullableResult<T>(T value)
         {
             return new NullableResult<T>(value);

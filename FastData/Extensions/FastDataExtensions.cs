@@ -280,23 +280,36 @@ namespace FastData.Extensions
     /// </summary>
     public class FastDataException : Exception
     {
+        /// <summary>Gets the FastData error code.</summary>
         public FastDataErrorCode ErrorCode { get; }
 
+        /// <summary>Initializes a FastData exception.</summary>
+        /// <param name="message">Exception message.</param>
         public FastDataException(string message) : base(message)
         {
         }
 
+        /// <summary>Initializes a FastData exception with an inner exception.</summary>
+        /// <param name="message">Exception message.</param>
+        /// <param name="innerException">Inner exception.</param>
         public FastDataException(string message, Exception innerException) 
             : base(message, innerException)
         {
         }
 
+        /// <summary>Initializes a FastData exception with an error code.</summary>
+        /// <param name="errorCode">FastData error code.</param>
+        /// <param name="message">Exception message.</param>
         public FastDataException(FastDataErrorCode errorCode, string message) 
             : base(message)
         {
             ErrorCode = errorCode;
         }
 
+        /// <summary>Initializes a FastData exception with an error code and inner exception.</summary>
+        /// <param name="errorCode">FastData error code.</param>
+        /// <param name="message">Exception message.</param>
+        /// <param name="innerException">Inner exception.</param>
         public FastDataException(FastDataErrorCode errorCode, string message, Exception innerException) 
             : base(message, innerException)
         {

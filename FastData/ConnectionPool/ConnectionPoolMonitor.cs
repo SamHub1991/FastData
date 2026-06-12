@@ -31,6 +31,11 @@ namespace FastData.ConnectionPool
             }
         }
 
+        /// <summary>
+        /// Initializes a new connection-pool monitor.
+        /// </summary>
+        /// <param name="factory">Connection pool factory to monitor.</param>
+        /// <param name="monitorIntervalSeconds">Snapshot interval in seconds.</param>
         public ConnectionPoolMonitor(ConnectionPoolFactory factory, int monitorIntervalSeconds = 60)
         {
             _factory = factory ?? throw new ArgumentNullException(nameof(factory));
@@ -159,7 +164,9 @@ namespace FastData.ConnectionPool
     /// </summary>
     public class ConnectionPoolSnapshot
     {
+        /// <summary>Gets or sets the snapshot timestamp in UTC.</summary>
         public DateTime Timestamp { get; set; }
+        /// <summary>Gets or sets metrics by pool name.</summary>
         public Dictionary<string, ConnectionPoolMetrics> PoolMetrics { get; set; } = new Dictionary<string, ConnectionPoolMetrics>();
     }
 
@@ -168,11 +175,17 @@ namespace FastData.ConnectionPool
     /// </summary>
     public class ConnectionPoolStatistics
     {
+        /// <summary>Gets or sets the statistics period.</summary>
         public TimeSpan Period { get; set; }
+        /// <summary>Gets or sets the number of snapshots included.</summary>
         public int SampleCount { get; set; }
+        /// <summary>Gets or sets the average active connection count.</summary>
         public double AverageActiveConnections { get; set; }
+        /// <summary>Gets or sets the average idle connection count.</summary>
         public double AverageIdleConnections { get; set; }
+        /// <summary>Gets or sets the maximum active connection count.</summary>
         public long MaxActiveConnections { get; set; }
+        /// <summary>Gets or sets the minimum active connection count.</summary>
         public long MinActiveConnections { get; set; }
     }
 }

@@ -30,8 +30,11 @@ namespace FastData.Abstractions
     /// </summary>
     public class DefaultDateTimeProvider : IDateTimeProvider
     {
+        /// <inheritdoc />
         public DateTime UtcNow => DateTime.UtcNow;
+        /// <inheritdoc />
         public DateTime Now => DateTime.Now;
+        /// <inheritdoc />
         public DateTime Today => DateTime.Today;
     }
 
@@ -45,8 +48,11 @@ namespace FastData.Abstractions
         private DateTime? _fixedNow;
         private DateTime? _fixedToday;
 
+        /// <inheritdoc />
         public DateTime UtcNow => _fixedUtcNow ?? DateTime.UtcNow;
+        /// <inheritdoc />
         public DateTime Now => _fixedNow ?? DateTime.Now;
+        /// <inheritdoc />
         public DateTime Today => _fixedToday ?? DateTime.Today;
 
         /// <summary>

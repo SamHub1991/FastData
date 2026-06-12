@@ -41,8 +41,11 @@ namespace FastData.Core
         private long _queueFallbackCount;
         private long _totalFailureCount;
 
+        /// <summary>Gets the number of direct database writes.</summary>
         public long DirectWriteCount => Interlocked.Read(ref _directWriteCount);
+        /// <summary>Gets the number of writes that fell back to the queue.</summary>
         public long QueueFallbackCount => Interlocked.Read(ref _queueFallbackCount);
+        /// <summary>Gets the number of failed writes.</summary>
         public long TotalFailureCount => Interlocked.Read(ref _totalFailureCount);
 
         /// <summary>
@@ -365,6 +368,9 @@ namespace FastData.Core
             Interlocked.Exchange(ref _totalFailureCount, 0);
         }
 
+        /// <summary>
+        /// Releases resources held by the executor.
+        /// </summary>
         public void Dispose()
         {
             // 清理资源
@@ -448,10 +454,15 @@ namespace FastData.Core
     /// </summary>
     public class ResilientExecutorStats
     {
+        /// <summary>Gets or sets direct database write count.</summary>
         public long DirectWriteCount { get; set; }
+        /// <summary>Gets or sets queue fallback count.</summary>
         public long QueueFallbackCount { get; set; }
+        /// <summary>Gets or sets total failure count.</summary>
         public long TotalFailureCount { get; set; }
+        /// <summary>Gets or sets total request count.</summary>
         public long TotalRequests { get; set; }
+        /// <summary>Gets or sets queue fallback rate percentage.</summary>
         public double QueueFallbackRate { get; set; }
     }
 }

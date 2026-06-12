@@ -36,22 +36,7 @@ namespace FastData.Context
 
             try
             {
-                // SQL Server TOP 特殊处理
-                if (item.Config.DbType == DataDbType.SqlServer && item.Take != 0)
-                {
-                    sql.Append("select top ");
-                    sql.Append(item.Take);
-                    sql.Append(" ");
-                    for (int i = 0; i < item.Field.Count; i++)
-                    {
-                        if (i > 0) sql.Append(",");
-                        sql.Append(item.Field[i]);
-                    }
-                    sql.Append(" from ");
-                    sql.Append(item.Table[0]);
-                }
-                else
-                    BuildBaseSelectQuery(item, param, sql);
+                BuildBaseSelectQuery(item, param, sql);
 
                 result.Sql = ParameterToSql.ObjectParamToSql(param, sql.ToString(), item.Config);
 
@@ -383,28 +368,14 @@ namespace FastData.Context
             try
             {
                 // SQL Server TOP 特殊处理
-                if (item.Config.DbType == DataDbType.SqlServer && item.Take != 0)
-                {
-                    sql.Append("select top ");
-                    sql.Append(item.Take);
-                    sql.Append(" ");
-                    for (int i = 0; i < item.Field.Count; i++)
-                    {
-                        if (i > 0) sql.Append(",");
-                        sql.Append(item.Field[i]);
-                    }
-                    sql.Append(" from ");
-                    sql.Append(item.Table[0]);
-                }
-                else
-                    BuildBaseSelectQuery(item, param, sql);
+                BuildBaseSelectQuery(item, param, sql);
 
                 if (item.Predicate[0].Param.Count != 0)
                     param.AddRange(item.Predicate[0].Param);
 
                 result.Sql = ParameterToSql.ObjectParamToSql(param, sql.ToString(), item.Config);
 
-                DisposeCommand(cmd);
+                cmd.Parameters.Clear();
 
                 if (param.Count != 0)
                     cmd.Parameters.AddRange(param.ToArray());
@@ -478,12 +449,9 @@ namespace FastData.Context
                     sql.Append(string.Join(",", item.OrderBy));
                 }
 
-                if (item.Predicate.Count > 0 && item.Predicate[0].Param.Count != 0)
-                    param.AddRange(item.Predicate[0].Param);
-
                 result.Sql = ParameterToSql.ObjectParamToSql(param, sql.ToString(), item.Config);
 
-                DisposeCommand(cmd);
+                cmd.Parameters.Clear();
 
                 if (param.Count != 0)
                     cmd.Parameters.AddRange(param.ToArray());
@@ -533,7 +501,7 @@ namespace FastData.Context
                 else
                     result.Sql = sql;
 
-                DisposeCommand(cmd);
+                cmd.Parameters.Clear();
 
                 if (param != null)
                     cmd.Parameters.AddRange(param.ToArray());
@@ -584,7 +552,7 @@ namespace FastData.Context
 
                 DbLog.LogSql(isLog, result.Sql, config.DbType, 0);
 
-                DisposeCommand(cmd);
+                cmd.Parameters.Clear();
 
                 if (param != null)
                     cmd.Parameters.AddRange(param.ToArray());
@@ -643,7 +611,7 @@ namespace FastData.Context
 
                 result.Sql = ParameterToSql.ObjectParamToSql(param, sql.ToString(), item.Config);
 
-                DisposeCommand(cmd);
+                cmd.Parameters.Clear();
 
                 if (param.Count != 0)
                     cmd.Parameters.AddRange(param.ToArray());
@@ -705,7 +673,7 @@ namespace FastData.Context
 
                 result.Sql = ParameterToSql.ObjectParamToSql(param, sql.ToString(), item.Config);
 
-                DisposeCommand(cmd);
+                cmd.Parameters.Clear();
 
                 if (param.Count != 0)
                     cmd.Parameters.AddRange(param.ToArray());
@@ -747,6 +715,12 @@ namespace FastData.Context
         private void BuildBaseSelectQuery(DataQuery item, List<DbParameter> param, StringBuilder sql)
         {
             sql.Append("select ");
+            if (item.Config.DbType == DataDbType.SqlServer && item.Take != 0)
+            {
+                sql.Append("top ");
+                sql.Append(item.Take);
+                sql.Append(" ");
+            }
             for (int i = 0; i < item.Field.Count; i++)
             {
                 if (i > 0) sql.Append(",");
@@ -848,21 +822,7 @@ namespace FastData.Context
 
             try
             {
-                if (item.Config.DbType == DataDbType.SqlServer && item.Take != 0)
-                {
-                    sql.Append("select top ");
-                    sql.Append(item.Take);
-                    sql.Append(" ");
-                    for (int i = 0; i < item.Field.Count; i++)
-                    {
-                        if (i > 0) sql.Append(",");
-                        sql.Append(item.Field[i]);
-                    }
-                    sql.Append(" from ");
-                    sql.Append(item.Table[0]);
-                }
-                else
-                    BuildBaseSelectQuery(item, param, sql);
+                BuildBaseSelectQuery(item, param, sql);
 
                 result.Sql = ParameterToSql.ObjectParamToSql(param, sql.ToString(), item.Config);
 
@@ -916,7 +876,7 @@ namespace FastData.Context
                 else
                     result.Sql = sql;
 
-                DisposeCommand(cmd);
+                cmd.Parameters.Clear();
 
                 if (param != null)
                     cmd.Parameters.AddRange(param.ToArray());
@@ -959,7 +919,7 @@ namespace FastData.Context
 
                 DbLog.LogSql(isLog, result.Sql, config.DbType, 0);
 
-                DisposeCommand(cmd);
+                cmd.Parameters.Clear();
 
                 if (param != null)
                     cmd.Parameters.AddRange(param.ToArray());
@@ -1005,14 +965,11 @@ namespace FastData.Context
 
             try
             {
-                if (item.Config.DbType == DataDbType.SqlServer && item.Take != 0)
-                    sql.AppendFormat("select top {2} {0} from {1}", string.Join(",", item.Field), item.Table[0], item.Take);
-                else
-                    BuildBaseSelectQuery(item, param, sql);
+                BuildBaseSelectQuery(item, param, sql);
 
                 result.Sql = ParameterToSql.ObjectParamToSql(param, sql.ToString(), item.Config);
 
-                DisposeCommand(cmd);
+                cmd.Parameters.Clear();
 
                 if (param.Count != 0)
                     cmd.Parameters.AddRange(param.ToArray());
@@ -1061,14 +1018,11 @@ namespace FastData.Context
 
             try
             {
-                if (item.Config.DbType == DataDbType.SqlServer && item.Take != 0)
-                    sql.AppendFormat("select top {2} {0} from {1}", string.Join(",", item.Field), item.Table[0], item.Take);
-                else
-                    BuildBaseSelectQuery(item, param, sql);
+                BuildBaseSelectQuery(item, param, sql);
 
                 result.Sql = ParameterToSql.ObjectParamToSql(param, sql.ToString(), item.Config);
 
-                DisposeCommand(cmd);
+                cmd.Parameters.Clear();
 
                 if (param.Count != 0)
                     cmd.Parameters.AddRange(param.ToArray());
@@ -1141,7 +1095,7 @@ namespace FastData.Context
 
                 result.Sql = ParameterToSql.ObjectParamToSql(param, sql.ToString(), item.Config);
 
-                DisposeCommand(cmd);
+                cmd.Parameters.Clear();
 
                 if (param.Count != 0)
                     cmd.Parameters.AddRange(param.ToArray());
@@ -1183,28 +1137,11 @@ namespace FastData.Context
 
             try
             {
-                if (item.Config.DbType == DataDbType.SqlServer && item.Take != 0)
-                {
-                    sql.Append("select top ");
-                    sql.Append(item.Take);
-                    sql.Append(" ");
-                    for (int i = 0; i < item.Field.Count; i++)
-                    {
-                        if (i > 0) sql.Append(",");
-                        sql.Append(item.Field[i]);
-                    }
-                    sql.Append(" from ");
-                    sql.Append(item.Table[0]);
-                }
-                else
-                    BuildBaseSelectQuery(item, param, sql);
-
-                if (item.Predicate[0].Param.Count != 0)
-                    param.AddRange(item.Predicate[0].Param);
+                BuildBaseSelectQuery(item, param, sql);
 
                 result.Sql = ParameterToSql.ObjectParamToSql(param, sql.ToString(), item.Config);
 
-                DisposeCommand(cmd);
+                cmd.Parameters.Clear();
 
                 if (param.Count != 0)
                     cmd.Parameters.AddRange(param.ToArray());

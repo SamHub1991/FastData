@@ -33,6 +33,11 @@ namespace FastData
     /// </summary>
     public static class FastWrite
     {
+        /// <summary>
+        /// Creates a write API instance bound to a database key.
+        /// </summary>
+        /// <param name="key">FastData connection key.</param>
+        /// <returns>A key-bound write API.</returns>
         public static FastWriteDb Use(string key)
         {
             return new FastWriteDb(key);
@@ -210,6 +215,16 @@ namespace FastData
         #endregion
 
         #region 批量增加 异步
+        /// <summary>
+        /// Adds a list of entities asynchronously.
+        /// </summary>
+        /// <typeparam name="T">Entity type.</typeparam>
+        /// <param name="list">Entities to add.</param>
+        /// <param name="key">Optional FastData connection key.</param>
+        /// <param name="IsTrans">Whether to use a transaction.</param>
+        /// <param name="isLog">Whether to log write details.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>Write result.</returns>
         public static async Task<WriteReturn> AddListAsy<T>(List<T> list, string key = null, bool IsTrans = false, bool isLog = true, CancellationToken cancellationToken = default) where T : class, new()
         {
             return await ExecuteWriteTemplateAsync<T>(key, null, false,
@@ -232,6 +247,16 @@ namespace FastData
         #endregion
 
         #region 增加 异步
+        /// <summary>
+        /// Adds one entity asynchronously.
+        /// </summary>
+        /// <typeparam name="T">Entity type.</typeparam>
+        /// <param name="model">Entity to add.</param>
+        /// <param name="db">Optional existing data context.</param>
+        /// <param name="key">Optional FastData connection key.</param>
+        /// <param name="isOutSql">Whether to output SQL logging.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>Write result.</returns>
         public static async Task<WriteReturn> AddAsy<T>(T model, DataContext db = null, string key = null, bool isOutSql = false, CancellationToken cancellationToken = default) where T : class, new()
         {
             if (FastData.Config.FastDataOptions.Audit.Enabled)
@@ -283,6 +308,16 @@ namespace FastData
         #endregion
 
         #region 删除(Lambda表达式)异步
+        /// <summary>
+        /// Deletes entities matching a predicate asynchronously.
+        /// </summary>
+        /// <typeparam name="T">Entity type.</typeparam>
+        /// <param name="predicate">Delete predicate.</param>
+        /// <param name="db">Optional existing data context.</param>
+        /// <param name="key">Optional FastData connection key.</param>
+        /// <param name="isOutSql">Whether to output SQL logging.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>Write result.</returns>
         public static async Task<WriteReturn> DeleteAsy<T>(Expression<Func<T, bool>> predicate, DataContext db = null, string key = null, bool isOutSql = false, CancellationToken cancellationToken = default) where T : class, new()
         {
             if (Config.FastDataOptions.SoftDelete.Enabled)
@@ -330,6 +365,17 @@ namespace FastData
         #endregion
 
         #region 删除 异步
+        /// <summary>
+        /// Deletes an entity asynchronously.
+        /// </summary>
+        /// <typeparam name="T">Entity type.</typeparam>
+        /// <param name="model">Entity identifying the row to delete.</param>
+        /// <param name="db">Optional existing data context.</param>
+        /// <param name="key">Optional FastData connection key.</param>
+        /// <param name="isTrans">Whether to use a transaction.</param>
+        /// <param name="isOutSql">Whether to output SQL logging.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>Write result.</returns>
         public static async Task<WriteReturn> DeleteAsy<T>(T model, DataContext db = null, string key = null, bool isTrans = false, bool isOutSql = false, CancellationToken cancellationToken = default) where T : class, new()
         {
             return await ExecuteWriteTemplateAsync<T>(key, db, isOutSql,
@@ -352,6 +398,18 @@ namespace FastData
         #endregion
 
         #region 修改(Lambda表达式)异步
+        /// <summary>
+        /// Updates entities matching a predicate asynchronously.
+        /// </summary>
+        /// <typeparam name="T">Entity type.</typeparam>
+        /// <param name="model">Entity containing updated values.</param>
+        /// <param name="predicate">Update predicate.</param>
+        /// <param name="field">Optional fields to update.</param>
+        /// <param name="db">Optional existing data context.</param>
+        /// <param name="key">Optional FastData connection key.</param>
+        /// <param name="isOutSql">Whether to output SQL logging.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>Write result.</returns>
         public static async Task<WriteReturn> UpdateAsy<T>(T model, Expression<Func<T, bool>> predicate, Expression<Func<T, object>> field = null, DataContext db = null, string key = null, bool isOutSql = false, CancellationToken cancellationToken = default) where T : class, new()
         {
             if (FastData.Config.FastDataOptions.Audit.Enabled)
@@ -373,6 +431,17 @@ namespace FastData
         #endregion
 
         #region 修改 异步
+        /// <summary>
+        /// Updates an entity by primary key asynchronously.
+        /// </summary>
+        /// <typeparam name="T">Entity type.</typeparam>
+        /// <param name="model">Entity containing key and updated values.</param>
+        /// <param name="field">Optional fields to update.</param>
+        /// <param name="db">Optional existing data context.</param>
+        /// <param name="key">Optional FastData connection key.</param>
+        /// <param name="isOutSql">Whether to output SQL logging.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>Write result.</returns>
         public static async Task<WriteReturn> UpdateAsy<T>(T model, Expression<Func<T, object>> field = null, DataContext db = null, string key = null, bool isOutSql = false, CancellationToken cancellationToken = default) where T : class, new()
         {
             return await ExecuteWriteTemplateAsync<T>(key, db, isOutSql,
@@ -391,6 +460,17 @@ namespace FastData
         #endregion
 
         #region 修改列表 异步
+        /// <summary>
+        /// Updates a list of entities asynchronously.
+        /// </summary>
+        /// <typeparam name="T">Entity type.</typeparam>
+        /// <param name="list">Entities to update.</param>
+        /// <param name="field">Optional fields to update.</param>
+        /// <param name="db">Optional existing data context.</param>
+        /// <param name="key">Optional FastData connection key.</param>
+        /// <param name="isOutSql">Whether to output SQL logging.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>Write result.</returns>
         public static async Task<WriteReturn> UpdateListAsy<T>(List<T> list, Expression<Func<T, object>> field = null, DataContext db = null, string key = null, bool isOutSql = false, CancellationToken cancellationToken = default) where T : class, new()
         {
             return await ExecuteWriteTemplateAsync<T>(key, db, isOutSql,
@@ -413,6 +493,16 @@ namespace FastData
         #endregion
 
         #region 执行sql 异步
+        /// <summary>
+        /// Executes a SQL write command asynchronously.
+        /// </summary>
+        /// <param name="sql">SQL text.</param>
+        /// <param name="param">SQL parameters.</param>
+        /// <param name="db">Optional existing data context.</param>
+        /// <param name="key">Optional FastData connection key.</param>
+        /// <param name="isOutSql">Whether to output SQL logging.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>Write result.</returns>
         public static async Task<WriteReturn> ExecuteSqlAsync(string sql, DbParameter[] param, DataContext db = null, string key = null, bool isOutSql = false, CancellationToken cancellationToken = default)
         {
             return await ExecuteSqlWriteTemplateAsync(key, db, isOutSql, async ctx =>
@@ -436,7 +526,7 @@ namespace FastData
             }
             else
             {
-                using (var tempDb = new DataContext(key, FastDb.GetProjectName()))
+                using (var tempDb = new DataContext(key ?? FastDb.CurrentKey, FastDb.GetProjectName()))
                 {
                     config = tempDb.config;
                     result = await execute(tempDb).ConfigureAwait(false);
@@ -562,16 +652,18 @@ namespace FastData
                 var tableName = typeof(T).GetCustomAttributes(typeof(Property.TableAttribute), false)
                     .Cast<Property.TableAttribute>().FirstOrDefault()?.Name ?? typeof(T).Name;
 
-                var db = new DataContext(key);
-                var sql = BuildCreateTableSql<T>(tableName);
-
-                if (isDropExists)
+                using (var db = new DataContext(key))
                 {
-                    try { db.ExecuteSql(string.Format("DROP TABLE [{0}]", tableName), null, false, false); }
-                    catch (Exception dropEx) { DbLog.LogException(true, DataDbType.SqlServer, dropEx, "CodeFirst_DropTable", ""); }
-                }
+                    var sql = BuildCreateTableSql<T>(tableName, db.config.DbType);
 
-                db.ExecuteSql(sql, null, false, true);
+                    if (isDropExists)
+                    {
+                        try { db.ExecuteSql(BuildDropTableSql(tableName, db.config.DbType), null, false, false); }
+                        catch (Exception dropEx) { DbLog.LogException(true, db.config.DbType, dropEx, "CodeFirst_DropTable", ""); }
+                    }
+
+                    db.ExecuteSql(sql, null, false, true);
+                }
                 return new WriteReturn { IsSuccess = true, Message = string.Format("Table {0} created", tableName) };
             }
             catch (Exception ex)
@@ -581,50 +673,93 @@ namespace FastData
             }
         }
 
-        private static string BuildCreateTableSql<T>(string tableName) where T : class, new()
+        private static string BuildCreateTableSql<T>(string tableName, DataDbType dbType) where T : class, new()
         {
-            var cols = GetModelColumns<T>();
+            var cols = GetModelColumns<T>(dbType);
             var defs = new List<string>();
 
             foreach (var c in cols)
             {
-                var def = string.Format("[{0}] {1}", c.Name, c.Type);
-                if (c.IsPrimary && c.IsIdentity) def += " IDENTITY(1,1)";
+                var def = string.Format("{0} {1}", QuoteIdentifier(c.Name, dbType), c.Type);
                 if (!c.IsNull || c.IsPrimary) def += " NOT NULL";
                 defs.Add(def);
             }
 
             var pks = cols.Where(x => x.IsPrimary).Select(x => x.Name).ToList();
-            if (pks.Count > 0) defs.Add(string.Format("PRIMARY KEY ({0})", string.Join(", ", pks.Select(n => string.Format("[{0}]", n)))));
+            if (pks.Count > 0) defs.Add(string.Format("PRIMARY KEY ({0})", string.Join(", ", pks.Select(n => QuoteIdentifier(n, dbType)))));
 
-            return string.Format("CREATE TABLE [{0}] ({1})", tableName, string.Join(", ", defs));
+            return string.Format("CREATE TABLE {0} ({1})", QuoteIdentifier(tableName, dbType), string.Join(", ", defs));
         }
 
-        private static List<(string Name, string Type, bool IsPrimary, bool IsIdentity, bool IsNull)> GetModelColumns<T>() where T : class, new()
+        private static string BuildDropTableSql(string tableName, DataDbType dbType)
+        {
+            return string.Format("DROP TABLE {0}", QuoteIdentifier(tableName, dbType));
+        }
+
+        private static string QuoteIdentifier(string name, DataDbType dbType)
+        {
+            switch (dbType)
+            {
+                case DataDbType.MySql:
+                    return string.Format("`{0}`", name);
+                case DataDbType.PostgreSql:
+                case DataDbType.Oracle:
+                case DataDbType.SQLite:
+                    return string.Format("\"{0}\"", name);
+                default:
+                    return string.Format("[{0}]", name);
+            }
+        }
+
+        private static List<(string Name, string Type, bool IsPrimary, bool IsIdentity, bool IsNull)> GetModelColumns<T>(DataDbType dbType) where T : class, new()
         {
             var list = new List<(string, string, bool, bool, bool)>();
             foreach (var p in PropertyCache.GetPropertiesCached<T>())
             {
                 var col = p.GetCustomAttribute<Property.ColumnAttribute>();
                 var pri = p.GetCustomAttribute<Property.PrimaryAttribute>() != null;
-                var type = GetClrSqlType(p.PropertyType, col?.Length ?? 0);
+                var isIdentity = col?.IsIdentity ?? false;
+                var type = GetClrSqlType(p.PropertyType, col?.Length ?? 0, dbType, pri && isIdentity);
                 list.Add((p.Name, type, pri, col?.IsIdentity ?? false, col?.IsNull ?? true));
             }
             return list;
         }
 
-        private static string GetClrSqlType(Type t, int len)
+        private static string GetClrSqlType(Type t, int len, DataDbType dbType, bool isIdentity)
         {
-            if (t == typeof(string)) return len > 0 ? string.Format("VARCHAR({0})", len) : "VARCHAR(MAX)";
-            if (t == typeof(int)) return "INT";
-            if (t == typeof(long)) return "BIGINT";
+            t = Nullable.GetUnderlyingType(t) ?? t;
+
+            if (isIdentity)
+            {
+                if (dbType == DataDbType.PostgreSql) return t == typeof(long) ? "BIGSERIAL" : "SERIAL";
+                if (dbType == DataDbType.SQLite) return "INTEGER";
+                if (dbType == DataDbType.MySql) return t == typeof(long) ? "BIGINT AUTO_INCREMENT" : "INT AUTO_INCREMENT";
+                if (dbType == DataDbType.Oracle) return t == typeof(long) ? "NUMBER(19) GENERATED BY DEFAULT AS IDENTITY" : "NUMBER(10) GENERATED BY DEFAULT AS IDENTITY";
+                return t == typeof(long) ? "BIGINT IDENTITY(1,1)" : "INT IDENTITY(1,1)";
+            }
+
+            if (t == typeof(string))
+            {
+                if (len > 0) return string.Format("VARCHAR({0})", len);
+                return dbType == DataDbType.SqlServer ? "VARCHAR(MAX)" : "TEXT";
+            }
+            if (t == typeof(int)) return dbType == DataDbType.Oracle ? "NUMBER(10)" : "INT";
+            if (t == typeof(long)) return dbType == DataDbType.Oracle ? "NUMBER(19)" : "BIGINT";
             if (t == typeof(decimal) || t == typeof(double)) return "DECIMAL(18,2)";
-            if (t == typeof(bool)) return "BIT";
-            if (t == typeof(DateTime)) return "DATETIME";
-            if (t == typeof(Guid)) return "UNIQUEIDENTIFIER";
-            return "NVARCHAR(MAX)";
+            if (t == typeof(bool)) return dbType == DataDbType.PostgreSql || dbType == DataDbType.SQLite ? "BOOLEAN" : dbType == DataDbType.Oracle ? "NUMBER(1)" : "BIT";
+            if (t == typeof(DateTime)) return dbType == DataDbType.PostgreSql || dbType == DataDbType.Oracle ? "TIMESTAMP" : "DATETIME";
+            if (t == typeof(Guid)) return dbType == DataDbType.PostgreSql ? "UUID" : dbType == DataDbType.SqlServer ? "UNIQUEIDENTIFIER" : "CHAR(36)";
+            return dbType == DataDbType.SqlServer ? "NVARCHAR(MAX)" : "TEXT";
         }
 
+        /// <summary>
+        /// Creates a table for the entity asynchronously using Code First metadata.
+        /// </summary>
+        /// <typeparam name="T">Entity type.</typeparam>
+        /// <param name="key">Optional FastData connection key.</param>
+        /// <param name="isDropExists">Whether to drop an existing table first.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>Write result.</returns>
         public static async Task<WriteReturn> CodeFirstAsync<T>(string key = null, bool isDropExists = false, CancellationToken cancellationToken = default) where T : class, new()
         {
             return await Task.Run(() => CodeFirst<T>(key, isDropExists), cancellationToken).ConfigureAwait(false);
@@ -746,6 +881,15 @@ namespace FastData
             return await BulkExecuteAsync(db, key, async ctx => await ctx.BulkUpdateAsync(list, predicate, cancellationToken: cancellationToken).ConfigureAwait(false)).ConfigureAwait(false);
         }
 
+        /// <summary>
+        /// Deletes entities in bulk asynchronously.
+        /// </summary>
+        /// <typeparam name="T">Entity type.</typeparam>
+        /// <param name="predicate">Delete predicate.</param>
+        /// <param name="db">Optional existing data context.</param>
+        /// <param name="key">Optional FastData connection key.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>Write result.</returns>
         public static async Task<WriteReturn> BulkDeleteAsync<T>(Expression<Func<T, bool>> predicate, DataContext db = null, string key = null, CancellationToken cancellationToken = default) where T : class, new()
         {
             return await BulkExecuteAsync(db, key, async ctx => await ctx.BulkDeleteAsync(predicate, cancellationToken: cancellationToken).ConfigureAwait(false)).ConfigureAwait(false);

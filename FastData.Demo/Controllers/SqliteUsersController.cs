@@ -26,8 +26,7 @@ namespace FastData.Demo.Controllers
         {
             try
             {
-                var users = await Task.Factory.StartNew(() =>
-                    FastRead.Query<AppUser>(u => u.Id > 0, key: DbKey).ToList());
+                var users = await Task.FromResult(Db.Use(DbKey).List<AppUser>(u => u.Id > 0));
                 return Ok(users);
             }
             catch (Exception ex)
@@ -44,8 +43,7 @@ namespace FastData.Demo.Controllers
         {
             try
             {
-                var user = await Task.Factory.StartNew(() =>
-                    FastRead.Query<AppUser>(u => u.Id == id, key: DbKey).ToItem());
+                var user = await Task.FromResult(Db.Use(DbKey).First<AppUser>(u => u.Id == id));
                 if (user == null || user.Id == 0)
                     return NotFound();
                 return Ok(user);
@@ -66,8 +64,7 @@ namespace FastData.Demo.Controllers
             {
                 user.CreateTime = DateTime.Now;
                 user.IsActive = true;
-                var result = await Task.Factory.StartNew(() =>
-                    FastWrite.Add(user, key: DbKey));
+                var result = await Task.FromResult(Db.Use(DbKey).Add(user));
                 return Ok(result);
             }
             catch (Exception ex)
@@ -86,8 +83,7 @@ namespace FastData.Demo.Controllers
             {
                 user.Id = id;
                 user.UpdateTime = DateTime.Now;
-                var result = await Task.Factory.StartNew(() =>
-                    FastWrite.Update(user, key: DbKey));
+                var result = await Task.FromResult(Db.Use(DbKey).Update(user));
                 return Ok(result);
             }
             catch (Exception ex)
@@ -104,8 +100,7 @@ namespace FastData.Demo.Controllers
         {
             try
             {
-                var result = await Task.Factory.StartNew(() =>
-                    FastWrite.Delete<AppUser>(u => u.Id == id, key: DbKey));
+                var result = await Task.FromResult(Db.Use(DbKey).Delete<AppUser>(u => u.Id == id));
                 return Ok(result);
             }
             catch (Exception ex)

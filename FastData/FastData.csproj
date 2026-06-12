@@ -67,6 +67,7 @@
   <ItemGroup>
     <Compile Remove="DevTools\**" />
     <Compile Include="DevTools\PerformanceProfiler.cs" />
+    <Compile Include="DevTools\ApplicationWarmup.cs" />
   </ItemGroup>
 
   <!-- 排除 net452 不支持的文件（使用 .NET Core+ 专用 API） -->

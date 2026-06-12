@@ -6,6 +6,7 @@ using System.Data.Common;
 using System.Text;
 using FastUntility.Base;
 using FastData.DbTypes;
+using FastData.Infrastructure;
 using FastData.Model;
 using System.Data;
 using System.Linq;
@@ -32,10 +33,72 @@ namespace FastData.Base
         /// <returns>表达式的运行时求值结果</returns>
         private static object EvaluateExpressionCached(Expression expression)
         {
+            if (!CanCacheEvaluation(expression))
+                return Expression.Lambda(expression).Compile().DynamicInvoke();
+
             var cacheKey = expression.ToString();
             var compiled = _compiledCache.GetOrAdd(cacheKey,
                 _ => Expression.Lambda(expression).Compile());
             return compiled.DynamicInvoke();
+        }
+
+        private static bool CanCacheEvaluation(Expression expression)
+        {
+            if (expression == null)
+                return true;
+
+            if (expression is ConstantExpression constant)
+                return IsStableConstant(constant.Value);
+
+            if (expression is MemberExpression member)
+                return CanCacheEvaluation(member.Expression);
+
+            if (expression is MethodCallExpression methodCall)
+            {
+                if (!CanCacheEvaluation(methodCall.Object))
+                    return false;
+
+                foreach (var argument in methodCall.Arguments)
+                {
+                    if (!CanCacheEvaluation(argument))
+                        return false;
+                }
+
+                return true;
+            }
+
+            if (expression is UnaryExpression unary)
+                return CanCacheEvaluation(unary.Operand);
+
+            if (expression is BinaryExpression binary)
+                return CanCacheEvaluation(binary.Left) && CanCacheEvaluation(binary.Right);
+
+            if (expression is NewArrayExpression array)
+            {
+                foreach (var item in array.Expressions)
+                {
+                    if (!CanCacheEvaluation(item))
+                        return false;
+                }
+
+                return true;
+            }
+
+            return true;
+        }
+
+        private static bool IsStableConstant(object value)
+        {
+            if (value == null)
+                return true;
+
+            var type = value.GetType();
+            return type.IsPrimitive
+                || type.IsEnum
+                || type == typeof(string)
+                || type == typeof(decimal)
+                || type == typeof(DateTime)
+                || type == typeof(Guid);
         }
 
         #region 解析 Lambda 表达式为 SQL WHERE 条件
@@ -62,12 +125,12 @@ namespace FastData.Base
             try
             {
                 var whereClause = ParseExpression(config, expression.Body, ref leftList, ref rightList, ref typeList, ref sqlBuilder, ref parameterIndex);
-
                 whereClause = TrimTrailingOperators(whereClause);
+
                 result.Where = whereClause;
 
                 // 构建参数列表
-                var dbFactory = DbProviderFactories.GetFactory(config.ProviderName);
+                var dbFactory = DbProviderAutoRegistrar.GetFactory(config.ProviderName);
                 for (int i = 0; i < leftList.Count; i++)
                 {
                     var parameter = dbFactory.CreateParameter();
@@ -119,7 +182,7 @@ namespace FastData.Base
                 result.Where = whereClause;
 
                 // 构建参数列表
-                var dbFactory = DbProviderFactories.GetFactory(config.ProviderName);
+                var dbFactory = DbProviderAutoRegistrar.GetFactory(config.ProviderName);
                 for (int i = 0; i < leftList.Count; i++)
                 {
                     var parameter = dbFactory.CreateParameter();

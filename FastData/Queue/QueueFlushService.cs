@@ -24,6 +24,10 @@ namespace FastData.Queue
         private readonly Dictionary<string, Task> _consumerTasks;
         private bool _disposed;
 
+        /// <summary>
+        /// Initializes a queue flush service.
+        /// </summary>
+        /// <param name="mqService">Message queue integration service.</param>
         public QueueFlushService(MessageQueueIntegrationService mqService)
         {
             _mqService = mqService ?? throw new ArgumentNullException(nameof(mqService));
@@ -290,6 +294,9 @@ namespace FastData.Queue
             }
         }
 
+        /// <summary>
+        /// Stops consumers and releases service resources.
+        /// </summary>
         public void Dispose()
         {
             Dispose(true);

@@ -73,6 +73,14 @@ namespace FastData.Config
         }
 
         /// <summary>
+        /// 获取连接池配置（完整对象，供内部项目使用）
+        /// </summary>
+        public static ConnectionPool.ConnectionPoolConfig GetConnectionPoolConfig()
+        {
+            return DataConfig.GetConnectionPoolConfigPublic();
+        }
+
+        /// <summary>
         /// 获取指定 key 的数据库连接字符串（未脱敏）
         /// </summary>
         public static string GetConnectionString(string key)

@@ -39,6 +39,12 @@ namespace FastData.Config
     /// </summary>
     public static class FastDataDependencyInjection
     {
+        /// <summary>
+        /// Registers FastData repositories using the default configured connection key.
+        /// </summary>
+        /// <param name="services">Service collection.</param>
+        /// <param name="configure">Optional FastData options callback.</param>
+        /// <returns>The service collection.</returns>
         public static IServiceCollection AddFastData(this IServiceCollection services, Action<FastDataOptionsBuilder> configure = null)
         {
             if (services == null)
@@ -68,6 +74,13 @@ namespace FastData.Config
             return services;
         }
 
+        /// <summary>
+        /// Registers FastData repositories bound to a specific connection key.
+        /// </summary>
+        /// <param name="services">Service collection.</param>
+        /// <param name="connectionKey">FastData connection key.</param>
+        /// <param name="configure">Optional FastData options callback.</param>
+        /// <returns>The service collection.</returns>
         public static IServiceCollection AddFastDataWithKey(this IServiceCollection services, string connectionKey, Action<FastDataOptionsBuilder> configure = null)
         {
             if (services == null)
@@ -99,6 +112,11 @@ namespace FastData.Config
             return services;
         }
 
+        /// <summary>
+        /// Registers DataContext using the default configured connection key.
+        /// </summary>
+        /// <param name="services">Service collection.</param>
+        /// <returns>The service collection.</returns>
         public static IServiceCollection AddFastDataContext(this IServiceCollection services)
         {
             if (services == null)
@@ -109,6 +127,12 @@ namespace FastData.Config
             return services;
         }
 
+        /// <summary>
+        /// Registers DataContext bound to a specific connection key.
+        /// </summary>
+        /// <param name="services">Service collection.</param>
+        /// <param name="connectionKey">FastData connection key.</param>
+        /// <returns>The service collection.</returns>
         public static IServiceCollection AddFastDataContext(this IServiceCollection services, string connectionKey)
         {
             if (services == null)
@@ -122,15 +146,27 @@ namespace FastData.Config
         }
     }
 
+    /// <summary>
+    /// Builds FastData global options for dependency injection registration.
+    /// </summary>
     public class FastDataOptionsBuilder
     {
+        /// <summary>Gets or sets soft-delete options.</summary>
         public SoftDeleteOptions SoftDelete { get; set; } = new SoftDeleteOptions();
+        /// <summary>Gets or sets audit options.</summary>
         public AuditOptions Audit { get; set; } = new AuditOptions();
+        /// <summary>Gets or sets multi-tenant options.</summary>
         public MultiTenantOptions MultiTenant { get; set; } = new MultiTenantOptions();
+        /// <summary>Gets or sets change-tracking options.</summary>
         public ChangeTrackingOptions ChangeTracking { get; set; } = new ChangeTrackingOptions();
+        /// <summary>Gets or sets lazy-loading options.</summary>
         public LazyLoadingOptions LazyLoading { get; set; } = new LazyLoadingOptions();
+        /// <summary>Gets or sets whether FastData options are enabled.</summary>
         public bool Enabled { get; set; } = true;
 
+        /// <summary>
+        /// Applies the configured options to FastDataOptions.
+        /// </summary>
         public void Apply()
         {
             FastDataOptions.SoftDelete = SoftDelete;

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Reflection;
 using FastData.Config;
@@ -9,28 +10,36 @@ namespace FastData.Base
 {
     internal static class TableNameHelper
     {
+        private static readonly ConcurrentDictionary<string, string> _tableNameCache =
+            new ConcurrentDictionary<string, string>();
+
         public static string GetTableName<T>(string dbKey = null)
         {
             var type = typeof(T);
+            var mappingKey = dbKey ?? FastDb.CurrentKey;
+            var cacheKey = string.Format("{0}|{1}|{2}", type.FullName, dbKey ?? string.Empty, mappingKey ?? string.Empty);
+
+            if (_tableNameCache.TryGetValue(cacheKey, out var cachedTableName))
+                return cachedTableName;
+
             var attr = type.GetCustomAttribute<Property.TableAttribute>();
             if (attr == null)
-                return QuoteTableName(type.Name, dbKey);
+                return _tableNameCache.GetOrAdd(cacheKey, QuoteTableName(type.Name, dbKey));
 
             if (!string.IsNullOrEmpty(attr.DbTableNames))
             {
-                var effectiveKey = dbKey ?? FastDb.CurrentKey;
-                if (!string.IsNullOrEmpty(effectiveKey))
+                if (!string.IsNullOrEmpty(mappingKey))
                 {
-                    var tableName = GetTableNameFromMapping(attr.DbTableNames, effectiveKey);
+                    var tableName = GetTableNameFromMapping(attr.DbTableNames, mappingKey);
                     if (!string.IsNullOrEmpty(tableName))
-                        return QuoteTableName(tableName, effectiveKey);
+                        return _tableNameCache.GetOrAdd(cacheKey, QuoteTableName(tableName, mappingKey));
                 }
             }
 
             if (!string.IsNullOrEmpty(attr.Name))
-                return QuoteTableName(attr.Name, dbKey);
+                return _tableNameCache.GetOrAdd(cacheKey, QuoteTableName(attr.Name, dbKey));
 
-            return QuoteTableName(type.Name, dbKey);
+            return _tableNameCache.GetOrAdd(cacheKey, QuoteTableName(type.Name, dbKey));
         }
 
         public static string GetTableName<T>(ConfigModel config)

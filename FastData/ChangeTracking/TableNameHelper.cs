@@ -42,8 +42,15 @@ namespace FastData.ChangeTracking
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
     public class TableNameAttribute : Attribute
     {
+        /// <summary>
+        /// Gets the mapped table name.
+        /// </summary>
         public string Name { get; }
 
+        /// <summary>
+        /// Initializes a table-name mapping attribute.
+        /// </summary>
+        /// <param name="name">Mapped table name.</param>
         public TableNameAttribute(string name)
         {
             Name = name;

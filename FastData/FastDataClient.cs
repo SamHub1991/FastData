@@ -58,9 +58,7 @@ namespace FastData
         /// </example>
         public FastDataClient(string key)
         {
-            if (string.IsNullOrEmpty(key))
-                throw new ArgumentException("数据库 Key 不能为空", nameof(key));
-            _key = key;
+            _key = ResolveKey(key);
         }
 
 #if !NETFRAMEWORK
@@ -83,8 +81,7 @@ namespace FastData
         /// </example>
         public FastDataClient(string key, ConnectionPoolConfig poolConfig, FullRedis redis = null, int maxRetries = 3)
         {
-            if (string.IsNullOrEmpty(key))
-                throw new ArgumentException("数据库 Key 不能为空", nameof(key));
+            key = ResolveKey(key);
             _key = key;
             _poolConfig = poolConfig;
             _redis = redis;
@@ -99,6 +96,17 @@ namespace FastData
             }
         }
 #endif
+
+        private static string ResolveKey(string key)
+        {
+            if (string.IsNullOrEmpty(key))
+                key = FastDb.CurrentKey ?? FastDataConfig.GetConfig()?.Key;
+
+            if (string.IsNullOrEmpty(key))
+                throw new ArgumentException("数据库 Key 不能为空，且未找到默认数据库配置", nameof(key));
+
+            return key;
+        }
 
         /// <summary>
         /// 释放资源
@@ -154,7 +162,50 @@ namespace FastData
         /// </example>
         public DataQuery<T> Query<T>(Expression<Func<T, bool>> predicate, Expression<Func<T, object>> field = null) where T : class, new()
         {
+            if (predicate == null)
+                predicate = _ => true;
+
             return FastRead.Query<T>(predicate, field, _key);
+        }
+
+        /// <summary>
+        /// 查询列表。比 Query(...).ToList() 更短。
+        /// </summary>
+        public List<T> List<T>(Expression<Func<T, bool>> predicate = null, Expression<Func<T, object>> field = null) where T : class, new()
+        {
+            return Query(predicate, field).ToList();
+        }
+
+        /// <summary>
+        /// 查询单条记录。不存在时返回 null。
+        /// </summary>
+        public T First<T>(Expression<Func<T, bool>> predicate, Expression<Func<T, object>> field = null) where T : class, new()
+        {
+            return Query(predicate, field).FirstOrDefault();
+        }
+
+        /// <summary>
+        /// 查询数量。
+        /// </summary>
+        public int Count<T>(Expression<Func<T, bool>> predicate = null) where T : class, new()
+        {
+            return Query(predicate).Count();
+        }
+
+        /// <summary>
+        /// 分页查询。
+        /// </summary>
+        public PaginationResult<T> Page<T>(Expression<Func<T, bool>> predicate, int page, int pageSize, Expression<Func<T, object>> field = null) where T : class, new()
+        {
+            return Query(predicate, field).ToPagination<T>(page, pageSize);
+        }
+
+        /// <summary>
+        /// 查询全部分页。
+        /// </summary>
+        public PaginationResult<T> Page<T>(int page, int pageSize, Expression<Func<T, object>> field = null) where T : class, new()
+        {
+            return Page<T>(null, page, pageSize, field);
         }
 
         /// <summary>
@@ -171,17 +222,33 @@ namespace FastData
         /// var users = client.ExecuteSql&lt;User&gt;("SELECT * FROM Users WHERE Age > @Age", param);
         /// </code>
         /// </example>
-        public List<T> ExecuteSql<T>(string sql, DbParameter[] param, DataContext db = null) where T : class, new()
+        public List<T> ExecuteSql<T>(string sql, DbParameter[] param = null, DataContext db = null) where T : class, new()
         {
             return FastRead.ExecuteSql<T>(sql, param, db, _key, _enableSqlLog);
         }
 
         /// <summary>
+        /// 原生 SQL 查询强类型列表。ExecuteSql 的短别名。
+        /// </summary>
+        public List<T> Sql<T>(string sql, DbParameter[] param = null, DataContext db = null) where T : class, new()
+        {
+            return ExecuteSql<T>(sql, param, db);
+        }
+
+        /// <summary>
         /// 执行原生 SQL 查询，返回强类型列表（异步）
         /// </summary>
-        public Task<List<T>> ExecuteSqlAsync<T>(string sql, DbParameter[] param, DataContext db = null) where T : class, new()
+        public Task<List<T>> ExecuteSqlAsync<T>(string sql, DbParameter[] param = null, DataContext db = null) where T : class, new()
         {
             return FastRead.ExecuteSqlAsync<T>(sql, param, db, _key, _enableSqlLog);
+        }
+
+        /// <summary>
+        /// 原生 SQL 异步查询强类型列表。ExecuteSqlAsync 的短别名。
+        /// </summary>
+        public Task<List<T>> SqlAsync<T>(string sql, DbParameter[] param = null, DataContext db = null) where T : class, new()
+        {
+            return ExecuteSqlAsync<T>(sql, param, db);
         }
 
         /// <summary>
@@ -200,9 +267,17 @@ namespace FastData
         /// }
         /// </code>
         /// </example>
-        public List<Dictionary<string, object>> ExecuteSql(string sql, DbParameter[] param, DataContext db = null)
+        public List<Dictionary<string, object>> ExecuteSql(string sql, DbParameter[] param = null, DataContext db = null)
         {
             return FastRead.ExecuteSql(sql, param, db, _key, _enableSqlLog);
+        }
+
+        /// <summary>
+        /// 原生 SQL 查询动态列。ExecuteSql 的短别名。
+        /// </summary>
+        public List<Dictionary<string, object>> Sql(string sql, DbParameter[] param = null, DataContext db = null)
+        {
+            return ExecuteSql(sql, param, db);
         }
 
         /// <summary>
@@ -212,9 +287,17 @@ namespace FastData
         /// <param name="param">数据库参数数组</param>
         /// <param name="db">数据上下文</param>
         /// <returns>字典列表任务</returns>
-        public Task<List<Dictionary<string, object>>> ExecuteSqlAsync(string sql, DbParameter[] param, DataContext db = null)
+        public Task<List<Dictionary<string, object>>> ExecuteSqlAsync(string sql, DbParameter[] param = null, DataContext db = null)
         {
             return FastRead.ExecuteSqlAsync(sql, param, db, _key, _enableSqlLog);
+        }
+
+        /// <summary>
+        /// 原生 SQL 异步查询动态列。ExecuteSqlAsync 的短别名。
+        /// </summary>
+        public Task<List<Dictionary<string, object>>> SqlAsync(string sql, DbParameter[] param = null, DataContext db = null)
+        {
+            return ExecuteSqlAsync(sql, param, db);
         }
 
         #endregion
@@ -329,7 +412,7 @@ namespace FastData
             {
                 OperationType = operationType,
                 EntityType = typeof(T).AssemblyQualifiedName,
-                TableName = TableNameHelper.GetTableName<T>(),
+                TableName = TableNameHelper.GetTableName<T>(_key),
                 Data = Newtonsoft.Json.JsonConvert.SerializeObject(model)
             };
             
@@ -376,7 +459,7 @@ namespace FastData
         [Obsolete("请使用 AddAsync 代替，本方法将在未来版本移除")]
         public Task<WriteReturn> AddAsy<T>(T model, DataContext db = null) where T : class, new()
         {
-            return FastWrite.AddAsy<T>(model, db, _key, _enableSqlLog);
+            return AddAsync(model, db);
         }
 
         /// <summary>
@@ -420,6 +503,14 @@ namespace FastData
         }
 
         /// <summary>
+        /// 批量添加数据。AddList 的常用别名。
+        /// </summary>
+        public WriteReturn AddRange<T>(List<T> list, bool isTrans = true) where T : class, new()
+        {
+            return AddList(list, isTrans);
+        }
+
+        /// <summary>
         /// 批量添加数据（异步）
         /// </summary>
         /// <remarks>
@@ -428,7 +519,7 @@ namespace FastData
         [Obsolete("请使用 AddListAsync 代替，本方法将在未来版本移除")]
         public Task<WriteReturn> AddListAsy<T>(List<T> list, bool isTrans = true) where T : class, new()
         {
-            return FastWrite.AddListAsy<T>(list, _key, isTrans, _enableSqlLog);
+            return AddListAsync(list, isTrans);
         }
 
         /// <summary>
@@ -447,6 +538,14 @@ namespace FastData
         public Task<WriteReturn> AddListAsync<T>(List<T> list, bool isTrans = true) where T : class, new()
         {
             return FastWrite.AddListAsy<T>(list, _key, isTrans, _enableSqlLog);
+        }
+
+        /// <summary>
+        /// 批量添加数据（异步）。AddListAsync 的常用别名。
+        /// </summary>
+        public Task<WriteReturn> AddRangeAsync<T>(List<T> list, bool isTrans = true) where T : class, new()
+        {
+            return AddListAsync(list, isTrans);
         }
 
         /// <summary>
@@ -480,7 +579,7 @@ namespace FastData
         [Obsolete("请使用 UpdateAsync 代替，本方法将在未来版本移除")]
         public Task<WriteReturn> UpdateAsy<T>(T model, Expression<Func<T, object>> field = null, DataContext db = null) where T : class, new()
         {
-            return FastWrite.UpdateAsy<T>(model, field, db, _key, _enableSqlLog);
+            return UpdateAsync(model, field, db);
         }
 
         /// <summary>
@@ -525,7 +624,7 @@ namespace FastData
         [Obsolete("请使用 UpdateAsync 代替，本方法将在未来版本移除")]
         public Task<WriteReturn> UpdateAsy<T>(T model, Expression<Func<T, bool>> predicate, Expression<Func<T, object>> field = null, DataContext db = null) where T : class, new()
         {
-            return FastWrite.UpdateAsy<T>(model, predicate, field, db, _key, _enableSqlLog);
+            return UpdateAsync(model, predicate, field, db);
         }
 
         /// <summary>
@@ -564,7 +663,7 @@ namespace FastData
         [Obsolete("请使用 UpdateListAsync 代替，本方法将在未来版本移除")]
         public Task<WriteReturn> UpdateListAsy<T>(List<T> list, Expression<Func<T, object>> field = null, DataContext db = null) where T : class, new()
         {
-            return FastWrite.UpdateListAsy<T>(list, field, db, _key, _enableSqlLog);
+            return UpdateListAsync(list, field, db);
         }
 
         /// <summary>
@@ -606,7 +705,7 @@ namespace FastData
         [Obsolete("请使用 DeleteAsync 代替，本方法将在未来版本移除")]
         public Task<WriteReturn> DeleteAsy<T>(Expression<Func<T, bool>> predicate, DataContext db = null) where T : class, new()
         {
-            return FastWrite.DeleteAsy<T>(predicate, db, _key, _enableSqlLog);
+            return DeleteAsync(predicate, db);
         }
 
         /// <summary>
@@ -751,6 +850,14 @@ namespace FastData
         public WriteReturn ExecuteSqlWrite(string sql, DbParameter[] param, DataContext db = null)
         {
             return FastWrite.ExecuteSql(sql, param, db, _key, _enableSqlLog);
+        }
+
+        /// <summary>
+        /// 原生 SQL 写入。ExecuteSqlWrite 的短别名。
+        /// </summary>
+        public WriteReturn Exec(string sql, DbParameter[] param = null, DataContext db = null)
+        {
+            return ExecuteSqlWrite(sql, param, db);
         }
 
         /// <summary>

@@ -18,6 +18,9 @@ using FastData.Aop;
 
 namespace FastData.Base
 {
+    /// <summary>
+    /// Provides XML mapping helpers for SQL maps and cached mapping metadata.
+    /// </summary>
     public static class MapXml
     {
         #region froeach数量

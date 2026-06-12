@@ -151,11 +151,11 @@ namespace FastData.Example.Example
 
                 foreach (var user in users)
                 {
-                    var result = FastWrite.Add(user, key: DbKey);
+                    var result = Db.Use(DbKey).Add(user);
                     Console.WriteLine($"  插入用户 '{user.UserName}': {(result.IsSuccess ? "成功" : "失败")}");
                 }
 
-                var count = FastRead.Query<LambdaQueryUser>(u => u.Id >= 0, key: DbKey).ToCount();
+                var count = Db.Use(DbKey).Count<LambdaQueryUser>();
                 Console.WriteLine($"\n  当前表中共有 {count} 条记录");
             }
             catch (Exception ex)
@@ -174,8 +174,8 @@ namespace FastData.Example.Example
             Console.WriteLine("----------------------------------------");
             try
             {
-                // 使用 Lambda 表达式构建条件
-                var users = FastRead.Query<LambdaQueryUser>(u => u.IsActive, key: DbKey).ToList();
+                // 使用推荐的短入口执行基础条件查询
+                var users = Db.Use(DbKey).List<LambdaQueryUser>(u => u.IsActive);
                 Console.WriteLine($"  查询条件: IsActive = true");
                 Console.WriteLine($"  结果数量: {users.Count} 条");
                 foreach (var user in users)
@@ -429,7 +429,7 @@ namespace FastData.Example.Example
             Console.WriteLine("----------------------------------------");
             try
             {
-                var result = FastWrite.ExecuteSql("DROP TABLE IF EXISTS LambdaQueryUsers", null, key: DbKey);
+                var result = Db.Use(DbKey).Exec("DROP TABLE IF EXISTS LambdaQueryUsers");
                 Console.WriteLine($"  删除表: {(result.IsSuccess ? "成功" : "失败")}");
 
                 // 删除测试数据库文件
