@@ -63,6 +63,8 @@ dotnet add package FastData
 </DataConfig>
 ```
 
+**简化配置**：连接节点只需填写 `Key`、`Provider`、`ConnStr`，其他属性（`CacheType`、`IsOutSql`、`IsOutError` 等）均有合理默认值，按需覆盖即可。
+
 ---
 
 ## 配置文件结构
@@ -97,7 +99,7 @@ dotnet add package FastData
 | `Provider` | 必填 | 数据库提供程序 |
 | `ConnStr` | 必填 | 连接字符串 |
 | `IsDefault` | false | 是否为默认连接 |
-| `CacheType` | web | 缓存类型（web=内存缓存/redis=Redis缓存） |
+| `CacheType` | web | 缓存类型（web=内存缓存/redis=Redis 缓存） |
 | `IsOutSql` | true | 是否输出 SQL 日志 |
 | `IsOutError` | true | 是否输出错误日志 |
 | `DesignModel` | DbFirst | 设计模式（DbFirst/CodeFirst） |
@@ -105,6 +107,8 @@ dotnet add package FastData
 | `SqlErrorType` | db | SQL 错误存放类型（db/file） |
 | `IsMapSave` | false | Map 文件是否存数据库 |
 | `IsEncrypt` | false | Map 文件是否加密 |
+
+**提示**：实际配置中只需填写 `Key`、`Provider`、`ConnStr`，其他属性使用默认值即可，按需覆盖。
 
 **Provider 值参考**：
 
@@ -224,6 +228,16 @@ client.Update(user);
 
 // 删除
 client.Delete<User>(u => u.Id == 1);
+```
+
+### CodeFirst 建表（多数据库兼容）
+
+```csharp
+// 根据实体类创建表结构，自动适配 SQL Server/MySQL/PostgreSQL/Oracle/SQLite 方言
+FastWrite.CodeFirst<User>(key: "DefaultDb", isDropExists: false);
+
+// 异步版本
+await FastWrite.CodeFirstAsync<User>(key: "DefaultDb", isDropExists: false);
 ```
 
 ### Lambda 查询

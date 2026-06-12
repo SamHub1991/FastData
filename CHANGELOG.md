@@ -2,6 +2,69 @@
 
 本文档记录 FastData 的所有重要变更。格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [2.5.0] - 2026-06-12
+
+### Changed
+
+- **配置简化**
+  - 简化连接配置节点：必填项只保留 `Key`、`Provider`、`ConnStr`，其他属性均有合理默认值
+  - 统一手写 XML 解析与 `ElementConfig` 的默认值行为
+  - 移除配置文件中冗余的注释和过长的连接池配置示例
+
+- **连接池可靠性改进**
+  - 修复 `PooledConnection.Dispose()` 在借用 - 归还循环中泄漏连接的问题
+  - 连接借用时重置 `_disposed` 标志，确保同一 wrapper 可安全重复使用
+  - 优化连接释放路径，finalizer 不再归还连接到池，避免失联对象重新入池
+
+- **多数据库兼容性增强**
+  - `CodeFirst<T>` 现在按 `DataDbType` 生成各数据库方言的 DDL
+  - 新增 `QuoteIdentifier()`、`BuildDropTableSql()`、`GetClrSqlType(..., dbType, isIdentity)`
+  - 支持 PostgreSQL SERIAL/BIGSERIAL、SQLite INTEGER、MySQL AUTO_INCREMENT、Oracle IDENTITY 语法
+
+- **命令对象生命周期优化**
+  - 替换多处 `DisposeCommand(cmd)` 为 `cmd.Parameters.Clear()`，避免 dispose 后继续复用
+  - 对齐同步/异步读取路径的 SQL Server `TOP` 查询构建，统一使用 `BuildBaseSelectQuery()`
+  - 修复 `GetJsonAsync` 重复追加 predicate 参数的问题
+
+- **Provider 自动注册改进**
+  - 新增 `DbProviderAutoRegistrar.GetFactory()` / `EnsureProvider()` / `GetInstallCommand()`
+  - 修正扫描逻辑，不再因第一个同名程序集不含 Factory 就提前返回
+  - 缺失驱动时抛出包含 NuGet 安装命令的明确异常
+
+### Added
+
+- **新增入口 API**
+  - `Db.Use(key)` / `Db.Default`：更短的 ORM 静态门面
+  - `FastDataClient.List/First/Count/Page`：常用查询短方法
+  - `FastDataClient.Sql/Exec`：原生 SQL 短别名
+
+- **新增测试**
+  - `ConfigFullChainTests`：配置端到端测试（默认值、连接池默认值、重复 Key fail-fast）
+  - `MultiDatabaseReliabilityTests`：三库通用可靠性测试（async CRUD/事务回滚/Count/Take/Page）
+  - `ProviderAutoRegistrationTests`：Provider 自动注册测试
+  - `ApplicationWarmupTests`：启动预热机制测试
+  - `DeleteOptimizationTests`：Delete 优化可靠性测试
+  - `FastIMTests`：QQ 机器人门面测试
+
+- **新增工具**
+  - `ApplicationWarmup.cs`：应用启动预热工具（预加载配置/连接池/Provider）
+
+### Fixed
+
+- 修复 SQL Server `Take/ToItem` 分支丢失 `WHERE` 子句的问题（同步路径已修复，异步路径本次对齐）
+- 修复 MySQL/PostgreSQL/SQLite 分页 offset 行为：改为 0-based (`pModel.StarId - 1`)
+- 修复 `UpdateAsync<T>(model, predicate, ...)` 异常分支漏写 `IsSuccess=false` 和 `Message`
+- 修复 `DataContext` 连接池键使用调用方 raw key 而非解析后 `_config.Key` 的问题
+- 修复配置缓存命中时重复加载并追加同一批连接，导致重复 Key 误报
+
+### Technical Details
+
+- 构建验证：`dotnet build -c Release --framework net10.0`：0 errors
+- 非数据库测试：21/21 通过
+- 多数据库可靠性测试：12/12 通过（SqlServer/MySql/PostgreSql）
+- PerDatabase ORM 基线：33/33 通过
+- `git diff --check`：clean
+
 ## [2.4.0] - 2026-06-02
 
 ### Changed
