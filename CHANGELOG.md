@@ -6,6 +6,16 @@
 
 ### Changed
 
+- **分表 CRUD 多数据库增强**
+  - `ShardAdd` / `ShardUpdate` / `ShardDelete` / `ShardQuery` / `ShardQueryPage` 现在实际路由到物理分表
+  - 分表写入路径按数据库方言格式化表名，覆盖 SQL Server / MySQL / PostgreSQL 的真实集成场景
+  - 分表更新不再依赖基础表主键元数据，避免仅创建物理分表时生成空 SQL
+
+- **Redis 队列写入可靠性增强**
+  - 写入队列操作保留 `DatabaseKey`，队列消费时按原数据库 key 回写
+  - 队列实体类型改为保存 `AssemblyQualifiedName`，提升跨程序集反序列化稳定性
+  - 队列消费、降级恢复和直接执行路径统一使用强类型 `FastWrite<T>` / `DataContext<T>` 调用，避免反序列化为 `object` 后写入错误表
+
 - **配置简化**
   - 简化连接配置节点：必填项只保留 `Key`、`Provider`、`ConnStr`，其他属性均有合理默认值
   - 统一手写 XML 解析与 `ElementConfig` 的默认值行为
@@ -33,12 +43,22 @@
 
 ### Added
 
+- **链式 Redis 队列配置**
+  - `FastWrite.QueueBuilder(dbName).WithRedis(...).WithQueue(...).Add(entity).Execute()` 支持在链式写入中显式配置 Redis
+  - 支持传入 Redis 连接字符串或已有 `FullRedis` 实例
+
 - **新增入口 API**
   - `Db.Use(key)` / `Db.Default`：更短的 ORM 静态门面
   - `FastDataClient.List/First/Count/Page`：常用查询短方法
   - `FastDataClient.Sql/Exec`：原生 SQL 短别名
 
 - **新增测试**
+  - `MultiDatabaseShardingCrudTests`：SQL Server / MySQL / PostgreSQL 分表 CRUD 与分页真实集成测试
+  - `MultiDatabaseRedisQueueTests`：Redis 队列跨数据库写入、消费与链式 Redis 配置真实集成测试
+  - `MultiDatabaseConnectionLifecycleTests`：连接生命周期、健康检查、连接池并发、扩缩容与泄漏 smoke 测试
+  - `MultiDatabaseTransactionTests`：事务提交、回滚、批量插入和事务内更新测试
+  - `MultiDatabaseConcurrencyTests`：并发读写、批量写入和连接池并发测试
+  - `MultiDatabaseEdgeTests`：空结果、特殊字符、Unicode、长字符串、分页和布尔值边界测试
   - `ConfigFullChainTests`：配置端到端测试（默认值、连接池默认值、重复 Key fail-fast）
   - `MultiDatabaseReliabilityTests`：三库通用可靠性测试（async CRUD/事务回滚/Count/Take/Page）
   - `ProviderAutoRegistrationTests`：Provider 自动注册测试
@@ -51,6 +71,10 @@
 
 ### Fixed
 
+- 修复分表读查询仍访问基础表的问题
+- 修复分表新增、更新、删除未替换为物理分表的问题
+- 修复 Redis 队列消费时 `Add<object>` / `Update<object>` / `Delete<object>` 导致写入错误表的问题
+- 修复队列降级恢复路径缺少数据库 key，可能回写到默认库的问题
 - 修复 SQL Server `Take/ToItem` 分支丢失 `WHERE` 子句的问题（同步路径已修复，异步路径本次对齐）
 - 修复 MySQL/PostgreSQL/SQLite 分页 offset 行为：改为 0-based (`pModel.StarId - 1`)
 - 修复 `UpdateAsync<T>(model, predicate, ...)` 异常分支漏写 `IsSuccess=false` 和 `Message`
@@ -62,6 +86,8 @@
 - 构建验证：`dotnet build -c Release --framework net10.0`：0 errors
 - 非数据库测试：21/21 通过
 - 多数据库可靠性测试：12/12 通过（SqlServer/MySql/PostgreSql）
+- 多数据库分表/Redis 队列/连接/并发/事务/边界集成测试：109/109 通过（SqlServer/MySql/PostgreSql/Sqlite，Redis 可用时覆盖队列）
+- 全量 net10 测试：527 passed, 1 skipped, 0 failed
 - PerDatabase ORM 基线：33/33 通过
 - `git diff --check`：clean
 

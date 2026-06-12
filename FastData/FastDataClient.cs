@@ -413,6 +413,7 @@ namespace FastData
                 OperationType = operationType,
                 EntityType = typeof(T).AssemblyQualifiedName,
                 TableName = TableNameHelper.GetTableName<T>(_key),
+                DatabaseKey = _key,
                 Data = Newtonsoft.Json.JsonConvert.SerializeObject(model)
             };
             

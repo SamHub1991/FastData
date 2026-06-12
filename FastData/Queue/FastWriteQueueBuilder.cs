@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
+using NewLife.Caching;
 using Newtonsoft.Json;
 using FastData.DbTypes;
 
@@ -19,6 +20,7 @@ namespace FastData.Queue
         private readonly string _databaseKey;
         private WriteBehindConfig _overrideConfig;
         private Dictionary<string, object> _globalMetadata;
+        private FullRedis _redis;
         private bool _enableSqlLog;
 
         internal FastWriteQueueBuilder(string databaseKey = null)
@@ -74,7 +76,7 @@ namespace FastData.Queue
             {
                 OperationType = WriteOperationType.Add,
                 TableName = Base.TableNameHelper.GetTableName<T>(),
-                EntityType = typeof(T).FullName,
+                EntityType = typeof(T).AssemblyQualifiedName,
                 Data = JsonConvert.SerializeObject(model),
                 DatabaseKey = _databaseKey,
                 Metadata = MergeMetadata(metadata)
@@ -156,7 +158,7 @@ namespace FastData.Queue
             {
                 OperationType = WriteOperationType.Update,
                 TableName = Base.TableNameHelper.GetTableName<T>(),
-                EntityType = typeof(T).FullName,
+                EntityType = typeof(T).AssemblyQualifiedName,
                 Data = JsonConvert.SerializeObject(model),
                 DatabaseKey = _databaseKey,
                 Metadata = MergeMetadata(metadata)
@@ -204,7 +206,7 @@ namespace FastData.Queue
             {
                 OperationType = WriteOperationType.Delete,
                 TableName = Base.TableNameHelper.GetTableName<T>(),
-                EntityType = typeof(T).FullName,
+                EntityType = typeof(T).AssemblyQualifiedName,
                 Data = JsonConvert.SerializeObject(model),
                 DatabaseKey = _databaseKey,
                 Metadata = MergeMetadata(metadata)
@@ -251,6 +253,29 @@ namespace FastData.Queue
         }
 
         /// <summary>
+        /// 为当前链式写入启用 Redis 队列支持。
+        /// </summary>
+        /// <param name="redisConnectionString">Redis 连接字符串。</param>
+        /// <param name="redisDb">Redis 数据库索引。</param>
+        /// <returns>构建器（支持链式调用）。</returns>
+        public FastWriteQueueBuilder WithRedis(string redisConnectionString = "127.0.0.1:6379", int redisDb = 7)
+        {
+            WriteBehindExecutor.Reconfigure(redisConnectionString, redisDb);
+            return this;
+        }
+
+        /// <summary>
+        /// 为当前链式写入启用 Redis 队列支持。
+        /// </summary>
+        /// <param name="redis">Redis 实例。</param>
+        /// <returns>构建器（支持链式调用）。</returns>
+        public FastWriteQueueBuilder WithRedis(FullRedis redis)
+        {
+            _redis = redis ?? throw new ArgumentNullException(nameof(redis));
+            return this;
+        }
+
+        /// <summary>
         /// 执行所有操作（同步）
         /// 自动根据表配置决定：直接写数据库 或 写消息队列
         /// 如果数据库异常且启用了降级，自动切换到可信队列
@@ -262,6 +287,9 @@ namespace FastData.Queue
             {
                 return new WriteBehindResult { Success = true, Message = "无操作" };
             }
+
+            if (_redis != null)
+                WriteBehindExecutor.Reconfigure(_redis);
 
             var result = WriteBehindExecutor.Execute(_operations, _databaseKey, _overrideConfig);
 

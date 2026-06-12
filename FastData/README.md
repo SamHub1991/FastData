@@ -321,6 +321,16 @@ var results = client.ShardQuery<Order>(
     o => o.CreateTime > DateTime.Now.AddMonths(-3),
     queryParams: new Dictionary<string, object> { { "CreateTime", DateTime.Now.AddMonths(-3) } }
 );
+
+// 分片写入会自动路由到物理分表
+client.ShardAdd(order);
+client.ShardUpdate(
+    new Order { OrderNo = order.OrderNo, Status = "paid" },
+    o => o.OrderNo == order.OrderNo,
+    o => new { o.Status });
+client.ShardDelete<Order>(
+    o => o.OrderNo == order.OrderNo,
+    queryParams: new Dictionary<string, object> { { "CreateTime", order.CreateTime } });
 ```
 
 ### 消息队列 (.NET 6+)
@@ -337,6 +347,18 @@ FastWrite.ConfigureQueue<User>(new WriteBehindConfig
 // 使用链式 API 写入
 var result = client.WriteQueue()
     .WithMetadata(new Dictionary<string, object> { { "source", "app" } })
+    .Add(user)
+    .Execute();
+
+// 链式 API 可显式指定 Redis，队列消费会按原数据库 Key 回写
+var queued = FastWrite.QueueBuilder("SqlServer")
+    .WithRedis("127.0.0.1:6379", redisDb: 7)
+    .WithQueue(new WriteBehindConfig
+    {
+        QueueType = WriteBehindQueueType.ReliableQueue,
+        Topic = "users:write",
+        EnableFallback = true
+    })
     .Add(user)
     .Execute();
 ```

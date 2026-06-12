@@ -2,10 +2,10 @@
 
 FastData.Tests 是 FastData ORM 生态系统的单元测试项目。
 
-**最新测试结果 (2026-05-31)**:
-- ✅ **192/197 测试通过** (97.5% 通过率)
-- ✅ **13 个测试类别全部覆盖**
-- ✅ **4 个数据库连接正常** (Redis/SQLServer/MySQL/PostgreSQL)
+**最新测试结果 (2026-06-12)**:
+- ✅ **527/528 测试通过**（1 个环境相关测试跳过）
+- ✅ **多数据库集成测试 109/109 通过**
+- ✅ **SQL Server / MySQL / PostgreSQL / SQLite / Redis 场景覆盖**
 
 ## 测试框架
 
@@ -54,12 +54,15 @@ dotnet test FastData.Tests --verbosity normal
 
 # 运行特定框架
 dotnet test FastData.Tests --framework net10.0
+
+# 运行真实多数据库集成测试
+FASTDATA_RUN_DB_INTEGRATION=true dotnet test FastData.Tests/FastData.Tests.csproj --framework net10.0 -m:1 --filter "FullyQualifiedName~MultiDatabase"
 ```
 
 ## 当前测试结果
 
 ```
-Passed!  - Failed: 0, Passed: 224, Skipped: 1, Total: 225
+Passed!  - Failed: 0, Passed: 527, Skipped: 1, Total: 528
 ```
 
 ## 测试覆盖
@@ -72,6 +75,14 @@ Passed!  - Failed: 0, Passed: 224, Skipped: 1, Total: 225
 - 查询频率分表：热数据检测
 - 冷数据迁移到独立表
 - ShardingManager 生命周期（配置/启用/禁用/重置）
+- 多数据库物理分表 CRUD、分页和路由验证（SQL Server / MySQL / PostgreSQL）
+
+### 多数据库集成测试
+- 连接生命周期、健康检查、连接池并发、扩缩容与泄漏 smoke
+- 事务提交、回滚、批量插入和事务内更新
+- 并发读写、批量写入和连接池并发
+- 空结果、特殊字符、Unicode、长字符串、分页和布尔值边界
+- Redis 队列跨数据库写入、消费、降级恢复和链式 Redis 配置
 
 ### 查询测试
 - AND/OR 条件链式调用

@@ -1,14 +1,12 @@
 #if !NETFRAMEWORK
 using System;
 using System.Collections.Generic;
-using System.Reflection;
 using System.Threading;
 using FastData.Model;
 using FastRedis.Messaging;
 using FastRedis.Services;
 using NewLife.Caching;
 using NewLife.Log;
-using Newtonsoft.Json;
 
 namespace FastData.Queue
 {
@@ -324,39 +322,8 @@ namespace FastData.Queue
 
             try
             {
-                WriteReturn writeReturn;
                 var key = operation.DatabaseKey ?? databaseKey;
-
-                // 解析实体类型（支持程序集限定名）
-                var entityType = ResolveEntityType(operation.EntityType);
-                if (entityType == null)
-                {
-                    result.Success = false;
-                    result.ErrorMessage = $"无法解析实体类型: {operation.EntityType}";
-                    XTrace.WriteLine($"[WriteBehind] 类型解析失败: {operation.EntityType}");
-                    return result;
-                }
-
-                switch (operation.OperationType)
-                {
-                    case WriteOperationType.Add:
-                        var model = JsonConvert.DeserializeObject(operation.Data, entityType);
-                        writeReturn = FastWrite.Add(model, key: key);
-                        break;
-
-                    case WriteOperationType.Update:
-                        var updateModel = JsonConvert.DeserializeObject(operation.Data, entityType);
-                        writeReturn = FastWrite.Update(updateModel, key: key);
-                        break;
-
-                    case WriteOperationType.Delete:
-                        var deleteModel = JsonConvert.DeserializeObject(operation.Data, entityType);
-                        writeReturn = FastWrite.Delete(deleteModel, key: key);
-                        break;
-
-                    default:
-                        throw new NotSupportedException($"不支持的操作类型: {operation.OperationType}");
-                }
+                var writeReturn = QueueWriteInvoker.Execute(operation, key);
 
                 result.Success = writeReturn.IsSuccess;
                 if (!writeReturn.IsSuccess)
@@ -372,31 +339,6 @@ namespace FastData.Queue
             }
 
             return result;
-        }
-
-        /// <summary>
-        /// 解析实体类型字符串为 Type 对象
-        /// 支持程序集限定名格式: "Namespace.TypeName, AssemblyName"
-        /// </summary>
-        private static Type ResolveEntityType(string typeName)
-        {
-            if (string.IsNullOrWhiteSpace(typeName))
-                return null;
-
-            // 尝试标准解析（包含程序集信息）
-            var type = Type.GetType(typeName, throwOnError: false, ignoreCase: true);
-            if (type != null)
-                return type;
-
-            // 如果失败，尝试在所有已加载的程序集中查找
-            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
-            {
-                type = assembly.GetType(typeName, throwOnError: false, ignoreCase: true);
-                if (type != null)
-                    return type;
-            }
-
-            return null;
         }
 
         /// <summary>

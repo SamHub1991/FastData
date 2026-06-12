@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
+using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using FastData.Base;
@@ -319,26 +321,59 @@ namespace FastData.Core
             switch (operation.OperationType)
             {
                 case WriteOperationType.Add:
-                    var model = Newtonsoft.Json.JsonConvert.DeserializeObject(operation.Data, 
-                        Type.GetType(operation.EntityType));
-                    var addResult = context.Add(model);
-                    return addResult.WriteReturn;
+                    var modelType = ResolveEntityType(operation.EntityType);
+                    var model = Newtonsoft.Json.JsonConvert.DeserializeObject(operation.Data, modelType);
+                    return InvokeContextWrite(context, "Add", modelType, model);
 
                 case WriteOperationType.Update:
-                    var updateModel = Newtonsoft.Json.JsonConvert.DeserializeObject(operation.Data, 
-                        Type.GetType(operation.EntityType));
-                    var updateResult = context.Update(updateModel);
-                    return updateResult.WriteReturn;
+                    var updateType = ResolveEntityType(operation.EntityType);
+                    var updateModel = Newtonsoft.Json.JsonConvert.DeserializeObject(operation.Data, updateType);
+                    return InvokeContextWrite(context, "Update", updateType, updateModel);
 
                 case WriteOperationType.Delete:
-                    var deleteModel = Newtonsoft.Json.JsonConvert.DeserializeObject(operation.Data, 
-                        Type.GetType(operation.EntityType));
-                    var deleteResult = context.Delete(deleteModel);
-                    return deleteResult.WriteReturn;
+                    var deleteType = ResolveEntityType(operation.EntityType);
+                    var deleteModel = Newtonsoft.Json.JsonConvert.DeserializeObject(operation.Data, deleteType);
+                    return InvokeContextWrite(context, "Delete", deleteType, deleteModel);
 
                 default:
                     return new WriteReturn { IsSuccess = false, Message = string.Format("不支持的操作类型: {0}", operation.OperationType) };
             }
+        }
+
+        private static WriteReturn InvokeContextWrite(DataContext context, string methodName, Type entityType, object model)
+        {
+            var method = typeof(DataContext).GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                .Where(m => m.Name == methodName && m.IsGenericMethodDefinition)
+                .First(m =>
+                {
+                    var parameters = m.GetParameters();
+                    return parameters.Length >= 1 && parameters[0].ParameterType.IsGenericParameter;
+                });
+            var genericMethod = method.MakeGenericMethod(entityType);
+            var args = genericMethod.GetParameters()
+                .Select(p => p.Name == "model" ? model : p.DefaultValue)
+                .ToArray();
+            var result = genericMethod.Invoke(context, args);
+            return (WriteReturn)result.GetType().GetProperty("WriteReturn").GetValue(result);
+        }
+
+        private static Type ResolveEntityType(string typeName)
+        {
+            if (string.IsNullOrWhiteSpace(typeName))
+                throw new InvalidOperationException("实体类型不能为空");
+
+            var type = Type.GetType(typeName, throwOnError: false, ignoreCase: true);
+            if (type != null)
+                return type;
+
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                type = assembly.GetType(typeName, throwOnError: false, ignoreCase: true);
+                if (type != null)
+                    return type;
+            }
+
+            throw new InvalidOperationException(string.Format("无法解析实体类型: {0}", typeName));
         }
 
         /// <summary>

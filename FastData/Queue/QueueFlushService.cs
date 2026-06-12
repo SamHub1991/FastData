@@ -8,7 +8,6 @@ using FastRedis.Messaging;
 using FastRedis.Services;
 using NewLife.Caching;
 using NewLife.Log;
-using Newtonsoft.Json;
 
 namespace FastData.Queue
 {
@@ -163,29 +162,8 @@ namespace FastData.Queue
 
             try
             {
-                WriteReturn writeReturn;
                 var key = operation.DatabaseKey;
-
-                switch (operation.OperationType)
-                {
-                    case WriteOperationType.Add:
-                        var model = JsonConvert.DeserializeObject(operation.Data, global::System.Type.GetType(operation.EntityType));
-                        writeReturn = FastWrite.Add(model, key: key);
-                        break;
-
-                    case WriteOperationType.Update:
-                        var updateModel = JsonConvert.DeserializeObject(operation.Data, global::System.Type.GetType(operation.EntityType));
-                        writeReturn = FastWrite.Update(updateModel, key: key);
-                        break;
-
-                    case WriteOperationType.Delete:
-                        var deleteModel = JsonConvert.DeserializeObject(operation.Data, global::System.Type.GetType(operation.EntityType));
-                        writeReturn = FastWrite.Delete(deleteModel, key: key);
-                        break;
-
-                    default:
-                        throw new NotSupportedException($"不支持的操作类型: {operation.OperationType}");
-                }
+                var writeReturn = QueueWriteInvoker.Execute(operation, key);
 
                 result.Success = writeReturn.IsSuccess;
                 if (!writeReturn.IsSuccess)
