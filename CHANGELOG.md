@@ -2,6 +2,30 @@
 
 本文档记录 FastData 的所有重要变更。格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [2.6.0] - 2026-06-13
+
+### Added
+
+- **代码生成工具增强**
+  - 新增 `ShardingReadHelper`/`ShardingWriteHelper` 分表读写示例
+  - 更新 `FastDataClientQueueExample` 链式 Redis 队列配置
+  - 更新 `ReliableQueueExample` 多数据库队列降级场景
+  - 更新 README 反映最新 API 和使用方式
+
+### Changed
+
+- **文档更新**
+  - `FastData.Example/README.md` 新增分表/队列示例说明
+  - `FastData.Tests/README.md` 更新测试结果和集成测试命令
+  - `README.md` 版本更新到 v2.6.0
+
+### Technical Details
+
+- 构建验证：`dotnet build -c Release --framework net10.0`：0 errors
+- 全量测试：527 passed, 1 skipped, 0 failed
+- 多数据库集成测试：109/109 通过（SqlServer/MySql/PostgreSql/Sqlite，Redis 可用时覆盖队列）
+- `git diff --check`：clean
+
 ## [2.5.0] - 2026-06-12
 
 ### Changed
